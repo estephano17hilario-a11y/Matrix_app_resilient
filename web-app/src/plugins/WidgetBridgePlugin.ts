@@ -10,12 +10,15 @@ export interface WidgetBridgePlugin {
     rivalAvatar: string;
     rivalLevel: number;
     rivalActivity: string;
-    userTasks: number;
+    rivalTasks?: number;
     targetTasks: number;
-    userFocus: number;
+    rivalFocus?: number;
     targetFocus: number;
-    userHabits: number;
+    rivalHabits?: number;
     targetHabits: number;
+    userTasks: number;
+    userFocus: number;
+    userHabits: number;
     isVictory: boolean;
   }): Promise<void>;
 }

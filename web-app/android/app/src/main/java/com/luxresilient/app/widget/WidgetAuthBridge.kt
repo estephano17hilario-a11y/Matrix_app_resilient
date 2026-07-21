@@ -147,12 +147,15 @@ class WidgetAuthBridge : Plugin() {
         val rivalLevel = call.getInt("rivalLevel") ?: 1
         val rivalActivity = call.getString("rivalActivity") ?: "🔴 En Enfoque Profundo"
 
+        val rivalTasks = call.getInt("rivalTasks") ?: 0
         val userTasks = call.getInt("userTasks") ?: 0
         val targetTasks = call.getInt("targetTasks") ?: 1
 
+        val rivalFocus = (call.getDouble("rivalFocus") ?: 0.0).toFloat()
         val userFocus = (call.getDouble("userFocus") ?: 0.0).toFloat()
         val targetFocus = (call.getDouble("targetFocus") ?: 1.0).toFloat()
 
+        val rivalHabits = call.getInt("rivalHabits") ?: 0
         val userHabits = call.getInt("userHabits") ?: 0
         val targetHabits = call.getInt("targetHabits") ?: 25
 
@@ -166,16 +169,19 @@ class WidgetAuthBridge : Plugin() {
                 .putString("rival_avatar", rivalAvatar)
                 .putInt("rival_level", rivalLevel)
                 .putString("rival_activity", rivalActivity)
+                .putInt("rival_tasks", rivalTasks)
                 .putInt("user_tasks", userTasks)
                 .putInt("target_tasks", targetTasks)
+                .putFloat("rival_focus", rivalFocus)
                 .putFloat("user_focus", userFocus)
                 .putFloat("target_focus", targetFocus)
+                .putInt("rival_habits", rivalHabits)
                 .putInt("user_habits", userHabits)
                 .putInt("target_habits", targetHabits)
                 .putBoolean("is_victory", isVictory)
                 .apply()
 
-            Log.d(TAG, "Rivals data updated in widget preferences: $rivalName ($userTasks/$targetTasks tasks)")
+            Log.d(TAG, "Rivals data updated in widget preferences: $rivalName (User $userTasks v Rival $rivalTasks tasks)")
 
             val intent = Intent(context, RivalsWidgetProvider::class.java).apply {
                 action = RivalsWidgetProvider.ACTION_REFRESH_RIVALS

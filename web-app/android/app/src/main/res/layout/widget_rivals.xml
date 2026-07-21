@@ -4,63 +4,194 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_glass_bg"
-    android:padding="12dp">
+    android:padding="8dp">
 
-    <!-- Main Container -->
+    <!-- 1x1 COMPACT LAYOUT -->
     <LinearLayout
-        android:id="@+id/rivals_content_container"
+        android:id="@+id/rivals_layout_1x1"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:gravity="center"
         android:orientation="vertical"
-        android:gravity="center_vertical">
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/rival_avatar_1x1"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/widget_avatar_bg"
+            android:gravity="center"
+            android:text="⌛"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/rival_name_1x1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Rival"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/rivals_stats_1x1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="T: 0 v 0"
+            android:textColor="#60A5FA"
+            android:textSize="9sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/rivals_status_1x1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="⚔️ En Duelo"
+            android:textColor="#F59E0B"
+            android:textSize="8sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- 2x1 HORIZONTAL LAYOUT -->
+    <LinearLayout
+        android:id="@+id/rivals_layout_horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="4dp"
+        android:paddingRight="4dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/rival_avatar_horiz"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/widget_avatar_bg"
+            android:gravity="center"
+            android:text="⌛"
+            android:textSize="20sp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:paddingLeft="6dp"
+            android:paddingRight="6dp">
+
+            <TextView
+                android:id="@+id/rival_name_horiz"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Francesco Cirillo"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/rival_activity_horiz"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="🔴 En Enfoque Profundo"
+                android:textColor="#F59E0B"
+                android:textSize="8sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/rivals_stats_horiz"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="T: 0 v 0 | F: 0h v 0h"
+                android:textColor="#60A5FA"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/rivals_status_horiz"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="⚔️ DUELO EN CURSO"
+                android:textColor="#F59E0B"
+                android:textSize="8sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- FULL 2x2+ GRID LAYOUT -->
+    <LinearLayout
+        android:id="@+id/rivals_layout_full"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="vertical"
+        android:paddingLeft="4dp"
+        android:paddingRight="4dp"
+        android:visibility="visible">
 
         <!-- Rival Info Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingBottom="6dp">
+            android:orientation="horizontal"
+            android:paddingBottom="4dp">
 
             <!-- Avatar Circle -->
             <TextView
                 android:id="@+id/rival_avatar_text"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
                 android:background="@drawable/widget_avatar_bg"
                 android:gravity="center"
                 android:text="⌛"
-                android:textSize="20sp" />
+                android:textSize="22sp" />
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:paddingStart="8dp"
-                android:paddingEnd="4dp">
+                android:paddingLeft="8dp"
+                android:paddingRight="4dp">
 
                 <TextView
                     android:id="@+id/rival_name_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
                     android:text="Francesco Cirillo"
                     android:textColor="#FFFFFF"
                     android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/rival_activity_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
                     android:text="🔴 En Enfoque Profundo"
                     android:textColor="#F59E0B"
                     android:textSize="9sp"
-                    android:textStyle="bold"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <!-- Level Badge -->
@@ -79,13 +210,13 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Horizontal Divider Line -->
+        <!-- Divider Line -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#22FFFFFF"
             android:layout_marginTop="4dp"
-            android:layout_marginBottom="4dp" />
+            android:layout_marginBottom="4dp"
+            android:background="#22FFFFFF" />
 
         <!-- Live Comparison Stats Row -->
         <LinearLayout
@@ -93,32 +224,32 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:weightSum="3"
-            android:paddingTop="4dp">
+            android:paddingTop="2dp"
+            android:weightSum="3">
 
             <!-- Tareas Stat -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
+                android:gravity="center"
+                android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="TAREAS"
+                    android:text="TAREAS (TÚ v RIVAL)"
                     android:textColor="#94A3B8"
-                    android:textSize="8sp"
+                    android:textSize="7sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/rivals_tasks_val"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0 / 1"
+                    android:text="0 v 0"
                     android:textColor="#60A5FA"
-                    android:textSize="12sp"
+                    android:textSize="13sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -127,24 +258,24 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
+                android:gravity="center"
+                android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="FOCO"
+                    android:text="FOCO (TÚ v RIVAL)"
                     android:textColor="#94A3B8"
-                    android:textSize="8sp"
+                    android:textSize="7sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/rivals_focus_val"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0h / 1h"
+                    android:text="0h v 0h"
                     android:textColor="#C084FC"
-                    android:textSize="12sp"
+                    android:textSize="13sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
@@ -153,29 +284,29 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
+                android:gravity="center"
+                android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="HÁBITOS"
+                    android:text="HÁBITOS (TÚ v RIVAL)"
                     android:textColor="#94A3B8"
-                    android:textSize="8sp"
+                    android:textSize="7sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/rivals_habits_val"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0% / 25%"
+                    android:text="0% v 0%"
                     android:textColor="#FB923C"
-                    android:textSize="12sp"
+                    android:textSize="13sp"
                     android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Victory Status Banner -->
+        <!-- Victory / In-Progress Status Banner -->
         <TextView
             android:id="@+id/rivals_status_banner"
             android:layout_width="match_parent"

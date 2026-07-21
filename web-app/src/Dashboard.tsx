@@ -663,6 +663,13 @@ export default function Dashboard() {
         } catch (e) {
           console.error('Failed to parse journal deep link URL:', e);
         }
+      } else if (event.url && (event.url.includes('luxapp://rivals') || event.url.includes('rivals'))) {
+        try {
+          console.log('🎯 [Dashboard Deep Link] Routing to RIVALS section');
+          setActiveModal('RIVALS');
+        } catch (e) {
+          console.error('Failed to handle rivals deep link URL:', e);
+        }
       }
     };
 

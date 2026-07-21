@@ -117,6 +117,8 @@ class ScoreWidgetProvider : AppWidgetProvider() {
         val scoreStr = if (score >= 0) "$score%" else "--"
         views.setTextViewText(R.id.score_widget_value_vert, scoreStr)
         views.setTextViewText(R.id.score_widget_value_horiz, scoreStr)
+        views.setTextViewText(R.id.score_widget_title_vert, "FEED DE HOY")
+        views.setTextViewText(R.id.score_widget_sub_vert, "Rendimiento Diario")
 
         // Determine resizing options / responsiveness
         val options = appWidgetManager.getAppWidgetOptions(widgetId)

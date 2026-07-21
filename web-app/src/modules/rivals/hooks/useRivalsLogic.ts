@@ -68,6 +68,8 @@ export function useRivalsLogic(
     const endTime = new Date(now);
     endTime.setHours(workEndHour, rival.workEndMinute || 0, 0, 0);
 
+    const isSleeping = now.getHours() >= 22 || now.getHours() < workStartHour;
+
     if (now < startTime) {
       return {
         status: 'WAITING' as const,
@@ -76,7 +78,7 @@ export function useRivalsLogic(
         simulatedFocusMinutes: 0,
         simulatedHabitPct: 0,
         message: `El rival iniciará su jornada a las ${workStartHour}:${workStartMinute.toString().padStart(2, '0')}.`,
-        currentActivity: `Preparando bloques de trabajo para su jornada.`
+        currentActivity: isSleeping ? `😴 Durmiendo. Se prepara para su jornada.` : `☕ Iniciando rutina matutina y preparando bloques de trabajo.`
       };
     }
 
@@ -88,7 +90,7 @@ export function useRivalsLogic(
         simulatedFocusMinutes: rival.targetFocusMinutes,
         simulatedHabitPct: rival.targetHabitPct,
         message: `Jornada finalizada (${workStartHour}:00 - ${workEndHour}:00).`,
-        currentActivity: `Ha completado su jornada del día. ¡Tienes hasta las 11:59 PM para superarlo!`
+        currentActivity: isSleeping ? `😴 Durmiendo. Jornada del día finalizada.` : `🌙 Jornada completada. ¡Tienes hasta las 11:59 PM para superarlo!`
       };
     }
 
@@ -103,13 +105,13 @@ export function useRivalsLogic(
 
     let currentActivity = `Realizando sesión de Enfoque Profundo.`;
     if (ratio < 0.25) {
-      currentActivity = `Ejecutando su 1er bloque de Enfoque Profundo y planeación diaria.`;
+      currentActivity = `💻 Ejecutando su 1er bloque de Enfoque y tareas matutinas (+${simulatedTasks} t).`;
     } else if (ratio < 0.50) {
-      currentActivity = `Completando hábitos estratégicos matutinos y rutina de disciplina.`;
+      currentActivity = `⚡ Completando hábitos estratégicos y tareas (+${simulatedTasks} t, ${Math.round(simulatedFocusMinutes / 60)}h foco).`;
     } else if (ratio < 0.75) {
-      currentActivity = `Procesando Tarea Compleja Hardcore (+${simulatedTasks} tarea(s) acumulada(s)).`;
+      currentActivity = `🔥 Enfoque Hardcore en proyecto complejo (+${simulatedTasks} t).`;
     } else {
-      currentActivity = `En sprint final de productividad antes de cerrar su jornada.`;
+      currentActivity = `🚀 Sprint final de productividad antes de cerrar jornada.`;
     }
 
     return {
@@ -150,12 +152,15 @@ export function useRivalsLogic(
         rivalAvatar: activeUnlockedRival.avatar,
         rivalLevel: activeUnlockedRival.level,
         rivalActivity: rivalLiveState.currentActivity,
-        userTasks: userTasksCompleted,
+        rivalTasks: rivalLiveState.simulatedTasks,
         targetTasks: activeUnlockedRival.targetTasks,
-        userFocus: userFocusMinutes / 60,
+        rivalFocus: rivalLiveState.simulatedFocusMinutes / 60,
         targetFocus: activeUnlockedRival.targetFocusMinutes / 60,
-        userHabits: userHabitPct,
+        rivalHabits: rivalLiveState.simulatedHabitPct,
         targetHabits: activeUnlockedRival.targetHabitPct,
+        userTasks: userTasksCompleted,
+        userFocus: userFocusMinutes / 60,
+        userHabits: userHabitPct,
         isVictory: duelEvaluation.isVictor
       }).catch(e => console.error('Failed to sync native rivals widget:', e));
     } catch (e) {
