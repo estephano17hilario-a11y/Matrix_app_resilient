@@ -19,6 +19,25 @@ class RivalsWidgetProvider : AppWidgetProvider() {
         private const val TAG = "RivalsWidgetProvider"
         const val ACTION_REFRESH_RIVALS = "com.luxresilient.app.REFRESH_RIVALS_WIDGET"
         private const val PREFS_NAME = "lux_widget_auth"
+
+        // Hardcoded rival configs (mirrors rivalsConfig.ts first 10 levels)
+        data class RivalConfig(
+            val level: Int, val name: String, val avatar: String,
+            val targetTasks: Int, val targetFocusMinutes: Int, val targetHabitPct: Int,
+            val workStartHour: Int = 9, val workEndHour: Int = 18
+        )
+        val RIVAL_CONFIGS = listOf(
+            RivalConfig(1, "Francesco Cirillo", "⌛", 1, 60, 25),
+            RivalConfig(2, "Tiago Forte", "🧠", 1, 90, 30),
+            RivalConfig(3, "Cal Newport", "🎯", 2, 120, 35),
+            RivalConfig(4, "David Allen", "📋", 2, 150, 40),
+            RivalConfig(5, "Ryder Carroll", "📓", 3, 90, 45),
+            RivalConfig(6, "James Clear", "🔄", 3, 120, 50),
+            RivalConfig(7, "Tim Ferriss", "⚡", 4, 180, 55),
+            RivalConfig(8, "Robin Sharma", "🌅", 5, 240, 60),
+            RivalConfig(9, "Tony Robbins", "🔥", 6, 180, 65),
+            RivalConfig(10, "Elon Musk", "🚀", 8, 360, 70, 6, 23)
+        )
     }
 
     override fun onUpdate(
@@ -63,24 +82,71 @@ class RivalsWidgetProvider : AppWidgetProvider() {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val capPrefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
 
-        val rivalName = prefs.getString("rival_name", null) ?: capPrefs.getString("rival_name", "Francesco Cirillo")
-        val rivalAvatar = prefs.getString("rival_avatar", null) ?: capPrefs.getString("rival_avatar", "⌛")
-        val rivalLevel = try { prefs.getInt("rival_level", 1) } catch (e: Exception) { 1 }
-        val rivalActivity = prefs.getString("rival_activity", null) ?: capPrefs.getString("rival_activity", "🔴 En Enfoque Profundo")
+        // Read from lux_widget_auth first, fallback to CapacitorStorage
+        var rivalName = prefs.getString("rival_name", null) ?: capPrefs.getString("rival_name", null)
+        var rivalAvatar = prefs.getString("rival_avatar", null) ?: capPrefs.getString("rival_avatar", null)
+        var rivalLevel = try { prefs.getInt("rival_level", 0) } catch (e: Exception) { 0 }
+        if (rivalLevel == 0) { rivalLevel = try { capPrefs.getInt("rival_level", 0) } catch (e: Exception) { 0 } }
+        var rivalActivity = prefs.getString("rival_activity", null) ?: capPrefs.getString("rival_activity", null)
 
-        val rivalTasks = try { prefs.getInt("rival_tasks", 0) } catch (e: Exception) { 0 }
-        val userTasks = try { prefs.getInt("user_tasks", 0) } catch (e: Exception) { 0 }
-        val targetTasks = try { prefs.getInt("target_tasks", 1) } catch (e: Exception) { 1 }
+        var rivalTasks = try { prefs.getInt("rival_tasks", -1) } catch (e: Exception) { -1 }
+        if (rivalTasks < 0) { rivalTasks = try { capPrefs.getInt("rival_tasks", -1) } catch (e: Exception) { -1 } }
+        var userTasks = try { prefs.getInt("user_tasks", -1) } catch (e: Exception) { -1 }
+        if (userTasks < 0) { userTasks = try { capPrefs.getInt("user_tasks", -1) } catch (e: Exception) { -1 } }
+        var targetTasks = try { prefs.getInt("target_tasks", 0) } catch (e: Exception) { 0 }
 
-        val rivalFocus = try { prefs.getFloat("rival_focus", 0.0f) } catch (e: Exception) { 0.0f }
-        val userFocus = try { prefs.getFloat("user_focus", 0.0f) } catch (e: Exception) { 0.0f }
-        val targetFocus = try { prefs.getFloat("target_focus", 1.0f) } catch (e: Exception) { 1.0f }
+        var rivalFocus = try { prefs.getFloat("rival_focus", -1.0f) } catch (e: Exception) { -1.0f }
+        if (rivalFocus < 0) { rivalFocus = try { capPrefs.getFloat("rival_focus", -1.0f) } catch (e: Exception) { -1.0f } }
+        var userFocus = try { prefs.getFloat("user_focus", -1.0f) } catch (e: Exception) { -1.0f }
+        if (userFocus < 0) { userFocus = try { capPrefs.getFloat("user_focus", -1.0f) } catch (e: Exception) { -1.0f } }
+        var targetFocus = try { prefs.getFloat("target_focus", 0.0f) } catch (e: Exception) { 0.0f }
 
-        val rivalHabits = try { prefs.getInt("rival_habits", 0) } catch (e: Exception) { 0 }
-        val userHabits = try { prefs.getInt("user_habits", 0) } catch (e: Exception) { 0 }
-        val targetHabits = try { prefs.getInt("target_habits", 25) } catch (e: Exception) { 25 }
+        var rivalHabits = try { prefs.getInt("rival_habits", -1) } catch (e: Exception) { -1 }
+        if (rivalHabits < 0) { rivalHabits = try { capPrefs.getInt("rival_habits", -1) } catch (e: Exception) { -1 } }
+        var userHabits = try { prefs.getInt("user_habits", -1) } catch (e: Exception) { -1 }
+        if (userHabits < 0) { userHabits = try { capPrefs.getInt("user_habits", -1) } catch (e: Exception) { -1 } }
+        var targetHabits = try { prefs.getInt("target_habits", 0) } catch (e: Exception) { 0 }
 
-        val isVictory = try { prefs.getBoolean("is_victory", false) } catch (e: Exception) { false }
+        var isVictory = try { prefs.getBoolean("is_victory", false) } catch (e: Exception) { false }
+
+        // If no data from SharedPrefs, calculate natively from cache (same as ScoreWidget's calculateNativeScore)
+        val needsFallback = rivalName == null || userTasks < 0 || userHabits < 0
+        if (needsFallback) {
+            Log.d(TAG, "SharedPrefs empty/stale — calculating native rivals data from cache")
+            val nativeData = calculateNativeRivalsData(context)
+            if (nativeData != null) {
+                if (rivalName == null) rivalName = nativeData.rivalName
+                if (rivalAvatar == null) rivalAvatar = nativeData.rivalAvatar
+                if (rivalLevel == 0) rivalLevel = nativeData.rivalLevel
+                if (rivalActivity == null) rivalActivity = nativeData.rivalActivity
+                if (rivalTasks < 0) rivalTasks = nativeData.rivalTasks
+                if (userTasks < 0) userTasks = nativeData.userTasks
+                if (targetTasks == 0) targetTasks = nativeData.targetTasks
+                if (rivalFocus < 0) rivalFocus = nativeData.rivalFocus
+                if (userFocus < 0) userFocus = nativeData.userFocus
+                if (targetFocus == 0.0f) targetFocus = nativeData.targetFocus
+                if (rivalHabits < 0) rivalHabits = nativeData.rivalHabits
+                if (userHabits < 0) userHabits = nativeData.userHabits
+                if (targetHabits == 0) targetHabits = nativeData.targetHabits
+                isVictory = nativeData.isVictory
+            }
+        }
+
+        // Ensure no negative sentinel values leak into UI
+        if (rivalTasks < 0) rivalTasks = 0
+        if (userTasks < 0) userTasks = 0
+        if (rivalFocus < 0) rivalFocus = 0.0f
+        if (userFocus < 0) userFocus = 0.0f
+        if (rivalHabits < 0) rivalHabits = 0
+        if (userHabits < 0) userHabits = 0
+        if (rivalName == null) rivalName = "Francesco Cirillo"
+        if (rivalAvatar == null) rivalAvatar = "⌛"
+        if (rivalActivity == null) rivalActivity = "🔴 En Enfoque Profundo"
+        if (targetTasks == 0) targetTasks = 1
+        if (targetFocus == 0.0f) targetFocus = 1.0f
+        if (targetHabits == 0) targetHabits = 25
+
+        Log.d(TAG, "Widget data: User(T:$userTasks F:${userFocus}h H:$userHabits%) vs $rivalName(T:$rivalTasks F:${rivalFocus}h H:$rivalHabits%) victory=$isVictory")
 
         val views = RemoteViews(context.packageName, R.layout.widget_rivals)
 
@@ -179,5 +245,138 @@ class RivalsWidgetProvider : AppWidgetProvider() {
         }
 
         appWidgetManager.updateAppWidget(widgetId, views)
+    }
+
+    /**
+     * Native fallback: calculate rivals data from local cache when SharedPrefs are empty.
+     * Same pattern as ScoreWidgetProvider.calculateNativeScore().
+     */
+    data class NativeRivalsData(
+        val rivalName: String, val rivalAvatar: String, val rivalLevel: Int,
+        val rivalActivity: String,
+        val rivalTasks: Int, val userTasks: Int, val targetTasks: Int,
+        val rivalFocus: Float, val userFocus: Float, val targetFocus: Float,
+        val rivalHabits: Int, val userHabits: Int, val targetHabits: Int,
+        val isVictory: Boolean
+    )
+
+    private fun calculateNativeRivalsData(context: Context): NativeRivalsData? {
+        return try {
+            val capPrefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
+            val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+
+            // 1. Determine current rival level from localStorage cache
+            var unlockedLevel = 1
+            try {
+                val progressJson = capPrefs.getString("matrix_rivals_progress", null)
+                if (!progressJson.isNullOrEmpty()) {
+                    val progressObj = com.google.gson.JsonParser.parseString(progressJson).asJsonObject
+                    unlockedLevel = progressObj.get("unlockedLevel")?.asInt ?: 1
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not parse rivals progress: ${e.message}")
+            }
+
+            val rivalConfig = RIVAL_CONFIGS.find { it.level == unlockedLevel } ?: RIVAL_CONFIGS[0]
+            Log.d(TAG, "Native rivals calc: Level=$unlockedLevel, Rival=${rivalConfig.name}")
+
+            // 2. Calculate rival's simulated progress based on time of day
+            val now = java.util.Calendar.getInstance()
+            val currentHour = now.get(java.util.Calendar.HOUR_OF_DAY)
+            val currentMinute = now.get(java.util.Calendar.MINUTE)
+            val currentTimeMinutes = currentHour * 60 + currentMinute
+            val workStartMinutes = rivalConfig.workStartHour * 60
+            val workEndMinutes = rivalConfig.workEndHour * 60
+            val totalWorkMinutes = workEndMinutes - workStartMinutes
+
+            val ratio: Float
+            val rivalActivity: String
+            if (currentTimeMinutes < workStartMinutes) {
+                ratio = 0.0f
+                rivalActivity = if (currentHour >= 22 || currentHour < rivalConfig.workStartHour) "😴 Durmiendo" else "☕ Preparándose"
+            } else if (currentTimeMinutes >= workEndMinutes) {
+                ratio = 1.0f
+                rivalActivity = "🌙 Jornada completada"
+            } else {
+                val elapsed = currentTimeMinutes - workStartMinutes
+                ratio = Math.min(1.0f, elapsed.toFloat() / totalWorkMinutes.toFloat())
+                rivalActivity = when {
+                    ratio < 0.25f -> "💻 Bloque de enfoque matutino"
+                    ratio < 0.50f -> "⚡ Completando hábitos y tareas"
+                    ratio < 0.75f -> "🔥 Enfoque Hardcore en proyecto"
+                    else -> "🚀 Sprint final de productividad"
+                }
+            }
+
+            val rivalTasks = Math.floor((rivalConfig.targetTasks * ratio).toDouble()).toInt()
+            val rivalFocusHours = (rivalConfig.targetFocusMinutes * ratio) / 60.0f
+            val rivalHabitPct = Math.floor((rivalConfig.targetHabitPct * ratio).toDouble()).toInt()
+
+            // 3. Calculate user's actual stats from local cache (same as ScoreWidget)
+            val client = SupabaseWidgetClient(context)
+            val habits = client.fetchHabits()
+            val tasks = client.fetchTasks(includeCompleted = true)
+            val projects = client.fetchProjects()
+
+            // User tasks completed today
+            var userTasksCount = 0
+            for (t in tasks) {
+                if (t.archived == true) continue
+                if (t.completed && t.completedAt?.startsWith(todayStr) == true) {
+                    userTasksCount++
+                }
+            }
+
+            // User habits percentage
+            var habitsCompleted = 0
+            var habitsTotal = 0
+            for (h in habits) {
+                if (h.archived == true) continue
+                habitsTotal++
+                if (h.completedToday == true) habitsCompleted++
+            }
+            val userHabitPct = if (habitsTotal > 0) Math.round((habitsCompleted.toFloat() / habitsTotal.toFloat()) * 100) else 0
+
+            // User focus hours today
+            var focusSecondsToday = 0L
+            for (p in projects) {
+                if (p.archived == true || p.deleted == true) continue
+                val sessions = p.sessions ?: continue
+                for (s in sessions) {
+                    if (s.date?.startsWith(todayStr) == true) {
+                        focusSecondsToday += s.duration
+                    }
+                }
+            }
+            val userFocusHours = focusSecondsToday.toFloat() / 3600.0f
+
+            // Duel evaluation
+            val isTaskWon = userTasksCount >= rivalConfig.targetTasks
+            val isFocusWon = userFocusHours >= (rivalConfig.targetFocusMinutes / 60.0f)
+            val isHabitWon = userHabitPct >= rivalConfig.targetHabitPct
+            val isVictory = isTaskWon && isFocusWon && isHabitWon
+
+            Log.d(TAG, "Native rivals result: User(T:$userTasksCount F:${String.format("%.1f", userFocusHours)}h H:$userHabitPct%) vs ${rivalConfig.name}(T:$rivalTasks F:${String.format("%.1f", rivalFocusHours)}h H:$rivalHabitPct%)")
+
+            NativeRivalsData(
+                rivalName = rivalConfig.name,
+                rivalAvatar = rivalConfig.avatar,
+                rivalLevel = rivalConfig.level,
+                rivalActivity = rivalActivity,
+                rivalTasks = rivalTasks,
+                userTasks = userTasksCount,
+                targetTasks = rivalConfig.targetTasks,
+                rivalFocus = rivalFocusHours,
+                userFocus = userFocusHours,
+                targetFocus = rivalConfig.targetFocusMinutes / 60.0f,
+                rivalHabits = rivalHabitPct,
+                userHabits = userHabitPct,
+                targetHabits = rivalConfig.targetHabitPct,
+                isVictory = isVictory
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error calculating native rivals data: ${e.message}", e)
+            null
+        }
     }
 }

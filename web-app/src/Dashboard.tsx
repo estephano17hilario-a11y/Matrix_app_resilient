@@ -447,7 +447,59 @@ export default function Dashboard() {
   }, [habits]);
 
   // Background hook instanciation triggers widget SharedPreferences sync automatically
-  useRivalsLogic(todayTasksCompleted, todayFocusMinutes, todayHabitPct);
+  const rivalsLogic = useRivalsLogic(todayTasksCompleted, todayFocusMinutes, todayHabitPct);
+
+  // ⚔️ AGGRESSIVE Rivals Widget Sync — same lifecycle pattern as Score widget (lines 384-411)
+  useEffect(() => {
+    const syncRivals = () => {
+      try {
+        const rival = rivalsLogic.activeUnlockedRival;
+        const liveState = rivalsLogic.rivalLiveState;
+        const duel = rivalsLogic.duelEvaluation;
+        if (!rival) return;
+
+        WidgetAuthBridge.updateRivalsData({
+          rivalName: rival.name,
+          rivalAvatar: rival.avatar,
+          rivalLevel: rival.level,
+          rivalActivity: liveState.currentActivity,
+          rivalTasks: liveState.simulatedTasks,
+          targetTasks: rival.targetTasks,
+          rivalFocus: liveState.simulatedFocusMinutes / 60,
+          targetFocus: rival.targetFocusMinutes / 60,
+          rivalHabits: liveState.simulatedHabitPct,
+          targetHabits: rival.targetHabitPct,
+          userTasks: todayTasksCompleted,
+          userFocus: todayFocusMinutes / 60,
+          userHabits: todayHabitPct,
+          isVictory: duel.isVictor
+        }).catch(err => console.error('Failed to sync rivals widget:', err));
+      } catch (e) {
+        console.error('Error syncing rivals widget:', e);
+      }
+    };
+
+    // Sync immediately on data change
+    syncRivals();
+
+    // Sync on app lifecycle events (same as Score widget)
+    const appStateSubscription = App.addListener('appStateChange', (state) => {
+      console.log(`⚔️ [Rivals Sync] appStateChange (isActive: ${state.isActive}) -> Syncing rivals widget`);
+      syncRivals();
+    });
+
+    const handleFocusOrVisibility = () => syncRivals();
+    window.addEventListener('focus', handleFocusOrVisibility);
+    window.addEventListener('blur', handleFocusOrVisibility);
+    document.addEventListener('visibilitychange', handleFocusOrVisibility);
+
+    return () => {
+      appStateSubscription.then(sub => sub.remove()).catch(() => {});
+      window.removeEventListener('focus', handleFocusOrVisibility);
+      window.removeEventListener('blur', handleFocusOrVisibility);
+      document.removeEventListener('visibilitychange', handleFocusOrVisibility);
+    };
+  }, [rivalsLogic.activeUnlockedRival, rivalsLogic.rivalLiveState, rivalsLogic.duelEvaluation, todayTasksCompleted, todayFocusMinutes, todayHabitPct]);
 
  // STABLE REFERENCES FOR REACT.MEMO COMPONENTS
  const logicRef = useRef(dashboardLogic);

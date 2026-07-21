@@ -164,7 +164,28 @@ class WidgetAuthBridge : Plugin() {
         try {
             val context = activity ?: context
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit()
+            val capPrefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
+
+            // Write to BOTH SharedPrefs for redundancy (same pattern as updateScore)
+            val editor = prefs.edit()
+                .putString("rival_name", rivalName)
+                .putString("rival_avatar", rivalAvatar)
+                .putInt("rival_level", rivalLevel)
+                .putString("rival_activity", rivalActivity)
+                .putInt("rival_tasks", rivalTasks)
+                .putInt("user_tasks", userTasks)
+                .putInt("target_tasks", targetTasks)
+                .putFloat("rival_focus", rivalFocus)
+                .putFloat("user_focus", userFocus)
+                .putFloat("target_focus", targetFocus)
+                .putInt("rival_habits", rivalHabits)
+                .putInt("user_habits", userHabits)
+                .putInt("target_habits", targetHabits)
+                .putBoolean("is_victory", isVictory)
+            editor.apply()
+
+            // Also write to CapacitorStorage for native fallback reads
+            capPrefs.edit()
                 .putString("rival_name", rivalName)
                 .putString("rival_avatar", rivalAvatar)
                 .putInt("rival_level", rivalLevel)
@@ -181,12 +202,25 @@ class WidgetAuthBridge : Plugin() {
                 .putBoolean("is_victory", isVictory)
                 .apply()
 
-            Log.d(TAG, "Rivals data updated in widget preferences: $rivalName (User $userTasks v Rival $rivalTasks tasks)")
+            Log.d(TAG, "Rivals data updated in BOTH preferences: $rivalName (User T:$userTasks F:${userFocus}h H:$userHabits% vs Rival T:$rivalTasks F:${rivalFocus}h H:$rivalHabits%)")
 
+            // Broadcast refresh action
             val intent = Intent(context, RivalsWidgetProvider::class.java).apply {
                 action = RivalsWidgetProvider.ACTION_REFRESH_RIVALS
             }
             context.sendBroadcast(intent)
+
+            // Also force AppWidgetManager update (same as Score widget)
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val rivalsComponent = ComponentName(context, RivalsWidgetProvider::class.java)
+            val rivalsWidgetIds = appWidgetManager.getAppWidgetIds(rivalsComponent)
+            if (rivalsWidgetIds.isNotEmpty()) {
+                val updateIntent = Intent(context, RivalsWidgetProvider::class.java).apply {
+                    action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, rivalsWidgetIds)
+                }
+                context.sendBroadcast(updateIntent)
+            }
 
             call.resolve()
         } catch (e: Exception) {
@@ -246,6 +280,17 @@ class WidgetAuthBridge : Plugin() {
                     putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, scoreWidgetIds)
                 }
                 context.sendBroadcast(updateIntent)
+            }
+
+            // Also notify AppWidgetManager for Rivals widgets (CRITICAL: was missing!)
+            val rivalsComponent = ComponentName(context, RivalsWidgetProvider::class.java)
+            val rivalsWidgetIds = appWidgetManager.getAppWidgetIds(rivalsComponent)
+            if (rivalsWidgetIds.isNotEmpty()) {
+                val rivalsUpdateIntent = Intent(context, RivalsWidgetProvider::class.java).apply {
+                    action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, rivalsWidgetIds)
+                }
+                context.sendBroadcast(rivalsUpdateIntent)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error refreshing widgets: ${e.message}", e)
