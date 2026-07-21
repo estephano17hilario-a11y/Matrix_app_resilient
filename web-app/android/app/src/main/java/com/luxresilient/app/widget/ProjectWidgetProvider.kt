@@ -83,7 +83,11 @@ class ProjectWidgetProvider : AppWidgetProvider() {
 
         val prefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
         val projectId = prefs.getString("project_id_widget_$widgetId", null)
-        val bgOpacity = prefs.getInt("widget_background_opacity", 85)
+        val bgOpacity = when {
+            prefs.contains("widget_background_opacity_$widgetId") -> prefs.getInt("widget_background_opacity_$widgetId", 85)
+            prefs.contains("widget_background_opacity_com.luxresilient.app.widget.ProjectWidgetProvider") -> prefs.getInt("widget_background_opacity_com.luxresilient.app.widget.ProjectWidgetProvider", 85)
+            else -> prefs.getInt("widget_background_opacity", 85)
+        }
 
         val views = RemoteViews(context.packageName, R.layout.widget_project_progress)
 

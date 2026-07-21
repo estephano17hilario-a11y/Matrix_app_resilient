@@ -275,11 +275,22 @@ class WidgetConfigActivity : Activity() {
     private fun loadPreferences() {
         val prefs = getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
         
-        val opacity = prefs.getInt("card_opacity", 90)
+        val providerInfo = try { AppWidgetManager.getInstance(this).getAppWidgetInfo(widgetId) } catch (e: Exception) { null }
+        val className = providerInfo?.provider?.className ?: ""
+
+        val opacity = when {
+            widgetId != AppWidgetManager.INVALID_APPWIDGET_ID && prefs.contains("card_opacity_$widgetId") -> prefs.getInt("card_opacity_$widgetId", 90)
+            className.isNotEmpty() && prefs.contains("card_opacity_$className") -> prefs.getInt("card_opacity_$className", 90)
+            else -> prefs.getInt("card_opacity", 90)
+        }
         seekOpacity.progress = opacity
         txtOpacityVal.text = "$opacity%"
         
-        val widgetBgOpacity = prefs.getInt("widget_background_opacity", 85)
+        val widgetBgOpacity = when {
+            widgetId != AppWidgetManager.INVALID_APPWIDGET_ID && prefs.contains("widget_background_opacity_$widgetId") -> prefs.getInt("widget_background_opacity_$widgetId", 85)
+            className.isNotEmpty() && prefs.contains("widget_background_opacity_$className") -> prefs.getInt("widget_background_opacity_$className", 85)
+            else -> prefs.getInt("widget_background_opacity", 85)
+        }
         seekWidgetBgOpacity.progress = widgetBgOpacity
         txtWidgetBgOpacityVal.text = "$widgetBgOpacity%"
         
@@ -450,8 +461,6 @@ class WidgetConfigActivity : Activity() {
         }
 
         val editor = prefs.edit()
-            .putInt("card_opacity", seekOpacity.progress)
-            .putInt("widget_background_opacity", seekWidgetBgOpacity.progress)
             .putBoolean("sound_effects", switchSound.isChecked)
             .putBoolean("show_icons", switchIcons.isChecked)
             .putBoolean("allow_chronological_switch", switchAllowChrono.isChecked)
@@ -466,10 +475,14 @@ class WidgetConfigActivity : Activity() {
             .putString("checklist_mode", checklistVal)
             .putString("default_task_timeframe", defaultTaskTimeframeVal)
 
+        val providerInfo = try { AppWidgetManager.getInstance(this).getAppWidgetInfo(widgetId) } catch (e: Exception) { null }
+        val className = providerInfo?.provider?.className ?: ""
+
         if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+            editor.putInt("card_opacity_$widgetId", seekOpacity.progress)
+            editor.putInt("widget_background_opacity_$widgetId", seekWidgetBgOpacity.progress)
             editor.putString("task_timeframe_widget_$widgetId", defaultTaskTimeframeVal)
             
-            // Save project selection if project selector is visible
             val checkedRbId = radioGroupProjectSelect.checkedRadioButtonId
             if (checkedRbId != -1) {
                 val rb = radioGroupProjectSelect.findViewById<RadioButton>(checkedRbId)
@@ -479,6 +492,15 @@ class WidgetConfigActivity : Activity() {
                 }
             }
         }
+
+        if (className.isNotEmpty()) {
+            editor.putInt("card_opacity_$className", seekOpacity.progress)
+            editor.putInt("widget_background_opacity_$className", seekWidgetBgOpacity.progress)
+        } else {
+            editor.putInt("card_opacity", seekOpacity.progress)
+            editor.putInt("widget_background_opacity", seekWidgetBgOpacity.progress)
+        }
+
         editor.apply()
     }
 }

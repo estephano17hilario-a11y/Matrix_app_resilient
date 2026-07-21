@@ -151,7 +151,10 @@ class TaskWidgetFactory(private val context: Context, private val widgetId: Int)
         val views = RemoteViews(context.packageName, R.layout.widget_task_item)
         
         val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
-        val opacity = configPrefs.getInt("card_opacity", 90)
+        val opacity = when {
+            configPrefs.contains("card_opacity_com.luxresilient.app.widget.TaskWidgetProvider") -> configPrefs.getInt("card_opacity_com.luxresilient.app.widget.TaskWidgetProvider", 90)
+            else -> configPrefs.getInt("card_opacity", 90)
+        }
         val cardSize = configPrefs.getString("card_size", "medium") ?: "medium"
         val cardSpacing = configPrefs.getString("card_spacing", "medio") ?: "medio"
         val gradientStyle = configPrefs.getString("gradient_style", "radial") ?: "radial"

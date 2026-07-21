@@ -148,16 +148,33 @@ class RivalsWidgetProvider : AppWidgetProvider() {
 
         Log.d(TAG, "Widget data: User(T:$userTasks F:${userFocus}h H:$userHabits%) vs $rivalName(T:$rivalTasks F:${rivalFocus}h H:$rivalHabits%) victory=$isVictory")
 
+        // Background Opacity for Rivals Widget
+        val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
+        val bgOpacity = when {
+            configPrefs.contains("widget_background_opacity_$widgetId") -> configPrefs.getInt("widget_background_opacity_$widgetId", 85)
+            configPrefs.contains("widget_background_opacity_com.luxresilient.app.widget.RivalsWidgetProvider") -> configPrefs.getInt("widget_background_opacity_com.luxresilient.app.widget.RivalsWidgetProvider", 85)
+            else -> configPrefs.getInt("widget_background_opacity", 85)
+        }
+        val bgAlphaInt = (bgOpacity * 2.55).toInt().coerceIn(0, 255)
+
         val views = RemoteViews(context.packageName, R.layout.widget_rivals)
 
-        // Calculate who is leading live duel
+        // Calculate precision comparison colors per category (User vs Rival)
+        // User < Rival: User=RED (#EF4444), Rival=GREEN (#10B981)
+        // User > Rival: User=GREEN (#10B981), Rival=RED (#EF4444)
+        // User == Rival (Empate): Both=YELLOW/AMBER (#F59E0B)
+        val (userTaskColor, rivalTaskColor) = getStatComparisonColors(userTasks.toDouble(), rivalTasks.toDouble())
+        val (userFocusColor, rivalFocusColor) = getStatComparisonColors(userFocus.toDouble(), rivalFocus.toDouble())
+        val (userHabitColor, rivalHabitColor) = getStatComparisonColors(userHabits.toDouble(), rivalHabits.toDouble())
+
+        // Calculate overall duel state
         val isUserAhead = userTasks >= rivalTasks && userFocus >= rivalFocus && userHabits >= rivalHabits
         val isRivalAhead = rivalTasks > userTasks && rivalFocus > userFocus
 
         val statusText = when {
-            isVictory -> "🏆 ¡VICTORIA CONSEGUIDA!"
-            isUserAhead -> "🏆 ¡GANANDO DUELO!"
-            isRivalAhead -> "⚡ RIVAL TOMANDO VENTAJA"
+            isVictory -> "🏆 ¡VICTORIA!"
+            isUserAhead -> "🏆 GANANDO DUELO"
+            isRivalAhead -> "⚡ RIVAL ADELANTE"
             else -> "⚔️ DUELO EN CURSO"
         }
 
@@ -167,7 +184,7 @@ class RivalsWidgetProvider : AppWidgetProvider() {
             else -> 0xFFF59E0B.toInt() // Amber Gold
         }
 
-        // 1. Populate Full Grid Layout (2x2+) - Split Screen VS Dueling UI
+        // 1. Populate Full Grid Layout (2x2+)
         views.setTextViewText(R.id.rival_avatar_text, rivalAvatar)
         views.setTextViewText(R.id.rival_name_text, rivalName)
         views.setTextViewText(R.id.rival_level_badge, "Lvl $rivalLevel")
@@ -175,57 +192,96 @@ class RivalsWidgetProvider : AppWidgetProvider() {
 
         // User Side (Left)
         views.setTextViewText(R.id.user_tasks_vert, "$userTasks")
+        views.setTextColor(R.id.user_tasks_vert, userTaskColor)
+
         views.setTextViewText(R.id.user_focus_vert, "${String.format("%.1f", userFocus)}h")
+        views.setTextColor(R.id.user_focus_vert, userFocusColor)
+
         views.setTextViewText(R.id.user_habits_vert, "$userHabits%")
+        views.setTextColor(R.id.user_habits_vert, userHabitColor)
 
         // Rival Side (Right)
         views.setTextViewText(R.id.rival_tasks_vert, "$rivalTasks")
+        views.setTextColor(R.id.rival_tasks_vert, rivalTaskColor)
+
         views.setTextViewText(R.id.rival_focus_vert, "${String.format("%.1f", rivalFocus)}h")
+        views.setTextColor(R.id.rival_focus_vert, rivalFocusColor)
+
         views.setTextViewText(R.id.rival_habits_vert, "$rivalHabits%")
+        views.setTextColor(R.id.rival_habits_vert, rivalHabitColor)
 
         views.setTextViewText(R.id.rivals_status_banner, statusText)
         views.setTextColor(R.id.rivals_status_banner, statusColor)
 
-        // 2. Populate Horizontal Layout (2x1)
+        // 2. Populate Horizontal Layout (2x1, 3x1, 4x1)
         views.setTextViewText(R.id.rival_avatar_horiz, rivalAvatar)
         views.setTextViewText(R.id.rival_name_horiz, rivalName)
-        views.setTextViewText(R.id.rival_activity_horiz, rivalActivity)
-        views.setTextViewText(R.id.rivals_stats_horiz, "T: $userTasks v $rivalTasks | F: ${String.format("%.1f", userFocus)}h v ${String.format("%.1f", rivalFocus)}h")
+
+        views.setTextViewText(R.id.user_tasks_horiz, "$userTasks")
+        views.setTextColor(R.id.user_tasks_horiz, userTaskColor)
+        views.setTextViewText(R.id.rival_tasks_horiz, "$rivalTasks")
+        views.setTextColor(R.id.rival_tasks_horiz, rivalTaskColor)
+
+        views.setTextViewText(R.id.user_focus_horiz, "${String.format("%.1f", userFocus)}h")
+        views.setTextColor(R.id.user_focus_horiz, userFocusColor)
+        views.setTextViewText(R.id.rival_focus_horiz, "${String.format("%.1f", rivalFocus)}h")
+        views.setTextColor(R.id.rival_focus_horiz, rivalFocusColor)
+
+        views.setTextViewText(R.id.user_habits_horiz, "$userHabits%")
+        views.setTextColor(R.id.user_habits_horiz, userHabitColor)
+        views.setTextViewText(R.id.rival_habits_horiz, "$rivalHabits%")
+        views.setTextColor(R.id.rival_habits_horiz, rivalHabitColor)
+
         views.setTextViewText(R.id.rivals_status_horiz, statusText)
         views.setTextColor(R.id.rivals_status_horiz, statusColor)
 
-        // 3. Populate Compact Layout (1x1)
-        views.setTextViewText(R.id.rival_avatar_1x1, rivalAvatar)
-        views.setTextViewText(R.id.rival_name_1x1, rivalName)
-        views.setTextViewText(R.id.rivals_stats_1x1, "T: $userTasks v $rivalTasks")
-        views.setTextViewText(R.id.rivals_status_1x1, statusText)
-        views.setTextColor(R.id.rivals_status_1x1, statusColor)
+        // 3. Populate Compact / Tall Layout (1x1, 1x2, 1x3, 1x4)
+        views.setTextViewText(R.id.rival_avatar_compact, rivalAvatar)
+        views.setTextViewText(R.id.rival_name_compact, rivalName)
 
-        // Handle Resizing / Responsiveness
+        views.setTextViewText(R.id.user_tasks_compact, "$userTasks")
+        views.setTextColor(R.id.user_tasks_compact, userTaskColor)
+        views.setTextViewText(R.id.rival_tasks_compact, "$rivalTasks")
+        views.setTextColor(R.id.rival_tasks_compact, rivalTaskColor)
+
+        views.setTextViewText(R.id.user_focus_compact, "${String.format("%.1f", userFocus)}h")
+        views.setTextColor(R.id.user_focus_compact, userFocusColor)
+        views.setTextViewText(R.id.rival_focus_compact, "${String.format("%.1f", rivalFocus)}h")
+        views.setTextColor(R.id.rival_focus_compact, rivalFocusColor)
+
+        views.setTextViewText(R.id.user_habits_compact, "$userHabits%")
+        views.setTextColor(R.id.user_habits_compact, userHabitColor)
+        views.setTextViewText(R.id.rival_habits_compact, "$rivalHabits%")
+        views.setTextColor(R.id.rival_habits_compact, rivalHabitColor)
+
+        views.setTextViewText(R.id.rivals_status_compact, statusText)
+        views.setTextColor(R.id.rivals_status_compact, statusColor)
+
+        // Handle Resizing / Responsiveness (1x1, 2x1, 1x2, 3x1, 4x1, 1x3, 1x4, 2x2+)
         val options = appWidgetManager.getAppWidgetOptions(widgetId)
         val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
         val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
 
         if (minWidth > 0 && minHeight > 0) {
-            if (minWidth < 110 && minHeight < 110) {
-                // Compact 1x1 mode
-                views.setViewVisibility(R.id.rivals_layout_1x1, View.VISIBLE)
+            if (minWidth < 110) {
+                // Narrow width mode (1x1, 1x2, 1x3, 1x4)
+                views.setViewVisibility(R.id.rivals_layout_compact, View.VISIBLE)
                 views.setViewVisibility(R.id.rivals_layout_horizontal, View.GONE)
                 views.setViewVisibility(R.id.rivals_layout_full, View.GONE)
             } else if (minWidth >= 110 && minHeight < 110) {
-                // 2x1 landscape mode
-                views.setViewVisibility(R.id.rivals_layout_1x1, View.GONE)
+                // Wide landscape mode (2x1, 3x1, 4x1)
+                views.setViewVisibility(R.id.rivals_layout_compact, View.GONE)
                 views.setViewVisibility(R.id.rivals_layout_horizontal, View.VISIBLE)
                 views.setViewVisibility(R.id.rivals_layout_full, View.GONE)
             } else {
-                // 2x2+ grid mode
-                views.setViewVisibility(R.id.rivals_layout_1x1, View.GONE)
+                // Standard & Large grid mode (2x2, 3x2, 3x3, 4x2+)
+                views.setViewVisibility(R.id.rivals_layout_compact, View.GONE)
                 views.setViewVisibility(R.id.rivals_layout_horizontal, View.GONE)
                 views.setViewVisibility(R.id.rivals_layout_full, View.VISIBLE)
             }
         } else {
             // Default 2x2+ mode
-            views.setViewVisibility(R.id.rivals_layout_1x1, View.GONE)
+            views.setViewVisibility(R.id.rivals_layout_compact, View.GONE)
             views.setViewVisibility(R.id.rivals_layout_horizontal, View.GONE)
             views.setViewVisibility(R.id.rivals_layout_full, View.VISIBLE)
         }
@@ -245,6 +301,17 @@ class RivalsWidgetProvider : AppWidgetProvider() {
         }
 
         appWidgetManager.updateAppWidget(widgetId, views)
+    }
+
+    private fun getStatComparisonColors(userVal: Double, rivalVal: Double): Pair<Int, Int> {
+        val red = 0xFFEF4444.toInt()
+        val green = 0xFF10B981.toInt()
+        val yellow = 0xFFF59E0B.toInt()
+        return when {
+            userVal < rivalVal -> Pair(red, green)
+            userVal > rivalVal -> Pair(green, red)
+            else -> Pair(yellow, yellow)
+        }
     }
 
     /**

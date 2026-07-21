@@ -152,7 +152,11 @@ class HabitWidgetProvider : AppWidgetProvider() {
         val prefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
         val isChrono = prefs.getBoolean("chronological_sort", false)
         val isBadHabits = prefs.getBoolean("bad_habits_mode", false)
-        val bgOpacity = prefs.getInt("widget_background_opacity", 85)
+        val bgOpacity = when {
+            prefs.contains("widget_background_opacity_$widgetId") -> prefs.getInt("widget_background_opacity_$widgetId", 85)
+            prefs.contains("widget_background_opacity_com.luxresilient.app.widget.HabitWidgetProvider") -> prefs.getInt("widget_background_opacity_com.luxresilient.app.widget.HabitWidgetProvider", 85)
+            else -> prefs.getInt("widget_background_opacity", 85)
+        }
 
         // Always use ListView, even for 2 columns (handled internally by Factory)
         val views = RemoteViews(context.packageName, R.layout.widget_habit_list)

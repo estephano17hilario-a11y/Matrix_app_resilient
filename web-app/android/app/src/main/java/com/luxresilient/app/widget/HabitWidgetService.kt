@@ -323,7 +323,10 @@ class HabitWidgetFactory(
     override fun getViewAt(position: Int): RemoteViews {
         try {
             val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
-            val opacity = configPrefs.getInt("card_opacity", 90)
+            val opacity = when {
+                configPrefs.contains("card_opacity_com.luxresilient.app.widget.HabitWidgetProvider") -> configPrefs.getInt("card_opacity_com.luxresilient.app.widget.HabitWidgetProvider", 90)
+                else -> configPrefs.getInt("card_opacity", 90)
+            }
             val cardSize = configPrefs.getString("card_size", "medium") ?: "medium"
             val checklistMode = configPrefs.getString("checklist_mode", "direct") ?: "direct"
             val chronologicalSort = configPrefs.getBoolean("chronological_sort", false)
