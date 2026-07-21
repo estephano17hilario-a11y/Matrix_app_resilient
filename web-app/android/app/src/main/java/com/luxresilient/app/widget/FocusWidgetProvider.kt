@@ -120,7 +120,11 @@ class FocusWidgetProvider : AppWidgetProvider() {
         }
 
         val prefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
-        val bgOpacity = prefs.getInt("widget_background_opacity", 85)
+        val bgOpacity = when {
+            prefs.contains("widget_background_opacity_$widgetId") -> prefs.getInt("widget_background_opacity_$widgetId", 85)
+            prefs.contains("widget_background_opacity_com.luxresilient.app.widget.FocusWidgetProvider") -> prefs.getInt("widget_background_opacity_com.luxresilient.app.widget.FocusWidgetProvider", 85)
+            else -> prefs.getInt("widget_background_opacity", 85)
+        }
         val views = RemoteViews(context.packageName, R.layout.widget_focus_chart)
 
         // Apply Overall Widget Background Opacity
