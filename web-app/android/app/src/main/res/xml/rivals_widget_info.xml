@@ -11,4 +11,5 @@
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:description="@string/widget_rivals_description"
+    android:configure="com.luxresilient.app.widget.WidgetConfigActivity"
     android:widgetFeatures="reconfigurable" />
