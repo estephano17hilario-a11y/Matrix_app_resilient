@@ -2022,8 +2022,13 @@ export default function Dashboard() {
   <RivalsModal
     isOpen={activeModal === 'RIVALS'}
     onClose={() => setActiveModal(null)}
-    userTasksCompleted={quests.filter(q => q.completed).length}
-    userFocusMinutes={dailyLimits?.stats?.focusMinutes || 120}
+    userTasksCompleted={quests.filter(q => {
+      if (!q.completed || !q.completedAt) return false;
+      const completedStr = toLocalISOString(new Date(q.completedAt)).slice(0, 10);
+      const todayStr = toLocalISOString(new Date()).slice(0, 10);
+      return completedStr === todayStr;
+    }).length}
+    userFocusMinutes={dailyLimits?.stats?.focusMinutes || 0}
     userHabitPct={Math.round((habits.filter(h => h.completedToday).length / Math.max(1, habits.length)) * 100)}
   />
 
