@@ -2091,7 +2091,7 @@ export default function Dashboard() {
       const todayStr = toLocalISOString(new Date()).slice(0, 10);
       return completedStr === todayStr;
     }).length}
-    userFocusMinutes={dailyLimits?.stats?.focusMinutes || 0}
+    userFocusMinutes={Math.round(((dailyLimits as any)?.stats?.focusMinutes || dailyLimits?.focusSeconds || 0) / 60)}
     userHabitPct={Math.round((habits.filter(h => h.completedToday).length / Math.max(1, habits.length)) * 100)}
   />
 
