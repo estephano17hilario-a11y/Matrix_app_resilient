@@ -64,19 +64,19 @@ class RivalsWidgetProvider : AppWidgetProvider() {
 
         val rivalName = prefs.getString("rival_name", null) ?: capPrefs.getString("rival_name", "Francesco Cirillo")
         val rivalAvatar = prefs.getString("rival_avatar", null) ?: capPrefs.getString("rival_avatar", "⌛")
-        val rivalLevel = prefs.getInt("rival_level", 1)
+        val rivalLevel = try { prefs.getInt("rival_level", 1) } catch (e: Exception) { 1 }
         val rivalActivity = prefs.getString("rival_activity", null) ?: capPrefs.getString("rival_activity", "🔴 En Enfoque Profundo")
 
-        val userTasks = prefs.getInt("user_tasks", 0)
-        val targetTasks = prefs.getInt("target_tasks", 1)
+        val userTasks = try { prefs.getInt("user_tasks", 0) } catch (e: Exception) { 0 }
+        val targetTasks = try { prefs.getInt("target_tasks", 1) } catch (e: Exception) { 1 }
 
-        val userFocus = prefs.getFloat("user_focus", 0.0f)
-        val targetFocus = prefs.getFloat("target_focus", 1.0f)
+        val userFocus = try { prefs.getFloat("user_focus", 0.0f) } catch (e: Exception) { 0.0f }
+        val targetFocus = try { prefs.getFloat("target_focus", 1.0f) } catch (e: Exception) { 1.0f }
 
-        val userHabits = prefs.getInt("user_habits", 0)
-        val targetHabits = prefs.getInt("target_habits", 25)
+        val userHabits = try { prefs.getInt("user_habits", 0) } catch (e: Exception) { 0 }
+        val targetHabits = try { prefs.getInt("target_habits", 25) } catch (e: Exception) { 25 }
 
-        val isVictory = prefs.getBoolean("is_victory", false)
+        val isVictory = try { prefs.getBoolean("is_victory", false) } catch (e: Exception) { false }
 
         val views = RemoteViews(context.packageName, R.layout.widget_rivals)
 

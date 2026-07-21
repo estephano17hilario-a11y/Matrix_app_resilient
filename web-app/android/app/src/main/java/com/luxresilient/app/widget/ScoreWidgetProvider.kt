@@ -193,10 +193,10 @@ class ScoreWidgetProvider : AppWidgetProvider() {
             }
 
             if (total > 0) {
-                val pct = (completed.toDouble() / total.toDouble()) * 10.0
+                val pct = (completed.toDouble() / total.toDouble()) * 100.0
                 Math.round(pct).toInt()
             } else {
-                10
+                100
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error calculating native score: ${e.message}")
