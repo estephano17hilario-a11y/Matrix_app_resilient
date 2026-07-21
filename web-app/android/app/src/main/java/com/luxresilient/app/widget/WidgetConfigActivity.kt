@@ -245,14 +245,12 @@ class WidgetConfigActivity : Activity() {
             sendBroadcast(refreshRivalsIntent)
 
             // Success result if called as a widget configuration activity
-            if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-                val resultValue = Intent().apply {
+            val resultValue = Intent().apply {
+                if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
                     putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
                 }
-                setResult(RESULT_OK, resultValue)
-            } else {
-                setResult(RESULT_OK)
             }
+            setResult(RESULT_OK, resultValue)
             finish()
         }
     }
