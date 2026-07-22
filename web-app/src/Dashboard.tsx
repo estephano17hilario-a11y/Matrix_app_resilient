@@ -1762,7 +1762,7 @@ export default function Dashboard() {
 
 
  {/* 💎 STATUS HUD - THE MIRROR (GLOBAL POSITION) */}
- {showProfile && currentView === 'TASKS' && (
+ {showProfile && currentView === 'TASKS' && taskViewMode !== 'STRATEGY' && (
  <div className="w-full flex justify-center">
  <div className={cn(
  "px-4 sm:px-6 mt-1 mb-1 w-full",

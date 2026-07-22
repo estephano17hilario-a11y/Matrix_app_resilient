@@ -93,6 +93,14 @@ class ScoreWidgetProvider : AppWidgetProvider() {
 
         val views = RemoteViews(context.packageName, R.layout.widget_score)
 
+        val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
+        val bgOpacity = when {
+            configPrefs.contains("widget_background_opacity_$widgetId") -> configPrefs.getInt("widget_background_opacity_$widgetId", 85)
+            configPrefs.contains("widget_background_opacity_com.luxresilient.app.widget.ScoreWidgetProvider") -> configPrefs.getInt("widget_background_opacity_com.luxresilient.app.widget.ScoreWidgetProvider", 85)
+            else -> configPrefs.getInt("widget_background_opacity", 85)
+        }
+        views.setFloat(R.id.score_background_image, "setAlpha", bgOpacity / 100f)
+
         if (userId.isNullOrEmpty() && score < 0) {
             views.setViewVisibility(R.id.score_login_required, View.VISIBLE)
             views.setViewVisibility(R.id.score_configured_layout, View.GONE)

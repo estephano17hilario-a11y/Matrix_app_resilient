@@ -162,8 +162,7 @@ class HabitWidgetProvider : AppWidgetProvider() {
         val views = RemoteViews(context.packageName, R.layout.widget_habit_list)
 
         // Apply Overall Widget Background Opacity
-        val bgAlphaInt = (bgOpacity * 2.55).toInt().coerceIn(0, 255)
-        views.setInt(R.id.widget_background_image, "setImageAlpha", bgAlphaInt)
+        views.setFloat(R.id.widget_background_image, "setAlpha", bgOpacity / 100f)
 
         // Setup Title and Icon
         if (isBadHabits) {

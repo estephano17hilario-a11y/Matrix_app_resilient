@@ -155,9 +155,8 @@ class RivalsWidgetProvider : AppWidgetProvider() {
             configPrefs.contains("widget_background_opacity_com.luxresilient.app.widget.RivalsWidgetProvider") -> configPrefs.getInt("widget_background_opacity_com.luxresilient.app.widget.RivalsWidgetProvider", 85)
             else -> configPrefs.getInt("widget_background_opacity", 85)
         }
-        val bgAlphaInt = (bgOpacity * 2.55).toInt().coerceIn(0, 255)
-
         val views = RemoteViews(context.packageName, R.layout.widget_rivals)
+        views.setFloat(R.id.rivals_background_image, "setAlpha", bgOpacity / 100f)
 
         // Calculate precision comparison colors per category (User vs Rival)
         // User < Rival: User=RED (#EF4444), Rival=GREEN (#10B981)
@@ -263,12 +262,12 @@ class RivalsWidgetProvider : AppWidgetProvider() {
         val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
 
         if (minWidth > 0 && minHeight > 0) {
-            if (minWidth < 110) {
+            if (minWidth < 95) {
                 // Narrow width mode (1x1, 1x2, 1x3, 1x4)
                 views.setViewVisibility(R.id.rivals_layout_compact, View.VISIBLE)
                 views.setViewVisibility(R.id.rivals_layout_horizontal, View.GONE)
                 views.setViewVisibility(R.id.rivals_layout_full, View.GONE)
-            } else if (minWidth >= 110 && minHeight < 110) {
+            } else if (minWidth >= 95 && minHeight < 95) {
                 // Wide landscape mode (2x1, 3x1, 4x1)
                 views.setViewVisibility(R.id.rivals_layout_compact, View.GONE)
                 views.setViewVisibility(R.id.rivals_layout_horizontal, View.VISIBLE)

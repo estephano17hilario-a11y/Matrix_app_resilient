@@ -244,6 +244,12 @@ class WidgetConfigActivity : Activity() {
             }
             sendBroadcast(refreshRivalsIntent)
 
+            // Broadcast refresh for focus
+            val refreshFocusIntent = Intent(this, FocusWidgetProvider::class.java).apply {
+                action = FocusWidgetProvider.ACTION_REFRESH_FOCUS
+            }
+            sendBroadcast(refreshFocusIntent)
+
             // Success result if called as a widget configuration activity
             val resultValue = Intent().apply {
                 if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {

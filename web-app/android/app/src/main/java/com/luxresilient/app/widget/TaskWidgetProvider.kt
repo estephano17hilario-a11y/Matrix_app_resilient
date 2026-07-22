@@ -122,8 +122,7 @@ class TaskWidgetProvider : AppWidgetProvider() {
         val views = RemoteViews(context.packageName, R.layout.widget_task_list)
 
         // Apply Overall Widget Background Opacity
-        val bgAlphaInt = (bgOpacity * 2.55).toInt().coerceIn(0, 255)
-        views.setInt(R.id.task_background_image, "setImageAlpha", bgAlphaInt)
+        views.setFloat(R.id.task_background_image, "setAlpha", bgOpacity / 100f)
 
         // Get and display active timeframe
         val timeframe = prefs.getString("task_timeframe_widget_$widgetId", "ALL") ?: "ALL"
@@ -218,6 +217,10 @@ class TaskWidgetProvider : AppWidgetProvider() {
         val appWidgetManager = AppWidgetManager.getInstance(context)
         val taskComponent = ComponentName(context, TaskWidgetProvider::class.java)
         val taskIds = appWidgetManager.getAppWidgetIds(taskComponent)
+
+        for (widgetId in taskIds) {
+            updateWidget(context, appWidgetManager, widgetId)
+        }
 
         if (forceFetch) {
             CoroutineScope(Dispatchers.IO).launch {

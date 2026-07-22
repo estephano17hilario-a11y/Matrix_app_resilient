@@ -324,6 +324,7 @@ class HabitWidgetFactory(
         try {
             val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
             val opacity = when {
+                widgetId != AppWidgetManager.INVALID_APPWIDGET_ID && configPrefs.contains("card_opacity_$widgetId") -> configPrefs.getInt("card_opacity_$widgetId", 90)
                 configPrefs.contains("card_opacity_com.luxresilient.app.widget.HabitWidgetProvider") -> configPrefs.getInt("card_opacity_com.luxresilient.app.widget.HabitWidgetProvider", 90)
                 else -> configPrefs.getInt("card_opacity", 90)
             }
@@ -432,8 +433,7 @@ class HabitWidgetFactory(
         views.setViewPadding(getId("habit_item_root_wrapper"), 0, 0, 0, spacingPx)
 
         // 2. Set Card Opacity via Background ImageView
-        val alphaInt = (opacity * 2.55).toInt().coerceIn(0, 255)
-        views.setInt(getId("habit_card_background"), "setImageAlpha", alphaInt)
+        views.setFloat(getId("habit_card_background"), "setAlpha", opacity / 100f)
 
         // 3. Dynamic Glow / Gradient Background
         val hasGlow = (gradientStyle != "none") || (borderStyle == "card" || borderStyle == "both")

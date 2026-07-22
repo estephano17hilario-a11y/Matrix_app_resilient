@@ -95,8 +95,7 @@ class JournalWidgetProvider : AppWidgetProvider() {
         val views = RemoteViews(context.packageName, R.layout.widget_journal_calendar)
 
         // Apply Overall Widget Background Opacity
-        val bgAlphaInt = (bgOpacity * 2.55).toInt().coerceIn(0, 255)
-        views.setInt(R.id.widget_background_image, "setImageAlpha", bgAlphaInt)
+        views.setFloat(R.id.widget_background_image, "setAlpha", bgOpacity / 100f)
 
         // Get calendar instance for current month offset
         val offset = prefs.getInt("journal_widget_offset_$widgetId", 0)

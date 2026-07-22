@@ -128,8 +128,7 @@ class FocusWidgetProvider : AppWidgetProvider() {
         val views = RemoteViews(context.packageName, R.layout.widget_focus_chart)
 
         // Apply Overall Widget Background Opacity
-        val bgAlphaInt = (bgOpacity * 2.55).toInt().coerceIn(0, 255)
-        views.setInt(R.id.focus_background_image, "setImageAlpha", bgAlphaInt)
+        views.setFloat(R.id.focus_background_image, "setAlpha", bgOpacity / 100f)
 
         // Configure controls displaying timeframe & division modes
         val timeframe = prefs.getString("focus_timeframe_widget_$widgetId", "WEEK") ?: "WEEK"

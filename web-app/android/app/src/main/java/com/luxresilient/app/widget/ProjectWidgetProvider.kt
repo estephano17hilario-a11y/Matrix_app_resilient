@@ -92,8 +92,7 @@ class ProjectWidgetProvider : AppWidgetProvider() {
         val views = RemoteViews(context.packageName, R.layout.widget_project_progress)
 
         // Apply Overall Widget Background Opacity
-        val bgAlphaInt = (bgOpacity * 2.55).toInt().coerceIn(0, 255)
-        views.setInt(R.id.project_background_image, "setImageAlpha", bgAlphaInt)
+        views.setFloat(R.id.project_background_image, "setAlpha", bgOpacity / 100f)
 
         if (projectId.isNullOrEmpty()) {
             // Show unconfigured state

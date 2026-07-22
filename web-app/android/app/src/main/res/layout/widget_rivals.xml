@@ -3,8 +3,14 @@
     android:id="@+id/rivals_widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_glass_bg"
     android:padding="6dp">
+
+    <ImageView
+        android:id="@+id/rivals_background_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_glass_bg" />
 
     <!-- 1. COMPACT / TALL COLUMN LAYOUT (1x1, 1x2, 1x3, 1x4 - minWidth < 110dp) -->
     <LinearLayout

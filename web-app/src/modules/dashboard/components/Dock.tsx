@@ -36,22 +36,22 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
    }
  }, [propOnToggle]);
 
- React.useEffect(() => {
-   if (propIsOpen !== undefined) {
-     console.log(`➕ [Dock UI] propIsOpen updated: ${propIsOpen}. Updating localIsOpen.`);
-     setLocalIsOpen(propIsOpen);
-   }
- }, [propIsOpen]);
+  React.useEffect(() => {
+    if (propIsOpen !== undefined) {
+      console.log(`➕ [Dock UI] propIsOpen updated: ${propIsOpen}. Updating localIsOpen.`);
+      setLocalIsOpen(propIsOpen);
+    }
+  }, [propIsOpen]);
 
- React.useEffect(() => {
-   if (isHidden) {
-     console.log(`➕ [Dock UI] Dock isHidden is true. Auto-closing Dock.`);
-     setLocalIsOpen(false);
-     if (propOnToggle) {
-       propOnToggle(false);
-     }
-   }
- }, [isHidden, propOnToggle]);
+  React.useEffect(() => {
+    if (isHidden || pointerEvents === 'none' || !propIsOpen) {
+      console.log(`➕ [Dock UI] Dock isHidden, pointerEvents none, or propIsOpen false. Auto-closing Dock.`);
+      setLocalIsOpen(false);
+      if (propOnToggle && propIsOpen) {
+        propOnToggle(false);
+      }
+    }
+  }, [isHidden, pointerEvents, propIsOpen, propOnToggle]);
 
  const handleView = (v: string) => { onChangeView(v); onToggle(false); };
  

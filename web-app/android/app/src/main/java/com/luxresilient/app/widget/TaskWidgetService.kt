@@ -152,6 +152,7 @@ class TaskWidgetFactory(private val context: Context, private val widgetId: Int)
         
         val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
         val opacity = when {
+            widgetId != AppWidgetManager.INVALID_APPWIDGET_ID && configPrefs.contains("card_opacity_$widgetId") -> configPrefs.getInt("card_opacity_$widgetId", 90)
             configPrefs.contains("card_opacity_com.luxresilient.app.widget.TaskWidgetProvider") -> configPrefs.getInt("card_opacity_com.luxresilient.app.widget.TaskWidgetProvider", 90)
             else -> configPrefs.getInt("card_opacity", 90)
         }
@@ -179,8 +180,7 @@ class TaskWidgetFactory(private val context: Context, private val widgetId: Int)
         views.setViewPadding(R.id.task_content_container, (12 * density).toInt(), verticalPadding, (12 * density).toInt(), verticalPadding)
 
         // 3. Card Opacity via Background ImageView
-        val alphaInt = (opacity * 2.55).toInt().coerceIn(0, 255)
-        views.setInt(R.id.task_card_background, "setImageAlpha", alphaInt)
+        views.setFloat(R.id.task_card_background, "setAlpha", opacity / 100f)
 
         // 4. Attribute Color parsing
         val attributeData = if (task.attribute != null) attributes[task.attribute] else null
