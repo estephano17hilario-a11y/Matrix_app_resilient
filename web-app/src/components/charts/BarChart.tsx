@@ -49,7 +49,7 @@ export const BarChart = React.memo(({
     }, [datasets, max, stacked]);
 
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
-    const [tooltipPos, setTooltipPos] = useState<{top: number, left: number} | null>(null);
+    const [tooltipLeft, setTooltipLeft] = useState<number | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
     const handleTouch = (e: React.TouchEvent) => {
@@ -77,11 +77,10 @@ export const BarChart = React.memo(({
             const barEl = barElements[index];
             if (barEl) {
                 const barRect = barEl.getBoundingClientRect();
-                const top = barRect.top - rect.top - 10;
                 const left = barRect.left - rect.left + (barRect.width / 2);
                 
                 setActiveIndex(index);
-                setTooltipPos({ top, left });
+                setTooltipLeft(left);
             }
         }
     };
@@ -106,11 +105,10 @@ export const BarChart = React.memo(({
         if (!containerRef.current) return;
         const containerRect = containerRef.current.getBoundingClientRect();
         const rect = e.currentTarget.getBoundingClientRect();
-        const top = rect.top - containerRect.top - 10;
         const left = rect.left - containerRect.left + (rect.width / 2);
         
         setActiveIndex(i);
-        setTooltipPos({ top, left });
+        setTooltipLeft(left);
     };
 
     const handleBarClick = (i: number, e: React.MouseEvent) => {
@@ -121,7 +119,7 @@ export const BarChart = React.memo(({
     return (
       <div 
           ref={containerRef} 
-          className={`w-full relative select-none ${className}`} 
+          className={`w-full relative select-none overflow-visible ${className}`} 
           style={{ height }}
           onTouchStart={handleTouch}
           onTouchMove={handleTouch}
@@ -159,14 +157,14 @@ export const BarChart = React.memo(({
                 </div>
             )}
 
-            {/* Inline Tooltip */}
-            {activeIndex !== null && tooltipPos && (
+            {/* Inline Tooltip — anchored at TOP of chart, tracks bar X only */}
+            {activeIndex !== null && tooltipLeft !== null && (
                 <div 
                     className="absolute z-[9999] bg-[#1c1c1e] border px-3 py-2.5 rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] flex flex-col items-start gap-1.5 min-w-[90px] pointer-events-none"
                     style={{ 
-                        top: tooltipPos.top, 
-                        left: tooltipPos.left, 
-                        transform: 'translate(-50%, -100%)',
+                        top: 4,
+                        left: tooltipLeft, 
+                        transform: 'translate(-50%, 0)',
                         borderColor: datasets[0]?.color || '#3b82f6'
                     }}
                 >
@@ -211,9 +209,6 @@ export const BarChart = React.memo(({
                             </>
                         );
                     })()}
-
-                    {/* Tiny Triangle Arrow */}
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px]" style={{ borderTopColor: datasets[0]?.color || '#3b82f6' }} />
                 </div>
             )}
 
