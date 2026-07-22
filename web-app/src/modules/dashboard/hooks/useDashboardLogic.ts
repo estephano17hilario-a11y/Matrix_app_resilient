@@ -28,7 +28,7 @@ import { notificationService } from '@/services/notificationService';
 import { toast } from 'react-hot-toast';
 import { toLocalISOString, getHistoryDateKey, parseLocalDate, getCompletedCountThisPeriod } from '../../../utils/dateUtils';
 import { calculateNextLevelXp, calculateLevelFromXp, calculateXpForLevel, calculateSubTraitMaxXp, calculateAttributeMaxXp } from '../../../utils/leveling';
-import { calculateLiveProductivityScore, isHabitActive } from '../../../utils/productivityScore';
+import { calculateLiveProductivityScore, isHabitActive, getDetailedScoreBreakdown } from '../../../utils/productivityScore';
 import { playLightSound, playHabitCompleteSound, playQuestCompleteSound } from '../../../utils/soundEffects';
 import confetti from 'canvas-confetti';
 

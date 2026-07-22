@@ -67,16 +67,20 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                 {years.map(year => {
                     const isSelected = year === currentDate.getFullYear();
                     const isCurrent = year === new Date().getFullYear();
+                    const isFutureYear = year > new Date().getFullYear();
                     
                     return (
                         <button
                             key={year}
-                            onClick={() => handleSelect(new Date(year, 0, 1))}
+                            onClick={() => !isFutureYear && handleSelect(new Date(year, 0, 1))}
+                            disabled={isFutureYear}
                             className={cn(
                                 "h-12 rounded-xl text-sm font-bold transition-all relative overflow-hidden group",
                                 isSelected 
                                     ? "bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]" 
-                                    : "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white"
+                                    : isFutureYear
+                                        ? "opacity-15 cursor-not-allowed text-slate-600 bg-white/5 border-transparent"
+                                        : "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white"
                             )}
                         >
                             <span className="relative z-10">{year}</span>
@@ -92,6 +96,7 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
 
     const renderMonthView = () => {
         const months = Array.from({ length: 12 }, (_, i) => i);
+        const isNextYearFuture = addYears(viewDate, 1).getFullYear() > new Date().getFullYear();
 
         return (
             <div className="space-y-4">
@@ -107,8 +112,14 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                         {viewDate.getFullYear()}
                     </span>
                     <button 
-                        onClick={() => setViewDate(d => addYears(d, 1))}
-                        className="p-1 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+                        onClick={() => !isNextYearFuture && setViewDate(d => addYears(d, 1))}
+                        disabled={isNextYearFuture}
+                        className={cn(
+                            "p-1 rounded-full transition-colors",
+                            isNextYearFuture 
+                                ? "opacity-15 cursor-not-allowed text-slate-600" 
+                                : "hover:bg-white/10 text-white/50 hover:text-white"
+                        )}
                     >
                         <ChevronRight size={18} />
                     </button>
@@ -119,17 +130,21 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                         const date = new Date(viewDate.getFullYear(), month, 1);
                         const isSelected = isSameMonth(date, currentDate) && isSameYear(date, currentDate);
                         const isCurrent = isSameMonth(date, new Date());
+                        const isFutureMonth = date > new Date() && !isSameMonth(date, new Date());
                         
                         return (
                             <button
                                 key={month}
-                                onClick={() => handleSelect(date)}
+                                onClick={() => !isFutureMonth && handleSelect(date)}
+                                disabled={isFutureMonth}
                                 className={cn(
                                     "h-10 rounded-xl text-xs font-bold uppercase tracking-wide transition-all relative",
                                     isSelected 
                                         ? "bg-white text-black shadow-lg" 
-                                        : "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white"
-                                )}
+                                        : isFutureMonth
+                                            ? "opacity-15 cursor-not-allowed text-slate-600 bg-white/5"
+                                            : "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white"
+                                    )}
                             >
                                 {format(date, 'MMM', { locale: es })}
                                 {isCurrent && !isSelected && (
@@ -158,6 +173,7 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
         // Calculate selected week range
         const selectedStart = startOfWeek(currentDate);
         const selectedEnd = endOfWeek(currentDate);
+        const isNextMonthFuture = addMonths(viewDate, 1) > new Date() && !isSameMonth(addMonths(viewDate, 1), new Date());
 
         return (
             <div className="space-y-4">
@@ -173,8 +189,14 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                         {format(viewDate, 'MMMM yyyy', { locale: es })}
                     </span>
                     <button 
-                        onClick={() => setViewDate(d => addMonths(d, 1))}
-                        className="p-1 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+                        onClick={() => !isNextMonthFuture && setViewDate(d => addMonths(d, 1))}
+                        disabled={isNextMonthFuture}
+                        className={cn(
+                            "p-1 rounded-full transition-colors",
+                            isNextMonthFuture 
+                                ? "opacity-15 cursor-not-allowed text-slate-600" 
+                                : "hover:bg-white/10 text-white/50 hover:text-white"
+                        )}
                     >
                         <ChevronRight size={18} />
                     </button>
@@ -200,6 +222,7 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                             
                             const isCurrentMonth = isSameMonth(day, viewDate);
                             const isToday = isSameDay(day, new Date());
+                            const isFutureDate = day > new Date() && !isSameDay(day, new Date());
 
                             // Styling for range selection visual
                             const isRangeStart = mode === 'WEEK' && isSameDay(day, selectedStart);
@@ -208,13 +231,16 @@ export const DateSelectionModal: React.FC<DateSelectionModalProps> = ({
                             return (
                                 <button
                                     key={day.toISOString()}
-                                    onClick={() => handleSelect(day)}
+                                    onClick={() => !isFutureDate && handleSelect(day)}
+                                    disabled={isFutureDate}
                                     className={cn(
                                         "h-8 relative flex items-center justify-center text-xs font-medium rounded-md transition-all",
                                         !isCurrentMonth && "opacity-30",
-                                        isSelected ? "text-white bg-white/10" : "text-slate-300 hover:bg-white/5",
+                                        isFutureDate 
+                                            ? "opacity-15 cursor-not-allowed text-slate-600" 
+                                            : isSelected ? "text-white bg-white/10" : "text-slate-300 hover:bg-white/5",
                                         (isRangeStart || isRangeEnd) && "bg-indigo-500 text-white shadow-sm font-bold",
-                                        (mode === 'DAY' && isSelected) && "bg-indigo-500 text-white shadow-sm font-bold",
+                                        (mode === 'DAY' && isSelected && !isFutureDate) && "bg-indigo-500 text-white shadow-sm font-bold",
                                         isToday && !isSelected && "text-emerald-400 font-bold"
                                     )}
                                 >

@@ -11,7 +11,7 @@ export const LoadingScreen = () => {
           className="text-center relative"
         >
           <h1
-            className="text-4xl md:text-6xl font-sans font-extralight tracking-[0.45em] text-white/90 select-none uppercase"
+            className="text-4xl md:text-6xl font-sans font-extralight tracking-[0.45em] mr-[-0.45em] text-white/90 select-none uppercase"
           >
             Lux
           </h1>

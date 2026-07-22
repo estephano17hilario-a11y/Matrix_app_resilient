@@ -63,6 +63,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
         intervalType?: 'WEEKLY' | 'MONTHLY' | 'NONE';
         intervalCount?: number;
         allowSkip?: boolean;
+        deleted?: boolean;
     }[]>([]);
     const [openMenu, setOpenMenu] = useState<{id: string, type: 'COLOR' | 'DAYS' | 'TIME'} | null>(null);
     const [newSubtask, setNewSubtask] = useState('');
@@ -708,7 +709,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                             weeklyType === 'SPECIFIC_DAYS' ? "bg-white/10 text-white border-white/20 shadow-sm" : "bg-transparent border-transparent text-slate-500 hover:text-white"
                                                         )}
                                                     >
-                                                        {t('habits.specificDays', 'SPECIFIC DAYS')}
+                                                        {t('specificDays', 'SPECIFIC DAYS')}
                                                     </button>
                                                     <button
                                                         onClick={() => setWeeklyType('FLEXIBLE_COUNT')}
@@ -717,7 +718,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                             weeklyType === 'FLEXIBLE_COUNT' ? "bg-white/10 text-white border-white/20 shadow-sm" : "bg-transparent border-transparent text-slate-500 hover:text-white"
                                                         )}
                                                     >
-                                                        {t('habits.flexibleCount', 'FLEXIBLE COUNT')}
+                                                        {t('flexibleCount', 'FLEXIBLE COUNT')}
                                                     </button>
                                                 </div>
 
@@ -741,7 +742,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                     </div>
                                                 ) : (
                                                     <div className="flex items-center gap-3 bg-white/5 p-3 rounded-lg">
-                                                        <span className="text-xs font-bold text-white/70">{t('habits.timesPerWeek', 'Times per week')}:</span>
+                                                        <span className="text-xs font-bold text-white/70">{t('timesPerWeek', 'Times per week')}:</span>
                                                         <input 
                                                             type="number" 
                                                             min="1" 
@@ -775,7 +776,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                             monthlyType === 'SPECIFIC_DATES' ? "bg-white/10 text-white border-white/20 shadow-sm" : "bg-transparent border-transparent text-slate-500 hover:text-white"
                                                         )}
                                                     >
-                                                        {t('habits.specificDates', 'SPECIFIC DATES')}
+                                                        {t('specificDates', 'SPECIFIC DATES')}
                                                     </button>
                                                     <button
                                                         onClick={() => setMonthlyType('FLEXIBLE_COUNT')}
@@ -784,7 +785,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                             monthlyType === 'FLEXIBLE_COUNT' ? "bg-white/10 text-white border-white/20 shadow-sm" : "bg-transparent border-transparent text-slate-500 hover:text-white"
                                                         )}
                                                     >
-                                                        {t('habits.flexibleCount', 'FLEXIBLE COUNT')}
+                                                        {t('flexibleCount', 'FLEXIBLE COUNT')}
                                                     </button>
                                                 </div>
 
@@ -817,12 +818,12 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                             <div className={cn("w-3 h-3 rounded-sm border flex items-center justify-center", monthlyLastDay ? "bg-cyan-500 border-cyan-400 text-black" : "border-slate-500")}>
                                                                 {monthlyLastDay && <CheckCircle2 size={10} />}
                                                             </div>
-                                                            {t('habits.lastDayOfMonth', 'Last day of month')}
+                                                            {t('lastDayOfMonth', 'Last day of month')}
                                                         </button>
                                                     </div>
                                                 ) : (
                                                     <div className="flex items-center gap-3 bg-white/5 p-3 rounded-lg">
-                                                        <span className="text-xs font-bold text-white/70">{t('habits.timesPerMonth', 'Times per month')}:</span>
+                                                        <span className="text-xs font-bold text-white/70">{t('timesPerMonth', 'Times per month')}:</span>
                                                         <input 
                                                             type="number" 
                                                             min="1" 
@@ -1040,8 +1041,8 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                     </button>
                                                 </div>
                                                 
-                                                <Reorder.Group axis="y" values={subtasks} onReorder={setSubtasks} className="space-y-2">
-                                                    {subtasks.map((task) => (
+                                                <Reorder.Group axis="y" values={subtasks.filter(t => !t.deleted)} onReorder={(newActive) => setSubtasks([...newActive, ...subtasks.filter(t => t.deleted)])} className="space-y-2">
+                                                    {subtasks.filter(t => !t.deleted).map((task) => (
                                                         <Reorder.Item key={task.id} value={task} className="bg-white/5 rounded-xl border border-white/5 overflow-hidden">
                                                             <div className="flex items-center gap-2 p-2">
                                                                 <GripVertical size={14} className="text-white/20 cursor-grab active:cursor-grabbing flex-shrink-0" />
@@ -1080,7 +1081,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                                                     </button>
 
                                                                     <button 
-                                                                        onClick={() => setSubtasks(subtasks.filter(t => t.id !== task.id))}
+                                                                        onClick={() => setSubtasks(subtasks.map(t => t.id === task.id ? { ...t, deleted: true } : t))}
                                                                         className="p-1.5 rounded hover:bg-red-500/20 text-white/30 hover:text-red-400 transition-colors"
                                                                     >
                                                                         <Trash2 size={12} />

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { RIVAL_LEVELS, RivalLevel } from '../config/rivalsConfig';
+import { RIVAL_LEVELS } from '../config/rivalsConfig';
 import { RivalNotificationService } from '../services/rivalNotificationService';
 import { supabase } from '@/services/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -78,7 +78,7 @@ export function useRivalsLogic(
         simulatedFocusMinutes: 0,
         simulatedHabitPct: 0,
         message: `El rival iniciará su jornada a las ${workStartHour}:${workStartMinute.toString().padStart(2, '0')}.`,
-        currentActivity: isSleeping ? `😴 Durmiendo. Se prepara para su jornada.` : `☕ Iniciando rutina matutina y preparando bloques de trabajo.`
+        currentActivity: isSleeping ? `😴 Durmiendo. Se prepara para su jornada.` : `☕ Haciendo sesión profunda`
       };
     }
 

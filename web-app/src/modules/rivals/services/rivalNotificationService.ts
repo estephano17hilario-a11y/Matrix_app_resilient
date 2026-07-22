@@ -63,10 +63,12 @@ export class RivalNotificationService {
 
       const now = new Date();
       const startToday = new Date(now);
-      startToday.setHours(rival.workStartHour, rival.workStartMinute || 0, 0, 0);
+      const startHour = rival.workStartHour !== undefined ? rival.workStartHour : 8;
+      startToday.setHours(startHour, rival.workStartMinute || 0, 0, 0);
 
       const endToday = new Date(now);
-      endToday.setHours(rival.workEndHour, rival.workEndMinute || 0, 0, 0);
+      const endHour = rival.workEndHour !== undefined ? rival.workEndHour : 17;
+      endToday.setHours(endHour, rival.workEndMinute || 0, 0, 0);
 
       const notificationsToSchedule = [];
 

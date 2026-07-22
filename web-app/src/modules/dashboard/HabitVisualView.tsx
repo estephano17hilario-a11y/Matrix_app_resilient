@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Skull, Archive, ChevronLeft, ArrowUpDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { isSameDay, isLastDayOfMonth } from 'date-fns';
+import { isSameDay, isLastDayOfMonth, format } from 'date-fns';
 import { useTheme } from '@/context/ThemeContext';
 import { Habit, Attribute, BadHabit } from '../../types';
 import { RelapseChart } from './components/RelapseChart';
@@ -113,7 +113,6 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     badHabits,
     attributes, 
     onCompleteHabit,
-    onCreateHabit,
     onCreateBadHabit,
     onEditHabit,
     onUpdateHabit,
@@ -524,7 +523,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                         {t('habits.loggingMode', 'Modo de Registro')}
                                                     </span>
                                                     <span className="text-xs font-black tracking-wide transition-colors duration-200 mt-0.5 text-orange-400">
-                                                        {t('habits.modifyingYesterday', 'Modificando: Ayer')}
+                                                        {t('habits.pastDayTitle', 'Hábitos del día ({{date}})', { date: format(currentDate, 'dd/MM/yyyy') })}
                                                     </span>
                                                 </div>
                                             </div>

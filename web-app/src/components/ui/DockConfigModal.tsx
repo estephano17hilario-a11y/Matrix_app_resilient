@@ -151,12 +151,14 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/90"
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+        >
+          <div
+            className="absolute inset-0 bg-black/90 cursor-pointer"
             onClick={onClose}
           />
           
@@ -422,7 +424,7 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
               </button>
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>,
     document.body

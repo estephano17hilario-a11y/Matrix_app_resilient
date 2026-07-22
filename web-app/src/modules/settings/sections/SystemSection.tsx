@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-import { Globe, BarChart3, Hexagon, Bell, BatteryMedium, Smartphone, Settings2, Calendar, Layers, Lock, LineChart, LayoutGrid, Zap, Brain, Swords, CheckCircle2, LayoutTemplate } from 'lucide-react';
+import { Globe, BarChart3, Hexagon, Bell, BatteryMedium, Smartphone, Settings2, Calendar, Layers, Lock, LineChart, LayoutGrid, Zap, Brain, Swords, CheckCircle2, LayoutTemplate, ShoppingBag, Activity, PenLine } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
@@ -376,34 +376,82 @@ export const SystemSection = () => {
       </div>
       <div>
         <div className="text-base font-bold text-white tracking-tight">Acciones Rápidas del HUD (Cabecera)</div>
-        <div className="text-xs text-white/40 font-medium">Selecciona los 2 íconos rápidos visibles junto a tu avatar</div>
+        <div className="text-xs text-white/40 font-medium">Selecciona los 2 íconos rápidos de forma individual junto a tu avatar</div>
       </div>
     </div>
 
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-      {[
-        { id: ['SETTINGS', 'STORE'], label: 'Ajustes + Tienda' },
-        { id: ['STORE', 'FEED'], label: 'Tienda + Feed' },
-        { id: ['SETTINGS', 'FEED'], label: 'Ajustes + Feed' },
-        { id: ['STORE', 'RIVALS'], label: 'Tienda + Duelos' },
-        { id: ['SETTINGS', 'RIVALS'], label: 'Ajustes + Duelos' },
-      ].map((opt) => {
-        const isSelected = JSON.stringify(topQuickActions) === JSON.stringify(opt.id);
-        return (
-          <button
-            key={opt.label}
-            onClick={() => updateTopQuickActions(opt.id)}
-            className={cn(
-              "py-2.5 px-3 rounded-xl transition-all text-xs font-bold active:scale-95 border text-center truncate",
-              isSelected
-                ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm"
-                : "bg-white/5 text-white/60 border-white/5 hover:bg-white/10"
-            )}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Slot 1 Selection */}
+      <div className="space-y-2">
+        <label className="text-[10px] font-black text-amber-400 uppercase tracking-widest block">
+          Slot 1 (Acción Izquierda)
+        </label>
+        <div className="grid grid-cols-2 sm:grid-cols-1 md:grid-cols-2 gap-2">
+          {[
+            { id: 'SETTINGS', label: 'Ajustes', icon: Settings2 },
+            { id: 'STORE', label: 'Tienda', icon: ShoppingBag },
+            { id: 'FEED', label: 'Feed', icon: Activity },
+            { id: 'RIVALS', label: 'Duelos', icon: Swords },
+            { id: 'NOTES', label: 'Notas', icon: PenLine },
+          ].map((opt) => {
+            const isSelected = topQuickActions[0] === opt.id;
+            return (
+              <button
+                key={`slot1-${opt.id}`}
+                onClick={() => {
+                  const updated = [opt.id, topQuickActions[1] || 'STORE'];
+                  updateTopQuickActions(updated);
+                }}
+                className={cn(
+                  "py-2 px-3 rounded-xl transition-all text-xs font-bold active:scale-95 border flex items-center gap-2 justify-center",
+                  isSelected
+                    ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+                    : "bg-white/5 text-white/60 border-white/5 hover:bg-white/10"
+                )}
+              >
+                <opt.icon size={12} />
+                <span>{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Slot 2 Selection */}
+      <div className="space-y-2">
+        <label className="text-[10px] font-black text-amber-400 uppercase tracking-widest block">
+          Slot 2 (Acción Derecha)
+        </label>
+        <div className="grid grid-cols-2 sm:grid-cols-1 md:grid-cols-2 gap-2">
+          {[
+            { id: 'SETTINGS', label: 'Ajustes', icon: Settings2 },
+            { id: 'STORE', label: 'Tienda', icon: ShoppingBag },
+            { id: 'FEED', label: 'Feed', icon: Activity },
+            { id: 'RIVALS', label: 'Duelos', icon: Swords },
+            { id: 'NOTES', label: 'Notas', icon: PenLine },
+          ].map((opt) => {
+            const isSelected = topQuickActions[1] === opt.id;
+            return (
+              <button
+                key={`slot2-${opt.id}`}
+                onClick={() => {
+                  const updated = [topQuickActions[0] || 'SETTINGS', opt.id];
+                  updateTopQuickActions(updated);
+                }}
+                className={cn(
+                  "py-2 px-3 rounded-xl transition-all text-xs font-bold active:scale-95 border flex items-center gap-2 justify-center",
+                  isSelected
+                    ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+                    : "bg-white/5 text-white/60 border-white/5 hover:bg-white/10"
+                )}
+              >
+                <opt.icon size={12} />
+                <span>{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   </div>
 

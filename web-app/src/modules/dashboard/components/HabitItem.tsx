@@ -80,6 +80,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
     if (habit.type === 'CHECKLIST') {
       const todayKey = getHistoryDateKey(toLocalISOString(currentDate || new Date()));
       const visibleItems = habit.checklist?.filter(item => {
+        if (item.deleted) return false;
         if (item.intervalType === 'WEEKLY' || item.intervalType === 'MONTHLY') {
           const isDoneToday = item.history?.includes(todayKey) || item.skippedHistory?.includes(todayKey);
           if (isDoneToday) return true;
@@ -208,7 +209,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
         return Math.min(100, Math.max(0, (current / target) * 100));
     }
     if (habit.type === 'CHECKLIST') {
-        const visibleItems = habit.checklist?.filter(i => !i.days || i.days.length === 0 || i.days.includes(today)) || [];
+        const visibleItems = habit.checklist?.filter(i => !i.deleted && (!i.days || i.days.length === 0 || i.days.includes(today))) || [];
         const total = visibleItems.length;
         if (total === 0) return habit.completedToday ? 100 : 0;
         const completed = visibleItems.filter(i => i.completed).length;
@@ -219,7 +220,8 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
 
   const allChecklistCompleted = React.useMemo(() => {
     if (habit.type !== 'CHECKLIST' || !habit.checklist) return false;
-    return habit.checklist.length > 0 && habit.checklist.every(i => i.completed);
+    const activeItems = habit.checklist.filter(i => !i.deleted);
+    return activeItems.length > 0 && activeItems.every(i => i.completed);
   }, [habit.checklist, habit.type]);
 
   const wrapperProps = {
@@ -356,6 +358,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
           {viewPreference === 'CHRONOLOGICAL' && habit.type === 'CHECKLIST' && habit.checklist && (
               <div className="mt-3 space-y-1" onClick={e => e.stopPropagation()}>
                   {habit.checklist.filter(item => {
+                      if (item.deleted) return false;
                       if (item.intervalType === 'WEEKLY' || item.intervalType === 'MONTHLY') {
                           const todayKey = getHistoryDateKey(toLocalISOString(currentDate || new Date()));
                           const isDoneToday = item.history?.includes(todayKey) || item.skippedHistory?.includes(todayKey);
@@ -497,6 +500,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                         <div className="pt-2 border-t border-white/5 space-y-1">
                             <span className="text-[10px] text-white/40 uppercase tracking-wider block mb-1">{t('habits.subtasks', 'Subtasks')}</span>
                             {habit.checklist.filter(item => {
+                                if (item.deleted) return false;
                                 if (item.intervalType === 'WEEKLY' || item.intervalType === 'MONTHLY') {
                                     const todayKey = getHistoryDateKey(toLocalISOString(currentDate || new Date()));
                                     const isDoneToday = item.history?.includes(todayKey) || item.skippedHistory?.includes(todayKey);

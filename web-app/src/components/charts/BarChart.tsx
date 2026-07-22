@@ -53,6 +53,40 @@ export const BarChart = React.memo(({
     const [tooltipPos, setTooltipPos] = useState<{top: number, left: number} | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
+    const handleTouch = (e: React.TouchEvent) => {
+        // Only prevent default on move to avoid breaking normal scrolling unless dragging inside the chart
+        if (e.type === 'touchmove' && e.cancelable) {
+            e.preventDefault();
+        }
+        const touch = e.touches[0];
+        if (!touch || !containerRef.current) return;
+        
+        const rect = containerRef.current.getBoundingClientRect();
+        const relativeX = touch.clientX - rect.left - (yTicks ? 24 : 0);
+        const chartWidth = rect.width - (yTicks ? 24 : 0);
+        
+        if (relativeX < 0 || relativeX > chartWidth) {
+            setActiveIndex(null);
+            return;
+        }
+        
+        const percentX = relativeX / chartWidth;
+        const index = Math.floor(percentX * labels.length);
+        
+        if (index >= 0 && index < labels.length) {
+            const barElements = containerRef.current.querySelectorAll('.bar-touch-target');
+            const barEl = barElements[index];
+            if (barEl) {
+                const barRect = barEl.getBoundingClientRect();
+                const top = barRect.top + window.scrollY - 10;
+                const left = barRect.left + window.scrollX + (barRect.width / 2);
+                
+                setActiveIndex(index);
+                setTooltipPos({ top, left });
+            }
+        }
+    };
+
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -80,7 +114,14 @@ export const BarChart = React.memo(({
     };
     
     return (
-        <div ref={containerRef} className={`w-full relative select-none ${className}`} style={{ height }}>
+        <div 
+            ref={containerRef} 
+            className={`w-full relative select-none ${className}`} 
+            style={{ height }}
+            onTouchStart={handleTouch}
+            onTouchMove={handleTouch}
+            onTouchEnd={() => setActiveIndex(null)}
+        >
              {showBackground && (
                 <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 via-purple-500/5 to-pink-500/5 opacity-20 rounded-3xl pointer-events-none" />
              )}
@@ -132,7 +173,7 @@ export const BarChart = React.memo(({
                         const activeDs = datasets.filter(ds => (ds.data[activeIndex] || 0) > 0);
                         if (activeDs.length === 0) {
                             return (
-                                <div className="text-[10px] text-white/40 font-bold uppercase tracking-wider mt-0.5 py-0.5">
+                                <div className="text-[10px] text-white/70 font-bold uppercase tracking-wider mt-0.5 py-0.5">
                                     {tooltipValueFormatter ? tooltipValueFormatter(0) : '0h'}
                                 </div>
                             );
@@ -180,7 +221,7 @@ export const BarChart = React.memo(({
                         onMouseEnter={(e) => handleBarHover(i, e)}
                         onMouseLeave={() => setActiveIndex(null)}
                         onClick={(e) => handleBarClick(i, e)}
-                        className="flex-1 h-full relative group z-10 cursor-pointer min-w-0"
+                        className="flex-1 h-full relative group z-10 cursor-pointer min-w-0 bar-touch-target"
                     >
                         {/* Bars Container */}
                         <div className={`absolute ${paddingTop} bottom-6 left-0 right-0 ${labels.length > 20 ? 'px-0' : barSpacing} flex items-end justify-center`}>

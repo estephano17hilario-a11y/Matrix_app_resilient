@@ -18,7 +18,6 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { MotionConfig, motion, AnimatePresence } from 'framer-motion';
 import { useNotificationSystem } from './hooks/useNotificationSystem';
 import { TourProvider } from '@/components/TourGuide';
-import { cn } from '@/utils/cn';
 
 import { AuroraBackground } from '@/components/AuroraBackground';
 import Dashboard from './Dashboard';
@@ -114,16 +113,24 @@ const AppRoutes = () => {
         <LuxProvider userId={user?.id || profile?.uid || 'phantom-user'}>
           <EconomyProvider>
             <NotesProvider>
-              <div className={cn("w-full h-full transition-all duration-500", showSplash ? "invisible opacity-0 pointer-events-none" : "visible opacity-100")}>
+              <div 
+                className="w-full h-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] origin-center"
+                style={{
+                  opacity: showSplash ? 0 : 1,
+                  transform: showSplash ? 'scale(0.95)' : 'scale(1)',
+                  pointerEvents: showSplash ? 'none' : 'auto',
+                  visibility: showSplash ? 'hidden' : 'visible'
+                }}
+              >
                 <Dashboard />
               </div>
               <AnimatePresence>
                 {showSplash && (
                   <motion.div
                     key="startup-splash-overlay"
-                    initial={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4, ease: "easeInOut" }}
+                    initial={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.04 }}
+                    transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                     className="fixed inset-0 z-[9999] pointer-events-auto"
                   >
                     <LoadingScreen />

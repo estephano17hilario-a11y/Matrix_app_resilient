@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Plus, Archive } from 'lucide-react';
+import { Archive } from 'lucide-react';
 import { Project, Attribute } from '../../types';
 import { FocusStats } from './components/FocusStats';
 import { ProjectCardMinimal } from './components/ProjectCardMinimal';

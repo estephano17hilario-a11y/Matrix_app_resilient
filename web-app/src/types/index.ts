@@ -116,6 +116,7 @@ export interface Habit {
     intervalCount?: number;
     allowSkip?: boolean;
     skippedHistory?: string[]; // Date keys when this subtask was skipped
+    deleted?: boolean; // Track if the subtask is deleted
   }[];
   reminderTime?: string;
   history?: string[]; // ISO date strings of completions

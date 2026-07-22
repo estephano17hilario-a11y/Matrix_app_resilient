@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useLux } from '@/context/LuxContext';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Share2, MoreVertical, Edit2, Archive, Trash2, Plus, Check, Lock } from 'lucide-react';
@@ -99,6 +100,8 @@ interface HabitDetailViewProps {
 
 export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project, attribute, attributeColor, onClose, onEdit, onDelete, onArchive, isPro, onOpenPro, weekStartDay = 1 }) => {
  const { t } = useTranslation();
+ const { user } = useLux();
+ const isProActive = isPro || user?.plan === 'PRO' || user?.es_pro === true;
  const themeColor = useMemo(() => habit?.customColor || project?.color || attributeColor || '#0ea5e9', [habit?.customColor, project?.color, attributeColor]);
 
  const [timeRange, setTimeRange] = useState<TimeRange>('WEEK');
@@ -126,7 +129,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  };
 
  const handleTabClick = (tabValue: TimeRange) => {
- if (!isPro && ['MONTH', '3_MONTHS', 'YEAR', 'TOTAL'].includes(tabValue)) {
+ if (!isProActive && ['MONTH', '3_MONTHS', 'YEAR', 'TOTAL'].includes(tabValue)) {
  if (onOpenPro) onOpenPro();
  return;
  }
@@ -762,7 +765,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
   {pinnedRanges.map((range, index) => {
   const isActive = timeRange === range;
   const label = ALL_RANGES.find((r: { value: TimeRange, label: string }) => r.value === range)?.label || range;
-  const isLocked = !isPro && ['MONTH', '3_MONTHS', 'YEAR', 'TOTAL'].includes(range);
+  const isLocked = !isProActive && ['MONTH', '3_MONTHS', 'YEAR', 'TOTAL'].includes(range);
   
   return (
   <button
@@ -810,7 +813,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  {ALL_RANGES.map((option) => {
  const isPinned = pinnedRanges.includes(option.value);
  const isSelected = timeRange === option.value;
- const isLocked = !isPro && ['MONTH', '3_MONTHS', 'YEAR', 'TOTAL'].includes(option.value);
+ const isLocked = !isProActive && ['MONTH', '3_MONTHS', 'YEAR', 'TOTAL'].includes(option.value);
  
  return (
  <button
@@ -1149,7 +1152,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  label={t('dashboard.currentStreak', 'Current Streak')}
  value={`${streakDays} ${t('dashboard.days')}`}
  />
- {isPro && (
+ {isProActive && (
  <>
  <StatCard
  label={t('dashboard.averageSession', 'Average Session')}
@@ -1161,7 +1164,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  />
  </>
  )}
- {!isPro && (
+ {!isProActive && (
  <>
  <StatCard
  label={
@@ -1186,6 +1189,64 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  </>
  )}
  </motion.div>
+
+ {/* Subtask Statistics Section */}
+ {habit?.type === 'CHECKLIST' && habit.checklist && habit.checklist.length > 0 && (
+     <motion.div variants={itemVariants} className="bg-[#121214]/60 rounded-[32px] p-6 border border-white/[0.06] shadow-md relative overflow-hidden group mt-3">
+         <div className="flex items-center gap-2 mb-6">
+             <div className="w-1.5 h-4 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]" />
+             <h3 className="text-[11px] font-[900] text-white/40 uppercase tracking-[0.2em]">
+                 {t('subtaskStats', 'ESTADÍSTICAS DE SUBTAREAS')}
+             </h3>
+         </div>
+
+         <div className="space-y-4">
+             {habit.checklist.map((subItem) => {
+                 const completions = subItem.history?.length || 0;
+                 const habitCompletions = habit.history?.length || 1;
+                 const rate = Math.min(100, Math.round((completions / Math.max(1, habitCompletions)) * 100));
+                 const isDeleted = !!subItem.deleted;
+
+                 return (
+                     <div key={subItem.id} className={cn("flex flex-col gap-2 p-3 rounded-2xl border transition-all", isDeleted ? "bg-red-500/5 border-red-500/10 opacity-70" : "bg-white/[0.02] border-white/5")}>
+                         <div className="flex justify-between items-center">
+                             <div className="flex items-center gap-2 min-w-0">
+                                 <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: subItem.color || themeColor }} />
+                                 <span className={cn("text-xs font-bold text-white truncate", isDeleted && "line-through text-white/50")}>
+                                     {subItem.text}
+                                 </span>
+                                 {isDeleted && (
+                                     <span className="text-[8px] font-black tracking-wider uppercase bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-md border border-red-500/20 shrink-0">
+                                         {t('deleted', 'ELIMINADA')}
+                                     </span>
+                                 )}
+                             </div>
+                             <span className="text-[10px] font-black text-white/60 shrink-0">
+                                 {completions} {t('completions', 'completadas')}
+                             </span>
+                         </div>
+
+                         <div className="flex items-center gap-3">
+                             <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                 <div 
+                                     className="h-full rounded-full transition-all duration-500"
+                                     style={{ 
+                                         width: `${rate}%`, 
+                                         backgroundColor: subItem.color || themeColor,
+                                         boxShadow: `0 0 8px ${subItem.color || themeColor}`
+                                     }}
+                                 />
+                             </div>
+                             <span className="text-[9px] font-black text-white/40 w-8 text-right shrink-0">
+                                 {rate}%
+                             </span>
+                         </div>
+                     </div>
+                 );
+             })}
+         </div>
+     </motion.div>
+ )}
  
  {/* Bottom Spacer */}
  <div className="h-10" />

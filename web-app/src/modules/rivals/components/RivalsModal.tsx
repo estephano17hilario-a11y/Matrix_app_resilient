@@ -1,8 +1,8 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Trophy, Lock, CheckCircle, Swords, Target, Zap, Flame, Star, Award, Sparkles, Crown, Compass, ShieldAlert, Clock } from 'lucide-react';
-import { RIVAL_LEVELS, RivalLevel } from '../config/rivalsConfig';
+import { X, Trophy, Lock, CheckCircle, Swords, Target, Zap, Flame, Star, Award, Sparkles, Crown, Compass, Clock } from 'lucide-react';
+import { RIVAL_LEVELS } from '../config/rivalsConfig';
 import { useRivalsLogic } from '../hooks/useRivalsLogic';
 
 interface RivalsModalProps {
@@ -344,11 +344,24 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                     )}
                   </div>
 
-                  <div className="my-3 flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-white">{userTasksCompleted}</span>
-                    <span className="text-white/40 text-xs font-bold">
-                      {isSelectedUnlocked ? ` / ${currentLevelData.targetTasks} meta hoy` : ' / ? meta'}
-                    </span>
+                  <div className="my-3 flex flex-col gap-1 text-left">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Tú:</span>
+                      <span className="text-2xl font-black text-white">{userTasksCompleted}</span>
+                      <span className="text-white/40 text-xs font-medium">completadas</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Rival:</span>
+                      <span className="text-sm font-black text-orange-400">
+                        {!isSelectedUnlocked ? '?' : (rivalLiveState.status === 'WAITING' ? 0 : rivalLiveState.simulatedTasks)}
+                      </span>
+                      <span className="text-white/30 text-[10px] font-bold">
+                        {isSelectedUnlocked
+                          ? (rivalLiveState.status === 'WAITING' ? ' / ? (meta)' : ` / ${currentLevelData.targetTasks} (meta)`)
+                          : ' / ?'
+                        }
+                      </span>
+                    </div>
                   </div>
 
                   <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
@@ -383,11 +396,24 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                     )}
                   </div>
 
-                  <div className="my-3 flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-white">{Math.round(userFocusMinutes / 60 * 10) / 10}h</span>
-                    <span className="text-white/40 text-xs font-bold">
-                      {isSelectedUnlocked ? ` / ${currentLevelData.targetFocusMinutes / 60}h meta hoy` : ' / ? meta'}
-                    </span>
+                  <div className="my-3 flex flex-col gap-1 text-left">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Tú:</span>
+                      <span className="text-2xl font-black text-white">{Math.round(userFocusMinutes / 60 * 10) / 10}h</span>
+                      <span className="text-white/40 text-xs font-medium">enfocado</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Rival:</span>
+                      <span className="text-sm font-black text-purple-400">
+                        {!isSelectedUnlocked ? '?' : (rivalLiveState.status === 'WAITING' ? '0h' : `${Math.round(rivalLiveState.simulatedFocusMinutes / 60 * 10) / 10}h`)}
+                      </span>
+                      <span className="text-white/30 text-[10px] font-bold">
+                        {isSelectedUnlocked
+                          ? (rivalLiveState.status === 'WAITING' ? ' / ? (meta)' : ` / ${currentLevelData.targetFocusMinutes / 60}h (meta)`)
+                          : ' / ?'
+                        }
+                      </span>
+                    </div>
                   </div>
 
                   <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
@@ -422,11 +448,24 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                     )}
                   </div>
 
-                  <div className="my-3 flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-white">{Math.round(userHabitPct)}%</span>
-                    <span className="text-white/40 text-xs font-bold">
-                      {isSelectedUnlocked ? ` / ${currentLevelData.targetHabitPct}% meta hoy` : ' / ? meta'}
-                    </span>
+                  <div className="my-3 flex flex-col gap-1 text-left">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Tú:</span>
+                      <span className="text-2xl font-black text-white">{Math.round(userHabitPct)}%</span>
+                      <span className="text-white/40 text-xs font-medium">de hábitos</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Rival:</span>
+                      <span className="text-sm font-black text-orange-400">
+                        {!isSelectedUnlocked ? '?' : (rivalLiveState.status === 'WAITING' ? '0%' : `${Math.round(rivalLiveState.simulatedHabitPct)}%`)}
+                      </span>
+                      <span className="text-white/30 text-[10px] font-bold">
+                        {isSelectedUnlocked
+                          ? (rivalLiveState.status === 'WAITING' ? ' / ? (meta)' : ` / ${currentLevelData.targetHabitPct}% (meta)`)
+                          : ' / ?'
+                        }
+                      </span>
+                    </div>
                   </div>
 
                   <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">

@@ -76,7 +76,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
     // --- 1. DATA CALCULATION ---
     const { chartData, stats, trend, todayStats, dateRangeLabel } = useMemo(() => {
         const activeHabits = habits.filter(h => !h.archived);
-        const today = new Date();
+        const today = currentDate;
         const viewDate = currentDate;
         // ✅ Always use local timezone for 'today' string to match history entries
         const todayStr = toLocalISOString(today);
@@ -211,7 +211,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                 const existed = anyHabitExisted(date);
                 // FIX: If no habits due, percent is 0.
                 const percent = dailyTotal > 0 ? Math.round((count / dailyTotal) * 100) : 0;
-                const isFutureDate = isFuture(date) && !isSameDay(date, today);
+                const isFutureDate = isFuture(date) && !isSameDay(date, new Date());
                 
                 return {
                     date,
@@ -254,7 +254,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                 const existed = anyHabitExisted(date);
                 const percent = dailyTotal > 0 ? Math.round((count / dailyTotal) * 100) : 0;
                 const dayNum = date.getDate();
-                const isFutureDate = isFuture(date) && !isSameDay(date, today);
+                const isFutureDate = isFuture(date) && !isSameDay(date, new Date());
 
                 return {
                     date,
@@ -388,7 +388,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
             stats: {
                 average: currentAvg,
                 best: bestDay,
-                streak: currentStreak,
+                streak: user?.stats?.streak !== undefined ? user.stats.streak : currentStreak,
                 totalHabits: currentTotalHabits
             },
             trend: trendValue,
