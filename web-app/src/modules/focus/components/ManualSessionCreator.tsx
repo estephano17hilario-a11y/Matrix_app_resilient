@@ -15,6 +15,7 @@ interface ManualSessionCreatorProps {
   initialDate: Date;
   project: Project;
   attribute?: Attribute;
+  initialSubTraitId?: string;
   onSave: (duration: number, date: Date, subTraitId?: string) => void;
   onCancel: () => void;
   onDelete?: () => void;
@@ -26,6 +27,7 @@ export const ManualSessionCreator = ({
   initialDate,
   project,
   attribute,
+  initialSubTraitId,
   onSave,
   onCancel,
   onDelete,
@@ -40,7 +42,7 @@ export const ManualSessionCreator = ({
   const [minutes, setMinutes] = useState(defaultMinutes);
   const [startDate, setStartDate] = useState<Date>(initialDate);
   const [activePicker, setActivePicker] = useState<'DURATION' | 'START_TIME'>('DURATION');
-  const [selectedSubTrait, setSelectedSubTrait] = useState<string | undefined>(undefined);
+  const [selectedSubTrait, setSelectedSubTrait] = useState<string | undefined>(initialSubTraitId);
 
   // Sub-traits from the attribute
   const subTraits = useMemo(() => attribute?.subTraits ?? [], [attribute]);

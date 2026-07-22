@@ -1,5 +1,4 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { cn } from '../../utils/cn';
 
 export const BarChart = React.memo(({ 
@@ -78,8 +77,8 @@ export const BarChart = React.memo(({
             const barEl = barElements[index];
             if (barEl) {
                 const barRect = barEl.getBoundingClientRect();
-                const top = barRect.top + window.scrollY - 10;
-                const left = barRect.left + window.scrollX + (barRect.width / 2);
+                const top = barRect.top - rect.top - 10;
+                const left = barRect.left - rect.left + (barRect.width / 2);
                 
                 setActiveIndex(index);
                 setTooltipPos({ top, left });
@@ -88,21 +87,27 @@ export const BarChart = React.memo(({
     };
 
     useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
+        const handleOutsideAction = (e: Event) => {
             if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
                 setActiveIndex(null);
             }
         };
         if (activeIndex !== null) {
-            document.addEventListener('click', handleClickOutside);
+            document.addEventListener('click', handleOutsideAction);
+            document.addEventListener('touchstart', handleOutsideAction, { passive: true });
         }
-        return () => document.removeEventListener('click', handleClickOutside);
+        return () => {
+            document.removeEventListener('click', handleOutsideAction);
+            document.removeEventListener('touchstart', handleOutsideAction);
+        };
     }, [activeIndex]);
 
     const handleBarHover = (i: number, e: React.MouseEvent) => {
+        if (!containerRef.current) return;
+        const containerRect = containerRef.current.getBoundingClientRect();
         const rect = e.currentTarget.getBoundingClientRect();
-        const top = rect.top + window.scrollY - 10;
-        const left = rect.left + window.scrollX + (rect.width / 2);
+        const top = rect.top - containerRect.top - 10;
+        const left = rect.left - containerRect.left + (rect.width / 2);
         
         setActiveIndex(i);
         setTooltipPos({ top, left });
@@ -114,14 +119,13 @@ export const BarChart = React.memo(({
     };
     
     return (
-        <div 
-            ref={containerRef} 
-            className={`w-full relative select-none ${className}`} 
-            style={{ height }}
-            onTouchStart={handleTouch}
-            onTouchMove={handleTouch}
-            onTouchEnd={() => setActiveIndex(null)}
-        >
+      <div 
+          ref={containerRef} 
+          className={`w-full relative select-none ${className}`} 
+          style={{ height }}
+          onTouchStart={handleTouch}
+          onTouchMove={handleTouch}
+      >
              {showBackground && (
                 <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 via-purple-500/5 to-pink-500/5 opacity-20 rounded-3xl pointer-events-none" />
              )}
@@ -155,8 +159,8 @@ export const BarChart = React.memo(({
                 </div>
             )}
 
-            {/* Portal Tooltip */}
-            {activeIndex !== null && tooltipPos && createPortal(
+            {/* Inline Tooltip */}
+            {activeIndex !== null && tooltipPos && (
                 <div 
                     className="absolute z-[9999] bg-[#1c1c1e] border px-3 py-2.5 rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] flex flex-col items-start gap-1.5 min-w-[90px] pointer-events-none"
                     style={{ 
@@ -210,8 +214,7 @@ export const BarChart = React.memo(({
 
                     {/* Tiny Triangle Arrow */}
                     <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px]" style={{ borderTopColor: datasets[0]?.color || '#3b82f6' }} />
-                </div>,
-                document.body
+                </div>
             )}
 
             <div className={`absolute inset-0 flex items-end ${labels.length > 30 ? 'gap-0' : labels.length > 15 ? 'gap-0.5' : 'gap-1'} ${yTicks ? 'pl-6' : ''}`}>

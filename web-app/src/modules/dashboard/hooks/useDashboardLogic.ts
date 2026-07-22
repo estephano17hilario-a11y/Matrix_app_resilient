@@ -4158,7 +4158,7 @@ export const useDashboardLogic = () => {
 
     }, [projects, dailyLimits, user, addNotification]);
 
-    const handleEditSession = useCallback((projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string) => {
+    const handleEditSession = useCallback((projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string, newSubTraitId?: string) => {
         // 1. Find Project and Session
         const projectIndex = projects.findIndex(p => p.id === projectId);
         if (projectIndex === -1) return;
@@ -4186,7 +4186,7 @@ export const useDashboardLogic = () => {
 
         const durationDiff = newDurationSeconds - oldDurationSeconds;
 
-        if (durationDiff === 0 && session.date === newDateStr) return; // No change
+        if (durationDiff === 0 && session.date === newDateStr && session.subTraitId === newSubTraitId) return; // No change
 
         // 3. Calculate New Rewards (Based on Capped Duration)
         const hourlyXp = GAMIFICATION_CONFIG.FOCUS.BASE_HOURLY.XP;
@@ -4222,7 +4222,7 @@ export const useDashboardLogic = () => {
         const goldDiff = finalGold - oldGold;
         const tpDiff = finalTP - oldTP;
 
-        console.log(`✏️ [EDIT SESSION] Diff: ${xpDiff}XP / ${goldDiff}G / ${tpDiff}TP`);
+        console.log(`✏️ [EDIT SESSION] Diff: ${xpDiff}XP / ${goldDiff}G / ${tpDiff}TP, SubTrait: ${session.subTraitId} -> ${newSubTraitId}`);
 
         // 5. Update Project State
         const updatedSession: Session = {
@@ -4231,7 +4231,8 @@ export const useDashboardLogic = () => {
             date: newDateStr,
             xpEarned: finalXp,
             goldEarned: finalGold,
-            traitPointsEarned: finalTP
+            traitPointsEarned: finalTP,
+            subTraitId: newSubTraitId
         };
 
         const updatedProject = {
@@ -4249,7 +4250,6 @@ export const useDashboardLogic = () => {
             projectService.saveProject(user.id, updatedProject);
         }
 
-        // 6. Update User Stats, Limits and Attributes via TransactionService
         // 6. Update User Stats, Limits and Attributes via TransactionService
         if (user?.id) {
             const today = toLocalISOString(new Date());
@@ -4306,28 +4306,34 @@ export const useDashboardLogic = () => {
                     }
 
                     let newSubTraits = attr.subTraits;
-                    if (session.subTraitId && attr.subTraits) {
+                    if (attr.subTraits) {
                         newSubTraits = attr.subTraits.map(st => {
-                            if (st.id !== session.subTraitId) return st;
-                            let newStXp = st.xp + tpDiff;
-                            let newStLevel = st.level;
-                            let newStMaxXp = st.maxXp;
-                            
-                            if (tpDiff > 0) {
-                                while (newStXp >= newStMaxXp) {
-                                    newStXp -= newStMaxXp;
-                                    newStLevel += 1;
-                                    newStMaxXp = Math.round(newStMaxXp * 1.3);
+                            let adjustedXp = st.xp;
+                            let adjustedLevel = st.level;
+                            let adjustedMaxXp = st.maxXp;
+
+                            // 1. Revert old TP if it belongs to old subTrait
+                            if (session.subTraitId && st.id === session.subTraitId) {
+                                adjustedXp -= oldTP;
+                                while (adjustedXp < 0 && adjustedLevel > 1) {
+                                    adjustedLevel -= 1;
+                                    adjustedMaxXp = calculateSubTraitMaxXp(adjustedLevel);
+                                    adjustedXp += adjustedMaxXp;
                                 }
-                            } else {
-                                while (newStXp < 0 && newStLevel > 1) {
-                                    newStLevel -= 1;
-                                    newStMaxXp = calculateSubTraitMaxXp(newStLevel);
-                                    newStXp += newStMaxXp;
-                                }
-                                if (newStLevel === 1 && newStXp < 0) newStXp = 0;
+                                if (adjustedLevel === 1 && adjustedXp < 0) adjustedXp = 0;
                             }
-                            return { ...st, xp: newStXp, level: newStLevel, maxXp: newStMaxXp };
+
+                            // 2. Add new TP if it belongs to new subTrait
+                            if (newSubTraitId && st.id === newSubTraitId) {
+                                adjustedXp += finalTP;
+                                while (adjustedXp >= adjustedMaxXp) {
+                                    adjustedXp -= adjustedMaxXp;
+                                    adjustedLevel += 1;
+                                    adjustedMaxXp = Math.round(adjustedMaxXp * 1.3);
+                                }
+                            }
+
+                            return { ...st, xp: adjustedXp, level: adjustedLevel, maxXp: adjustedMaxXp };
                         });
                     }
 

@@ -122,7 +122,7 @@ const AppRoutes = () => {
                   visibility: showSplash ? 'hidden' : 'visible'
                 }}
               >
-                <Dashboard />
+                <Dashboard isAppLoading={showSplash} />
               </div>
               <AnimatePresence>
                 {showSplash && (

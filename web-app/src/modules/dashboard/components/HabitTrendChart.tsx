@@ -14,11 +14,12 @@ interface HabitTrendChartProps {
     color?: string;
     isPro?: boolean;
     onOpenPro?: () => void;
+    selectedSubtaskId?: string;
 }
 
 type TimeFrame = 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
 
-export const HabitTrendChart: React.FC<HabitTrendChartProps> = ({ habit, color = '#6366f1', isPro, onOpenPro }) => {
+export const HabitTrendChart: React.FC<HabitTrendChartProps> = ({ habit, color = '#6366f1', isPro, onOpenPro, selectedSubtaskId }) => {
     const { t } = useTranslation();
     const [timeframe, setTimeframe] = useState<TimeFrame>('WEEK');
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -46,7 +47,13 @@ export const HabitTrendChart: React.FC<HabitTrendChartProps> = ({ habit, color =
 
     const { datasets, labels, max, dateRangeLabel, isCurrentRange } = useMemo(() => {
         const today = new Date();
-        const historySet = new Set(habit.history?.map(h => h.split('T')[0].substring(0, 10)) || []);
+        const historySet = (() => {
+            if (selectedSubtaskId && selectedSubtaskId !== 'ALL') {
+                const subItem = habit.checklist?.find(i => i.id === selectedSubtaskId);
+                return new Set(subItem?.history?.map(h => h.split('T')[0].substring(0, 10)) || []);
+            }
+            return new Set(habit.history?.map(h => h.split('T')[0].substring(0, 10)) || []);
+        })();
         
         let rawData: number[] = [];
         let lbls: string[] = [];
@@ -168,7 +175,7 @@ export const HabitTrendChart: React.FC<HabitTrendChartProps> = ({ habit, color =
                            timeframe === 'MONTH' ? isSameMonth(currentDate, today) :
                            currentDate.getFullYear() === today.getFullYear()
         };
-    }, [habit, timeframe, currentDate, color]);
+    }, [habit, timeframe, currentDate, color, selectedSubtaskId]);
 
     return (
         <div className="w-full relative overflow-visible">

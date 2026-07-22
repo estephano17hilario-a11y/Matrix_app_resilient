@@ -19,7 +19,7 @@ interface ActiveSessionViewProps {
  onUpdateProject: (p: Project) => void;
  onDeleteSession?: (projectId: string, sessionId: string) => void;
  onAddManualSession?: (projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH', sessionId?: string, sessionDate?: string, subTraitId?: string) => void;
- onEditSession?: (projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string) => void;
+ onEditSession?: (projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string, newSubTraitId?: string) => void;
  autoStart?: boolean;
  onAutoStartConsumed?: () => void;
  customHeaderTitle?: React.ReactNode;

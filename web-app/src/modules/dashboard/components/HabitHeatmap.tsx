@@ -12,11 +12,12 @@ interface HabitHeatmapProps {
     color?: string;
     isPro?: boolean;
     onOpenPro?: () => void;
+    selectedSubtaskId?: string;
 }
 
 type TimeFrame = 'MONTH' | 'QUARTER' | 'YEAR';
 
-export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b981', isPro, onOpenPro }) => {
+export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b981', isPro, onOpenPro, selectedSubtaskId }) => {
     const { t } = useTranslation();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [timeframe, setTimeframe] = useState<TimeFrame>('QUARTER');
@@ -92,13 +93,24 @@ export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b
     // Extract YYYY-MM-DD from history robustly
     const historySet = useMemo(() => {
         const set = new Set<string>();
+        if (selectedSubtaskId && selectedSubtaskId !== 'ALL') {
+            const subItem = habit.checklist?.find(i => i.id === selectedSubtaskId);
+            if (subItem && subItem.history) {
+                subItem.history.forEach(h => {
+                    const datePart = h.includes('T') ? h.split('T')[0] : h.substring(0, 10);
+                    set.add(datePart);
+                });
+            }
+            return set;
+        }
+
         if (!habit.history) return set;
         habit.history.forEach(h => {
             const datePart = h.includes('T') ? h.split('T')[0] : h.substring(0, 10);
             set.add(datePart);
         });
         return set;
-    }, [habit.history]);
+    }, [habit.history, habit.checklist, selectedSubtaskId]);
 
     // Group into columns of 7
     const columns = [];

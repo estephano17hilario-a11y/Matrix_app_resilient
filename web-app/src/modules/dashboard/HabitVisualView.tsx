@@ -1036,6 +1036,8 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                 onClose={() => setMasteryHabit(null)}
                 habit={masteryHabit}
                 attribute={masteryHabit ? attributeMap.get(masteryHabit.attribute) : undefined}
+                isPro={isPro}
+                onOpenPro={onOpenPro}
             />
         </motion.div>
     );

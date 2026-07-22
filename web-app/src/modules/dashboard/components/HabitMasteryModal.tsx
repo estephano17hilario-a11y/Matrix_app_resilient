@@ -1,8 +1,9 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Habit, Attribute } from '../../../types';
 import { X, Flame, Trophy, Calendar, Star, Sparkles } from 'lucide-react';
+import { cn } from '../../../utils/cn';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +15,8 @@ interface HabitMasteryModalProps {
  onClose: () => void;
  habit: Habit | null;
  attribute?: Attribute;
+ isPro?: boolean;
+ onOpenPro?: () => void;
 }
 
 const getBestStreak = (history?: string[], currentStreak: number = 0): number => {
@@ -81,9 +84,12 @@ export const HabitMasteryModal: React.FC<HabitMasteryModalProps> = ({
  isOpen,
  onClose,
  habit,
- attribute
+ attribute,
+ isPro,
+ onOpenPro
 }) => {
  const { t } = useTranslation();
+ const [selectedSubtaskId, setSelectedSubtaskId] = useState<string>('ALL');
 
  // Cache habit to preserve content during exit animation
  const [cachedHabit, setCachedHabit] = React.useState<Habit | null>(null);
@@ -314,6 +320,40 @@ export const HabitMasteryModal: React.FC<HabitMasteryModalProps> = ({
  />
  </div>
 
+  {/* Subtask Selector */}
+  {displayHabit.checklist && displayHabit.checklist.length > 0 && (
+      <div className="w-full flex gap-1.5 overflow-x-auto scrollbar-hide pb-3 mb-4 -mx-1 px-1 border-b border-white/5">
+          <button
+              onClick={() => setSelectedSubtaskId('ALL')}
+              className={cn(
+                  "px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border",
+                  selectedSubtaskId === 'ALL'
+                      ? "bg-white text-black border-white"
+                      : "bg-white/5 text-slate-400 border-white/5 hover:bg-white/10 hover:text-white"
+              )}
+          >
+              Global
+          </button>
+          {displayHabit.checklist.map((subItem) => (
+              <button
+                  key={subItem.id}
+                  onClick={() => setSelectedSubtaskId(subItem.id)}
+                  className={cn(
+                      "px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border flex items-center gap-1.5",
+                      selectedSubtaskId === subItem.id
+                          ? "bg-white text-black border-white"
+                          : "bg-white/5 text-slate-400 border-white/5 hover:bg-white/10 hover:text-white"
+                  )}
+              >
+                  <span>{subItem.text}</span>
+                  {subItem.deleted && (
+                      <span className="text-[8px] text-rose-500 font-bold uppercase tracking-wider shrink-0">(Eliminada)</span>
+                  )}
+              </button>
+          ))}
+      </div>
+  )}
+
  {/* Heatmap Contribution Graph */}
  <motion.div 
  initial={{ opacity: 0, y: 20 }}
@@ -321,7 +361,7 @@ export const HabitMasteryModal: React.FC<HabitMasteryModalProps> = ({
  transition={{ delay: 0.9 }}
  className="w-full mb-4"
  >
- <HabitHeatmap habit={displayHabit} color={baseColor} />
+ <HabitHeatmap habit={displayHabit} color={baseColor} isPro={isPro} onOpenPro={onOpenPro} selectedSubtaskId={selectedSubtaskId} />
  </motion.div>
 
  {/* Trend Line Chart */}
@@ -331,7 +371,7 @@ export const HabitMasteryModal: React.FC<HabitMasteryModalProps> = ({
  transition={{ delay: 1.0 }}
  className="w-full mb-4"
  >
- <HabitTrendChart habit={displayHabit} color={baseColor} />
+ <HabitTrendChart habit={displayHabit} color={baseColor} isPro={isPro} onOpenPro={onOpenPro} selectedSubtaskId={selectedSubtaskId} />
  </motion.div>
 
  </div>

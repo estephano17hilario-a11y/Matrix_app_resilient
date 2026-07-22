@@ -17,7 +17,7 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, attri
     onUpdateProject: (p: Project) => void,
     onDeleteSession?: (projectId: string, sessionId: string) => void,
     onAddSession?: (durationMinutes: number, type: 'POMO' | 'STOPWATCH', sessionId?: string, sessionDate?: string, subTraitId?: string) => void,
-    onEditSession?: (projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string) => void,
+    onEditSession?: (projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string, newSubTraitId?: string) => void,
     isActive?: boolean,
     onShowWarning?: () => void
 }) => {
@@ -44,12 +44,13 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, attri
             }
         } else if (mode === 'EDIT' && selectedSessionId) {
             if (onEditSession) {
-                onEditSession(project.id, selectedSessionId, durationMinutes, date.toISOString());
+                onEditSession(project.id, selectedSessionId, durationMinutes, date.toISOString(), subTraitId);
             } else {
                 const newSessions = (project.sessions || []).map(s => s.id === selectedSessionId ? { 
                     ...s, 
                     duration: Math.round(durationMinutes * 60),
-                    date: date.toISOString()
+                    date: date.toISOString(),
+                    subTraitId: subTraitId
                 } : s);
                 const newTotal = newSessions.reduce((acc, s) => acc + s.duration, 0);
                 onUpdateProject({ ...project, sessions: newSessions, totalTime: newTotal });
@@ -125,6 +126,7 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, attri
                                 key="creator"
                                 initialDuration={mode === 'EDIT' && selectedSession ? Math.floor(selectedSession.duration / 60) : 60}
                                 initialDate={mode === 'EDIT' && selectedSession ? new Date(selectedSession.date) : new Date()}
+                                initialSubTraitId={mode === 'EDIT' && selectedSession ? selectedSession.subTraitId : undefined}
                                 project={project}
                                 attribute={attribute}
                                 onSave={handleSaveSession}

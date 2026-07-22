@@ -188,7 +188,7 @@ const convertNodeToQuests = (node: StrategicNode, traitId: string, smartProjectI
  return quests;
 };
 
-export default function Dashboard() {
+export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boolean }) {
  const { updateProfileLocally } = useAuth();
  useEffect(() => {
    console.log("💎 MATRIX: Dashboard Mounted Successfully");
@@ -522,7 +522,7 @@ export default function Dashboard() {
  const handleCompleteSession = useCallback((projectId: string | null, durationSeconds: number, type: 'POMO' | 'STOPWATCH' = 'POMO', subTraitId?: string, isCompletedNaturally?: boolean) => logicRef.current.handleCompleteSession(projectId, durationSeconds, type, subTraitId, isCompletedNaturally), []);
  const handleAddManualSession = useCallback((projectId: string, durationMinutes: number, type: 'POMO' | 'STOPWATCH' = 'POMO', sessionId?: string, sessionDate?: string, subTraitId?: string) => logicRef.current.handleAddManualSession(projectId, durationMinutes, type, sessionId, sessionDate, subTraitId), []);
  const handleDeleteSession = useCallback((p: string, s: string) => logicRef.current.handleDeleteSession(p, s), []);
- const handleEditSession = useCallback((projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string) => logicRef.current.handleEditSession(projectId, sessionId, newDurationMinutes, newDateStr), []);
+ const handleEditSession = useCallback((projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string, newSubTraitId?: string) => logicRef.current.handleEditSession(projectId, sessionId, newDurationMinutes, newDateStr, newSubTraitId), []);
  
  const completeQuest = useCallback((e: React.MouseEvent, q: Quest) => logicRef.current.completeQuest(e, q), []);
  const handleQuestConfirm = useCallback((q: Partial<Quest>) => logicRef.current.handleQuestConfirm(q), []);
@@ -2111,7 +2111,7 @@ export default function Dashboard() {
  onOpenModal={handleOpenModal} 
  isOpen={isDockOpen} 
  onToggle={setIsDockOpen} 
- isHidden={isSettingsOpen || isFocusMode || isNoteTaking || isWizardOpen || isFullScreenFocus || isProjectDetailOpen || isPomodoroActive || !!activeModal || currentView === 'STREAK' || isProgressOpen}
+ isHidden={isSettingsOpen || isFocusMode || isNoteTaking || isWizardOpen || isFullScreenFocus || isProjectDetailOpen || isPomodoroActive || !!activeModal || currentView === 'STREAK' || isProgressOpen || isAppLoading}
  pointerEvents={isSettingsOpen || isDockConfigOpen ? 'none' : 'auto'}
  dashboardStyle={dashboardStyle}
  taskViewMode={taskViewMode}
