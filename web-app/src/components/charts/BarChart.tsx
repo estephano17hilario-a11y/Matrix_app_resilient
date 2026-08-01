@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '../../utils/cn';
 
 export const BarChart = React.memo(({ 
@@ -49,14 +50,18 @@ export const BarChart = React.memo(({
     }, [datasets, max, stacked]);
 
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
-    const [tooltipLeft, setTooltipLeft] = useState<number | null>(null);
+    const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
+    const updateTooltipPosition = (index: number, barElement: HTMLElement) => {
+        const rect = barElement.getBoundingClientRect();
+        const top = rect.top + window.scrollY - 8;
+        const left = rect.left + window.scrollX + (rect.width / 2);
+        setActiveIndex(index);
+        setTooltipPos({ top, left });
+    };
+
     const handleTouch = (e: React.TouchEvent) => {
-        // Only prevent default on move to avoid breaking normal scrolling unless dragging inside the chart
-        if (e.type === 'touchmove' && e.cancelable) {
-            e.preventDefault();
-        }
         const touch = e.touches[0];
         if (!touch || !containerRef.current) return;
         
@@ -66,6 +71,7 @@ export const BarChart = React.memo(({
         
         if (relativeX < 0 || relativeX > chartWidth) {
             setActiveIndex(null);
+            setTooltipPos(null);
             return;
         }
         
@@ -73,14 +79,10 @@ export const BarChart = React.memo(({
         const index = Math.floor(percentX * labels.length);
         
         if (index >= 0 && index < labels.length) {
-            const barElements = containerRef.current.querySelectorAll('.bar-touch-target');
+            const barElements = containerRef.current.querySelectorAll<HTMLElement>('.bar-touch-target');
             const barEl = barElements[index];
             if (barEl) {
-                const barRect = barEl.getBoundingClientRect();
-                const left = barRect.left - rect.left + (barRect.width / 2);
-                
-                setActiveIndex(index);
-                setTooltipLeft(left);
+                updateTooltipPosition(index, barEl);
             }
         }
     };
@@ -89,6 +91,7 @@ export const BarChart = React.memo(({
         const handleOutsideAction = (e: Event) => {
             if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
                 setActiveIndex(null);
+                setTooltipPos(null);
             }
         };
         if (activeIndex !== null) {
@@ -101,21 +104,11 @@ export const BarChart = React.memo(({
         };
     }, [activeIndex]);
 
-    const handleBarHover = (i: number, e: React.MouseEvent) => {
-        if (!containerRef.current) return;
-        const containerRect = containerRef.current.getBoundingClientRect();
-        const rect = e.currentTarget.getBoundingClientRect();
-        const left = rect.left - containerRect.left + (rect.width / 2);
-        
-        setActiveIndex(i);
-        setTooltipLeft(left);
+    const handleBarClick = (i: number, e: React.MouseEvent<HTMLElement>) => {
+        e.stopPropagation();
+        updateTooltipPosition(i, e.currentTarget);
     };
 
-    const handleBarClick = (i: number, e: React.MouseEvent) => {
-        e.stopPropagation();
-        handleBarHover(i, e);
-    };
-    
     return (
       <div 
           ref={containerRef} 
@@ -128,7 +121,7 @@ export const BarChart = React.memo(({
                 <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 via-purple-500/5 to-pink-500/5 opacity-20 rounded-3xl pointer-events-none" />
              )}
 
-            {/* Grid lines: Feed-style solid thin vectors */}
+            {/* Grid lines */}
             {showGrid && !yTicks && (
                 <div className={`absolute inset-x-0 ${paddingTop} bottom-5 flex flex-col justify-between pointer-events-none`}>
                     <div className="w-full h-px bg-white/[0.04]" />
@@ -157,22 +150,20 @@ export const BarChart = React.memo(({
                 </div>
             )}
 
-            {/* Inline Tooltip — anchored near TOP of chart, tracks bar X with clamped boundaries */}
-            {activeIndex !== null && tooltipLeft !== null && (
+            {/* Floating Portal Tooltip — Renders on document.body to NEVER get clipped */}
+            {activeIndex !== null && tooltipPos && createPortal(
                 <div 
-                    className="absolute z-[99999] bg-zinc-950/95 border px-3.5 py-2.5 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.9)] flex flex-col items-start gap-1.5 min-w-[130px] max-w-[200px] pointer-events-none backdrop-blur-md"
+                    className="absolute z-[999999] bg-[#161618] border border-amber-500/40 px-3.5 py-2.5 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.95)] flex flex-col items-start gap-1.5 min-w-[140px] max-w-[220px] pointer-events-none backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
                     style={{ 
-                        top: 10,
-                        left: Math.max(70, Math.min(tooltipLeft, (containerRef.current?.getBoundingClientRect().width || 300) - 70)), 
-                        transform: 'translate(-50%, 0)',
-                        borderColor: datasets[0]?.color || '#3b82f6'
+                        top: tooltipPos.top, 
+                        left: Math.max(80, Math.min(tooltipPos.left, (typeof window !== 'undefined' ? window.innerWidth : 400) - 80)), 
+                        transform: 'translate(-50%, -100%)'
                     }}
                 >
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-white/10 pb-1 w-full text-center">
+                    <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest border-b border-amber-500/20 pb-1 w-full text-center">
                         {labels[activeIndex]}
                     </span>
                     
-                    {/* Active datasets and Total calculation */}
                     {(() => {
                         const total = datasets.reduce((sum, ds) => sum + (ds.data[activeIndex] || 0), 0);
                         const activeDs = datasets.filter(ds => (ds.data[activeIndex] || 0) > 0);
@@ -195,11 +186,11 @@ export const BarChart = React.memo(({
                                             const displayLabel = !isGenericTotal && tooltipLabelFormatter ? tooltipLabelFormatter(rawLabel) : (!isGenericTotal ? rawLabel : null);
 
                                             return (
-                                                <div key={idx} className="flex items-center justify-between gap-2.5 text-xs font-bold text-white whitespace-nowrap w-full">
+                                                <div key={idx} className="flex items-center justify-between gap-3 text-xs font-bold text-white whitespace-nowrap w-full">
                                                     <div className="flex items-center gap-1.5 min-w-0">
                                                         <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: ds.color, boxShadow: `0 0 6px ${ds.color}` }} />
                                                         {displayLabel && (
-                                                            <span className="text-white/80 text-[10px] font-medium truncate max-w-[100px]">
+                                                            <span className="text-white/90 text-[11px] font-medium truncate max-w-[110px]">
                                                                 {displayLabel}
                                                             </span>
                                                         )}
@@ -211,10 +202,10 @@ export const BarChart = React.memo(({
                                             );
                                         })}
 
-                                        {/* TIEMPO TOTAL ROW — Always displayed for clear totals */}
-                                        <div className="border-t border-white/15 pt-1.5 mt-1 w-full flex items-center justify-between gap-3">
-                                            <span className="text-[9px] font-black text-amber-400 uppercase tracking-wider">TIEMPO TOTAL</span>
-                                            <span className="text-amber-400 font-mono font-black tabular-nums text-xs">
+                                        {/* TIEMPO TOTAL ROW — ALWAYS DISPLAYED */}
+                                        <div className="border-t border-amber-500/20 pt-1.5 mt-1 w-full flex items-center justify-between gap-3">
+                                            <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider">TIEMPO TOTAL</span>
+                                            <span className="text-amber-300 font-mono font-black tabular-nums text-xs">
                                                 {tooltipValueFormatter ? tooltipValueFormatter(total) : `${total}m`}
                                             </span>
                                         </div>
@@ -223,15 +214,19 @@ export const BarChart = React.memo(({
                             </div>
                         );
                     })()}
-                </div>
+                    
+                    {/* Bottom arrow tip pointing to the touched bar */}
+                    <div 
+                        className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[7px] border-t-amber-500/50" 
+                    />
+                </div>,
+                document.body
             )}
 
             <div className={`absolute inset-0 flex items-end ${labels.length > 30 ? 'gap-0' : labels.length > 15 ? 'gap-0.5' : 'gap-1'} ${yTicks ? 'pl-6' : ''}`}>
                 {labels.map((label, i) => (
                     <div 
                         key={i} 
-                        onMouseEnter={(e) => handleBarHover(i, e)}
-                        onMouseLeave={() => setActiveIndex(null)}
                         onClick={(e) => handleBarClick(i, e)}
                         className="flex-1 h-full relative group z-10 cursor-pointer min-w-0 bar-touch-target"
                     >
@@ -287,6 +282,6 @@ export const BarChart = React.memo(({
                     </div>
                 ))}
             </div>
-            </div>
+      </div>
     );
 });
