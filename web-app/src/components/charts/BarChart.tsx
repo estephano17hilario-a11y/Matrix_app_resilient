@@ -55,10 +55,8 @@ export const BarChart = React.memo(({
 
     const updateTooltipPosition = (index: number, barElement: HTMLElement) => {
         const rect = barElement.getBoundingClientRect();
-        const top = rect.top + window.scrollY - 8;
-        const left = rect.left + window.scrollX + (rect.width / 2);
         setActiveIndex(index);
-        setTooltipPos({ top, left });
+        setTooltipPos({ top: rect.top, left: rect.left + (rect.width / 2) });
     };
 
     const handleTouch = (e: React.TouchEvent) => {
@@ -153,11 +151,12 @@ export const BarChart = React.memo(({
             {/* Floating Portal Tooltip — Renders on document.body to NEVER get clipped */}
             {activeIndex !== null && tooltipPos && createPortal(
                 <div 
-                    className="absolute z-[999999] bg-[#161618] border border-amber-500/40 px-3.5 py-2.5 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.95)] flex flex-col items-start gap-1.5 min-w-[140px] max-w-[220px] pointer-events-none backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
+                    className="fixed z-[999999] bg-[#161618] border border-amber-500/40 px-3.5 py-2.5 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.95)] flex flex-col items-start gap-1.5 min-w-[140px] max-w-[220px] pointer-events-none backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
                     style={{ 
-                        top: tooltipPos.top, 
-                        left: Math.max(80, Math.min(tooltipPos.left, (typeof window !== 'undefined' ? window.innerWidth : 400) - 80)), 
-                        transform: 'translate(-50%, -100%)'
+                        top: tooltipPos.top < 200 ? `${tooltipPos.top + 20}px` : `${tooltipPos.top - 10}px`,
+                        left: tooltipPos.left < window.innerWidth / 2 ? `${Math.max(10, tooltipPos.left - 20)}px` : undefined,
+                        right: tooltipPos.left >= window.innerWidth / 2 ? `${Math.max(10, window.innerWidth - tooltipPos.left - 20)}px` : undefined,
+                        transform: `translateY(${tooltipPos.top < 200 ? '0' : '-100%'})`
                     }}
                 >
                     <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest border-b border-amber-500/20 pb-1 w-full text-center">
@@ -214,11 +213,6 @@ export const BarChart = React.memo(({
                             </div>
                         );
                     })()}
-                    
-                    {/* Bottom arrow tip pointing to the touched bar */}
-                    <div 
-                        className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[7px] border-t-amber-500/50" 
-                    />
                 </div>,
                 document.body
             )}
