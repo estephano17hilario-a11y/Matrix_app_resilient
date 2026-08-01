@@ -163,6 +163,35 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
         return () => window.removeEventListener('top-quick-actions-changed', handleTopActionsChanged);
     }, []);
 
+    const todayDateStr = React.useMemo(() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }, []);
+
+    const [hasFeedUnread, setHasFeedUnread] = React.useState(() => {
+        try { return localStorage.getItem('matrix_feed_opened_date') !== todayDateStr; } catch (e) { return true; }
+    });
+    const [hasRivalsUnread, setHasRivalsUnread] = React.useState(() => {
+        try { return localStorage.getItem('matrix_rivals_opened_date') !== todayDateStr; } catch (e) { return true; }
+    });
+
+    React.useEffect(() => {
+        const handleFeedRead = () => {
+            try { localStorage.setItem('matrix_feed_opened_date', todayDateStr); } catch (e) {}
+            setHasFeedUnread(false);
+        };
+        const handleRivalsRead = () => {
+            try { localStorage.setItem('matrix_rivals_opened_date', todayDateStr); } catch (e) {}
+            setHasRivalsUnread(false);
+        };
+        window.addEventListener('feed-read', handleFeedRead);
+        window.addEventListener('rivals-read', handleRivalsRead);
+        return () => {
+            window.removeEventListener('feed-read', handleFeedRead);
+            window.removeEventListener('rivals-read', handleRivalsRead);
+        };
+    }, [todayDateStr]);
+
     const renderQuickActionButton = (actionKey: string) => {
         let IconComponent = Settings;
         let onClickAction = () => {
@@ -200,17 +229,32 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
             hoverColor = "hover:text-emerald-400";
         }
 
+        const hasExclamation = (actionKey === 'FEED' && hasFeedUnread) || (actionKey === 'RIVALS' && hasRivalsUnread);
+
         return (
-            <button
-                key={actionKey}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onClickAction();
-                }}
-                className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10 flex items-center justify-center transition-all active:scale-95 hover:shadow-[0_0_10px_-2px_rgba(255,255,255,0.2)] group ${hoverColor}`}
-            >
-                <IconComponent size={16} className="sm:w-5 sm:h-5 transition-colors" />
-            </button>
+            <div key={actionKey} className="relative">
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (actionKey === 'FEED') {
+                            try { localStorage.setItem('matrix_feed_opened_date', todayDateStr); } catch (err) {}
+                            setHasFeedUnread(false);
+                        } else if (actionKey === 'RIVALS') {
+                            try { localStorage.setItem('matrix_rivals_opened_date', todayDateStr); } catch (err) {}
+                            setHasRivalsUnread(false);
+                        }
+                        onClickAction();
+                    }}
+                    className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10 flex items-center justify-center transition-all active:scale-95 hover:shadow-[0_0_10px_-2px_rgba(255,255,255,0.2)] group ${hoverColor}`}
+                >
+                    <IconComponent size={16} className="sm:w-5 sm:h-5 transition-colors" />
+                </button>
+                {hasExclamation && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white font-black text-[10px] flex items-center justify-center shadow-[0_0_8px_rgba(239,68,68,0.9)] animate-pulse pointer-events-none z-30 border border-white/30">
+                        !
+                    </span>
+                )}
+            </div>
         );
     };
 

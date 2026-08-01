@@ -13,7 +13,7 @@ import { cn } from '../../utils/cn';
 import { useTranslation } from 'react-i18next';
 
 // --- CONFIGURATION ---
-const TOTAL_DAYS = 90;
+const TOTAL_DAYS = 80;
 const NODE_HEIGHT = 140; // Vertical distance between nodes
 const X_OFFSET = 80;     // Horizontal amplitude from center
 const VIEWBOX_WIDTH = 320;
@@ -21,20 +21,20 @@ const CENTER_X = VIEWBOX_WIDTH / 2;
 const TOP_PADDING = 60;  // Padding for the first node
 
 export const getTargetPercentage = (day: number) => {
-    if (day <= 7) return 50;
-    if (day <= 14) return 60;
-    if (day <= 30) return 67;
-    if (day <= 60) return 75;
-    if (day <= 90) return 80;
+    if (day <= 6) return 40;
+    if (day <= 13) return 50;
+    if (day <= 29) return 60;
+    if (day <= 49) return 72;
+    if (day <= 79) return 80;
     return 85;
 };
 
 export const getNextLevelPercentage = (day: number) => {
-    if (day <= 7) return 60;
-    if (day <= 14) return 67;
-    if (day <= 30) return 75;
-    if (day <= 60) return 80;
-    if (day <= 90) return 85;
+    if (day <= 6) return 50;
+    if (day <= 13) return 60;
+    if (day <= 29) return 72;
+    if (day <= 49) return 80;
+    if (day <= 79) return 85;
     return 85;
 };
 
@@ -121,7 +121,8 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
             if (dailyTotal > 0) {
                 const count = completionByDate.get(dateStr) || 0;
                 const percent = Math.round((count / dailyTotal) * 100);
-                if (percent >= 50) {
+                const reqPercent = getTargetPercentage(realStreak + 1);
+                if (percent >= reqPercent) {
                     realStreak++;
                 } else {
                     realStreak = 0;
@@ -148,7 +149,8 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
         const todayProgress = progressPercent;
 
         // Include today in streak if done
-        if (todayDailyTotal > 0 && progressPercent >= 50) {
+        const todayReqPercent = getTargetPercentage(realStreak + 1);
+        if (todayDailyTotal > 0 && progressPercent >= todayReqPercent) {
             realStreak++;
         }
 

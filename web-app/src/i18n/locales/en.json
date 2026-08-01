@@ -20,7 +20,8 @@
     "traits": {
       "title": "Select your Focus",
       "subtitle": "Choose 5 areas to improve ({{count}}/5)",
-      "button": "Initialize Lux"
+      "button": "Initialize Lux",
+      "maxHint": "Minimum 3 and maximum 4 total traits (you have 2 fixed)"
     },
     "saving": {
       "title": "Configuring Reality..."
@@ -225,6 +226,14 @@
         "title": "Identify a Vice",
         "desc": "Now, declare war on a bad habit.",
         "sub": "Complete the form and save it."
+      },
+      "switchVice": {
+        "title": "Switch to Vice",
+        "desc": "Click here to switch to Vice mode."
+      },
+      "saveBad": {
+        "title": "Save the Vice",
+        "desc": "Complete the form and save it."
       }
     },
     "focus": {
@@ -287,6 +296,18 @@
         "title": "New Note",
         "desc": "Press here to create a note.",
         "sub": ""
+      },
+      "wait": {
+        "title": "Write something",
+        "desc": "Create your note and when done, close the editor."
+      },
+      "journal": {
+        "title": "Your Journal",
+        "desc": "Now, switch to the Journal tab."
+      },
+      "today": {
+        "title": "Your Day Today",
+        "desc": "Tap on today to write how your day went."
       }
     }
   },
@@ -338,10 +359,16 @@
       "insecureContext": "Google login requires HTTPS or localhost.",
       "popupBlocked": "Popup blocked. We will continue with redirect.",
       "popupClosed": "Login popup closed before completion.",
-      "generic": "Login failed. Please try again."
+      "generic": "Login failed. Please try again.",
+      "invalidCredentials": "Invalid email or password."
     },
     "orContinue": "Or continue with",
-    "google": "Google"
+    "google": "Google",
+    "landing": {
+      "subtitle": "Gamify Your Life",
+      "start": "GET STARTED",
+      "login": "Log In"
+    }
   },
   "modals": {
     "habit": {
@@ -432,7 +459,8 @@
       "reorderTitle": "Reordenar Vicios",
       "protocolFailure": "Fallo en Protocolo",
       "missingGold": "FALTAN",
-      "cancelFalseAlarm": "Cancelar (Falsa Alarma)"
+      "cancelFalseAlarm": "Cancelar (Falsa Alarma)",
+      "minutes": "minutes"
     },
     "quest": {
       "titleNew": "New Mission",
@@ -463,7 +491,13 @@
       "icon": "Icon",
       "saveBtn": "Save Blueprint",
       "theme": "Tema",
-      "saving": "Guardando..."
+      "saving": "Guardando...",
+      "errorName": "Please enter a name for the preset",
+      "successUpdate": "Preset updated successfully!",
+      "success": "Preset saved successfully!",
+      "error": "Failed to save preset. Please try again.",
+      "titleEdit": "Edit Preset",
+      "updateBtn": "Update Preset"
     }
   },
   "store": {
@@ -524,7 +558,11 @@
     "youAcquired": "You have acquired",
     "itemSentToInventory": ". The item has been sent to your inventory.",
     "goToInventory": "Go to Inventory",
-    "keepShopping": "Keep Shopping"
+    "keepShopping": "Keep Shopping",
+    "insufficientFunds": "Insufficient Funds (Gold)",
+    "purchaseSuccess": "Theme purchased successfully!",
+    "purchaseError": "Purchase failed",
+    "buyNow": "Confirm Purchase"
   },
   "achievements": {
     "title": "Achievements",
@@ -697,8 +735,13 @@
       "INTERVAL": "INTERVAL",
       "WEEKLY": "WEEKLY",
       "MONTHLY": "MONTHLY",
-      "NONE": "NONE"
-    }
+      "NONE": "NONE",
+      "months": "Months",
+      "days": "Days"
+    },
+    "difficulty": "Difficulty",
+    "focusMode": "Focus Mode",
+    "deadline": "Deadline"
   },
   "nexus": {
     "backToStrategy": "Back to Strategy",
@@ -822,7 +865,8 @@
       "add": "Add Event",
       "today": "Today!",
       "passed": "Passed",
-      "daysLeft": "{{count}} days left"
+      "daysLeft": "{{count}} days left",
+      "confirm": "Confirm Event"
     },
     "celebrations": "Celebrations",
     "allProjects": "All Projects",
@@ -903,7 +947,26 @@
     "journalLocked": "Journal Locked",
     "unlockJournal": "Unlock Journal",
     "saveAsBlueprint": "Save as Blueprint",
-    "repeatedTask": "Repeated Task"
+    "repeatedTask": "Repeated Task",
+    "tabOverview": "Overview",
+    "tabEmotions": "Emotions",
+    "recoveryTitle": "Security Challenge",
+    "errorParsing": "Failed to load blueprint",
+    "edit": "Edit",
+    "create": "Create",
+    "blueprint": "Blueprint",
+    "preset": "Preset",
+    "deck": "Deck",
+    "editYourFormat": "Edit your format",
+    "designYourFormat": "Design your format",
+    "selectFormat": "Select a format",
+    "updatePreset": "Update Preset",
+    "savePreset": "Save Preset",
+    "createPreset": "Create Preset",
+    "designBlueprint": "Design your own blueprint",
+    "editPreset": "Edit Preset",
+    "deletePreset": "Delete Preset",
+    "words": "Words"
   },
   "oracle": {
     "title": "Oracle",
@@ -961,7 +1024,11 @@
     "add": "Add",
     "section": "Section",
     "fractalStructure": "Fractal Structure",
-    "fractalHelper": "Your goal will be intelligently divided into these blocks."
+    "fractalHelper": "Your goal will be intelligently divided into these blocks.",
+    "leaf": {
+      "emptyTitle": "Strategic Node",
+      "emptyDesc": "No description provided"
+    }
   },
   "common": {
     "estimatedDuration": "Estimated Duration",
@@ -1020,7 +1087,51 @@
     "dateTime": "Date & Time",
     "note": "Note",
     "updating": "UPDATING...",
-    "yesDelete": "Yes, delete"
+    "yesDelete": "Yes, delete",
+    "dailyCaps": "Daily Caps",
+    "inDays": "in {{count}} days",
+    "endDate": "End Date",
+    "time": {
+      "years": "years",
+      "months": "months",
+      "days": "days"
+    },
+    "monday": "Monday",
+    "sunday": "Sunday",
+    "selectAtLeastThree": "Select at least 3 total traits",
+    "back": "Back",
+    "activate": "Activate",
+    "continue": "Continue",
+    "colorSelected": "Color Selected",
+    "selectColor": "Select Color",
+    "clickToChange": "Click to change",
+    "customizeColor": "Customize project color",
+    "weekdays": {
+      "initials": "M,T,W,T,F,S,S"
+    },
+    "total": "Total",
+    "average": "Average",
+    "thisWeek": "This week",
+    "thisMonth": "This month",
+    "next": "Next",
+    "review": "REVIEW",
+    "customizeHabit": "Customize Habit",
+    "searchIcon": "Search icon...",
+    "viewAllCategories": "View all categories",
+    "daysPerMonth": "Days per month",
+    "fix": "FIX",
+    "tapToContinue": "Tap to continue",
+    "streakDesc": "Your streak represents consecutive completed days.",
+    "streakWhy": "Consistency builds discipline.",
+    "noArchivedHabits": "No archived habits",
+    "deleteHabitConfirm": "Are you sure you want to delete this habit?",
+    "deleteProjectConfirm": "Are you sure you want to delete this project?",
+    "errorDeletingProject": "Error deleting project",
+    "errorDeletingTask": "Error deleting task",
+    "modifyDetails": "Modify details",
+    "unarchive": "Unarchive",
+    "hideWithoutDeleting": "Hide without deleting",
+    "undoWarning": "This action cannot be undone"
   },
   "smartTask": {
     "tutorial": {
@@ -1197,7 +1308,14 @@
       "toMainTrait": "To Main Trait",
       "minTotal": "min total"
     },
-    "history": "History",
+    "history": {
+      "title": "Focus History",
+      "noSessions": "No sessions recorded",
+      "startTracking": "Start a focus session to view your history",
+      "logPast": "Log Past Session",
+      "total": "Total accumulated",
+      "min": "min"
+    },
     "sessionCompleted": "Session Completed!",
     "whichSubtraitQuestion": "Which sub-trait does this time go to?",
     "onlyMainTrait": "Main Trait Only",
@@ -1270,7 +1388,10 @@
       }
     },
     "mercadoPagoError": "There was an error connecting to Mercado Pago. Try again.",
-    "mercadoPagoConnError": "Connection to Mercado Pago failed. Please check your internet connection and try again."
+    "mercadoPagoConnError": "Connection to Mercado Pago failed. Please check your internet connection and try again.",
+    "activeTitle": "Lux Pro Active",
+    "activeDesc": "Your Premium membership is active via Google Play Store. All limits and restrictions have been removed!",
+    "manageSubscription": "Manage Subscription"
   },
   "settings": {
     "title": "System Config",
@@ -1386,7 +1507,33 @@
     "dashboardLayout": "Dashboard Layout",
     "selectDockStyle": "Select dock style",
     "legacyDock": "Legacy Dock",
-    "auraDock": "Aura Dock"
+    "auraDock": "Aura Dock",
+    "themeActive": "Active",
+    "themeUnlocked": "Unlocked",
+    "unlockTheme": "Unlock Theme",
+    "defaultTaskFilters": "Default Task Filters",
+    "defaultTaskFiltersDesc": "Initial filter states for tasks",
+    "notesDefaultTab": "Notes Default Tab",
+    "notesDefaultTabDesc": "Default tab when opening Notes Insights",
+    "defaultProjectView": "Projects Layout",
+    "defaultProjectViewDesc": "Default division for Projects view",
+    "defaultChartViews": "Default Chart Views",
+    "defaultChartViewsDesc": "Default timeframes for analytics",
+    "defaultHabitView": "Default Habits View",
+    "defaultHabitViewDesc": "Default layout for Habits",
+    "notificationsEnabled": "Notifications enabled",
+    "insufficientGoldAvatar": "Insufficient gold to change avatar (Requires 500 Gold)",
+    "confirmAvatarCost": "Do you want to change your avatar for 500 Gold?",
+    "avatarUpdatedSuccess": "Avatar updated and gold deducted successfully.",
+    "avatarUpdateFailed": "Failed to update avatar.",
+    "confirmNameFirstFree": "Your first name change is FREE. Confirm change?",
+    "insufficientGoldName": "Insufficient gold to change name (Requires 1000 Gold)",
+    "confirmNameCost": "Do you want to change your username for 1000 Gold?",
+    "nameUpdatedWithCost": "Profile name updated successfully (-1000 Gold).",
+    "nameUpdatedFree": "Profile name updated successfully (Free).",
+    "nameUpdateFailed": "Failed to update name",
+    "newSubTraitPlaceholder": "New sub-trait...",
+    "icon": "Icon:"
   },
   "dashboard": {
     "viewProgress": "View Progress",
@@ -1442,7 +1589,11 @@
     "newSubtraitPlaceholder": "New sub-trait (e.g., Cardio)...",
     "suggestions": "Suggestions:",
     "noMetrics": "No metrics available",
-    "newLevel": "NEW LEVEL"
+    "newLevel": "NEW LEVEL",
+    "groupingNone": "No Division",
+    "groupingByTrait": "By Trait",
+    "groupingByProject": "By Project",
+    "newStrategy": "Create Strategy"
   },
   "loading": {
     "quotes": [
@@ -1789,7 +1940,17 @@
     "viewArchivedOpen": "View Archived (",
     "organizeOrderUpper": "ORGANIZE ORDER",
     "clearZone": "Zone Clear",
-    "noArchivedVices": "No archived vices"
+    "noArchivedVices": "No archived vices",
+    "dayStreak": "DAY STREAK",
+    "pastDayTitle": "Habits of the day ({{date}})",
+    "showTodayOnly": "Show today only",
+    "showAll": "Show all",
+    "showCompleted": "Show completed",
+    "hideCompleted": "Hide completed",
+    "reorderTitle": "Reorder Habits",
+    "days": "days",
+    "day": "day",
+    "ofStreak": "streak"
   },
   "badHabits": {
     "tags": {
@@ -1839,7 +2000,29 @@
       "addVicesPlaceholder": "Add vices (comma or line break)",
       "viceExamplePlaceholder": "E.g. Smoking, TikTok...",
       "penaltyDesc": "You can select up to 3 attributes. The TP penalty for relapses will be split equally among the chosen attributes.",
-      "linkSubTrait": "Link to a sub-trait (Optional)"
+      "linkSubTrait": "Link to a sub-trait (Optional)",
+      "selectHabitToRemove": "What habit do you want to remove?",
+      "streakSystemType": "Streak System",
+      "modeNormal": "Normal Streak",
+      "modeNormalDesc": "Traditional streak. A mistake resets the streak and applies a penalty.",
+      "modeIntelligent": "Intelligent Streak (AI)",
+      "modeIntelligentDesc": "Gradual progress algorithm. Forgives occasional slips.",
+      "modeDynamic": "Dynamic Quantity",
+      "modeDynamicDesc": "Balance of wins and slips. Neutral or positive target by end of day.",
+      "dynamicTargetLabel": "End-of-Day Balance Target",
+      "dynamicTargetNeutral": "Neutral (>= 0)",
+      "dynamicTargetNeutralDesc": "Avoid relapsing",
+      "dynamicTargetPositive": "Positive (> 0)",
+      "dynamicTargetPositiveDesc": "More wins than slips",
+      "dynamicSubtract": "Subtract (-1)",
+      "dynamicSubtractDesc": "Subtracts 1 on a vice slip. Balance drops.",
+      "dynamicAdd": "Add (+1)",
+      "dynamicAddDesc": "Adds 1 when resisting an urge. Balance rises.",
+      "dynamicResolution": "Daily Resolution",
+      "dynamicResolutionNeutral": "Finish the day with balance >= 0 to keep the streak.",
+      "dynamicResolutionPositive": "Finish the day with balance > 0 (+1 min) to keep the streak.",
+      "dynamicBonus": "Extra Talent Points (TP)",
+      "dynamicBonusDesc": "Exceed your target to earn 15 TP per surplus point for the assigned trait!"
     },
     "opportunityDay": "Opportunity Day",
     "intelligentFall": "Intelligent Fall",
@@ -1905,7 +2088,22 @@
     "useOpportunityDay": "Usar Día de Oportunidad",
     "useOpportunityDayDesc": "Este día está permitido. Úsalo sin perder tu racha.",
     "deleteTitle": "¿Eliminar Vicio?",
-    "deleteConfirm": "¿Estás seguro de que quieres eliminar \"{{title}}\" permanentemente?"
+    "deleteConfirm": "¿Estás seguro de que quieres eliminar \"{{title}}\" permanentemente?",
+    "relapsed": "RELAPSED",
+    "slip": "Slip",
+    "moralVictory": "Moral Victory",
+    "cutStreak": "Break streak (Relapse)",
+    "mode": "Mode",
+    "addVicesPlaceholder": "Add vices (comma or line break)",
+    "viceExamplePlaceholder": "E.g. Smoking, TikTok...",
+    "dynamicSystem": "Dynamic Balance System",
+    "dynamicSystemDesc": "Dynamically manages slips and moral victories",
+    "reason": "Reason",
+    "dynamicQuantityActivated": "Dynamic Quantity Activated",
+    "avgRelapses": "AVG RELAPSES",
+    "globalStreak": "GLOBAL STREAK",
+    "relapses": "Relapses",
+    "endOfDay": "At the end of the day:"
   },
   "projects": {
     "deleteTitle": "Delete Project?",
@@ -1999,7 +2197,26 @@
       "today": "Today",
       "of": "of"
     },
-    "weekly": "Weekly",
+    "weekly": {
+      "focusTime": "Focus Time",
+      "habitsDone": "Habits Completed",
+      "activeDays": "Active Days",
+      "performanceAdjustment": "Performance Adjustment",
+      "weeklyConsistency": "Weekly Consistency",
+      "scoreIs": "Score",
+      "belowLastWeek": "below last week",
+      "xpEarned": "XP Earned",
+      "goldEarned": "Gold Earned",
+      "tpEarned": "TP Earned",
+      "week": "Week",
+      "daysActive": "Active Days",
+      "title": "Weekly Summary",
+      "focusTotal": "Total Focus",
+      "avg": "Avg",
+      "perDay": "/ day",
+      "summaryTitle": "Weekly Summary",
+      "completedTasks": "Completed Tasks"
+    },
     "live": "Live",
     "productivity": "Productivity",
     "done": "done",
@@ -2076,7 +2293,8 @@
     "dailyTasksMissions": "Daily Tasks (Missions)",
     "contribution20": "Contribution: 20%",
     "tasksCompletedScore": "Tasks Completed",
-    "totalTasksToday": "Total Tasks Today"
+    "totalTasksToday": "Total Tasks Today",
+    "scoreByCategory": "Score by Category"
   },
   "error": {
     "systemFailure": "SYSTEM FAILURE",
@@ -2094,7 +2312,8 @@
     "reset": "Reset to default",
     "plusItems": "Plus Menu Items (drag to reorder)",
     "availableItems": "Available Items",
-    "save": "Save Configuration"
+    "save": "Save Configuration",
+    "settingsRequiredWarning": "Settings must be active in either the HUD or Menu (+)."
   },
   "security": {
     "secure": "Secure",
@@ -2139,5 +2358,34 @@
     "downloadGooglePlay": "Download on Google Play",
     "nowLuxPro": "YOU ARE NOW LUX PRO!",
     "rebooting": "Rebooting system..."
-  }
+  },
+  "overdue": "Overdue",
+  "economy": {
+    "gold": "Gold"
+  },
+  "vault": {
+    "title": "Security Vault",
+    "subtitle": "Encrypted credential storage",
+    "setupDesc": "Set up your security PIN to access the vault",
+    "search": "Search credentials...",
+    "noItems": "No items in vault",
+    "lock": "Lock Vault",
+    "itemTitle": "Service Title",
+    "usernameEmail": "Username / Email",
+    "save": "Save Credential"
+  },
+  "tomorrow": "Tomorrow",
+  "subtaskStats": "SUBTASK STATS",
+  "deleted": "DELETED",
+  "completions": "completed",
+  "locale": "en-US",
+  "weekdays": {
+    "initials": "M,T,W,T,F,S,S"
+  },
+  "specificDays": "SPECIFIC DAYS",
+  "flexibleCount": "FLEXIBLE COUNT",
+  "timesPerWeek": "Times per week",
+  "specificDates": "SPECIFIC DATES",
+  "lastDayOfMonth": "Last day of month",
+  "timesPerMonth": "Times per month"
 }

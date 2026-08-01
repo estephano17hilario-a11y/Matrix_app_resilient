@@ -20,7 +20,8 @@
     "traits": {
       "title": "Selecciona tus Objetivos",
       "subtitle": "Elige 5 áreas para mejorar ({{count}}/5)",
-      "button": "Inicializar Lux"
+      "button": "Inicializar Lux",
+      "maxHint": "Mínimo 3 y máximo 4 rasgos en total (ya tienes 2 fijos)"
     },
     "saving": {
       "title": "Configurando Realidad..."
@@ -225,6 +226,14 @@
         "title": "Identifica un Vicio",
         "desc": "Ahora, declara la guerra a un mal hábito.",
         "sub": "Completa el formulario y guárdalo."
+      },
+      "switchVice": {
+        "title": "Cambiar a Vicios",
+        "desc": "Haz clic aquí para cambiar al modo Vicios."
+      },
+      "saveBad": {
+        "title": "Guardar el Vicio",
+        "desc": "Completa el formulario y guárdalo."
       }
     },
     "focus": {
@@ -287,6 +296,18 @@
         "title": "Nueva Nota",
         "desc": "Presiona aquí para crear una nota.",
         "sub": ""
+      },
+      "wait": {
+        "title": "Escribe algo",
+        "desc": "Crea tu nota y cuando termines, cierra el editor."
+      },
+      "journal": {
+        "title": "Tu Diario",
+        "desc": "Ahora, cambia a la pestaña del Diario."
+      },
+      "today": {
+        "title": "Tu Día de Hoy",
+        "desc": "Pulsa en el día de hoy para escribir cómo te fue."
       }
     }
   },
@@ -338,10 +359,16 @@
       "insecureContext": "Google login requiere HTTPS o localhost.",
       "popupBlocked": "Popup bloqueado. Continuaremos con redirección.",
       "popupClosed": "El popup se cerró antes de completar el login.",
-      "generic": "No se pudo iniciar sesión. Inténtalo de nuevo."
+      "generic": "No se pudo iniciar sesión. Inténtalo de nuevo.",
+      "invalidCredentials": "Correo o contraseña inválidos."
     },
     "orContinue": "O continúa con",
-    "google": "Google"
+    "google": "Google",
+    "landing": {
+      "subtitle": "Gamifica Tu Vida",
+      "start": "EMPEZAR",
+      "login": "Iniciar Sesión"
+    }
   },
   "modals": {
     "habit": {
@@ -432,7 +459,8 @@
       "reorderTitle": "Reordenar Vicios",
       "protocolFailure": "Fallo en Protocolo",
       "missingGold": "FALTAN",
-      "cancelFalseAlarm": "Cancelar (Falsa Alarma)"
+      "cancelFalseAlarm": "Cancelar (Falsa Alarma)",
+      "minutes": "minutos"
     },
     "quest": {
       "titleNew": "Nueva Misión",
@@ -463,7 +491,13 @@
       "icon": "Icono",
       "theme": "Tema",
       "saving": "Guardando...",
-      "saveBtn": "Guardar Plano"
+      "saveBtn": "Guardar Plano",
+      "errorName": "Ingresa un nombre para la plantilla",
+      "successUpdate": "¡Plantilla actualizada con éxito!",
+      "success": "¡Plantilla guardada con éxito!",
+      "error": "Error al guardar plantilla. Intenta de nuevo.",
+      "titleEdit": "Editar Plantilla",
+      "updateBtn": "Actualizar Plantilla"
     }
   },
   "store": {
@@ -524,7 +558,11 @@
     "youAcquired": "Has adquirido",
     "itemSentToInventory": ". El objeto ha sido enviado a tu inventario.",
     "goToInventory": "Ir al Inventario",
-    "keepShopping": "Seguir Comprando"
+    "keepShopping": "Seguir Comprando",
+    "insufficientFunds": "Fondos insuficientes (Oro)",
+    "purchaseSuccess": "¡Tema adquirido con éxito!",
+    "purchaseError": "Error al realizar la compra",
+    "buyNow": "Confirmar Compra"
   },
   "achievements": {
     "title": "Logros",
@@ -682,7 +720,9 @@
       "INTERVAL": "INTERVALO",
       "WEEKLY": "SEMANAL",
       "MONTHLY": "MENSUAL",
-      "NONE": "NINGUNO"
+      "NONE": "NINGUNO",
+      "months": "Meses",
+      "days": "Días"
     },
     "filterDate": "Timeline",
     "filterTrait": "Attribute",
@@ -698,7 +738,10 @@
       "DAY": "DAY",
       "WEEK": "WEEK",
       "MONTH": "MONTH"
-    }
+    },
+    "difficulty": "Dificultad",
+    "focusMode": "Modo Enfoque",
+    "deadline": "Fecha Límite"
   },
   "nexus": {
     "backToStrategy": "Volver a Estrategia",
@@ -822,7 +865,8 @@
       "add": "Añadir Evento",
       "today": "¡Hoy!",
       "passed": "Pasado",
-      "daysLeft": "Faltan {{count}} días"
+      "daysLeft": "Faltan {{count}} días",
+      "confirm": "Confirmar Evento"
     },
     "celebrations": "Celebraciones",
     "allProjects": "Todos los Proyectos",
@@ -903,7 +947,26 @@
     "journalLocked": "Diario Bloqueado",
     "unlockJournal": "Desbloquear Diario",
     "saveAsBlueprint": "Guardar como Plantilla",
-    "repeatedTask": "Tarea Repetida"
+    "repeatedTask": "Tarea Repetida",
+    "tabOverview": "Resumen",
+    "tabEmotions": "Emociones",
+    "recoveryTitle": "Desafío de Seguridad",
+    "errorParsing": "Error al cargar la plantilla",
+    "edit": "Editar",
+    "create": "Crear",
+    "blueprint": "Plantilla",
+    "preset": "Plantilla",
+    "deck": "Mazo",
+    "editYourFormat": "Edita tu formato",
+    "designYourFormat": "Diseña tu formato",
+    "selectFormat": "Selecciona un formato",
+    "updatePreset": "Actualizar Plantilla",
+    "savePreset": "Guardar Plantilla",
+    "createPreset": "Crear Plantilla",
+    "designBlueprint": "Diseña tu propia plantilla",
+    "editPreset": "Editar Plantilla",
+    "deletePreset": "Eliminar Plantilla",
+    "words": "Palabras"
   },
   "oracle": {
     "title": "Oráculo",
@@ -961,7 +1024,11 @@
     "add": "Añadir",
     "section": "Sección",
     "fractalStructure": "Estructura Fractal",
-    "fractalHelper": "Tu meta se dividirá inteligentemente en estos bloques."
+    "fractalHelper": "Tu meta se dividirá inteligentemente en estos bloques.",
+    "leaf": {
+      "emptyTitle": "Nodo Estratégico",
+      "emptyDesc": "Sin descripción adicional"
+    }
   },
   "common": {
     "estimatedDuration": "Duración Estimada",
@@ -1020,7 +1087,51 @@
     "dateTime": "Fecha y Hora",
     "note": "Nota",
     "updating": "ACTUALIZANDO...",
-    "yesDelete": "Sí, eliminar"
+    "yesDelete": "Sí, eliminar",
+    "dailyCaps": "Límites Diarios",
+    "inDays": "en {{count}} días",
+    "endDate": "Fecha de Finalización",
+    "time": {
+      "years": "años",
+      "months": "meses",
+      "days": "días"
+    },
+    "monday": "Lunes",
+    "sunday": "Domingo",
+    "selectAtLeastThree": "Selecciona al menos 3 rasgos en total",
+    "back": "Atrás",
+    "activate": "Activar",
+    "continue": "Continuar",
+    "colorSelected": "Color Seleccionado",
+    "selectColor": "Seleccionar Color",
+    "clickToChange": "Haz clic para cambiar",
+    "customizeColor": "Personalizar color del proyecto",
+    "weekdays": {
+      "initials": "L,M,X,J,V,S,D"
+    },
+    "total": "Total",
+    "average": "Promedio",
+    "thisWeek": "Esta semana",
+    "thisMonth": "Este mes",
+    "next": "Siguiente",
+    "review": "REVISAR",
+    "customizeHabit": "Personalizar Hábito",
+    "searchIcon": "Buscar icono...",
+    "viewAllCategories": "Ver todas las categorías",
+    "daysPerMonth": "Días por mes",
+    "fix": "CORREGIR",
+    "tapToContinue": "Toca para continuar",
+    "streakDesc": "Tu racha representa días consecutivos cumplidos.",
+    "streakWhy": "La consistencia construye disciplina.",
+    "noArchivedHabits": "No hay hábitos archivados",
+    "deleteHabitConfirm": "¿Estás seguro de eliminar este hábito?",
+    "deleteProjectConfirm": "¿Estás seguro de eliminar este proyecto?",
+    "errorDeletingProject": "Error al eliminar el proyecto",
+    "errorDeletingTask": "Error al eliminar la tarea",
+    "modifyDetails": "Modificar detalles",
+    "unarchive": "Desarchivar",
+    "hideWithoutDeleting": "Ocultar sin eliminar",
+    "undoWarning": "Esta acción no se puede deshacer"
   },
   "smartTask": {
     "tutorial": {
@@ -1197,7 +1308,14 @@
       "toMainTrait": "Al Rasgo Principal",
       "minTotal": "min total"
     },
-    "history": "Historial",
+    "history": {
+      "title": "Historial de Enfoque",
+      "noSessions": "No hay sesiones registradas",
+      "startTracking": "Inicia una sesión de enfoque para ver tu historial",
+      "logPast": "Registrar Sesión Pasada",
+      "total": "Total acumulado",
+      "min": "min"
+    },
     "sessionCompleted": "¡Sesión Completada!",
     "whichSubtraitQuestion": "¿A qué sub-rasgo va este tiempo?",
     "onlyMainTrait": "Solo al Rasgo Principal",
@@ -1270,7 +1388,10 @@
       }
     },
     "mercadoPagoError": "Hubo un error al conectar con Mercado Pago. Intenta de nuevo.",
-    "mercadoPagoConnError": "La conexión con Mercado Pago falló. Por favor verifica tu conexión a internet e intenta de nuevo."
+    "mercadoPagoConnError": "La conexión con Mercado Pago falló. Por favor verifica tu conexión a internet e intenta de nuevo.",
+    "activeTitle": "Lux Pro Activo",
+    "activeDesc": "Tu membresía Premium está activa a través de Google Play Store. ¡Todos los límites y restricciones han sido eliminados!",
+    "manageSubscription": "Administrar Suscripción"
   },
   "settings": {
     "title": "Configuración del Sistema",
@@ -1386,7 +1507,33 @@
     "dashboardLayout": "Diseño del Dashboard",
     "selectDockStyle": "Selecciona el estilo del dock",
     "legacyDock": "Dock Clásico",
-    "auraDock": "Dock Aura"
+    "auraDock": "Dock Aura",
+    "themeActive": "Activo",
+    "themeUnlocked": "Adquirido",
+    "unlockTheme": "Desbloquear Tema",
+    "defaultTaskFilters": "Filtros por Defecto de Tareas",
+    "defaultTaskFiltersDesc": "Estado inicial de los filtros de tareas",
+    "notesDefaultTab": "Pestaña por Defecto de Notas",
+    "notesDefaultTabDesc": "Pestaña inicial al abrir estadísticas de Notas",
+    "defaultProjectView": "Distribución de Proyectos",
+    "defaultProjectViewDesc": "División por defecto de la vista de Proyectos",
+    "defaultChartViews": "Vistas de Gráficos por Defecto",
+    "defaultChartViewsDesc": "Períodos por defecto para análisis",
+    "defaultHabitView": "Vista por Defecto de Hábitos",
+    "defaultHabitViewDesc": "Diseño inicial para Hábitos",
+    "notificationsEnabled": "Notificaciones activadas",
+    "insufficientGoldAvatar": "Oro insuficiente para cambiar avatar (Se requieren 500 Oro)",
+    "confirmAvatarCost": "¿Deseas cambiar tu avatar por 500 de Oro?",
+    "avatarUpdatedSuccess": "Avatar actualizado y oro deducido correctamente.",
+    "avatarUpdateFailed": "Error al actualizar el avatar.",
+    "confirmNameFirstFree": "Tu primer cambio de nombre es GRATIS. ¿Confirmar cambio?",
+    "insufficientGoldName": "Oro insuficiente para cambiar nombre (Se requieren 1000 Oro)",
+    "confirmNameCost": "¿Deseas cambiar tu nombre de usuario por 1000 de Oro?",
+    "nameUpdatedWithCost": "Nombre de perfil actualizado con éxito (-1000 Oro).",
+    "nameUpdatedFree": "Nombre de perfil actualizado con éxito (Gratis).",
+    "nameUpdateFailed": "Error al actualizar el nombre",
+    "newSubTraitPlaceholder": "Nuevo sub-rasgo...",
+    "icon": "Icono:"
   },
   "dashboard": {
     "viewProgress": "Ver Progreso",
@@ -1442,7 +1589,11 @@
     "newSubtraitPlaceholder": "Nuevo sub-rasgo (ej. Cardio)...",
     "suggestions": "Sugerencias:",
     "noMetrics": "Métricas no disponibles",
-    "newLevel": "NUEVO NIVEL"
+    "newLevel": "NUEVO NIVEL",
+    "groupingNone": "Sin División",
+    "groupingByTrait": "Por Rasgo",
+    "groupingByProject": "Por Proyecto",
+    "newStrategy": "Crear Estrategia"
   },
   "loading": {
     "quotes": [
@@ -1789,7 +1940,17 @@
     "viewArchivedOpen": "Ver Archivados (",
     "organizeOrderUpper": "ORGANIZAR ORDEN",
     "clearZone": "Zona Despejada",
-    "noArchivedVices": "No hay vicios archivados"
+    "noArchivedVices": "No hay vicios archivados",
+    "dayStreak": "RACHA EN DÍAS",
+    "pastDayTitle": "Hábitos del día ({{date}})",
+    "showTodayOnly": "Mostrar solo hoy",
+    "showAll": "Mostrar todos",
+    "showCompleted": "Mostrar completados",
+    "hideCompleted": "Ocultar completados",
+    "reorderTitle": "Reordenar Hábitos",
+    "days": "días",
+    "day": "día",
+    "ofStreak": "de racha"
   },
   "badHabits": {
     "tags": {
@@ -1839,7 +2000,29 @@
       "addVicesPlaceholder": "Agrega vicios (coma o salto de línea)",
       "viceExamplePlaceholder": "Ej: Fumar, TikTok...",
       "penaltyDesc": "Puedes seleccionar hasta 3 atributos. La penalización de TP por recaídas se repartirá equitativamente entre los atributos elegidos.",
-      "linkSubTrait": "Vincular a un sub-rasgo (Opcional)"
+      "linkSubTrait": "Vincular a un sub-rasgo (Opcional)",
+      "selectHabitToRemove": "¿Qué hábito deseas eliminar?",
+      "streakSystemType": "Sistema de Racha",
+      "modeNormal": "Racha Normal",
+      "modeNormalDesc": "Racha tradicional. Un error reinicia la racha y aplica penalización.",
+      "modeIntelligent": "Racha Inteligente (IA)",
+      "modeIntelligentDesc": "Algoritmo de progreso gradual. Perdona caídas ocasionales.",
+      "modeDynamic": "Cantidad Dinámica",
+      "modeDynamicDesc": "Balance de aciertos y deslices. Meta neutra o positiva al finalizar el día.",
+      "dynamicTargetLabel": "Meta del Balance al Final de Día",
+      "dynamicTargetNeutral": "Neutro (>= 0)",
+      "dynamicTargetNeutralDesc": "Evita recaer",
+      "dynamicTargetPositive": "Positivo (> 0)",
+      "dynamicTargetPositiveDesc": "Más aciertos que caídas",
+      "dynamicSubtract": "Restar (-1)",
+      "dynamicSubtractDesc": "Resta 1 cuando cometes un desliz del vicio. El balance baja.",
+      "dynamicAdd": "Sumar (+1)",
+      "dynamicAddDesc": "Suma 1 cuando resistes un impulso o vences una tentación. El balance sube.",
+      "dynamicResolution": "Resolución Diaria",
+      "dynamicResolutionNeutral": "Debes terminar el día con balance >= 0 para mantener la racha.",
+      "dynamicResolutionPositive": "Debes terminar el día con balance > 0 (mínimo +1) para mantener la racha.",
+      "dynamicBonus": "Puntos de Talento Extra (TP)",
+      "dynamicBonusDesc": "¡Si superas tu objetivo, recibirás 15 TP por cada punto excedente para el rasgo asignado!"
     },
     "opportunityDay": "Día de Oportunidad",
     "intelligentFall": "Caída Inteligente",
@@ -1905,7 +2088,22 @@
     "reorderTitle": "Reorder Vices",
     "protocolFailure": "Protocol Failure",
     "missingGold": "MISSING",
-    "cancelFalseAlarm": "Cancel (False Alarm)"
+    "cancelFalseAlarm": "Cancel (False Alarm)",
+    "relapsed": "RECAÍDA",
+    "slip": "Desliz",
+    "moralVictory": "Victoria Moral",
+    "cutStreak": "Cortar racha (Relapso)",
+    "mode": "Modo",
+    "addVicesPlaceholder": "Añadir vicios (coma o salto de línea)",
+    "viceExamplePlaceholder": "Ej. Fumar, TikTok...",
+    "dynamicSystem": "Sistema de Balance Dinámico",
+    "dynamicSystemDesc": "Gestiona deslices y victorias morales de manera dinámica",
+    "reason": "Motivo",
+    "dynamicQuantityActivated": "Cantidad Dinámica Activada",
+    "avgRelapses": "RECAÍDAS PROMEDIO",
+    "globalStreak": "RACHA GLOBAL",
+    "relapses": "Recaídas",
+    "endOfDay": "Al final del día:"
   },
   "projects": {
     "deleteTitle": "¿Eliminar Proyecto?",
@@ -1999,7 +2197,26 @@
       "today": "Hoy",
       "of": "de"
     },
-    "weekly": "Semanal",
+    "weekly": {
+      "focusTime": "Tiempo de Enfoque",
+      "habitsDone": "Hábitos Completados",
+      "activeDays": "Días Activos",
+      "performanceAdjustment": "Ajuste de Rendimiento",
+      "weeklyConsistency": "Consistencia Semanal",
+      "scoreIs": "Puntuación",
+      "belowLastWeek": "por debajo de la semana pasada",
+      "xpEarned": "XP Ganada",
+      "goldEarned": "Oro Ganado",
+      "tpEarned": "TP Ganados",
+      "week": "Semana",
+      "daysActive": "Días Activos",
+      "title": "Resumen Semanal",
+      "focusTotal": "Enfoque Total",
+      "avg": "Promedio",
+      "perDay": "/ día",
+      "summaryTitle": "Resumen Semanal",
+      "completedTasks": "Tareas Completadas"
+    },
     "live": "En vivo",
     "productivity": "Productividad",
     "done": "hechas",
@@ -2076,7 +2293,8 @@
     "dailyTasksMissions": "Tareas Diarias (Misiones)",
     "contribution20": "Aporte: 20%",
     "tasksCompletedScore": "Tareas Completadas",
-    "totalTasksToday": "Total Tareas de Hoy"
+    "totalTasksToday": "Total Tareas de Hoy",
+    "scoreByCategory": "Puntuación por Categoría"
   },
   "error": {
     "systemFailure": "FALLO DEL SISTEMA",
@@ -2094,7 +2312,8 @@
     "reset": "Restablecer valores predeterminados",
     "plusItems": "Elementos del Menú Más (arrastrar para reordenar)",
     "availableItems": "Elementos Disponibles",
-    "save": "Guardar Configuración"
+    "save": "Guardar Configuración",
+    "settingsRequiredWarning": "Configuraciones debe estar activo al menos en la barra principal (HUD) o en el Menú (+)."
   },
   "security": {
     "secure": "Seguro",
@@ -2139,5 +2358,34 @@
     "downloadGooglePlay": "Descargar en Google Play",
     "nowLuxPro": "¡AHORA ERES LUX PRO!",
     "rebooting": "Reiniciando el sistema..."
-  }
+  },
+  "overdue": "Vencida",
+  "economy": {
+    "gold": "Oro"
+  },
+  "vault": {
+    "title": "Bóveda de Seguridad",
+    "subtitle": "Almacenamiento encriptado de credenciales",
+    "setupDesc": "Configura tu PIN de seguridad para acceder a la bóveda",
+    "search": "Buscar credenciales...",
+    "noItems": "No hay elementos en la bóveda",
+    "lock": "Bloquear Bóveda",
+    "itemTitle": "Título del servicio",
+    "usernameEmail": "Usuario / Correo",
+    "save": "Guardar Credencial"
+  },
+  "tomorrow": "Mañana",
+  "subtaskStats": "ESTADÍSTICAS DE SUBTAREAS",
+  "deleted": "ELIMINADA",
+  "completions": "completadas",
+  "locale": "es-ES",
+  "weekdays": {
+    "initials": "L,M,X,J,V,S,D"
+  },
+  "specificDays": "DÍAS ESPECÍFICOS",
+  "flexibleCount": "CONTEO FLEXIBLE",
+  "timesPerWeek": "Veces por semana",
+  "specificDates": "FECHAS ESPECÍFICAS",
+  "lastDayOfMonth": "Último día del mes",
+  "timesPerMonth": "Veces por mes"
 }

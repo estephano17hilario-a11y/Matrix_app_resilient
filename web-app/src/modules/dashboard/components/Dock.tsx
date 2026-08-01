@@ -183,18 +183,65 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
       </AnimatePresence>
     );
  
- const renderExpandedMenuButton = (id: string, label: string, IconComponent: React.ElementType, color: string, bg: string, border: string, action: (e?: React.MouseEvent) => void, isFullWidth?: boolean) => (
- <button 
- key={id}
- onClick={(e) => action(e)}
- className={`relative z-10 h-24 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 flex flex-col items-center justify-center gap-2 group ${isFullWidth ? 'w-full' : ''}`}
- >
- <div className={`w-9 h-9 rounded-full ${bg} flex items-center justify-center ${color} border ${border} group-hover:scale-110 transition-transform`}>
- <IconComponent size={16} />
- </div>
- <span className="text-[10px] font-bold text-white/80">{label}</span>
- </button>
- );
+  const todayDateStr = React.useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }, []);
+
+  const [hasFeedUnread, setHasFeedUnread] = React.useState(() => {
+    try { return localStorage.getItem('matrix_feed_opened_date') !== todayDateStr; } catch (e) { return true; }
+  });
+  const [hasRivalsUnread, setHasRivalsUnread] = React.useState(() => {
+    try { return localStorage.getItem('matrix_rivals_opened_date') !== todayDateStr; } catch (e) { return true; }
+  });
+
+  React.useEffect(() => {
+    const handleFeedRead = () => {
+      try { localStorage.setItem('matrix_feed_opened_date', todayDateStr); } catch (e) {}
+      setHasFeedUnread(false);
+    };
+    const handleRivalsRead = () => {
+      try { localStorage.setItem('matrix_rivals_opened_date', todayDateStr); } catch (e) {}
+      setHasRivalsUnread(false);
+    };
+    window.addEventListener('feed-read', handleFeedRead);
+    window.addEventListener('rivals-read', handleRivalsRead);
+    return () => {
+      window.removeEventListener('feed-read', handleFeedRead);
+      window.removeEventListener('rivals-read', handleRivalsRead);
+    };
+  }, [todayDateStr]);
+
+  const renderExpandedMenuButton = (id: string, label: string, IconComponent: React.ElementType, color: string, bg: string, border: string, action: (e?: React.MouseEvent) => void, isFullWidth?: boolean) => {
+    const hasExclamation = (id === 'FEED' && hasFeedUnread) || (id === 'FOCUS' && hasRivalsUnread);
+
+    return (
+      <button 
+        key={id}
+        onClick={(e) => {
+          if (id === 'FEED') {
+            try { localStorage.setItem('matrix_feed_opened_date', todayDateStr); } catch (err) {}
+            setHasFeedUnread(false);
+          } else if (id === 'FOCUS') {
+            try { localStorage.setItem('matrix_rivals_opened_date', todayDateStr); } catch (err) {}
+            setHasRivalsUnread(false);
+          }
+          action(e);
+        }}
+        className={`relative z-10 h-24 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 flex flex-col items-center justify-center gap-2 group ${isFullWidth ? 'w-full' : ''}`}
+      >
+        <div className={`w-9 h-9 rounded-full ${bg} flex items-center justify-center ${color} border ${border} group-hover:scale-110 transition-transform relative`}>
+          <IconComponent size={16} />
+          {hasExclamation && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white font-black text-[10px] flex items-center justify-center shadow-[0_0_8px_rgba(239,68,68,0.9)] animate-pulse pointer-events-none z-30 border border-white/30">
+              !
+            </span>
+          )}
+        </div>
+        <span className="text-[10px] font-bold text-white/80">{label}</span>
+      </button>
+    );
+  };
 
  const renderGlassExpandedButton = (id: DockItemId, isFullWidth?: boolean) => {
  const item = DOCK_ITEMS.find(i => i.id === id);
@@ -249,14 +296,30 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   else if (id === 'FEED') { label = t('dock.feed', 'Feed'); }
   else if (id === 'SETTINGS') { action = (e) => handleModal('SETTINGS', e); label = 'Config'; }
 
+  const hasExclamation = (id === 'FEED' && hasFeedUnread) || (id === 'FOCUS' && hasRivalsUnread);
+
  return (
  <button 
  key={id}
- onClick={(e) => action(e)} 
- className={`h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm ${isLastOdd ? 'col-span-2' : ''}`}
+ onClick={(e) => {
+   if (id === 'FEED') {
+     try { localStorage.setItem('matrix_feed_opened_date', todayDateStr); } catch (err) {}
+     setHasFeedUnread(false);
+   } else if (id === 'FOCUS') {
+     try { localStorage.setItem('matrix_rivals_opened_date', todayDateStr); } catch (err) {}
+     setHasRivalsUnread(false);
+   }
+   action(e);
+ }} 
+ className={`relative h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm ${isLastOdd ? 'col-span-2' : ''}`}
  >
- <div className={`w-8 h-8 rounded-full ${bgColor} border ${borderColor} flex items-center justify-center ${color} group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(255,255,255,0.05)]`}>
+ <div className={`w-8 h-8 rounded-full ${bgColor} border ${borderColor} flex items-center justify-center ${color} group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(255,255,255,0.05)] relative`}>
  <Icon size={18} />
+ {hasExclamation && (
+   <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white font-black text-[10px] flex items-center justify-center shadow-[0_0_8px_rgba(239,68,68,0.9)] animate-pulse pointer-events-none z-30 border border-white/30">
+     !
+   </span>
+ )}
  </div>
  <span className="text-white/90 font-bold text-[11px] tracking-tight">{label}</span>
  </button>

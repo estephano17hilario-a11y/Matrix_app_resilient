@@ -824,9 +824,15 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
       setIsSettingsOpen(true);
     };
     const handleOpenStore = () => setCurrentView('STORE');
-    const handleOpenFeed = () => setCurrentView('FEED');
+    const handleOpenFeed = () => {
+      setCurrentView('FEED');
+      window.dispatchEvent(new CustomEvent('feed-read'));
+    };
     const handleOpenNotes = () => setCurrentView('NOTES');
-    const handleOpenRivals = () => setActiveModal('RIVALS');
+    const handleOpenRivals = () => {
+      setActiveModal('RIVALS');
+      window.dispatchEvent(new CustomEvent('rivals-read'));
+    };
 
     window.addEventListener('open-dock-config', handleOpenDockConfig);
     window.addEventListener('open-settings', handleOpenSettings);
@@ -2184,14 +2190,9 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
   <RivalsModal
     isOpen={activeModal === 'RIVALS'}
     onClose={() => setActiveModal(null)}
-    userTasksCompleted={quests.filter(q => {
-      if (!q.completed || !q.completedAt) return false;
-      const completedStr = toLocalISOString(new Date(q.completedAt)).slice(0, 10);
-      const todayStr = toLocalISOString(new Date()).slice(0, 10);
-      return completedStr === todayStr;
-    }).length}
-    userFocusMinutes={Math.round(((dailyLimits as any)?.stats?.focusMinutes || dailyLimits?.focusSeconds || 0) / 60)}
-    userHabitPct={Math.round((habits.filter(h => h.completedToday).length / Math.max(1, habits.length)) * 100)}
+    userTasksCompleted={todayTasksCompleted}
+    userFocusMinutes={todayFocusMinutes}
+    userHabitPct={todayHabitPct}
   />
 
   <BadHabitWizard 

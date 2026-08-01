@@ -388,7 +388,7 @@ class RivalsWidgetProvider : AppWidgetProvider() {
             var userTasksCount = 0
             for (t in tasks) {
                 if (t.archived == true) continue
-                if (t.completed && t.completedAt?.startsWith(todayStr) == true) {
+                if (t.completed && (t.completedAt?.startsWith(todayStr) == true || (t.completedAt != null && t.completedAt.length >= 10 && t.completedAt.substring(0, 10) == todayStr))) {
                     userTasksCount++
                 }
             }
@@ -409,7 +409,7 @@ class RivalsWidgetProvider : AppWidgetProvider() {
                 if (p.archived == true || p.deleted == true) continue
                 val sessions = p.sessions ?: continue
                 for (s in sessions) {
-                    if (s.date?.startsWith(todayStr) == true) {
+                    if (s.date != null && (s.date.startsWith(todayStr) || (s.date.length >= 10 && s.date.substring(0, 10) == todayStr))) {
                         focusSecondsToday += s.duration
                     }
                 }
