@@ -339,19 +339,21 @@ export const FocusStats = React.memo(({
         return 'px-1 md:px-2';
     }, [stats.labels.length, timeRange]);
 
-    const formatMinutes = (mins: number) => {
+    const formatYTick = (mins: number) => {
         if (mins <= 0) return '0h';
         const h = Math.floor(mins / 60);
         const m = Math.round(mins % 60);
         if (m === 0) return `${h}h`;
         if (h === 0) return `${m}m`;
-        return `${h}h${m}m`;
+        return `${h}h ${m}m`;
     };
 
-    const formatTooltipMinutes = (mins: number) => {
-        if (mins <= 0) return '0h 0m';
+    const formatMinutes = (mins: number) => {
+        if (!mins || mins <= 0) return '0h 0m';
         const h = Math.floor(mins / 60);
         const m = Math.round(mins % 60);
+        if (m === 0) return `${h}h 0m`;
+        if (h === 0) return `${m}m`;
         return `${h}h ${m}m`;
     };
 
@@ -713,19 +715,19 @@ export const FocusStats = React.memo(({
                 <BarChart 
                     datasets={stats.datasets.map(d => d.label === 'Total' ? { ...d, color: viewMode === 'TOTAL' ? avatarColor : activeFilterColor } : d)}
                     labels={stats.labels}
-                    height={250}
+                    height={260}
                     max={chartMax}
                     className="mt-0"
                     showBackground={false}
                     showGrid={true}
                     stacked={groupMode !== 'TOTAL'}
                     yTicks={yTicks}
-                    yTickFormatter={formatMinutes}
+                    yTickFormatter={formatYTick}
                     xTickInterval={xTickInterval}
                     barSpacing={barSpacing}
-                    paddingTop="top-2"
-                    tooltipValueFormatter={formatTooltipMinutes}
-                    tooltipLabelFormatter={(label) => t(label)}
+                    paddingTop="top-10"
+                    tooltipValueFormatter={formatMinutes}
+                    tooltipLabelFormatter={(label) => label}
                 />
             </div>
             
