@@ -341,7 +341,7 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
                             )}
 
                             {/* Milestone Markers on Path */}
-                            {[7, 14, 30, 60, 90].map(milestone => {
+                            {[7, 14, 30, 50, 80].map(milestone => {
                                 const milestoneIndex = milestone - 1;
                                 const milestoneNode = roadmapData[milestoneIndex];
                                 if (!milestoneNode) return null;
@@ -399,7 +399,7 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
     const isCurrent = node.status === 'current';
     const isLocked = node.status === 'locked';
     const isCompleted = node.status === 'completed';
-    const isMilestone = [7, 14, 30, 60, 90].includes(node.day);
+    const isMilestone = [7, 14, 30, 50, 80].includes(node.day);
     const targetPercentage = getTargetPercentage(node.day);
     const nextLevelPercentage = getNextLevelPercentage(node.day);
 
@@ -539,7 +539,7 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
                         </span>
                         <div className="flex items-center gap-1.5">
                             <Flame className="w-4 h-4 text-amber-400" />
-                            <span className="text-base font-black text-amber-400 tracking-tight">{nextLevelPercentage}%</span>
+                            <span className="text-base font-black text-amber-400 tracking-tight">{targetPercentage}%</span>
                         </div>
                     </div>
 
