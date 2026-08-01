@@ -345,6 +345,13 @@ export const FocusStats = React.memo(({
         const m = Math.round(mins % 60);
         if (m === 0) return `${h}h`;
         if (h === 0) return `${m}m`;
+        return `${h}h${m}m`;
+    };
+
+    const formatTooltipMinutes = (mins: number) => {
+        if (mins <= 0) return '0h 0m';
+        const h = Math.floor(mins / 60);
+        const m = Math.round(mins % 60);
         return `${h}h ${m}m`;
     };
 
@@ -717,7 +724,7 @@ export const FocusStats = React.memo(({
                     xTickInterval={xTickInterval}
                     barSpacing={barSpacing}
                     paddingTop="top-2"
-                    tooltipValueFormatter={formatMinutes}
+                    tooltipValueFormatter={formatTooltipMinutes}
                     tooltipLabelFormatter={(label) => t(label)}
                 />
             </div>

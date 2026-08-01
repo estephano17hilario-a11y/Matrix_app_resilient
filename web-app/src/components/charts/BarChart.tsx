@@ -157,56 +157,70 @@ export const BarChart = React.memo(({
                 </div>
             )}
 
-            {/* Inline Tooltip — anchored at TOP of chart, tracks bar X only */}
+            {/* Inline Tooltip — anchored near TOP of chart, tracks bar X with clamped boundaries */}
             {activeIndex !== null && tooltipLeft !== null && (
                 <div 
-                    className="absolute z-[9999] bg-[#1c1c1e] border px-3 py-2.5 rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] flex flex-col items-start gap-1.5 min-w-[90px] pointer-events-none"
+                    className="absolute z-[99999] bg-zinc-950/95 border px-3.5 py-2.5 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.9)] flex flex-col items-start gap-1.5 min-w-[130px] max-w-[200px] pointer-events-none backdrop-blur-md"
                     style={{ 
-                        top: 4,
-                        left: tooltipLeft, 
+                        top: 10,
+                        left: Math.max(70, Math.min(tooltipLeft, (containerRef.current?.getBoundingClientRect().width || 300) - 70)), 
                         transform: 'translate(-50%, 0)',
                         borderColor: datasets[0]?.color || '#3b82f6'
                     }}
                 >
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider w-full">{labels[activeIndex]}</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-white/10 pb-1 w-full text-center">
+                        {labels[activeIndex]}
+                    </span>
                     
-                    {/* Active datasets only */}
+                    {/* Active datasets and Total calculation */}
                     {(() => {
+                        const total = datasets.reduce((sum, ds) => sum + (ds.data[activeIndex] || 0), 0);
                         const activeDs = datasets.filter(ds => (ds.data[activeIndex] || 0) > 0);
-                        if (activeDs.length === 0) {
-                            return (
-                                <div className="text-[10px] text-white/70 font-bold uppercase tracking-wider mt-0.5 py-0.5">
-                                    {tooltipValueFormatter ? tooltipValueFormatter(0) : '0h'}
-                                </div>
-                            );
-                        }
+
                         return (
-                            <>
-                                {activeDs.map((ds, idx) => (
-                                    <div key={idx} className="flex items-center gap-2 text-xs font-black text-white whitespace-nowrap w-full">
-                                        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: ds.color, boxShadow: `0 0 5px ${ds.color}` }} />
-                                        <span className="text-white/70 text-[9px] font-bold mr-auto">
-                                            {tooltipLabelFormatter ? tooltipLabelFormatter(ds.label || '') : ds.label}
-                                        </span>
-                                        <span className="text-white font-black tabular-nums text-xs">
-                                            {tooltipValueFormatter ? tooltipValueFormatter(ds.data[activeIndex]) : ds.data[activeIndex]}
+                            <div className="w-full flex flex-col gap-1 mt-0.5">
+                                {activeDs.length === 0 ? (
+                                    <div className="flex items-center justify-between gap-3 text-white/60 font-bold text-xs py-0.5">
+                                        <span className="text-[10px] text-slate-400">Sin actividad</span>
+                                        <span className="font-mono tabular-nums text-slate-400 text-xs">
+                                            {tooltipValueFormatter ? tooltipValueFormatter(0) : '0h 0m'}
                                         </span>
                                     </div>
-                                ))}
+                                ) : (
+                                    <>
+                                        {activeDs.map((ds, idx) => {
+                                            const val = ds.data[activeIndex] || 0;
+                                            const rawLabel = ds.label || '';
+                                            const isGenericTotal = rawLabel === 'Total' || rawLabel === 'total' || rawLabel === 'Unknown';
+                                            const displayLabel = !isGenericTotal && tooltipLabelFormatter ? tooltipLabelFormatter(rawLabel) : (!isGenericTotal ? rawLabel : null);
 
-                                {/* Total row — shown when multiple datasets are active */}
-                                {activeDs.length > 1 && (() => {
-                                    const total = activeDs.reduce((acc, ds) => acc + (ds.data[activeIndex] || 0), 0);
-                                    return (
-                                        <div className="border-t border-white/[0.08] pt-1 mt-0.5 w-full flex items-center justify-between gap-3">
-                                            <span className="text-[9px] font-black text-white/40 uppercase tracking-wider">Total</span>
-                                            <span className="text-white font-black tabular-nums text-xs">
-                                                {tooltipValueFormatter ? tooltipValueFormatter(total) : total}
+                                            return (
+                                                <div key={idx} className="flex items-center justify-between gap-2.5 text-xs font-bold text-white whitespace-nowrap w-full">
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: ds.color, boxShadow: `0 0 6px ${ds.color}` }} />
+                                                        {displayLabel && (
+                                                            <span className="text-white/80 text-[10px] font-medium truncate max-w-[100px]">
+                                                                {displayLabel}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <span className="text-white font-mono font-black tabular-nums text-xs ml-auto">
+                                                        {tooltipValueFormatter ? tooltipValueFormatter(val) : `${val}m`}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+
+                                        {/* TIEMPO TOTAL ROW — Always displayed for clear totals */}
+                                        <div className="border-t border-white/15 pt-1.5 mt-1 w-full flex items-center justify-between gap-3">
+                                            <span className="text-[9px] font-black text-amber-400 uppercase tracking-wider">TIEMPO TOTAL</span>
+                                            <span className="text-amber-400 font-mono font-black tabular-nums text-xs">
+                                                {tooltipValueFormatter ? tooltipValueFormatter(total) : `${total}m`}
                                             </span>
                                         </div>
-                                    );
-                                })()}
-                            </>
+                                    </>
+                                )}
+                            </div>
                         );
                     })()}
                 </div>
