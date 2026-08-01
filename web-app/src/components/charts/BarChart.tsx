@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo } from 'react';
 import { cn } from '../../utils/cn';
 
 export const BarChart = React.memo(({ 
@@ -48,87 +48,16 @@ export const BarChart = React.memo(({
         return Math.max(...datasets.flatMap(d => d.data), 1);
     }, [datasets, max, stacked]);
 
-    const [activeIndex, setActiveIndex] = useState<number | null>(null);
-    const [tooltipLeft, setTooltipLeft] = useState<number | null>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    const handleTouch = (e: React.TouchEvent) => {
-        // Only prevent default on move to avoid breaking normal scrolling unless dragging inside the chart
-        if (e.type === 'touchmove' && e.cancelable) {
-            e.preventDefault();
-        }
-        const touch = e.touches[0];
-        if (!touch || !containerRef.current) return;
-        
-        const rect = containerRef.current.getBoundingClientRect();
-        const relativeX = touch.clientX - rect.left - (yTicks ? 24 : 0);
-        const chartWidth = rect.width - (yTicks ? 24 : 0);
-        
-        if (relativeX < 0 || relativeX > chartWidth) {
-            setActiveIndex(null);
-            return;
-        }
-        
-        const percentX = relativeX / chartWidth;
-        const index = Math.floor(percentX * labels.length);
-        
-        if (index >= 0 && index < labels.length) {
-            const barElements = containerRef.current.querySelectorAll('.bar-touch-target');
-            const barEl = barElements[index];
-            if (barEl) {
-                const barRect = barEl.getBoundingClientRect();
-                const left = barRect.left - rect.left + (barRect.width / 2);
-                
-                setActiveIndex(index);
-                setTooltipLeft(left);
-            }
-        }
-    };
-
-    useEffect(() => {
-        const handleOutsideAction = (e: Event) => {
-            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-                setActiveIndex(null);
-            }
-        };
-        if (activeIndex !== null) {
-            document.addEventListener('click', handleOutsideAction);
-            document.addEventListener('touchstart', handleOutsideAction, { passive: true });
-        }
-        return () => {
-            document.removeEventListener('click', handleOutsideAction);
-            document.removeEventListener('touchstart', handleOutsideAction);
-        };
-    }, [activeIndex]);
-
-    const handleBarHover = (i: number, e: React.MouseEvent) => {
-        if (!containerRef.current) return;
-        const containerRect = containerRef.current.getBoundingClientRect();
-        const rect = e.currentTarget.getBoundingClientRect();
-        const left = rect.left - containerRect.left + (rect.width / 2);
-        
-        setActiveIndex(i);
-        setTooltipLeft(left);
-    };
-
-    const handleBarClick = (i: number, e: React.MouseEvent) => {
-        e.stopPropagation();
-        handleBarHover(i, e);
-    };
-    
     return (
       <div 
-          ref={containerRef} 
-          className={`w-full relative select-none overflow-visible ${className}`} 
+          className={`w-full relative select-none overflow-hidden ${className}`} 
           style={{ height }}
-          onTouchStart={handleTouch}
-          onTouchMove={handleTouch}
       >
              {showBackground && (
                 <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 via-purple-500/5 to-pink-500/5 opacity-20 rounded-3xl pointer-events-none" />
              )}
 
-            {/* Grid lines: Feed-style solid thin vectors */}
+            {/* Grid lines */}
             {showGrid && !yTicks && (
                 <div className={`absolute inset-x-0 ${paddingTop} bottom-5 flex flex-col justify-between pointer-events-none`}>
                     <div className="w-full h-px bg-white/[0.04]" />
@@ -157,72 +86,11 @@ export const BarChart = React.memo(({
                 </div>
             )}
 
-            {/* Floating Tooltip at top of chart */}
-            {activeIndex !== null && tooltipLeft !== null && (
-                <div 
-                    className="absolute z-[99999] bg-[#121216]/95 backdrop-blur-md border border-white/20 px-3.5 py-2 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.9)] flex flex-col items-start gap-1 min-w-[120px] pointer-events-none transition-all duration-150"
-                    style={{ 
-                        top: -36,
-                        left: Math.max(60, Math.min(tooltipLeft, (containerRef.current?.getBoundingClientRect().width || 300) - 60)), 
-                        transform: 'translate(-50%, 0)',
-                        borderColor: datasets[0]?.color || '#3b82f6',
-                        boxShadow: `0 8px 25px -5px ${datasets[0]?.color || '#3b82f6'}50`
-                    }}
-                >
-                    <span className="text-[10px] font-black text-white/60 uppercase tracking-wider w-full pb-0.5 border-b border-white/10">
-                        {labels[activeIndex]}
-                    </span>
-                    
-                    {(() => {
-                        const activeDs = datasets.filter(ds => (ds.data[activeIndex] || 0) > 0);
-                        const totalValue = datasets.reduce((acc, ds) => acc + (ds.data[activeIndex] || 0), 0);
-
-                        if (activeDs.length === 0) {
-                            return (
-                                <div className="flex items-center justify-between gap-3 w-full mt-0.5">
-                                    <span className="text-[10px] font-bold text-white/50 uppercase tracking-wide">Tiempo Total</span>
-                                    <span className="text-xs font-black text-white tabular-nums">
-                                        {tooltipValueFormatter ? tooltipValueFormatter(0) : '0h 0m'}
-                                    </span>
-                                </div>
-                            );
-                        }
-
-                        return (
-                            <div className="flex flex-col gap-1 w-full mt-0.5">
-                                {activeDs.map((ds, idx) => (
-                                    <div key={idx} className="flex items-center gap-2 text-xs font-bold text-white whitespace-nowrap w-full">
-                                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: ds.color, boxShadow: `0 0 6px ${ds.color}` }} />
-                                        <span className="text-white/80 text-[10px] font-semibold mr-auto truncate max-w-[130px]">
-                                            {tooltipLabelFormatter ? tooltipLabelFormatter(ds.label || '') : (ds.label || 'Enfoque')}
-                                        </span>
-                                        <span className="text-white font-black tabular-nums text-xs ml-2">
-                                            {tooltipValueFormatter ? tooltipValueFormatter(ds.data[activeIndex]) : ds.data[activeIndex]}
-                                        </span>
-                                    </div>
-                                ))}
-
-                                {/* Total Row */}
-                                <div className="border-t border-white/15 pt-1 mt-0.5 w-full flex items-center justify-between gap-3">
-                                    <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider">Tiempo Total</span>
-                                    <span className="text-xs font-black text-amber-300 tabular-nums">
-                                        {tooltipValueFormatter ? tooltipValueFormatter(totalValue) : totalValue}
-                                    </span>
-                                </div>
-                            </div>
-                        );
-                    })()}
-                </div>
-            )}
-
             <div className={`absolute inset-0 flex items-end ${labels.length > 30 ? 'gap-0' : labels.length > 15 ? 'gap-0.5' : 'gap-1'} ${yTicks ? 'pl-6' : ''}`}>
                 {labels.map((label, i) => (
                     <div 
                         key={i} 
-                        onMouseEnter={(e) => handleBarHover(i, e)}
-                        onMouseLeave={() => setActiveIndex(null)}
-                        onClick={(e) => handleBarClick(i, e)}
-                        className="flex-1 h-full relative group z-10 cursor-pointer min-w-0 bar-touch-target"
+                        className="flex-1 h-full relative group z-10 min-w-0"
                     >
                         {/* Bars Container */}
                         <div className={`absolute ${paddingTop} bottom-6 left-0 right-0 ${labels.length > 20 ? 'px-0' : barSpacing} flex items-end justify-center`}>
@@ -270,12 +138,12 @@ export const BarChart = React.memo(({
                         {/* Label */}
                         <div className="absolute bottom-0 left-0 right-0 flex justify-center">
                             {(i % xTickInterval === 0) && (
-                                <span className={`text-[9px] font-bold text-center leading-none transition-colors duration-200 ${activeIndex === i ? 'text-white' : 'text-slate-500 group-hover:text-white'}`}>{label}</span>
+                                <span className="text-[9px] font-bold text-center leading-none text-slate-500 group-hover:text-white transition-colors duration-200">{label}</span>
                             )}
                         </div>
                     </div>
                 ))}
             </div>
-            </div>
+      </div>
     );
 });
