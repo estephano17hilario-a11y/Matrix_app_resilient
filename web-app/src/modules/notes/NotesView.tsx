@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, BarChart3, ChevronLeft, ChevronRight, ArrowLeft, Briefcase, Trash2, Save, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil } from 'lucide-react';
+import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, LayoutGrid, ListTree, ArrowLeft, Briefcase, Trash2, Save, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { Note, NoteFolder, JournalEntry, NoteBlock, Project, Quest } from '../../types';
@@ -440,10 +440,16 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  onInteractionEnd();
  }, [onInteractionEnd]);
 
- // Filters
- const [showFilters, setShowFilters] = useState(false);
- const [filterProject, setFilterProject] = useState<string | 'ALL'>('ALL');
- const [filterTheme, setFilterTheme] = useState<string | 'ALL'>('ALL');
+  // Filters
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterProject, setFilterProject] = useState<string | 'ALL'>('ALL');
+  const [filterTheme, setFilterTheme] = useState<string | 'ALL'>('ALL');
+  const [viewStyle, setViewStyle] = useState<'GRID' | 'ACCORDION'>('GRID');
+  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({ FAVORITES: true, UNCATEGORIZED: true });
+
+  const toggleFolderExpand = useCallback((folderId: string) => {
+    setExpandedFolders(prev => ({ ...prev, [folderId]: !prev[folderId] }));
+  }, []);
 
  // Pagination State
  const [visibleNotesCount, setVisibleNotesCount] = useState(12);
@@ -492,6 +498,33 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   setDraftIsFavorite(selectedFolderId === 'FAVORITES');
   onInteractionStart(); 
   }, [onInteractionStart, canCreateNote, onShowPro, selectedFolderId]);
+
+  const createNoteInFolder = useCallback((folderId?: string) => {
+    if (!canCreateNote()) {
+      if (onShowPro) onShowPro();
+      return;
+    }
+    const newId = Date.now().toString();
+    setEditorMode('NOTE');
+    setDraftId(newId);
+    setDraftTitle('');
+    setDraftBlocks([{ id: 'init-1', type: 'text', content: '' }]);
+    setDraftTheme('slate');
+    setDraftProjectId(undefined);
+    setDraftFolderId(folderId === 'UNCATEGORIZED' ? undefined : (folderId === 'FAVORITES' ? undefined : folderId));
+    setDraftIsFavorite(folderId === 'FAVORITES');
+    onInteractionStart();
+  }, [canCreateNote, onShowPro, onInteractionStart]);
+
+  const handleToggleNoteFavorite = useCallback((note: Note, e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleUpdateNote({
+      ...note,
+      isFavorite: !note.isFavorite,
+      updatedAt: new Date().toISOString()
+    });
+    toast.success(note.isFavorite ? 'Removido de favoritos' : 'Añadido a favoritos ⭐');
+  }, [handleUpdateNote]);
  
  const openJournal = useCallback((date: Date) => { 
      const dateStr = toLocalISOString(date); 
@@ -1109,53 +1142,275 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
       </button>
     </div>
 
-    <button
-      onClick={handleToggleSortOrder}
-      className="px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold border border-white/10 flex items-center gap-1.5 whitespace-nowrap shadow-sm"
-      title="Cambiar orden de notas"
-    >
-      <ArrowUpDown size={13} className="text-emerald-400" />
-      <span>{sortOrder === 'NEWEST' ? 'Recientes' : 'Antiguas'}</span>
-    </button>
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => setViewStyle(prev => prev === 'GRID' ? 'ACCORDION' : 'GRID')}
+        className="px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold border border-white/10 flex items-center gap-1.5 whitespace-nowrap shadow-sm"
+        title="Cambiar vista de notas"
+      >
+        {viewStyle === 'GRID' ? <ListTree size={13} className="text-cyan-400" /> : <LayoutGrid size={13} className="text-cyan-400" />}
+        <span>{viewStyle === 'GRID' ? 'Carpetas Notion' : 'Galería Grid'}</span>
+      </button>
+
+      <button
+        onClick={handleToggleSortOrder}
+        className="px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold border border-white/10 flex items-center gap-1.5 whitespace-nowrap shadow-sm"
+        title="Cambiar orden de notas"
+      >
+        <ArrowUpDown size={13} className="text-emerald-400" />
+        <span>{sortOrder === 'NEWEST' ? 'Recientes' : 'Antiguas'}</span>
+      </button>
+    </div>
   </div>
 
-  <div className="columns-2 md:columns-3 gap-4">
- {/* Create Button */}
- <button onClick={createNote} data-tour="notes-fab" className="w-full h-[180px] rounded-[24px] border border-dashed border-white/10 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-colors group bg-black/25 mb-4 break-inside-avoid">
- <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-sm"><Plus size={28} className="text-theme-avatar" strokeWidth={1.5} /></div>
- <span className="text-xs font-bold text-white/40 uppercase tracking-widest group-hover:text-white/80 transition-colors">{t('notes.newNote', 'New Note')}</span>
- </button>
- 
- {/* Notes List */}
- {noteCards.map(({ note, themeColor, project, folder, previewText, updatedLabel }) => (
- <div key={note.id} onClick={() => openNote(note)} className="w-full min-h-[140px] max-h-[300px] rounded-[24px] p-5 flex flex-col justify-between hover:scale-[1.02] active:scale-98 transition-transform cursor-pointer group relative overflow-hidden shadow-md border border-white/5 bg-black/40 mb-4 break-inside-avoid">
- <div className="absolute top-0 left-0 right-0 h-32 opacity-20 pointer-events-none transition-opacity duration-200" style={{ background: `linear-gradient(to bottom, ${themeColor}, transparent)` }} />
- <div className="relative z-10 flex flex-col h-full">
- <div className="flex items-center justify-between gap-2 mb-2">
- <div className="flex items-center gap-1.5 flex-wrap">
- {project && <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 border border-white/5"><div className="w-1.5 h-1.5 rounded-full bg-blue-400"/><span className="text-[9px] font-bold text-slate-300 uppercase tracking-wide">{project.title}</span></div>}
- {folder && <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 border border-white/5 text-[9px] font-bold text-cyan-300 uppercase tracking-wide"><span>{folder.icon || '📁'}</span><span>{folder.name}</span></div>}
- </div>
- <button
- onClick={(e) => {
- e.stopPropagation();
- handleUpdateNote({ ...note, isFavorite: !note.isFavorite });
- }}
- className={`p-1.5 rounded-full transition-all ${note.isFavorite ? 'text-amber-400 bg-amber-400/10' : 'text-white/20 hover:text-white/60'}`}
- >
- <Star size={14} fill={note.isFavorite ? 'currentColor' : 'none'} />
- </button>
- </div>
- <h3 className={`text-[17px] font-bold leading-tight mb-3 ${!note.title ? 'text-white/30 italic' : 'text-white'}`}>{note.title || t('notes.untitled', 'Untitled')}</h3>
- <div className="relative flex-1 overflow-hidden">
- <p className="text-[13px] text-white/60 leading-relaxed font-medium break-words line-clamp-[8]">{previewText || <span className="italic opacity-50">{t('notes.empty', 'Empty...')}</span>}</p>
- {/* Gradient Fade at bottom if too long - though max-height handles container, line-clamp handles text */}
- </div>
- </div>
- <div className="relative z-10 mt-4 flex justify-between items-center border-t border-white/5 pt-3"><span className="text-[10px] font-medium text-white/30">{updatedLabel}</span><div className="w-2 h-2 rounded-full shadow-[0_0_6px_currentColor]" style={{ backgroundColor: themeColor, color: themeColor }} /></div>
- </div>
- ))}
- </div>
+  {viewStyle === 'ACCORDION' ? (
+    <div className="space-y-4 mb-8">
+      {/* Favoritos Section */}
+      <div className="bg-[#121214] border border-amber-500/20 rounded-2xl overflow-hidden shadow-md">
+        <div 
+          onClick={() => toggleFolderExpand('FAVORITES')}
+          className="w-full px-4 py-3.5 flex items-center justify-between bg-amber-500/5 hover:bg-amber-500/10 cursor-pointer transition-colors border-b border-amber-500/10 select-none"
+        >
+          <div className="flex items-center gap-3">
+            <ChevronRight size={16} className={`text-amber-400 transition-transform ${expandedFolders['FAVORITES'] ? 'rotate-90' : ''}`} />
+            <Star size={16} className="text-amber-400" fill="currentColor" />
+            <span className="text-sm font-bold text-white tracking-wide">Favoritos</span>
+            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold">
+              {notes.filter(n => n.isFavorite).length}
+            </span>
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); createNoteInFolder('FAVORITES'); }}
+            className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold hover:bg-amber-500/30 flex items-center gap-1 transition-all"
+          >
+            <Plus size={13} />
+            <span>Nota</span>
+          </button>
+        </div>
+
+        <AnimatePresence initial={false}>
+          {expandedFolders['FAVORITES'] && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden bg-black/40 p-4"
+            >
+              {notes.filter(n => n.isFavorite).length === 0 ? (
+                <p className="text-xs text-white/30 italic py-3 text-center">No tienes notas en favoritos.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {notes.filter(n => n.isFavorite).map(note => {
+                    const themeColor = themeColorMap.get(note.theme || 'slate') || '#64748b';
+                    return (
+                      <div 
+                        key={note.id} 
+                        onClick={() => openNote(note)}
+                        className="p-3.5 rounded-xl bg-white/5 border border-white/10 hover:border-amber-500/30 hover:bg-white/10 cursor-pointer transition-all flex flex-col justify-between gap-2 group relative overflow-hidden"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="text-xs font-bold text-white truncate flex-1">{note.title || 'Nota sin título'}</h4>
+                          <button onClick={(e) => handleToggleNoteFavorite(note, e)} className="text-amber-400 hover:scale-110 transition-transform">
+                            <Star size={13} fill="currentColor" />
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-white/50 line-clamp-2">{note.blocks.find(b => b.content.trim())?.content || 'Vacía...'}</p>
+                        <div className="flex items-center justify-between text-[9px] text-white/30 pt-1 border-t border-white/5">
+                          <span>{note.updatedAt ? new Date(note.updatedAt).toLocaleDateString() : ''}</span>
+                          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: themeColor }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Custom Folders Section */}
+      {folders.map(folder => {
+        const folderNotes = notes.filter(n => n.folderId === folder.id);
+        const isExpanded = !!expandedFolders[folder.id];
+        return (
+          <div key={folder.id} className="bg-[#121214] border border-white/10 rounded-2xl overflow-hidden shadow-md">
+            <div 
+              onClick={() => toggleFolderExpand(folder.id)}
+              className="w-full px-4 py-3.5 flex items-center justify-between bg-white/[0.03] hover:bg-white/[0.07] cursor-pointer transition-colors border-b border-white/5 select-none"
+            >
+              <div className="flex items-center gap-3">
+                <ChevronRight size={16} className={`text-white/50 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                <span className="text-base">{folder.icon || '📁'}</span>
+                <span className="text-sm font-bold text-white tracking-wide">{folder.name}</span>
+                <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/60 text-[10px] font-mono font-bold">
+                  {folderNotes.length}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={() => createNoteInFolder(folder.id)}
+                  className="px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-bold hover:bg-cyan-500/20 flex items-center gap-1 transition-all"
+                >
+                  <Plus size={13} />
+                  <span>Nota</span>
+                </button>
+                <button onClick={(e) => openEditFolderModal(folder, e)} className="p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-white" title="Editar">
+                  <Pencil size={13} />
+                </button>
+                <button onClick={(e) => handleDeleteFolderConfirm(folder.id, e)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-white/50 hover:text-red-400" title="Eliminar">
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </div>
+
+            <AnimatePresence initial={false}>
+              {isExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden bg-black/40 p-4"
+                >
+                  {folderNotes.length === 0 ? (
+                    <p className="text-xs text-white/30 italic py-3 text-center">Carpeta vacía. Haz clic en "+ Nota" para añadir una.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      {folderNotes.map(note => {
+                        const themeColor = themeColorMap.get(note.theme || 'slate') || '#64748b';
+                        return (
+                          <div 
+                            key={note.id} 
+                            onClick={() => openNote(note)}
+                            className="p-3.5 rounded-xl bg-white/5 border border-white/10 hover:border-cyan-500/30 hover:bg-white/10 cursor-pointer transition-all flex flex-col justify-between gap-2 group relative overflow-hidden"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <h4 className="text-xs font-bold text-white truncate flex-1">{note.title || 'Nota sin título'}</h4>
+                              <button onClick={(e) => handleToggleNoteFavorite(note, e)} className={`transition-transform ${note.isFavorite ? 'text-amber-400' : 'text-white/20 hover:text-white/60'}`}>
+                                <Star size={13} fill={note.isFavorite ? 'currentColor' : 'none'} />
+                              </button>
+                            </div>
+                            <p className="text-[11px] text-white/50 line-clamp-2">{note.blocks.find(b => b.content.trim())?.content || 'Vacía...'}</p>
+                            <div className="flex items-center justify-between text-[9px] text-white/30 pt-1 border-t border-white/5">
+                              <span>{note.updatedAt ? new Date(note.updatedAt).toLocaleDateString() : ''}</span>
+                              <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: themeColor }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      })}
+
+      {/* Sin Carpeta Section */}
+      <div className="bg-[#121214] border border-white/10 rounded-2xl overflow-hidden shadow-md">
+        <div 
+          onClick={() => toggleFolderExpand('UNCATEGORIZED')}
+          className="w-full px-4 py-3.5 flex items-center justify-between bg-white/[0.03] hover:bg-white/[0.07] cursor-pointer transition-colors border-b border-white/5 select-none"
+        >
+          <div className="flex items-center gap-3">
+            <ChevronRight size={16} className={`text-white/50 transition-transform ${expandedFolders['UNCATEGORIZED'] ? 'rotate-90' : ''}`} />
+            <Folder size={16} className="text-white/60" />
+            <span className="text-sm font-bold text-white tracking-wide">Sin Carpeta</span>
+            <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/60 text-[10px] font-mono font-bold">
+              {notes.filter(n => !n.folderId).length}
+            </span>
+          </div>
+
+          <button
+            onClick={(e) => { e.stopPropagation(); createNoteInFolder('UNCATEGORIZED'); }}
+            className="px-2.5 py-1 rounded-lg bg-white/10 text-white/80 border border-white/10 text-xs font-bold hover:bg-white/20 flex items-center gap-1 transition-all"
+          >
+            <Plus size={13} />
+            <span>Nota</span>
+          </button>
+        </div>
+
+        <AnimatePresence initial={false}>
+          {expandedFolders['UNCATEGORIZED'] && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden bg-black/40 p-4"
+            >
+              {notes.filter(n => !n.folderId).length === 0 ? (
+                <p className="text-xs text-white/30 italic py-3 text-center">No hay notas sin carpeta.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {notes.filter(n => !n.folderId).map(note => {
+                    const themeColor = themeColorMap.get(note.theme || 'slate') || '#64748b';
+                    return (
+                      <div 
+                        key={note.id} 
+                        onClick={() => openNote(note)}
+                        className="p-3.5 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/10 cursor-pointer transition-all flex flex-col justify-between gap-2 group relative overflow-hidden"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="text-xs font-bold text-white truncate flex-1">{note.title || 'Nota sin título'}</h4>
+                          <button onClick={(e) => handleToggleNoteFavorite(note, e)} className={`transition-transform ${note.isFavorite ? 'text-amber-400' : 'text-white/20 hover:text-white/60'}`}>
+                            <Star size={13} fill={note.isFavorite ? 'currentColor' : 'none'} />
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-white/50 line-clamp-2">{note.blocks.find(b => b.content.trim())?.content || 'Vacía...'}</p>
+                        <div className="flex items-center justify-between text-[9px] text-white/30 pt-1 border-t border-white/5">
+                          <span>{note.updatedAt ? new Date(note.updatedAt).toLocaleDateString() : ''}</span>
+                          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: themeColor }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  ) : (
+    <div className="columns-2 md:columns-3 gap-4">
+      {/* Create Button */}
+      <button onClick={createNote} data-tour="notes-fab" className="w-full h-[180px] rounded-[24px] border border-dashed border-white/10 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-colors group bg-black/25 mb-4 break-inside-avoid">
+        <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-sm"><Plus size={28} className="text-theme-avatar" strokeWidth={1.5} /></div>
+        <span className="text-xs font-bold text-white/40 uppercase tracking-widest group-hover:text-white/80 transition-colors">{t('notes.newNote', 'New Note')}</span>
+      </button>
+      
+      {/* Notes List */}
+      {noteCards.map(({ note, themeColor, project, folder, previewText, updatedLabel }) => (
+        <div key={note.id} onClick={() => openNote(note)} className="w-full min-h-[140px] max-h-[300px] rounded-[24px] p-5 flex flex-col justify-between hover:scale-[1.02] active:scale-98 transition-transform cursor-pointer group relative overflow-hidden shadow-md border border-white/5 bg-black/40 mb-4 break-inside-avoid">
+          <div className="absolute top-0 left-0 right-0 h-32 opacity-20 pointer-events-none transition-opacity duration-200" style={{ background: `linear-gradient(to bottom, ${themeColor}, transparent)` }} />
+          <div className="relative z-10 flex flex-col h-full">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {project && <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 border border-white/5"><div className="w-1.5 h-1.5 rounded-full bg-blue-400"/><span className="text-[9px] font-bold text-slate-300 uppercase tracking-wide">{project.title}</span></div>}
+                {folder && <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 border border-white/5 text-[9px] font-bold text-cyan-300 uppercase tracking-wide"><span>{folder.icon || '📁'}</span><span>{folder.name}</span></div>}
+              </div>
+              <button
+                onClick={(e) => handleToggleNoteFavorite(note, e)}
+                className={`p-1.5 rounded-full transition-all ${note.isFavorite ? 'text-amber-400 bg-amber-400/10' : 'text-white/20 hover:text-white/60'}`}
+              >
+                <Star size={14} fill={note.isFavorite ? 'currentColor' : 'none'} />
+              </button>
+            </div>
+            <h3 className={`text-[17px] font-bold leading-tight mb-3 ${!note.title ? 'text-white/30 italic' : 'text-white'}`}>{note.title || t('notes.untitled', 'Untitled')}</h3>
+            <div className="relative flex-1 overflow-hidden">
+              <p className="text-[13px] text-white/60 leading-relaxed font-medium break-words line-clamp-[8]">{previewText || <span className="italic opacity-50">{t('notes.empty', 'Empty...')}</span>}</p>
+            </div>
+          </div>
+          <div className="relative z-10 mt-4 flex justify-between items-center border-t border-white/5 pt-3"><span className="text-[10px] font-medium text-white/30">{updatedLabel}</span><div className="w-2 h-2 rounded-full shadow-[0_0_6px_currentColor]" style={{ backgroundColor: themeColor, color: themeColor }} /></div>
+        </div>
+      ))}
+    </div>
+  )}
   </>
   )}
  {/* Load More Trigger */}
@@ -1533,40 +1788,86 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="absolute top-0 left-0 right-0 h-64 opacity-15 pointer-events-none transition-colors duration-200" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 70%)` }} />
  </div>
  
- <div className="flex justify-between items-center p-3 sm:p-6 border-b border-white/5 relative z-20 gap-2">
- <button onClick={closeEditor} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all active:scale-95 border border-white/5 flex-shrink-0"><ArrowLeft size={20} /></button>
- <div className="flex items-center gap-1.5 sm:gap-4 flex-shrink-1 min-w-0 justify-end">
-  <div className="flex items-center gap-1.5">
-  {editorMode === 'NOTE' && (
-    <>
+ <div className="flex flex-wrap sm:flex-nowrap justify-between items-center p-3 sm:p-5 border-b border-white/5 relative z-20 gap-2">
+    {/* Left Section: Back Button + Favorite Star */}
+    <div className="flex items-center gap-2 flex-shrink-0">
       <button 
-        onClick={() => setDraftIsFavorite(!draftIsFavorite)} 
-        className={`p-2 rounded-xl border transition-all ${draftIsFavorite ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-white/5 text-white/40 border-white/5 hover:text-white'}`} 
-        title="Marcar como favorito"
+        onClick={closeEditor} 
+        className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all active:scale-95 border border-white/5"
       >
-        <Star size={16} fill={draftIsFavorite ? 'currentColor' : 'none'} />
+        <ArrowLeft size={18} />
       </button>
-      <select 
-        value={draftFolderId || ''} 
-        onChange={(e) => setDraftFolderId(e.target.value || undefined)} 
-        className="bg-[#161616] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none cursor-pointer hover:border-white/20 transition-colors max-w-[120px] sm:max-w-[150px] truncate"
-      >
-        <option value="">📁 Sin Carpeta</option>
-        {folders.map(f => (
-          <option key={f.id} value={f.id}>{f.icon || '📁'} {f.name}</option>
-        ))}
-      </select>
-    </>
-  )}
-  <BlueprintSelector onSelect={(newBlocks) => setDraftBlocks(prev => [...prev, ...newBlocks])} />
-  <button onClick={() => setShowSaveBlueprintModal(true)} className="hidden sm:block p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors" title={t('notes.editor.saveBlueprint', 'Save as Blueprint')}><Save size={18} /></button>
-  <DropdownThemePicker currentTheme={draftTheme} onSelect={setDraftTheme} projects={editorMode === 'NOTE' ? projects : null} activeProject={draftProjectId} onSelectProject={setDraftProjectId} />
+      {editorMode === 'NOTE' && (
+        <button 
+          onClick={() => setDraftIsFavorite(!draftIsFavorite)} 
+          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full border transition-all flex items-center justify-center ${
+            draftIsFavorite 
+              ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.25)]' 
+              : 'bg-white/5 text-white/40 border-white/5 hover:text-white'
+          }`} 
+          title="Marcar como favorito"
+        >
+          <Star size={16} fill={draftIsFavorite ? 'currentColor' : 'none'} />
+        </button>
+      )}
+    </div>
+
+    {/* Center / Right Section: Folder Selector + Tools + Save */}
+    <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end flex-1 min-w-0">
+      {editorMode === 'NOTE' && (
+        <div className="relative flex-shrink-1 min-w-0 max-w-[130px] sm:max-w-[170px]">
+          <select 
+            value={draftFolderId || ''} 
+            onChange={(e) => setDraftFolderId(e.target.value || undefined)} 
+            className="w-full bg-[#18181b] border border-white/10 rounded-full pl-3 pr-7 py-1.5 text-[11px] sm:text-xs font-medium text-white outline-none cursor-pointer hover:border-white/20 transition-colors truncate appearance-none shadow-sm"
+          >
+            <option value="">📁 Sin Carpeta</option>
+            {folders.map(f => (
+              <option key={f.id} value={f.id}>{f.icon || '📁'} {f.name}</option>
+            ))}
+          </select>
+          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-white/40 text-[9px]">▼</div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <BlueprintSelector onSelect={(newBlocks) => setDraftBlocks(prev => [...prev, ...newBlocks])} />
+        <button 
+          onClick={() => setShowSaveBlueprintModal(true)} 
+          className="hidden sm:flex p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors" 
+          title={t('notes.editor.saveBlueprint', 'Save as Blueprint')}
+        >
+          <Save size={16} />
+        </button>
+        <DropdownThemePicker 
+          currentTheme={draftTheme} 
+          onSelect={setDraftTheme} 
+          projects={editorMode === 'NOTE' ? projects : null} 
+          activeProject={draftProjectId} 
+          onSelectProject={setDraftProjectId} 
+        />
+      </div>
+
+      <div className="w-[1px] h-5 bg-white/10 mx-0.5 hidden sm:block" />
+
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {editorMode === 'NOTE' && (
+          <button 
+            onClick={handleDelete} 
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full hover:bg-red-500/10 text-white/40 hover:text-red-400 flex items-center justify-center transition-all"
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
+        <button 
+          onClick={handleSave} 
+          className="h-8 sm:h-9 px-4 sm:px-5 bg-white text-black rounded-full font-bold text-[10px] sm:text-xs uppercase tracking-wider hover:scale-105 active:scale-95 transition-transform shadow-md flex items-center justify-center whitespace-nowrap"
+        >
+          {t('notes.save')}
+        </button>
+      </div>
+    </div>
   </div>
- <div className="w-[1px] h-6 bg-white/10 mx-1" />
- {editorMode === 'NOTE' && <button onClick={handleDelete} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-red-500/10 text-white/40 hover:text-red-500 flex items-center justify-center transition-all flex-shrink-0"><Trash2 size={18} /></button>}
- <button onClick={handleSave} className="h-8 sm:h-10 px-4 sm:px-6 bg-white text-black rounded-full font-bold text-[10px] sm:text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-transform shadow-sm flex-shrink-0 flex items-center justify-center whitespace-nowrap">{t('notes.save')}</button>
- </div>
- </div>
  <div ref={editorScrollContainerRef} className="flex-1 overflow-y-auto no-scrollbar p-6 sm:p-8 relative rounded-b-[36px]">
  {editorMode === 'NOTE' ? (
  <div className="animate-in slide-in-from-bottom-4 duration-200">
