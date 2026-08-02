@@ -177,8 +177,9 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({
     };
 
     const fillRgb = hexToRgb(activeConfig.fillColor);
-    const fillAlpha = (activeConfig.fillOpacity ?? 35) / 100;
-    const dotAlpha = (activeConfig.dotOpacity ?? 100) / 100;
+    const fillAlpha = (activeConfig.fillOpacity ?? 55) / 100;
+    const dotAlpha = (activeConfig.dotOpacity ?? 80) / 100;
+    const dotRadius = activeConfig.dotSize ?? 4.5;
 
     if (attributes.length < 3) return null;
 
@@ -210,14 +211,14 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({
                     {/* Standard Radial Gradient */}
                     {!isMulticolor && (
                         <radialGradient id="polyFillGradient" cx="50%" cy="50%" r="55%" fx="50%" fy="50%">
-                            <stop offset="0%" stopColor={`rgba(${fillRgb.r}, ${fillRgb.g}, ${fillRgb.b}, ${fillAlpha * 0.1})`} />
-                            <stop offset="50%" stopColor={`rgba(${fillRgb.r}, ${fillRgb.g}, ${fillRgb.b}, ${fillAlpha * 0.4})`} />
-                            <stop offset="85%" stopColor={`rgba(${fillRgb.r}, ${fillRgb.g}, ${fillRgb.b}, ${fillAlpha * 0.8})`} />
+                            <stop offset="0%" stopColor={`rgba(${fillRgb.r}, ${fillRgb.g}, ${fillRgb.b}, ${fillAlpha * 0.15})`} />
+                            <stop offset="50%" stopColor={`rgba(${fillRgb.r}, ${fillRgb.g}, ${fillRgb.b}, ${fillAlpha * 0.5})`} />
+                            <stop offset="85%" stopColor={`rgba(${fillRgb.r}, ${fillRgb.g}, ${fillRgb.b}, ${fillAlpha * 0.85})`} />
                             <stop offset="100%" stopColor={`rgba(${fillRgb.r}, ${fillRgb.g}, ${fillRgb.b}, ${fillAlpha})`} />
                         </radialGradient>
                     )}
 
-                    {/* Sector Gradients for Multicolor projection mode */}
+                    {/* Sector Gradients for Multicolor Rainbow Projection */}
                     {isMulticolor && chartData.map((p, i) => {
                         const nextIdx = (i + 1) % chartData.length;
                         const nextP = chartData[nextIdx];
@@ -229,18 +230,19 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({
                                 x2={nextP.valuePoint.x} y2={nextP.valuePoint.y}
                                 gradientUnits="userSpaceOnUse"
                             >
-                                <stop offset="0%" stopColor={p.color} stopOpacity={fillAlpha * 0.9} />
-                                <stop offset="100%" stopColor={nextP.color} stopOpacity={fillAlpha * 0.9} />
+                                <stop offset="0%" stopColor={p.color} stopOpacity={fillAlpha} />
+                                <stop offset="100%" stopColor={nextP.color} stopOpacity={fillAlpha} />
                             </linearGradient>
                         );
                     })}
 
-                    {/* Per-segment gradients for the gradient border style */}
-                    {activeConfig.borderStyle === 'gradient' && chartData.map((p, i) => {
+                    {/* Per-segment gradients for the border lines */}
+                    {chartData.map((p, i) => {
                         const nextIdx = (i + 1) % chartData.length;
                         const nextP = chartData[nextIdx];
-                        const segColor1 = (activeConfig.dotColorMode === 'fill' && !isMulticolor) ? activeConfig.fillColor : p.color;
-                        const segColor2 = (activeConfig.dotColorMode === 'fill' && !isMulticolor) ? activeConfig.fillColor : nextP.color;
+                        const useLineFill = activeConfig.lineColorMode === 'fill' && !isMulticolor;
+                        const segColor1 = useLineFill ? activeConfig.fillColor : p.color;
+                        const segColor2 = useLineFill ? activeConfig.fillColor : nextP.color;
                         return (
                             <linearGradient 
                                 key={`seg-grad-${i}`} 
@@ -286,7 +288,7 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({
                     />
                 ))}
 
-                {/* POLYGON FILL: Multicolor Sector Triangles OR Standard Radial Gradient */}
+                {/* POLYGON FILL: Rainbow Triangles Blending into Center OR Standard Radial Gradient */}
                 {isMulticolor ? (
                     <g>
                         {chartData.map((p, i) => {
@@ -318,46 +320,33 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({
                     />
                 )}
 
-                {/* BORDER: Gradient segments OR subtle dashed line */}
-                {activeConfig.borderStyle === 'gradient' ? (
-                    chartData.map((p, i) => {
-                        const nextIdx = (i + 1) % chartData.length;
-                        const nextP = chartData[nextIdx];
-                        return (
-                            <motion.line
-                                key={`border-seg-${i}`}
-                                x1={p.valuePoint.x}
-                                y1={p.valuePoint.y}
-                                x2={nextP.valuePoint.x}
-                                y2={nextP.valuePoint.y}
-                                stroke={`url(#segGrad-${i})`}
-                                strokeWidth="2.5"
-                                strokeLinecap="round"
-                                initial={{ pathLength: 0, opacity: 0 }}
-                                animate={{ pathLength: 1, opacity: 1 }}
-                                transition={{ 
-                                    duration: 0.3, 
-                                    ease: "easeInOut", 
-                                    delay: 0.15 + (i * 0.03) 
-                                }}
-                                style={{ filter: `drop-shadow(0 0 6px ${p.color}50)` }}
-                            />
-                        );
-                    })
-                ) : (
-                    <motion.path
-                        d={polygonPath}
-                        fill="none"
-                        stroke="rgba(255,255,255,0.15)"
-                        strokeWidth="1.2"
-                        strokeDasharray="3 3"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.3, delay: 0.2 }}
-                    />
-                )}
+                {/* BORDER: Smooth gradient line segments */}
+                {chartData.map((p, i) => {
+                    const nextIdx = (i + 1) % chartData.length;
+                    const nextP = chartData[nextIdx];
+                    return (
+                        <motion.line
+                            key={`border-seg-${i}`}
+                            x1={p.valuePoint.x}
+                            y1={p.valuePoint.y}
+                            x2={nextP.valuePoint.x}
+                            y2={nextP.valuePoint.y}
+                            stroke={`url(#segGrad-${i})`}
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            initial={{ pathLength: 0, opacity: 0 }}
+                            animate={{ pathLength: 1, opacity: 1 }}
+                            transition={{ 
+                                duration: 0.3, 
+                                ease: "easeInOut", 
+                                delay: 0.15 + (i * 0.03) 
+                            }}
+                            style={{ filter: `drop-shadow(0 0 6px ${p.color}60)` }}
+                        />
+                    );
+                })}
 
-                {/* DATA POINTS: SINGLE CLEAN CIRCLE PER VERTEX */}
+                {/* DATA VERTEX DOTS: NO WHITE BORDER, CUSTOM SIZE */}
                 {chartData.map((p, i) => {
                     const dotColor = (activeConfig.dotColorMode === 'fill' && !isMulticolor) ? activeConfig.fillColor : p.color;
                     return (
@@ -365,16 +354,14 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({
                             key={`pt-${i}`}
                             cx={p.valuePoint.x}
                             cy={p.valuePoint.y}
-                            r={activeConfig.borderStyle === 'dots-only' ? 4.5 : 3.5}
+                            r={dotRadius}
                             fill={dotColor}
                             fillOpacity={dotAlpha}
-                            stroke="rgba(255,255,255,0.4)"
-                            strokeWidth="0.8"
-                            strokeOpacity={dotAlpha}
+                            stroke="none"
                             initial={{ opacity: 0, scale: 0 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: 0.4 + (i * 0.05), duration: 0.2, type: "spring", stiffness: 300 }}
-                            style={{ filter: `drop-shadow(0 0 5px ${dotColor}aa)` }}
+                            style={{ filter: `drop-shadow(0 0 6px ${dotColor}dd)` }}
                         />
                     );
                 })}

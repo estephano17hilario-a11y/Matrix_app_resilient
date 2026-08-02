@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Palette, Eye, Check, Sparkles, Briefcase, Zap, Layers, Rocket, Coins, Hexagon, ChevronDown, Brain, Dumbbell, Wallet, Target, Users } from 'lucide-react';
+import { Palette, Eye, Check, Sparkles, Briefcase, Zap, Layers, Rocket, Coins, Hexagon, ChevronDown, Brain, Dumbbell, Wallet, Target, Users, Crown, Lock } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { useTheme } from '@/context/ThemeContext';
 import { THEMES, ThemeId, THEME_PRICES, DEFAULT_UNLOCKED_THEMES, ThemeConfig, ThemeCategory } from '../../../config/themes';
@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import confetti from 'canvas-confetti';
 import { TraitRadarChart } from '../../dashboard/components/TraitRadarChart';
 import { Attribute } from '../../../types';
+import { supabase } from '@/services/supabase';
 
 type DisplayCategory = 'all' | 'orbs' | 'minimal' | 'gradients' | 'holo' | 'cosmic';
 
@@ -25,20 +26,29 @@ const CATEGORIES: { id: DisplayCategory; label: string; icon: any }[] = [
   { id: 'gradients', label: 'Gradients', icon: Palette },
 ];
 
-const FILL_OPTIONS = [
-  { value: 'multicolor', label: '🌈 Multicolor (Proyección por Trait)' },
-  { value: '#ffffff', label: 'Cristal (Blanco)' },
-  { value: '#6366f1', label: 'Índigo' },
-  { value: '#06b6d4', label: 'Cyan' },
-  { value: '#10b981', label: 'Esmeralda' },
-  { value: '#8b5cf6', label: 'Violeta' },
-  { value: '#f43f5e', label: 'Rosa' },
-  { value: '#f59e0b', label: 'Ámbar' },
-  { value: '#0ea5e9', label: 'Cielo' },
-  { value: '#ef4444', label: 'Carmesí' },
-  { value: '#ec4899', label: 'Neón Pink' },
-  { value: '#84cc16', label: 'Lime' },
-  { value: '#f97316', label: 'Naranja Fuego' },
+interface RadarColorOption {
+  value: string;
+  label: string;
+  colorHex?: string;
+  isRainbow?: boolean;
+  priceGold?: number;
+  isDeluxeOnly?: boolean;
+}
+
+const COLOR_OPTIONS: RadarColorOption[] = [
+  { value: '#ffffff', label: 'Cristal Blanco', colorHex: '#ffffff', priceGold: 0 },
+  { value: 'multicolor', label: '🌈 Arcoíris', isRainbow: true, isDeluxeOnly: true },
+  { value: '#6366f1', label: 'Índigo', colorHex: '#6366f1', priceGold: 1250 },
+  { value: '#06b6d4', label: 'Cyan', colorHex: '#06b6d4', priceGold: 1250 },
+  { value: '#10b981', label: 'Esmeralda', colorHex: '#10b981', priceGold: 1250 },
+  { value: '#8b5cf6', label: 'Violeta', colorHex: '#8b5cf6', priceGold: 1250 },
+  { value: '#f43f5e', label: 'Rosa', colorHex: '#f43f5e', priceGold: 1250 },
+  { value: '#f59e0b', label: 'Ámbar', colorHex: '#f59e0b', priceGold: 1250 },
+  { value: '#0ea5e9', label: 'Cielo', colorHex: '#0ea5e9', priceGold: 1250 },
+  { value: '#ef4444', label: 'Carmesí', colorHex: '#ef4444', priceGold: 1250 },
+  { value: '#ec4899', label: 'Neón Pink', colorHex: '#ec4899', priceGold: 1250 },
+  { value: '#84cc16', label: 'Lime', colorHex: '#84cc16', priceGold: 1250 },
+  { value: '#f97316', label: 'Naranja Fuego', colorHex: '#f97316', priceGold: 1250 },
 ];
 
 const DEMO_ATTRIBUTES: Attribute[] = [
@@ -52,16 +62,20 @@ const DEMO_ATTRIBUTES: Attribute[] = [
 
 export const VisualsSection = () => {
   const { t } = useTranslation();
-  const { profile } = useAuth();
+  const { profile, updateProfileLocally } = useAuth();
   const { purchase } = useEconomy();
-  const { currentTheme, setTheme, vividMode, toggleVividMode, radarConfig, updateRadarConfig } = useSettings();
+  const { currentTheme, setTheme, vividMode, toggleVividMode, radarConfig, updateRadarConfig, isPro, showProModal } = useSettings();
   const { previewTheme, setPreviewTheme } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState<DisplayCategory>('all');
   const [isRadarConfigOpen, setIsRadarConfigOpen] = useState(false);
+  const [isColorDropdownOpen, setIsColorDropdownOpen] = useState(false);
   
-  // Inline theme purchase states
+  // Theme purchase modal state
   const [themeToPurchase, setThemeToPurchase] = useState<ThemeConfig | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
+
+  // Radar color purchase modal state
+  const [colorToPurchase, setColorToPurchase] = useState<RadarColorOption | null>(null);
 
   const handlePreview = (e: React.MouseEvent, themeId: ThemeId) => {
     e.stopPropagation();
@@ -84,7 +98,7 @@ export const VisualsSection = () => {
   }, [previewTheme]);
 
   useEffect(() => {
-    if (themeToPurchase) {
+    if (themeToPurchase || colorToPurchase) {
       document.body.classList.add('overflow-hidden');
     } else {
       document.body.classList.remove('overflow-hidden');
@@ -92,9 +106,77 @@ export const VisualsSection = () => {
     return () => {
       document.body.classList.remove('overflow-hidden');
     };
-  }, [themeToPurchase]);
+  }, [themeToPurchase, colorToPurchase]);
 
   const unlockedItems = profile?.unlocked_store_items || profile?.unlockedStoreItems || [];
+  const unlockedRadarColors: string[] = profile?.preferences?.unlockedRadarColors || ['#ffffff'];
+
+  const isColorUnlocked = (opt: RadarColorOption): boolean => {
+    if (opt.priceGold === 0) return true;
+    if (opt.isDeluxeOnly) return isPro;
+    if (isPro) return true;
+    return unlockedRadarColors.includes(opt.value);
+  };
+
+  const handleSelectColorOption = (opt: RadarColorOption) => {
+    setIsColorDropdownOpen(false);
+
+    if (opt.isDeluxeOnly && !isPro) {
+      showProModal();
+      return;
+    }
+
+    if (isColorUnlocked(opt)) {
+      updateRadarConfig({ fillColor: opt.value });
+      return;
+    }
+
+    // Locked color costs 1250 Gold
+    setColorToPurchase(opt);
+  };
+
+  const handleConfirmColorPurchase = async () => {
+    if (!colorToPurchase || !profile?.stats) return;
+    const price = colorToPurchase.priceGold || 1250;
+    const currentGold = profile.stats.gold || 0;
+
+    if (currentGold < price) {
+      toast.error(t('store.insufficientFunds', 'Fondos insuficientes (Oro)'));
+      return;
+    }
+
+    setIsPurchasing(true);
+    try {
+      const storeItem = {
+        id: `radar_color_${colorToPurchase.value.replace('#', '')}`,
+        name: `Color Radar (${colorToPurchase.label})`,
+        description: `Desbloquea el color ${colorToPurchase.label} para el gráfico radar`,
+        price: price,
+        category: 'radar_color' as const
+      };
+
+      const success = await purchase(storeItem);
+      if (success) {
+        const newUnlockedColors = [...unlockedRadarColors, colorToPurchase.value];
+        const newPrefs = { ...(profile.preferences || {}), unlockedRadarColors: newUnlockedColors };
+        
+        updateProfileLocally({ preferences: newPrefs });
+        if (profile.id) {
+          await supabase.from('users').update({ preferences: newPrefs }).eq('id', profile.id);
+        }
+
+        updateRadarConfig({ fillColor: colorToPurchase.value });
+        setColorToPurchase(null);
+        toast.success(`¡Color ${colorToPurchase.label} desbloqueado!`);
+        confetti({ particleCount: 40, spread: 45, origin: { y: 0.8 } });
+      }
+    } catch (err) {
+      console.error("Failed to purchase radar color:", err);
+      toast.error(t('store.purchaseError', 'Error al realizar la compra'));
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
 
   const getThemeDisplayPrice = (themeId: ThemeId, category: ThemeCategory): number => {
     if (DEFAULT_UNLOCKED_THEMES.includes(themeId)) return 0;
@@ -114,9 +196,7 @@ export const VisualsSection = () => {
   const sortedThemes = [...filteredThemes].sort((a, b) => {
     const priceA = getThemeDisplayPrice(a.id, a.category);
     const priceB = getThemeDisplayPrice(b.id, b.category);
-    if (priceA !== priceB) {
-      return priceA - priceB;
-    }
+    if (priceA !== priceB) return priceA - priceB;
     return a.name.localeCompare(b.name);
   });
 
@@ -154,11 +234,7 @@ export const VisualsSection = () => {
         setTheme(themeToPurchase.id);
         setThemeToPurchase(null);
         toast.success(t('store.purchaseSuccess', '¡Tema adquirido con éxito!'));
-        confetti({
-          particleCount: 50,
-          spread: 45,
-          origin: { y: 0.8 }
-        });
+        confetti({ particleCount: 50, spread: 45, origin: { y: 0.8 } });
       }
     } catch (err) {
       console.error("Failed to purchase theme:", err);
@@ -168,8 +244,10 @@ export const VisualsSection = () => {
     }
   };
 
+  const currentSelectedColorOpt = COLOR_OPTIONS.find(o => o.value === radarConfig.fillColor) || COLOR_OPTIONS[0];
+
   return (
-    <div className="space-y-8 pb-4 relative">
+    <div className="space-y-8 pb-4 relative select-none">
       <div className="space-y-1">
         <h2 className="text-lg font-semibold text-white">{t('settings.tabs.design', 'Visual')}</h2>
         <p className="text-white/40 text-sm">{t('settings.visualDesc', 'Customize themes and display settings.')}</p>
@@ -223,7 +301,7 @@ export const VisualsSection = () => {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-white tracking-tight">Gráfico Radar / Araña</h3>
-                <p className="text-[11px] text-white/40 font-medium">Personaliza figura interior, bordes y puntos</p>
+                <p className="text-[11px] text-white/40 font-medium">Personaliza figura interior, puntos y opacidad</p>
               </div>
             </div>
             <button
@@ -242,7 +320,7 @@ export const VisualsSection = () => {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2 }}
-                className="overflow-hidden pt-3 space-y-3 border-t border-white/10 mt-3"
+                className="overflow-visible pt-3 space-y-3 border-t border-white/10 mt-3"
               >
                 {/* Live Preview */}
                 <div className="bg-black/50 rounded-xl p-2 border border-white/10 flex flex-col items-center justify-center relative shadow-inner">
@@ -250,26 +328,110 @@ export const VisualsSection = () => {
                   <TraitRadarChart attributes={DEMO_ATTRIBUTES} radarConfig={radarConfig} />
                 </div>
 
-                {/* Color Selection Dropdown */}
-                <div className="flex items-center justify-between gap-2">
-                  <label className="text-xs font-semibold text-white/80 shrink-0">Color Interior</label>
-                  <select
-                    value={radarConfig.fillColor}
-                    onChange={(e) => updateRadarConfig({ fillColor: e.target.value })}
-                    className="bg-zinc-900 border border-white/15 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white focus:outline-none focus:border-indigo-500 cursor-pointer max-w-[200px] truncate"
+                {/* 1. COLOR INTERIOR (FREE, 1250 GOLD OR DELUXE) */}
+                <div className="relative space-y-1">
+                  <div className="flex items-center justify-between text-xs font-semibold text-white/80">
+                    <span>Color Interior</span>
+                    <span className="text-[10px] text-white/40 font-normal">Gratis / 1250 Oro / Deluxe</span>
+                  </div>
+                  
+                  {/* Custom Sleek Dropdown Trigger */}
+                  <button
+                    onClick={() => setIsColorDropdownOpen(!isColorDropdownOpen)}
+                    className="w-full bg-zinc-900/90 border border-white/15 rounded-xl p-2.5 flex items-center justify-between hover:border-white/30 transition-all text-xs font-bold text-white shadow-md active:scale-[0.99]"
                   >
-                    {FILL_OPTIONS.map(opt => (
-                      <option key={opt.value} value={opt.value} className="bg-zinc-900 text-white">
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                    <div className="flex items-center gap-2.5 truncate">
+                      {currentSelectedColorOpt.isRainbow ? (
+                        <div className="w-4 h-4 rounded-full bg-gradient-to-r from-red-500 via-green-500 to-blue-500 shrink-0 shadow-sm" />
+                      ) : (
+                        <div className="w-4 h-4 rounded-full border border-white/20 shrink-0 shadow-sm" style={{ backgroundColor: currentSelectedColorOpt.colorHex }} />
+                      )}
+                      <span className="truncate">{currentSelectedColorOpt.label}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {currentSelectedColorOpt.isDeluxeOnly && (
+                        <span className="text-[9px] font-black bg-gradient-to-r from-amber-500 to-yellow-400 text-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-sm">
+                          <Crown size={9} /> DELUXE
+                        </span>
+                      )}
+                      <ChevronDown size={14} className={cn("transition-transform duration-200 text-white/50", isColorDropdownOpen && "rotate-180")} />
+                    </div>
+                  </button>
+
+                  {/* Dropdown Menu Options */}
+                  <AnimatePresence>
+                    {isColorDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -5, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -5, scale: 0.98 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute left-0 right-0 top-full mt-1.5 z-[500] bg-zinc-950/95 border border-white/20 rounded-2xl p-1.5 shadow-2xl backdrop-blur-xl max-h-56 overflow-y-auto custom-scrollbar space-y-1"
+                      >
+                        {COLOR_OPTIONS.map(opt => {
+                          const unlocked = isColorUnlocked(opt);
+                          const isSelected = radarConfig.fillColor === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              onClick={() => handleSelectColorOption(opt)}
+                              className={cn(
+                                "w-full p-2 rounded-xl flex items-center justify-between text-xs font-bold transition-all text-left",
+                                isSelected ? "bg-white/15 text-white" : "text-white/80 hover:bg-white/10 hover:text-white"
+                              )}
+                            >
+                              <div className="flex items-center gap-2.5 truncate">
+                                {opt.isRainbow ? (
+                                  <div className="w-4 h-4 rounded-full bg-gradient-to-r from-red-500 via-green-500 to-blue-500 shrink-0" />
+                                ) : (
+                                  <div className="w-4 h-4 rounded-full border border-white/20 shrink-0" style={{ backgroundColor: opt.colorHex }} />
+                                )}
+                                <span className="truncate">{opt.label}</span>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {opt.isDeluxeOnly ? (
+                                  <span className="text-[9px] font-black bg-amber-500 text-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                                    <Crown size={9} /> DELUXE
+                                  </span>
+                                ) : opt.priceGold === 0 ? (
+                                  <span className="text-[9px] font-bold text-emerald-400">GRATIS</span>
+                                ) : unlocked ? (
+                                  <span className="text-[9px] font-bold text-emerald-400 flex items-center gap-0.5">
+                                    <Check size={10} /> ADQUIRIDO
+                                  </span>
+                                ) : (
+                                  <div className="flex items-center gap-1 bg-yellow-500/10 border border-yellow-500/20 px-2 py-0.5 rounded-full">
+                                    <Coins size={10} className="text-yellow-400" />
+                                    <span className="text-[10px] font-black text-yellow-300">1250</span>
+                                  </div>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
-                {/* Fill Opacity Slider */}
-                <div className="space-y-1">
+                {/* ─── ALL OTHER CONTROLS (REQUIRE DELUXE / PRO 👑 🔒) ─── */}
+
+                {/* 2. FILL OPACITY (DELUXE) */}
+                <div 
+                  onClick={() => { if (!isPro) showProModal(); }}
+                  className={cn("space-y-1 p-2 rounded-xl border border-white/5 transition-all", !isPro && "cursor-pointer hover:border-amber-500/30 bg-amber-500/[0.02]")}
+                >
                   <div className="flex justify-between items-center text-[11px]">
-                    <span className="font-semibold text-white/70">Opacidad Relleno</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-white/80">Opacidad Relleno Interior</span>
+                      {!isPro && (
+                        <span className="flex items-center gap-0.5 text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-full">
+                          <Crown size={8} /> DELUXE <Lock size={8} />
+                        </span>
+                      )}
+                    </div>
                     <span className="font-mono text-indigo-400 font-bold">{radarConfig.fillOpacity}%</span>
                   </div>
                   <input 
@@ -277,42 +439,106 @@ export const VisualsSection = () => {
                     min="0" 
                     max="100" 
                     value={radarConfig.fillOpacity} 
-                    onChange={(e) => updateRadarConfig({ fillOpacity: Number(e.target.value) })}
-                    className="w-full accent-indigo-500 bg-white/10 rounded-lg h-1.5 cursor-pointer"
+                    onChange={(e) => {
+                      if (!isPro) { showProModal(); return; }
+                      updateRadarConfig({ fillOpacity: Number(e.target.value) });
+                    }}
+                    disabled={!isPro}
+                    className="w-full accent-indigo-500 bg-white/10 rounded-lg h-1.5 cursor-pointer disabled:opacity-50"
                   />
                 </div>
 
-                {/* Border Style Toggle */}
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold text-white/80">Estilo Borde</span>
+                {/* 3. DOT SIZE (DELUXE) */}
+                <div 
+                  onClick={() => { if (!isPro) showProModal(); }}
+                  className={cn("space-y-1 p-2 rounded-xl border border-white/5 transition-all", !isPro && "cursor-pointer hover:border-amber-500/30 bg-amber-500/[0.02]")}
+                >
+                  <div className="flex justify-between items-center text-[11px]">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-white/80">Tamaño de Puntos</span>
+                      {!isPro && (
+                        <span className="flex items-center gap-0.5 text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-full">
+                          <Crown size={8} /> DELUXE <Lock size={8} />
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-mono text-indigo-400 font-bold">{radarConfig.dotSize ?? 4.5}px</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="2" 
+                    max="8" 
+                    step="0.5"
+                    value={radarConfig.dotSize ?? 4.5} 
+                    onChange={(e) => {
+                      if (!isPro) { showProModal(); return; }
+                      updateRadarConfig({ dotSize: Number(e.target.value) });
+                    }}
+                    disabled={!isPro}
+                    className="w-full accent-indigo-500 bg-white/10 rounded-lg h-1.5 cursor-pointer disabled:opacity-50"
+                  />
+                </div>
+
+                {/* 4. LINE COLOR MODE (DELUXE) */}
+                <div 
+                  onClick={() => { if (!isPro) showProModal(); }}
+                  className={cn("flex items-center justify-between gap-2 p-2 rounded-xl border border-white/5 transition-all", !isPro && "cursor-pointer hover:border-amber-500/30 bg-amber-500/[0.02]")}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-white/80">Color Líneas (Borde)</span>
+                    {!isPro && (
+                      <span className="flex items-center gap-0.5 text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-full">
+                        <Crown size={8} /> DELUXE <Lock size={8} />
+                      </span>
+                    )}
+                  </div>
                   <div className="flex gap-1 bg-black/40 p-0.5 rounded-lg border border-white/10">
                     <button
-                      onClick={() => updateRadarConfig({ borderStyle: 'gradient' })}
+                      onClick={() => {
+                        if (!isPro) { showProModal(); return; }
+                        updateRadarConfig({ lineColorMode: 'gradient' });
+                      }}
                       className={cn(
                         "px-2.5 py-1 rounded-md text-[10px] font-bold transition-all",
-                        radarConfig.borderStyle === 'gradient' ? "bg-white text-black shadow-sm" : "text-white/50 hover:text-white"
+                        (radarConfig.lineColorMode ?? 'gradient') === 'gradient' ? "bg-white text-black shadow-sm" : "text-white/50 hover:text-white"
                       )}
                     >
                       Degradado
                     </button>
                     <button
-                      onClick={() => updateRadarConfig({ borderStyle: 'dots-only' })}
+                      onClick={() => {
+                        if (!isPro) { showProModal(); return; }
+                        updateRadarConfig({ lineColorMode: 'fill' });
+                      }}
                       className={cn(
                         "px-2.5 py-1 rounded-md text-[10px] font-bold transition-all",
-                        radarConfig.borderStyle === 'dots-only' ? "bg-white text-black shadow-sm" : "text-white/50 hover:text-white"
+                        radarConfig.lineColorMode === 'fill' ? "bg-white text-black shadow-sm" : "text-white/50 hover:text-white"
                       )}
                     >
-                      Punteado
+                      Relleno
                     </button>
                   </div>
                 </div>
 
-                {/* Dot Color Mode */}
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold text-white/80">Color Puntos</span>
+                {/* 5. DOT COLOR MODE (DELUXE) */}
+                <div 
+                  onClick={() => { if (!isPro) showProModal(); }}
+                  className={cn("flex items-center justify-between gap-2 p-2 rounded-xl border border-white/5 transition-all", !isPro && "cursor-pointer hover:border-amber-500/30 bg-amber-500/[0.02]")}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-white/80">Color Puntos</span>
+                    {!isPro && (
+                      <span className="flex items-center gap-0.5 text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-full">
+                        <Crown size={8} /> DELUXE <Lock size={8} />
+                      </span>
+                    )}
+                  </div>
                   <div className="flex gap-1 bg-black/40 p-0.5 rounded-lg border border-white/10">
                     <button
-                      onClick={() => updateRadarConfig({ dotColorMode: 'trait' })}
+                      onClick={() => {
+                        if (!isPro) { showProModal(); return; }
+                        updateRadarConfig({ dotColorMode: 'trait' });
+                      }}
                       className={cn(
                         "px-2.5 py-1 rounded-md text-[10px] font-bold transition-all",
                         radarConfig.dotColorMode === 'trait' ? "bg-white text-black shadow-sm" : "text-white/50 hover:text-white"
@@ -321,7 +547,10 @@ export const VisualsSection = () => {
                       Traits
                     </button>
                     <button
-                      onClick={() => updateRadarConfig({ dotColorMode: 'fill' })}
+                      onClick={() => {
+                        if (!isPro) { showProModal(); return; }
+                        updateRadarConfig({ dotColorMode: 'fill' });
+                      }}
                       className={cn(
                         "px-2.5 py-1 rounded-md text-[10px] font-bold transition-all",
                         radarConfig.dotColorMode === 'fill' ? "bg-white text-black shadow-sm" : "text-white/50 hover:text-white"
@@ -332,10 +561,20 @@ export const VisualsSection = () => {
                   </div>
                 </div>
 
-                {/* Dot Opacity Slider */}
-                <div className="space-y-1">
+                {/* 5. DOT OPACITY (DELUXE) */}
+                <div 
+                  onClick={() => { if (!isPro) showProModal(); }}
+                  className={cn("space-y-1 p-2 rounded-xl border border-white/5 transition-all", !isPro && "cursor-pointer hover:border-amber-500/30 bg-amber-500/[0.02]")}
+                >
                   <div className="flex justify-between items-center text-[11px]">
-                    <span className="font-semibold text-white/70">Opacidad Puntos</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-white/80">Opacidad Puntos</span>
+                      {!isPro && (
+                        <span className="flex items-center gap-0.5 text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-full">
+                          <Crown size={8} /> DELUXE <Lock size={8} />
+                        </span>
+                      )}
+                    </div>
                     <span className="font-mono text-indigo-400 font-bold">{radarConfig.dotOpacity}%</span>
                   </div>
                   <input 
@@ -343,8 +582,12 @@ export const VisualsSection = () => {
                     min="0" 
                     max="100" 
                     value={radarConfig.dotOpacity} 
-                    onChange={(e) => updateRadarConfig({ dotOpacity: Number(e.target.value) })}
-                    className="w-full accent-indigo-500 bg-white/10 rounded-lg h-1.5 cursor-pointer"
+                    onChange={(e) => {
+                      if (!isPro) { showProModal(); return; }
+                      updateRadarConfig({ dotOpacity: Number(e.target.value) });
+                    }}
+                    disabled={!isPro}
+                    className="w-full accent-indigo-500 bg-white/10 rounded-lg h-1.5 cursor-pointer disabled:opacity-50"
                   />
                 </div>
               </motion.div>
@@ -488,7 +731,68 @@ export const VisualsSection = () => {
         </div>
       </div>
 
-      {/* Theme Purchase Confirmation Modal in Portal */}
+      {/* Radar Color Purchase Confirmation Modal */}
+      {typeof window !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {colorToPurchase && (
+            <motion.div 
+              key="color-purchase-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[120000] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md pointer-events-auto overflow-hidden"
+            >
+              <motion.div 
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="w-full max-w-sm bg-gradient-to-b from-[#18181b] to-[#09090b] border border-white/10 rounded-[32px] p-6 shadow-2xl text-center"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center mx-auto mb-4 text-indigo-400 shadow-lg">
+                  <Hexagon size={28} />
+                </div>
+
+                <h3 className="text-xl font-black text-white tracking-tight mb-1">
+                  Desbloquear Color
+                </h3>
+                <p className="text-xs text-white/50 mb-6">
+                  {colorToPurchase.label} para el relleno del gráfico radar
+                </p>
+
+                <div className="flex items-center justify-center gap-2 bg-white/5 border border-white/5 rounded-2xl py-3 px-5 w-fit mx-auto mb-6 shadow-sm">
+                  <Coins size={20} className="text-yellow-400 animate-bounce" />
+                  <span className="text-xl font-black text-yellow-300 tracking-tight">1250</span>
+                  <span className="text-xs font-bold text-white/40 uppercase">Oro</span>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={handleConfirmColorPurchase}
+                    disabled={isPurchasing}
+                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-black text-xs uppercase tracking-widest hover:from-yellow-600 hover:to-amber-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg"
+                  >
+                    {isPurchasing ? (
+                      <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      'Comprar Color'
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setColorToPurchase(null)}
+                    disabled={isPurchasing}
+                    className="w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-white/80 font-bold text-xs uppercase tracking-widest transition-all border border-white/5"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* Theme Purchase Confirmation Modal */}
       {typeof window !== 'undefined' && createPortal(
         <AnimatePresence>
           {themeToPurchase && (
@@ -508,13 +812,11 @@ export const VisualsSection = () => {
                 transition={{ type: "spring", stiffness: 350, damping: 25 }}
                 className="w-full max-w-sm bg-gradient-to-b from-[#18181b] to-[#09090b] border border-white/10 rounded-[32px] p-6 shadow-2xl relative overflow-hidden text-center"
               >
-                {/* Glow behind */}
                 <div 
                   className="absolute -top-12 -left-12 w-40 h-40 rounded-full opacity-20 pointer-events-none filter blur-2xl"
                   style={{ background: themeToPurchase.gradient }}
                 />
                 
-                {/* Theme Preview Box */}
                 <div className="w-full aspect-[16/10] rounded-2xl overflow-hidden border border-white/10 shadow-inner mb-5 relative flex items-center justify-center group">
                   <div className="absolute inset-0 transition-transform duration-500 group-hover:scale-110" style={{ background: themeToPurchase.gradient }} />
                   <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
@@ -523,7 +825,6 @@ export const VisualsSection = () => {
                   </span>
                 </div>
 
-                {/* Details */}
                 <h3 className="text-xl font-black text-white tracking-tight mb-2">
                   {t('settings.unlockTheme', 'Unlock Theme')}
                 </h3>
@@ -531,7 +832,6 @@ export const VisualsSection = () => {
                   {themeToPurchase.description}
                 </p>
 
-                {/* Cost info */}
                 <div className="flex items-center justify-center gap-3 bg-white/5 border border-white/5 rounded-2xl py-3.5 px-5 w-fit mx-auto mb-8 shadow-sm">
                   <Coins size={22} className="text-yellow-400 animate-bounce" />
                   <span className="text-2xl font-black text-yellow-300 tracking-tight">
@@ -542,7 +842,6 @@ export const VisualsSection = () => {
                   </span>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex flex-col gap-2">
                   <button
                     onClick={handleConfirmPurchase}

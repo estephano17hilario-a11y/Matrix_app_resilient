@@ -42,16 +42,18 @@ export interface RadarConfig {
   fillColor: string;
   fillOpacity: number; // 0..100
   dotOpacity: number; // 0..100
-  borderStyle: 'gradient' | 'dots-only';
+  dotSize: number; // 2..8
   dotColorMode: 'trait' | 'fill';
+  lineColorMode?: 'gradient' | 'fill';
 }
 
 export const DEFAULT_RADAR_CONFIG: RadarConfig = {
   fillColor: '#ffffff',
-  fillOpacity: 35,
-  dotOpacity: 100,
-  borderStyle: 'gradient',
-  dotColorMode: 'trait'
+  fillOpacity: 55,
+  dotOpacity: 80,
+  dotSize: 4.5,
+  dotColorMode: 'trait',
+  lineColorMode: 'gradient'
 };
 
 export interface UserProfile {
@@ -78,6 +80,7 @@ export interface UserProfile {
     weekStartDay?: 0 | 1;
     defaultChartMode?: 'RADAR' | 'BAR';
     radarConfig?: RadarConfig;
+    unlockedRadarColors?: string[];
     showProfile?: boolean;
     defaultChartViews?: any;
     defaultProjectView?: any;

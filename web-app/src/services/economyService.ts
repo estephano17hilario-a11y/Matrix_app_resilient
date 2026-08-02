@@ -12,7 +12,7 @@ export interface StoreItem {
   name: string;
   description: string;
   price: number;
-  category: 'power_up' | 'theme';
+  category: 'power_up' | 'theme' | 'radar_color';
   subCategory?: string; // For grouping items
   icon?: React.ReactNode; // We might handle icons in the UI component mapping
   iconName?: string; // For serializable icon reference
