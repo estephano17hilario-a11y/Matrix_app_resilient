@@ -230,13 +230,25 @@ export interface NoteBlock {
   checked?: boolean;
 }
 
+export interface NoteFolder {
+  id: string;
+  name: string;
+  icon?: string;
+  color?: string;
+  createdAt: number;
+}
+
 export interface Note {
   id: string;
   title: string;
   blocks: NoteBlock[];
   updatedAt: string;
+  createdAt?: number | string;
   theme?: string;
   projectId?: string;
+  folderId?: string;
+  isFavorite?: boolean;
+  tags?: string[];
 }
 
 export interface JournalEntry {

@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, BarChart3, ChevronLeft, ChevronRight, ArrowLeft, Briefcase, Trash2, Save, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat } from 'lucide-react';
+import { Plus, BarChart3, ChevronLeft, ChevronRight, ArrowLeft, Briefcase, Trash2, Save, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, MoreHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
-import { Note, JournalEntry, NoteBlock, Project, Quest } from '../../types';
+import { Note, NoteFolder, JournalEntry, NoteBlock, Project, Quest } from '../../types';
 import { BlockEditor } from './components/BlockEditor';
 import { DropdownThemePicker, NOTE_THEMES } from './components/DropdownThemePicker';
 import { EditorToolbar } from './components/EditorToolbar';
@@ -103,9 +103,28 @@ const WigglyLine = () => (
 
 export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, projects, quests, onShowPro, currentSubView, sectionControl = 'VISIBLE', onStatsOpenChange, onClose, isActive = true, isPro, defaultChartViews }: NotesViewProps) => {
  const { t, i18n } = useTranslation();
- const { notes, journalEntries, handleUpdateNote, handleDeleteNote, handleUpdateJournal, canCreateNote } = useNotesLogic();
+ const { notes, folders, journalEntries, handleUpdateNote, handleDeleteNote, handleCreateFolder, handleUpdateFolder, handleDeleteFolder, handleUpdateJournal, canCreateNote } = useNotesLogic();
 
  const [subView, setSubView] = useState<'NOTES' | 'JOURNAL'>('NOTES');
+
+ // Notion Library States
+ const [selectedFolderId, setSelectedFolderId] = useState<string>('ALL');
+ const [sortOrder, setSortOrder] = useState<'NEWEST' | 'OLDEST'>(() => {
+   return (localStorage.getItem('notes_sort_order') as 'NEWEST' | 'OLDEST') || 'NEWEST';
+ });
+
+ const handleToggleSortOrder = () => {
+   const next = sortOrder === 'NEWEST' ? 'OLDEST' : 'NEWEST';
+   setSortOrder(next);
+   localStorage.setItem('notes_sort_order', next);
+ };
+
+ // Folder Modal state
+ const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
+ const [editingFolder, setEditingFolder] = useState<NoteFolder | null>(null);
+ const [folderName, setFolderName] = useState('');
+ const [folderIcon, setFolderIcon] = useState('📁');
+ const [folderColor, setFolderColor] = useState('#3b82f6');
 
  useEffect(() => {
  if (currentSubView) {
@@ -121,12 +140,66 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  const [draftTheme, setDraftTheme] = useState('slate');
  const [draftMood, setDraftMood] = useState<string | undefined>(undefined);
  const [draftProjectId, setDraftProjectId] = useState<string | undefined>(undefined);
+ const [draftFolderId, setDraftFolderId] = useState<string | undefined>(undefined);
+ const [draftIsFavorite, setDraftIsFavorite] = useState<boolean>(false);
  const [draftDate, setDraftDate] = useState<Date>(new Date());
  const [currentMonth, setCurrentMonth] = useState(new Date());
  const [showStats, setShowStats] = useState(false);
  const [showSaveBlueprintModal, setShowSaveBlueprintModal] = useState(false);
  const [moodSplash, setMoodSplash] = useState<string | null>(null);
  const [pendingOpenDate, setPendingOpenDate] = useState<Date | null>(null);
+ const openCreateFolderModal = () => {
+   setEditingFolder(null);
+   setFolderName('');
+   setFolderIcon('📁');
+   setFolderColor('#3b82f6');
+   setIsFolderModalOpen(true);
+ };
+
+ const openEditFolderModal = (folder: NoteFolder, e: React.MouseEvent) => {
+   e.stopPropagation();
+   setEditingFolder(folder);
+   setFolderName(folder.name);
+   setFolderIcon(folder.icon || '📁');
+   setFolderColor(folder.color || '#3b82f6');
+   setIsFolderModalOpen(true);
+ };
+
+ const handleSaveFolder = async () => {
+   if (!folderName.trim()) {
+     toast.error(t('notes.folderNameRequired', 'Ingrese el nombre de la carpeta'));
+     return;
+   }
+   if (editingFolder) {
+     await handleUpdateFolder({
+       ...editingFolder,
+       name: folderName.trim(),
+       icon: folderIcon,
+       color: folderColor
+     });
+     toast.success(t('notes.folderUpdated', 'Carpeta actualizada'));
+   } else {
+     await handleCreateFolder({
+       name: folderName.trim(),
+       icon: folderIcon,
+       color: folderColor
+     });
+     toast.success(t('notes.folderCreated', 'Carpeta creada'));
+   }
+   setIsFolderModalOpen(false);
+ };
+
+ const handleDeleteFolderConfirm = async (folderId: string, e: React.MouseEvent) => {
+   e.stopPropagation();
+   if (window.confirm(t('notes.confirmDeleteFolder', '¿Eliminar carpeta? Las notas no se borrarán.'))) {
+     await handleDeleteFolder(folderId);
+     if (selectedFolderId === folderId) {
+       setSelectedFolderId('ALL');
+     }
+     toast.success(t('notes.folderDeleted', 'Carpeta eliminada'));
+   }
+ };
+
  const editorScrollContainerRef = useRef<HTMLDivElement | null>(null);
 
  useEffect(() => {
@@ -392,22 +465,33 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  const notesContainerRef = useRef<HTMLDivElement | null>(null);
 
  const openNote = useCallback((note: Note) => { 
- setEditorMode('NOTE'); 
- setDraftId(note.id); 
- setDraftTitle(note.title || ''); 
- setDraftBlocks(note.blocks || [{ id: 'init-1', type: 'text', content: '' }]); 
- setDraftTheme(note.theme || 'slate'); 
- setDraftProjectId(note.projectId); 
- onInteractionStart(); 
- }, [onInteractionStart]);
- 
- const createNote = useCallback(() => { 
- if (!canCreateNote()) {
- if (onShowPro) onShowPro();
- return;
- }
- const newId = Date.now().toString(); setEditorMode('NOTE'); setDraftId(newId); setDraftTitle(''); setDraftBlocks([{ id: 'init-1', type: 'text', content: '' }]); setDraftTheme('slate'); setDraftProjectId(undefined); onInteractionStart(); 
- }, [onInteractionStart, canCreateNote, onShowPro]);
+  setEditorMode('NOTE'); 
+  setDraftId(note.id); 
+  setDraftTitle(note.title || ''); 
+  setDraftBlocks(note.blocks || [{ id: 'init-1', type: 'text', content: '' }]); 
+  setDraftTheme(note.theme || 'slate'); 
+  setDraftProjectId(note.projectId); 
+  setDraftFolderId(note.folderId);
+  setDraftIsFavorite(!!note.isFavorite);
+  onInteractionStart(); 
+  }, [onInteractionStart]);
+  
+  const createNote = useCallback(() => { 
+  if (!canCreateNote()) {
+  if (onShowPro) onShowPro();
+  return;
+  }
+  const newId = Date.now().toString(); 
+  setEditorMode('NOTE'); 
+  setDraftId(newId); 
+  setDraftTitle(''); 
+  setDraftBlocks([{ id: 'init-1', type: 'text', content: '' }]); 
+  setDraftTheme('slate'); 
+  setDraftProjectId(undefined); 
+  setDraftFolderId(selectedFolderId !== 'ALL' && selectedFolderId !== 'FAVORITES' && selectedFolderId !== 'UNCATEGORIZED' ? selectedFolderId : undefined);
+  setDraftIsFavorite(selectedFolderId === 'FAVORITES');
+  onInteractionStart(); 
+  }, [onInteractionStart, canCreateNote, onShowPro, selectedFolderId]);
  
  const openJournal = useCallback((date: Date) => { 
      const dateStr = toLocalISOString(date); 
@@ -483,18 +567,27 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
       }
     }
   }, [journalEntries, openJournal]);
- 
- const handleSave = () => { 
- if (editorMode === 'NOTE' && draftId) { 
- handleUpdateNote({ id: draftId, title: draftTitle, blocks: draftBlocks, theme: draftTheme, projectId: draftProjectId, updatedAt: new Date().toISOString() }); 
- } else if (editorMode === 'JOURNAL' && draftId) { 
-    let finalBlocks = [...draftBlocks];
-    if (draftTitle.trim()) {
-      finalBlocks.unshift({ id: 'title-' + Date.now(), type: 'text', content: draftTitle });
-    }
-    handleUpdateJournal({ id: draftId, date: toLocalISOString(draftDate), blocks: finalBlocks, mood: draftMood, theme: draftTheme, tags: [] }); 
-  } 
-  closeEditor(); 
+
+  const handleSave = () => { 
+    if (editorMode === 'NOTE' && draftId) { 
+      handleUpdateNote({ 
+        id: draftId, 
+        title: draftTitle, 
+        blocks: draftBlocks, 
+        theme: draftTheme, 
+        projectId: draftProjectId, 
+        folderId: draftFolderId,
+        isFavorite: draftIsFavorite,
+        updatedAt: new Date().toISOString() 
+      }); 
+    } else if (editorMode === 'JOURNAL' && draftId) { 
+      let finalBlocks = [...draftBlocks];
+      if (draftTitle.trim()) {
+        finalBlocks.unshift({ id: 'title-' + Date.now(), type: 'text', content: draftTitle });
+      }
+      handleUpdateJournal({ id: draftId, date: toLocalISOString(draftDate), blocks: finalBlocks, mood: draftMood, theme: draftTheme, tags: [] }); 
+    } 
+    closeEditor(); 
   };
  
  const handleDelete = () => { if (editorMode === 'NOTE' && draftId) { handleDeleteNote(draftId); } closeEditor(); };
@@ -514,27 +607,40 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  const filteredNotes = useMemo(() => {
  return notes.filter(note => {
  const matchesProject = filterProject === 'ALL' || note.projectId === filterProject;
- // The note theme might be stored without the prefix or color map id might differ.
- // Let's ensure we are comparing ids correctly.
  const noteThemeId = note.theme || 'slate';
  const matchesTheme = filterTheme === 'ALL' || noteThemeId === filterTheme;
- return matchesProject && matchesTheme;
+ 
+ let matchesFolder = true;
+ if (selectedFolderId === 'FAVORITES') {
+   matchesFolder = !!note.isFavorite;
+ } else if (selectedFolderId === 'UNCATEGORIZED') {
+   matchesFolder = !note.folderId;
+ } else if (selectedFolderId !== 'ALL') {
+   matchesFolder = note.folderId === selectedFolderId;
+ }
+
+ return matchesProject && matchesTheme && matchesFolder;
+ }).sort((a, b) => {
+   const timeA = new Date(a.updatedAt || (a as any).createdAt || 0).getTime();
+   const timeB = new Date(b.updatedAt || (b as any).createdAt || 0).getTime();
+   return sortOrder === 'NEWEST' ? timeB - timeA : timeA - timeB;
  });
- }, [notes, filterProject, filterTheme]);
+ }, [notes, filterProject, filterTheme, selectedFolderId, sortOrder]);
 
  const noteCards = useMemo(() => {
  return filteredNotes.slice(0, visibleNotesCount).map(note => {
  const themeId = note.theme || 'slate';
  const themeColor = themeColorMap.get(themeId) || '#64748b';
  const project = note.projectId ? projectMap.get(note.projectId) : undefined;
+ const folder = note.folderId ? folderMap.get(note.folderId) : undefined;
  const previewBlock = note.blocks.find(b => b.type === 'text' && b.content.trim().length > 0);
  const previewText = previewBlock?.content || '';
  const updatedLabel = note.updatedAt
  ? new Date(note.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
  : '';
- return { note, themeColor, project, previewText, updatedLabel };
+ return { note, themeColor, project, folder, previewText, updatedLabel };
  });
- }, [filteredNotes, visibleNotesCount, themeColorMap, projectMap]);
+ }, [filteredNotes, visibleNotesCount, themeColorMap, projectMap, folderMap]);
 
  const monthMeta = useMemo(() => {
  const today = new Date();
@@ -898,31 +1004,121 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  {t('notes.allColors', 'All Colors')}
  </button>
  {NOTE_THEMES.map(t => (
- <button key={t.id} onClick={() => setFilterTheme(t.id)} className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center transition-all border ${filterTheme === t.id ? 'scale-110 ring-2 ring-white border-white shadow-lg' : 'hover:scale-110 opacity-60 hover:opacity-100 border-transparent'}`} style={{ backgroundColor: t.color }}>
- {filterTheme === t.id && <div className="w-2.5 h-2.5 rounded-full bg-white shadow-sm" />}
- </button>
- ))}
- </div>
- </div>
- </div>
- </motion.div>
- )}
- </AnimatePresence>
+  <button key={t.id} onClick={() => setFilterTheme(t.id)} className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center transition-all border ${filterTheme === t.id ? 'scale-110 ring-2 ring-white border-white shadow-lg' : 'hover:scale-110 opacity-60 hover:opacity-100 border-transparent'}`} style={{ backgroundColor: t.color }}>
+  {filterTheme === t.id && <div className="w-2.5 h-2.5 rounded-full bg-white shadow-sm" />}
+  </button>
+  ))}
+  </div>
+  </div>
+  </div>
+  </motion.div>
+  )}
+  </AnimatePresence>
 
- {subView === 'NOTES' && (
- <div ref={notesContainerRef} className="flex-1 pb-24 animate-in slide-in-from-left-4 fade-in duration-200 px-4">
- {isLocked ? (
- <div className="flex flex-col items-center justify-center h-[50vh] text-white/40 gap-4 animate-in fade-in zoom-in-95">
- <div className="p-6 rounded-full bg-white/10 border border-white/5 shadow-lg transform-gpu backface-hidden ">
- <Lock size={48} className="text-white/20" />
- </div>
- <span className="text-xs font-bold uppercase tracking-widest opacity-60">{t('notes.sectionLocked', 'Section Locked')}</span>
- <button onClick={() => setShowPasswordPrompt(true)} className="px-8 py-3 bg-white text-black rounded-full font-bold text-xs uppercase hover:scale-105 active:scale-95 transition-all shadow-lg">{t('notes.unlock', 'Unlock')}</button>
- </div>
- ) : (
- <div className="columns-2 md:columns-3 gap-4">
+  {subView === 'NOTES' && (
+  <div ref={notesContainerRef} className="flex-1 pb-24 animate-in slide-in-from-left-4 fade-in duration-200 px-4">
+  {isLocked ? (
+  <div className="flex flex-col items-center justify-center h-[50vh] text-white/40 gap-4 animate-in fade-in zoom-in-95">
+  <div className="p-6 rounded-full bg-white/10 border border-white/5 shadow-lg transform-gpu backface-hidden ">
+  <Lock size={48} className="text-white/20" />
+  </div>
+  <span className="text-xs font-bold uppercase tracking-widest opacity-60">{t('notes.sectionLocked', 'Section Locked')}</span>
+  <button onClick={() => setShowPasswordPrompt(true)} className="px-8 py-3 bg-white text-black rounded-full font-bold text-xs uppercase hover:scale-105 active:scale-95 transition-all shadow-lg">{t('notes.unlock', 'Unlock')}</button>
+  </div>
+  ) : (
+  <>
+  {/* Notion Library Folder & Sort Bar */}
+  <div className="flex items-center justify-between gap-3 mb-4 overflow-x-auto no-scrollbar pb-1">
+    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+      <button
+        onClick={() => setSelectedFolderId('ALL')}
+        className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border flex items-center gap-1.5 whitespace-nowrap ${
+          selectedFolderId === 'ALL'
+            ? 'bg-white text-black border-white shadow-md'
+            : 'bg-white/5 text-white/60 border-white/5 hover:bg-white/10 hover:text-white'
+        }`}
+      >
+        <FolderOpen size={14} />
+        <span>Todas</span>
+        <span className="text-[10px] opacity-60 font-mono">({notes.length})</span>
+      </button>
 
+      <button
+        onClick={() => setSelectedFolderId('FAVORITES')}
+        className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border flex items-center gap-1.5 whitespace-nowrap ${
+          selectedFolderId === 'FAVORITES'
+            ? 'bg-amber-500 text-black border-amber-400 shadow-md'
+            : 'bg-white/5 text-amber-400/80 border-white/5 hover:bg-white/10 hover:text-amber-300'
+        }`}
+      >
+        <Star size={14} fill="currentColor" />
+        <span>Favoritos</span>
+        <span className="text-[10px] opacity-80 font-mono">({notes.filter(n => n.isFavorite).length})</span>
+      </button>
 
+      <button
+        onClick={() => setSelectedFolderId('UNCATEGORIZED')}
+        className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border flex items-center gap-1.5 whitespace-nowrap ${
+          selectedFolderId === 'UNCATEGORIZED'
+            ? 'bg-white text-black border-white shadow-md'
+            : 'bg-white/5 text-white/60 border-white/5 hover:bg-white/10 hover:text-white'
+        }`}
+      >
+        <Folder size={14} />
+        <span>Sin Carpeta</span>
+        <span className="text-[10px] opacity-60 font-mono">({notes.filter(n => !n.folderId).length})</span>
+      </button>
+
+      {folders.map(folder => {
+        const count = notes.filter(n => n.folderId === folder.id).length;
+        const isSelected = selectedFolderId === folder.id;
+        return (
+          <div key={folder.id} className="relative group/folder flex items-center">
+            <button
+              onClick={() => setSelectedFolderId(folder.id)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border flex items-center gap-1.5 whitespace-nowrap ${
+                isSelected
+                  ? 'bg-white text-black border-white shadow-md'
+                  : 'bg-white/5 text-white/80 border-white/5 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              <span>{folder.icon || '📁'}</span>
+              <span>{folder.name}</span>
+              <span className="text-[10px] opacity-60 font-mono">({count})</span>
+            </button>
+            
+            <div className="hidden group-hover/folder:flex items-center gap-1 ml-1 bg-black/80 backdrop-blur-md rounded-full px-1 py-0.5 border border-white/10">
+              <button onClick={(e) => openEditFolderModal(folder, e)} className="p-1 text-white/60 hover:text-white" title="Editar">
+                <Pencil size={11} />
+              </button>
+              <button onClick={(e) => handleDeleteFolderConfirm(folder.id, e)} className="p-1 text-red-400/80 hover:text-red-400" title="Eliminar">
+                <Trash2 size={11} />
+              </button>
+            </div>
+          </div>
+        );
+      })}
+
+      <button
+        onClick={openCreateFolderModal}
+        className="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border border-dashed border-white/20 text-white/60 hover:text-white hover:bg-white/10 flex items-center gap-1 whitespace-nowrap"
+      >
+        <FolderPlus size={14} className="text-cyan-400" />
+        <span>+ Carpeta</span>
+      </button>
+    </div>
+
+    <button
+      onClick={handleToggleSortOrder}
+      className="px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold border border-white/10 flex items-center gap-1.5 whitespace-nowrap shadow-sm"
+      title="Cambiar orden de notas"
+    >
+      <ArrowUpDown size={13} className="text-emerald-400" />
+      <span>{sortOrder === 'NEWEST' ? 'Recientes' : 'Antiguas'}</span>
+    </button>
+  </div>
+
+  <div className="columns-2 md:columns-3 gap-4">
  {/* Create Button */}
  <button onClick={createNote} data-tour="notes-fab" className="w-full h-[180px] rounded-[24px] border border-dashed border-white/10 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-colors group bg-black/25 mb-4 break-inside-avoid">
  <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/5 shadow-sm"><Plus size={28} className="text-theme-avatar" strokeWidth={1.5} /></div>
@@ -930,11 +1126,25 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </button>
  
  {/* Notes List */}
- {noteCards.map(({ note, themeColor, project, previewText, updatedLabel }) => (
+ {noteCards.map(({ note, themeColor, project, folder, previewText, updatedLabel }) => (
  <div key={note.id} onClick={() => openNote(note)} className="w-full min-h-[140px] max-h-[300px] rounded-[24px] p-5 flex flex-col justify-between hover:scale-[1.02] active:scale-98 transition-transform cursor-pointer group relative overflow-hidden shadow-md border border-white/5 bg-black/40 mb-4 break-inside-avoid">
  <div className="absolute top-0 left-0 right-0 h-32 opacity-20 pointer-events-none transition-opacity duration-200" style={{ background: `linear-gradient(to bottom, ${themeColor}, transparent)` }} />
  <div className="relative z-10 flex flex-col h-full">
- {project && <div className="inline-flex self-start items-center gap-1 mb-2 px-2 py-0.5 rounded-md bg-white/10 border border-white/5"><div className="w-1.5 h-1.5 rounded-full bg-blue-400"/><span className="text-[9px] font-bold text-slate-300 uppercase tracking-wide">{project.title}</span></div>}
+ <div className="flex items-center justify-between gap-2 mb-2">
+ <div className="flex items-center gap-1.5 flex-wrap">
+ {project && <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 border border-white/5"><div className="w-1.5 h-1.5 rounded-full bg-blue-400"/><span className="text-[9px] font-bold text-slate-300 uppercase tracking-wide">{project.title}</span></div>}
+ {folder && <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/10 border border-white/5 text-[9px] font-bold text-cyan-300 uppercase tracking-wide"><span>{folder.icon || '📁'}</span><span>{folder.name}</span></div>}
+ </div>
+ <button
+ onClick={(e) => {
+ e.stopPropagation();
+ handleUpdateNote({ ...note, isFavorite: !note.isFavorite });
+ }}
+ className={`p-1.5 rounded-full transition-all ${note.isFavorite ? 'text-amber-400 bg-amber-400/10' : 'text-white/20 hover:text-white/60'}`}
+ >
+ <Star size={14} fill={note.isFavorite ? 'currentColor' : 'none'} />
+ </button>
+ </div>
  <h3 className={`text-[17px] font-bold leading-tight mb-3 ${!note.title ? 'text-white/30 italic' : 'text-white'}`}>{note.title || t('notes.untitled', 'Untitled')}</h3>
  <div className="relative flex-1 overflow-hidden">
  <p className="text-[13px] text-white/60 leading-relaxed font-medium break-words line-clamp-[8]">{previewText || <span className="italic opacity-50">{t('notes.empty', 'Empty...')}</span>}</p>
@@ -945,7 +1155,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </div>
  ))}
  </div>
- )}
+  </>
+  )}
  {/* Load More Trigger */}
  {filteredNotes.length > visibleNotesCount && !isLocked && (
  <div className="flex justify-center pb-8 pt-4">
@@ -1199,18 +1410,87 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </div>
  <NotesStatsModal isOpen={showStats} onClose={() => setShowStats(false)} notes={notes} journalEntries={journalEntries} initialTab={profile?.notesDefaultTab || 'OVERVIEW'} isPro={isPro} onOpenPro={onShowPro} defaultChartViews={defaultChartViews} />
  
- <SpecialEventsHub isOpen={showEventsHub} onClose={closeEventsHub} onOpenSettings={openConfigModal} isPro={isPro} onOpenPro={onShowPro} />
- <SecureNotesHub isOpen={showSecureHub} onClose={closeSecureHub} onOpenSettings={openConfigModal} />
+ <SpecialEventsHub isOpen={showEventsHub} onClose={closeEventsHub} onOpenSettings={configOpen} isPro={isPro} onOpenPro={onShowPro} />
+ <SecureNotesHub isOpen={showSecureHub} onClose={closeSecureHub} onOpenSettings={configOpen} />
 
- {/* Config & Security Modals */}
- <NotesConfigModal 
- isOpen={configOpen} 
- onClose={() => setConfigOpen(false)} 
- onSave={handleSaveConfig}
- initialConfig={config}
- isPro={isPro}
- onOpenPro={onShowPro}
- />
+  {/* Config & Security Modals */}
+  <NotesConfigModal 
+  isOpen={configOpen} 
+  onClose={() => setConfigOpen(false)} 
+  onSave={handleSaveConfig}
+  initialConfig={config}
+  isPro={isPro}
+  onOpenPro={onShowPro}
+  />
+
+  {/* Folder Modal */}
+  <AnimatePresence>
+    {isFolderModalOpen && (
+      <div className="fixed inset-0 z-[350] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <motion.div 
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
+          className="w-full max-w-sm bg-[#121212] border border-white/10 rounded-3xl p-6 shadow-2xl space-y-5"
+        >
+          <div className="flex justify-between items-center pb-3 border-b border-white/10">
+            <h3 className="text-base font-black text-white flex items-center gap-2">
+              <Folder size={18} className="text-cyan-400" />
+              <span>{editingFolder ? 'Editar Carpeta' : 'Nueva Carpeta'}</span>
+            </h3>
+            <button onClick={() => setIsFolderModalOpen(false)} className="text-white/40 hover:text-white transition-colors">
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest block mb-1.5">Nombre de la Carpeta</label>
+              <input 
+                type="text" 
+                value={folderName}
+                onChange={(e) => setFolderName(e.target.value)}
+                placeholder="Ej. Personal, Trabajo, Ideas..."
+                className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-sm text-white placeholder:text-white/20 outline-none focus:border-cyan-500/50 transition-colors"
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-white/50 uppercase tracking-widest block mb-1.5">Icono / Emoji</label>
+              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                {['📁', '💼', '💡', '📚', '🎨', '🎯', '🚀', '🔥', '⭐', '🔑', '❤️', '🧠', '⚡'].map(icon => (
+                  <button
+                    key={icon}
+                    type="button"
+                    onClick={() => setFolderIcon(icon)}
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg transition-transform ${folderIcon === icon ? 'bg-white/20 scale-110 border border-white/40' : 'bg-white/5 opacity-60 hover:opacity-100'}`}
+                  >
+                    {icon}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => setIsFolderModalOpen(false)}
+              className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white/70 rounded-2xl font-bold text-xs uppercase tracking-wider transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSaveFolder}
+              className="flex-1 py-3 bg-cyan-500 hover:bg-cyan-400 text-black rounded-2xl font-black text-xs uppercase tracking-wider transition-transform active:scale-95 shadow-lg shadow-cyan-500/20"
+            >
+              {editingFolder ? 'Guardar' : 'Crear'}
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    )}
+  </AnimatePresence>
  
  <AnimatePresence>
  {showPasswordPrompt && (
@@ -1255,11 +1535,32 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <div className="flex justify-between items-center p-3 sm:p-6 border-b border-white/5 relative z-20 gap-2">
  <button onClick={closeEditor} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all active:scale-95 border border-white/5 flex-shrink-0"><ArrowLeft size={20} /></button>
  <div className="flex items-center gap-1.5 sm:gap-4 flex-shrink-1 min-w-0 justify-end">
- <div className="flex items-center gap-1">
- <BlueprintSelector onSelect={(newBlocks) => setDraftBlocks(prev => [...prev, ...newBlocks])} />
- <button onClick={() => setShowSaveBlueprintModal(true)} className="hidden sm:block p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors" title={t('notes.editor.saveBlueprint', 'Save as Blueprint')}><Save size={18} /></button>
- <DropdownThemePicker currentTheme={draftTheme} onSelect={setDraftTheme} projects={editorMode === 'NOTE' ? projects : null} activeProject={draftProjectId} onSelectProject={setDraftProjectId} />
- </div>
+  <div className="flex items-center gap-1.5">
+  {editorMode === 'NOTE' && (
+    <>
+      <button 
+        onClick={() => setDraftIsFavorite(!draftIsFavorite)} 
+        className={`p-2 rounded-xl border transition-all ${draftIsFavorite ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-white/5 text-white/40 border-white/5 hover:text-white'}`} 
+        title="Marcar como favorito"
+      >
+        <Star size={16} fill={draftIsFavorite ? 'currentColor' : 'none'} />
+      </button>
+      <select 
+        value={draftFolderId || ''} 
+        onChange={(e) => setDraftFolderId(e.target.value || undefined)} 
+        className="bg-[#161616] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none cursor-pointer hover:border-white/20 transition-colors max-w-[120px] sm:max-w-[150px] truncate"
+      >
+        <option value="">📁 Sin Carpeta</option>
+        {folders.map(f => (
+          <option key={f.id} value={f.id}>{f.icon || '📁'} {f.name}</option>
+        ))}
+      </select>
+    </>
+  )}
+  <BlueprintSelector onSelect={(newBlocks) => setDraftBlocks(prev => [...prev, ...newBlocks])} />
+  <button onClick={() => setShowSaveBlueprintModal(true)} className="hidden sm:block p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors" title={t('notes.editor.saveBlueprint', 'Save as Blueprint')}><Save size={18} /></button>
+  <DropdownThemePicker currentTheme={draftTheme} onSelect={setDraftTheme} projects={editorMode === 'NOTE' ? projects : null} activeProject={draftProjectId} onSelectProject={setDraftProjectId} />
+  </div>
  <div className="w-[1px] h-6 bg-white/10 mx-1" />
  {editorMode === 'NOTE' && <button onClick={handleDelete} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-red-500/10 text-white/40 hover:text-red-500 flex items-center justify-center transition-all flex-shrink-0"><Trash2 size={18} /></button>}
  <button onClick={handleSave} className="h-8 sm:h-10 px-4 sm:px-6 bg-white text-black rounded-full font-bold text-[10px] sm:text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-transform shadow-sm flex-shrink-0 flex items-center justify-center whitespace-nowrap">{t('notes.save')}</button>

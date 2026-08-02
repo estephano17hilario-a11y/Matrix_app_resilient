@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { Note, JournalEntry } from '../../../types';
+import { Note, NoteFolder, JournalEntry } from '../../../types';
 import { persistenceService } from '../../../services/persistenceService';
 import { useAuth } from '@/context/AuthContext';
 import { FREE_LIMITS } from '../../../config/limits';
@@ -7,10 +7,14 @@ import { PersistenceService } from '../../../services/persistence';
 
 interface NotesContextType {
     notes: Note[];
+    folders: NoteFolder[];
     journalEntries: JournalEntry[];
     isLoading: boolean;
     updateNote: (note: Note) => Promise<{ isNew: boolean }>;
     deleteNote: (noteId: string) => Promise<void>;
+    createFolder: (folder: Omit<NoteFolder, 'id' | 'createdAt'>) => Promise<NoteFolder>;
+    updateFolder: (folder: NoteFolder) => Promise<void>;
+    deleteFolder: (folderId: string) => Promise<void>;
     updateJournal: (entry: JournalEntry) => Promise<{ isNew: boolean }>;
     canCreateNote: () => boolean;
 }
@@ -20,9 +24,9 @@ const NotesContext = createContext<NotesContextType | undefined>(undefined);
 export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user, profile } = useAuth();
     const [notes, setNotes] = useState<Note[]>([]);
+    const [folders, setFolders] = useState<NoteFolder[]>([]);
     const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
-    // 🚀 PERFORMANCE: Optimistic Loading from Cache
-    // If we have a profile (even if offline), we assume we can load data
+    
     const activeUid = user?.id || profile?.uid;
     
     const [isLoading, setIsLoading] = useState(() => {
@@ -33,6 +37,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
 
     const notesRef = useRef<Note[]>([]);
+    const foldersRef = useRef<NoteFolder[]>([]);
     const journalRef = useRef<JournalEntry[]>([]);
 
     const hasSyncedNotesRef = useRef(false);
@@ -42,6 +47,10 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, [notes]);
 
     useEffect(() => {
+        foldersRef.current = folders;
+    }, [folders]);
+
+    useEffect(() => {
         journalRef.current = journalEntries;
     }, [journalEntries]);
 
@@ -49,6 +58,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     useEffect(() => {
         if (!activeUid) {
             setNotes([]);
+            setFolders([]);
             setJournalEntries([]);
             setIsLoading(false);
             return;
@@ -56,12 +66,18 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         const uid = activeUid;
         const hasNotesCache = PersistenceService.hasCollectionCache(uid, 'notes');
+        const hasFoldersCache = PersistenceService.hasCollectionCache(uid, 'noteFolders');
         const hasJournalCache = PersistenceService.hasCollectionCache(uid, 'journal');
         
-        // ⚡ INSTANT LOAD: Load from cache immediately
+        // INSTANT LOAD: Load from cache immediately
         if (hasNotesCache) {
             const cachedNotes = PersistenceService.getCollection<Note>(uid, 'notes') ?? [];
             setNotes(cachedNotes);
+        }
+
+        if (hasFoldersCache) {
+            const cachedFolders = PersistenceService.getCollection<NoteFolder>(uid, 'noteFolders') ?? [];
+            setFolders(cachedFolders);
         }
         
         if (hasJournalCache) {
@@ -78,9 +94,10 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         let cancelled = false;
         const currentNotesTTL = hasSyncedNotesRef.current ? 60000 : 0;
         const shouldSyncNotes = PersistenceService.shouldSyncCollection(uid, 'notes', currentNotesTTL);
+        const shouldSyncFolders = PersistenceService.shouldSyncCollection(uid, 'noteFolders', currentNotesTTL);
         const shouldSyncJournal = PersistenceService.shouldSyncCollection(uid, 'journal', currentNotesTTL);
 
-        if (!shouldSyncNotes && !shouldSyncJournal) {
+        if (!shouldSyncNotes && !shouldSyncJournal && !shouldSyncFolders) {
             return;
         }
 
@@ -88,8 +105,9 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         Promise.all([
             shouldSyncNotes ? persistenceService.notes.getAll(uid) : Promise.resolve(null),
+            shouldSyncFolders ? persistenceService.noteFolders.getAll(uid) : Promise.resolve(null),
             shouldSyncJournal ? persistenceService.journal.getAll(uid) : Promise.resolve(null)
-        ]).then(([fetchedNotes, fetchedJournal]) => {
+        ]).then(([fetchedNotes, fetchedFolders, fetchedJournal]) => {
             if (cancelled) return;
             if (fetchedNotes) {
                 const cachedNotes = PersistenceService.getCollection<Note>(uid, 'notes');
@@ -99,6 +117,16 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     setNotes(fetchedNotes);
                     PersistenceService.saveCollection(uid, 'notes', fetchedNotes);
                     PersistenceService.saveCollectionSafe(uid, 'notes', fetchedNotes);
+                }
+            }
+            if (fetchedFolders) {
+                const cachedFolders = PersistenceService.getCollection<NoteFolder>(uid, 'noteFolders');
+                if (fetchedFolders.length === 0 && cachedFolders && cachedFolders.length > 0) {
+                    cachedFolders.forEach(f => persistenceService.noteFolders.save(uid, f));
+                } else {
+                    setFolders(fetchedFolders);
+                    PersistenceService.saveCollection(uid, 'noteFolders', fetchedFolders);
+                    PersistenceService.saveCollectionSafe(uid, 'noteFolders', fetchedFolders);
                 }
             }
             if (fetchedJournal) {
@@ -112,7 +140,6 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 }
             }
             setIsLoading(false);
-            
             hasSyncedNotesRef.current = true;
         }).catch(err => {
             if (cancelled) return;
@@ -143,8 +170,6 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             return nextNotes;
         });
 
-        // We can't rely on nextNotes from inside the setter immediately if it's asynchronous.
-        // Instead, we compute nextNotes independently.
         const currentNotes = notesRef.current;
         const index = currentNotes.findIndex(n => n.id === note.id);
         const computedNextNotes = index >= 0 
@@ -171,8 +196,57 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         PersistenceService.saveCollection(user.id, 'notes', computedNextNotes);
         PersistenceService.saveCollectionSafe(user.id, 'notes', computedNextNotes);
 
-        // Persistence
         persistenceService.notes.delete(user.id, noteId).catch(err => console.error("Error deleting note:", err));
+    }, [user?.id]);
+
+    const createFolder = useCallback(async (folderData: Omit<NoteFolder, 'id' | 'createdAt'>): Promise<NoteFolder> => {
+        const newFolder: NoteFolder = {
+            ...folderData,
+            id: `folder_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+            createdAt: Date.now()
+        };
+
+        if (user?.id) {
+            const nextFolders = [...foldersRef.current, newFolder];
+            setFolders(nextFolders);
+            PersistenceService.saveCollection(user.id, 'noteFolders', nextFolders);
+            PersistenceService.saveCollectionSafe(user.id, 'noteFolders', nextFolders);
+            persistenceService.noteFolders.save(user.id, newFolder).catch(err => console.error("Error saving folder:", err));
+        }
+
+        return newFolder;
+    }, [user?.id]);
+
+    const updateFolder = useCallback(async (folder: NoteFolder) => {
+        if (!user?.id) return;
+
+        const nextFolders = foldersRef.current.map(f => f.id === folder.id ? folder : f);
+        setFolders(nextFolders);
+        PersistenceService.saveCollection(user.id, 'noteFolders', nextFolders);
+        PersistenceService.saveCollectionSafe(user.id, 'noteFolders', nextFolders);
+        persistenceService.noteFolders.update(user.id, folder.id, folder).catch(err => console.error("Error updating folder:", err));
+    }, [user?.id]);
+
+    const deleteFolder = useCallback(async (folderId: string) => {
+        if (!user?.id) return;
+
+        const nextFolders = foldersRef.current.filter(f => f.id !== folderId);
+        setFolders(nextFolders);
+        PersistenceService.saveCollection(user.id, 'noteFolders', nextFolders);
+        PersistenceService.saveCollectionSafe(user.id, 'noteFolders', nextFolders);
+        persistenceService.noteFolders.delete(user.id, folderId).catch(err => console.error("Error deleting folder:", err));
+
+        // Reset folderId on notes that were inside this folder
+        const affectedNotes = notesRef.current.filter(n => n.folderId === folderId);
+        if (affectedNotes.length > 0) {
+            const updatedNotes = notesRef.current.map(n => n.folderId === folderId ? { ...n, folderId: undefined } : n);
+            setNotes(updatedNotes);
+            PersistenceService.saveCollection(user.id, 'notes', updatedNotes);
+            PersistenceService.saveCollectionSafe(user.id, 'notes', updatedNotes);
+            affectedNotes.forEach(n => {
+                persistenceService.notes.update(user.id, n.id, { ...n, folderId: undefined }).catch(console.error);
+            });
+        }
     }, [user?.id]);
 
     const updateJournal = useCallback(async (entry: JournalEntry) => {
@@ -215,10 +289,14 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return (
         <NotesContext.Provider value={{
             notes,
+            folders,
             journalEntries,
             isLoading,
             updateNote,
             deleteNote,
+            createFolder,
+            updateFolder,
+            deleteFolder,
             updateJournal,
             canCreateNote
         }}>

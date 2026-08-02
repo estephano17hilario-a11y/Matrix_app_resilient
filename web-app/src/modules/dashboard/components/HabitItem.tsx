@@ -496,75 +496,130 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                     </div>
 
                     {/* 4. Subtasks (If Checklist) */}
-                    {habit.type === 'CHECKLIST' && habit.checklist && viewPreference !== 'CHRONOLOGICAL' && (
-                        <div className="pt-2 border-t border-white/5 space-y-1">
-                            <span className="text-[10px] text-white/40 uppercase tracking-wider block mb-1">{t('habits.subtasks', 'Subtasks')}</span>
-                            {habit.checklist.filter(item => {
-                                if (item.deleted) return false;
-                                if (item.intervalType === 'WEEKLY' || item.intervalType === 'MONTHLY') {
-                                    const todayKey = getHistoryDateKey(toLocalISOString(currentDate || new Date()));
-                                    const isDoneToday = item.history?.includes(todayKey) || item.skippedHistory?.includes(todayKey);
-                                    if (isDoneToday) return true;
-                                    
-                                    const doneCount = getCompletedCountThisPeriod(item, item.intervalType, currentDate);
-                                    return doneCount < (item.intervalCount || 1);
-                                }
-                                return !item.days || item.days.length === 0 || item.days.includes(today);
-                            }).map(item => {
+                    {habit.type === 'CHECKLIST' && habit.checklist && viewPreference !== 'CHRONOLOGICAL' && (() => {
+                        const activeSubtasks = habit.checklist.filter(item => {
+                            if (item.deleted) return false;
+                            if (item.intervalType === 'WEEKLY' || item.intervalType === 'MONTHLY') {
                                 const todayKey = getHistoryDateKey(toLocalISOString(currentDate || new Date()));
-                                const isCompleted = !!(item.completed || item.history?.includes(todayKey));
-                                const isSkipped = item.skippedHistory?.includes(todayKey);
-                                const isDoneOrSkipped = isCompleted || isSkipped;
+                                const isDoneToday = item.history?.includes(todayKey) || item.skippedHistory?.includes(todayKey);
+                                if (isDoneToday) return true;
                                 
-                                return (
-                                    <div key={item.id} className="flex items-center gap-3 group/item cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-colors" onClick={() => handleChecklistToggle(item.id, isCompleted)}>
-                                        <div
-                                                className={cn(
-                                                    "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
-                                                    isDoneOrSkipped 
-                                                        ? (allChecklistCompleted ? "border-transparent text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]" : "border-transparent text-white")
-                                                        : "bg-white/5 border-white/20 group-hover/item:border-white/40"
-                                                )}
-                                                style={{
-                                                    backgroundColor: isDoneOrSkipped ? (isSkipped ? '#d97706' : (item.color || (allChecklistCompleted ? '#10b981' : baseColor))) : undefined,
-                                                    borderColor: isDoneOrSkipped ? 'transparent' : (item.color || baseColor)
-                                                }}
-                                            >
-                                            {isCompleted && <Check size={12} strokeWidth={3} />}
-                                            {isSkipped && <LucideIcons.ChevronsRight size={12} className="text-white" />}
-                                        </div>
-                                        <span className={cn(
-                                            "text-sm transition-colors truncate flex-1 font-medium",
-                                            isDoneOrSkipped ? "text-white/30 line-through" : "text-white/80"
-                                        )}>
-                                            {item.text}
-                                            {item.intervalType && item.intervalType !== 'NONE' && (
-                                                <span className="text-[10px] text-cyan-400 font-mono ml-2 font-bold">
-                                                    ({Math.max(0, (item.intervalCount ?? 0) - getCompletedCountThisPeriod(item, item.intervalType, currentDate || new Date()))} / {item.intervalCount ?? 0})
-                                                </span>
-                                            )}
-                                            {isSkipped && (
-                                                <span className="text-[10px] text-amber-500 font-bold ml-2 uppercase tracking-wider">(Saltado)</span>
-                                            )}
+                                const doneCount = getCompletedCountThisPeriod(item, item.intervalType, currentDate);
+                                return doneCount < (item.intervalCount || 1);
+                            }
+                            return !item.days || item.days.length === 0 || item.days.includes(today);
+                        });
+
+                        if (activeSubtasks.length === 0) return null;
+
+                        const completedCount = activeSubtasks.filter(item => {
+                            const todayKey = getHistoryDateKey(toLocalISOString(currentDate || new Date()));
+                            return !!(item.completed || item.history?.includes(todayKey));
+                        }).length;
+
+                        return (
+                            <div className="pt-2 border-t border-white/5 space-y-2" onClick={e => e.stopPropagation()}>
+                                <button
+                                    onClick={() => setIsSubtasksFolderOpen(!isSubtasksFolderOpen)}
+                                    className="w-full flex items-center justify-between p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-xs font-bold text-white shadow-sm"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <LucideIcons.Folder size={14} className="text-amber-400" />
+                                        <span>Subtareas</span>
+                                        <span className="text-[10px] font-mono text-amber-300 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20">
+                                            {completedCount}/{activeSubtasks.length}
                                         </span>
-                                        {item.allowSkip && !isDoneOrSkipped && (
-                                            <button
-                                                onClick={(e) => handleChecklistSkip(item.id, e)}
-                                                className="px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[10px] font-bold border border-amber-500/20 transition-all flex items-center gap-0.5"
-                                            >
-                                                Saltar
-                                            </button>
-                                        )}
-                                        {item.reminderTime && (
-                                            <span className="text-[10px] text-white/30 font-medium tracking-wider flex items-center gap-1">
-                                                <LucideIcons.AlertCircle size={10} /> {item.reminderTime}
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        {completedCount === activeSubtasks.length && activeSubtasks.length > 0 && (
+                                            <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20">
+                                                LISTO
                                             </span>
                                         )}
+                                        <ChevronDown size={14} className={cn("transition-transform duration-200 text-white/40", isSubtasksFolderOpen && "rotate-180")} />
                                     </div>
-                                );
-                            })}
-                        </div>
-                    )}
+                                </button>
+
+                                <AnimatePresence>
+                                    {isSubtasksFolderOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="space-y-1.5 pl-2 border-l-2 border-amber-500/30 ml-2 pt-1"
+                                        >
+                                            {activeSubtasks.map(item => {
+                                                const todayKey = getHistoryDateKey(toLocalISOString(currentDate || new Date()));
+                                                const isCompleted = !!(item.completed || item.history?.includes(todayKey));
+                                                const isSkipped = item.skippedHistory?.includes(todayKey);
+                                                const isDoneOrSkipped = isCompleted || isSkipped;
+                                                
+                                                return (
+                                                    <div key={item.id} className="flex items-center gap-3 group/item cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-colors" onClick={() => handleChecklistToggle(item.id, isCompleted)}>
+                                                        <div
+                                                            className={cn(
+                                                                "w-5 h-5 rounded-full border flex items-center justify-center transition-all",
+                                                                isDoneOrSkipped 
+                                                                    ? (allChecklistCompleted ? "border-transparent text-white shadow-[0_0_10px_rgba(16,185,129,0.3)]" : "border-transparent text-white")
+                                                                    : "bg-white/5 border-white/20 group-hover/item:border-white/40"
+                                                            )}
+                                                            style={{
+                                                                backgroundColor: isDoneOrSkipped ? (isSkipped ? '#d97706' : (item.color || (allChecklistCompleted ? '#10b981' : baseColor))) : undefined,
+                                                                borderColor: isDoneOrSkipped ? 'transparent' : (item.color || baseColor)
+                                                            }}
+                                                        >
+                                                            {isCompleted && <Check size={12} strokeWidth={3} />}
+                                                            {isSkipped && <LucideIcons.ChevronsRight size={12} className="text-white" />}
+                                                        </div>
+                                                        <span className={cn(
+                                                            "text-sm transition-colors truncate flex-1 font-medium",
+                                                            isDoneOrSkipped ? "text-white/30 line-through" : "text-white/80"
+                                                        )}>
+                                                            {item.text}
+                                                            {item.intervalType && item.intervalType !== 'NONE' && (
+                                                                <span className="text-[10px] text-cyan-400 font-mono ml-2 font-bold">
+                                                                    ({Math.max(0, (item.intervalCount ?? 0) - getCompletedCountThisPeriod(item, item.intervalType, currentDate || new Date()))} / {item.intervalCount ?? 0})
+                                                                </span>
+                                                            )}
+                                                            {isSkipped && (
+                                                                <span className="text-[9px] text-amber-500 font-bold ml-1.5 uppercase tracking-wider">(Saltado)</span>
+                                                            )}
+                                                        </span>
+                                                        {item.allowSkip && !isDoneOrSkipped && (
+                                                            <button
+                                                                onClick={(e) => handleChecklistSkip(item.id, e)}
+                                                                className="px-1.5 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[9px] font-bold border border-amber-500/20 transition-all flex items-center gap-0.5"
+                                                            >
+                                                                Saltar
+                                                            </button>
+                                                        )}
+                                                        {item.reminderTime && (
+                                                            <span 
+                                                                className={cn(
+                                                                    "text-[10px] font-bold tracking-wider flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity",
+                                                                    isDoneOrSkipped ? "text-white/20" : "text-orange-400"
+                                                                )}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (onEdit) {
+                                                                        onEdit({ ...habit, _initialTab: 'checklist', _targetSubtaskId: item.id } as any);
+                                                                    }
+                                                                }}
+                                                                title={t('common.changeAlarm', 'Cambiar alarma')}
+                                                            >
+                                                                <LucideIcons.AlertCircle size={10} /> {item.reminderTime}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        );
+                    })()}
 
                     {/* 4.5. Fixed Times (If Quantity + Divided + Fixed) */}
                     {habit.type === 'QUANTITY' && habit.isDivided && habit.dividedMode === 'FIXED' && habit.dividedTimes && viewPreference !== 'CHRONOLOGICAL' && (

@@ -195,14 +195,9 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                         {habit.isDynamic && !isRelapsed ? (
                             <div className="space-y-1">
                                 <div className="flex flex-row items-center gap-2 sm:gap-3">
-                                    <div className="flex items-center gap-1.5">
-                                        <Target size={12} className="text-cyan-400" />
-                                        <span className="text-[11px] font-semibold text-cyan-300/80">
-                                            Meta: {habit.dynamicTargetType === 'neutral' ? '>= 0' : '> 0'}
-                                        </span>
-                                    </div>
-                                    <div className="text-[10px] text-white/35 font-medium">
-                                        {habit.streak} {habit.streak !== 1 ? t('habits.days', 'días') : t('habits.day', 'día')} {t('habits.ofStreak', 'de racha')}
+                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-[10px] font-bold shadow-sm">
+                                        <LucideIcons.Flame size={12} className="text-cyan-400 animate-pulse" />
+                                        <span>{habit.streak} {habit.streak === 1 ? t('habits.dayStreak', 'DÍA DE RACHA') : t('habits.daysStreak', 'DÍAS DE RACHA')}</span>
                                     </div>
                                 </div>
                                 <div className="text-[10px] text-cyan-300/80 font-semibold flex items-center gap-1 mt-0.5">
@@ -305,7 +300,12 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                         ? t('badHabits.opportunityDay', '¡DÍA DE OPORTUNIDAD!').toUpperCase()
                                         : isRelapsed
                                             ? t('badHabits.relapsed', 'RELAPSED')
-                                            : `${habit.streak} ${t('habits.dayStreak', 'DAY STREAK')}`}
+                                            : (
+                                                <span className="inline-flex items-center gap-1">
+                                                    <LucideIcons.Flame size={11} className="text-orange-400" />
+                                                    {habit.streak} {t('habits.dayStreak', 'DAY STREAK')}
+                                                </span>
+                                            )}
                                 </div>
                             </div>
                         )}

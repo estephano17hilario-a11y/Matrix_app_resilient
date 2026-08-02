@@ -319,6 +319,7 @@ const settingsService = {
 export const questService = createSubCollectionService<Quest>('quests');
 export const habitService = createSubCollectionService<Habit>('habits');
 export const noteService = createSubCollectionService<Note>('notes');
+export const noteFolderService = createSubCollectionService<NoteFolder>('noteFolders');
 export const journalService = createSubCollectionService<JournalEntry>('journal');
 export const attributeService = createSubCollectionService<Attribute>('attributes');
 export const smartProjectService = createSubCollectionService<SmartProject>('smartProjects');
@@ -333,6 +334,7 @@ export const persistenceService = {
   habits: habitService,
   badHabits: badHabitService,
   notes: noteService,
+  noteFolders: noteFolderService,
   journal: journalService,
   attributes: attributeService,
   smartProjects: smartProjectService,

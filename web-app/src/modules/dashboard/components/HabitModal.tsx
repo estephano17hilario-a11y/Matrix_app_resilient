@@ -319,7 +319,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                 dividedQuantity: logic === 'QUANTITY' && isDivided && dividedMode === 'INTERVAL' ? parseInt(dividedQuantity) : undefined,
                 dividedInterval: logic === 'QUANTITY' && isDivided && dividedMode === 'INTERVAL' ? parseInt(dividedInterval) : undefined,
                 dividedTimes: logic === 'QUANTITY' && isDivided && dividedMode === 'FIXED' ? dividedTimes : undefined,
-                checklist: logic === 'CHECKLIST' ? subtasks : [],
+                checklist: logic === 'CHECKLIST' ? subtasks.filter(t => !t.deleted) : [],
                 reminderTime: reminder || undefined,
                 estimatedTime,
                 customColor,
