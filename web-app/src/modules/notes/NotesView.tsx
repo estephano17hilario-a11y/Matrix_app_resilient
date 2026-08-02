@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, BarChart3, ChevronLeft, ChevronRight, ArrowLeft, Briefcase, Trash2, Save, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, MoreHorizontal } from 'lucide-react';
+import { Plus, BarChart3, ChevronLeft, ChevronRight, ArrowLeft, Briefcase, Trash2, Save, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { Note, NoteFolder, JournalEntry, NoteBlock, Project, Quest } from '../../types';
@@ -603,6 +603,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  const emptyDays = useMemo(() => Array(firstDay).fill(null), [firstDay]);
  const monthDays = useMemo(() => Array.from({ length: days }, (_, i) => i + 1), [days]);
  const activeThemeColor = themeColorMap.get(draftTheme) || '#fff';
+ const folderMap = useMemo(() => new Map(folders.map(f => [f.id, f])), [folders]);
 
  const filteredNotes = useMemo(() => {
  return notes.filter(note => {
@@ -1410,8 +1411,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </div>
  <NotesStatsModal isOpen={showStats} onClose={() => setShowStats(false)} notes={notes} journalEntries={journalEntries} initialTab={profile?.notesDefaultTab || 'OVERVIEW'} isPro={isPro} onOpenPro={onShowPro} defaultChartViews={defaultChartViews} />
  
- <SpecialEventsHub isOpen={showEventsHub} onClose={closeEventsHub} onOpenSettings={configOpen} isPro={isPro} onOpenPro={onShowPro} />
- <SecureNotesHub isOpen={showSecureHub} onClose={closeSecureHub} onOpenSettings={configOpen} />
+ <SpecialEventsHub isOpen={showEventsHub} onClose={closeEventsHub} onOpenSettings={() => setConfigOpen(true)} isPro={isPro} onOpenPro={onShowPro} />
+ <SecureNotesHub isOpen={showSecureHub} onClose={closeSecureHub} onOpenSettings={() => setConfigOpen(true)} />
 
   {/* Config & Security Modals */}
   <NotesConfigModal 
