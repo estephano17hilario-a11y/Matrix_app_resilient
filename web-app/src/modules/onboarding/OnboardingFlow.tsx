@@ -102,10 +102,12 @@ export function OnboardingFlow() {
   // Initialize language from profile or i18n
   const currentLanguage = profile?.onboarding?.language || i18n.language || 'en';
 
+  const freeSelectedCount = selectedTraits.filter(t => !lockedTraitIds.includes(t)).length;
+
   const handleNext = async () => {
     if (step === 'traits') {
-      // Must select at least 3 and at most 4 traits in total
-      if (selectedTraits.length < 3 || selectedTraits.length > 4) {
+      // Must select at least 3 and at most 4 free/additional traits
+      if (freeSelectedCount < 3 || freeSelectedCount > 4) {
          return;
       }
       handleSubmit();
@@ -118,8 +120,8 @@ export function OnboardingFlow() {
     if (selectedTraits.includes(id)) {
       setSelectedTraits(selectedTraits.filter(t => t !== id));
     } else {
-      // Limit to 4 total selected traits
-      if (selectedTraits.length >= 4) {
+      // Limit to 4 additional selected traits
+      if (freeSelectedCount >= 4) {
         return;
       }
       setSelectedTraits([...selectedTraits, id]);
@@ -332,18 +334,18 @@ export function OnboardingFlow() {
                             {t('onboarding.traits.subtitle', `Elige tus rasgos para empezar`)}
                         </p>
                         <p className="text-white/35 text-sm mt-1 font-bold">
-                            {t('onboarding.traits.maxHint', 'Mínimo 3 y máximo 4 rasgos en total (ya tienes 2 fijos)')}
+                            {t('onboarding.traits.maxHint', 'Mínimo 3 y máximo 4 rasgos adicionales (ya tienes 2 fijos)')}
                         </p>
                       </motion.div>
                       
-                      {selectedTraits.length < 3 && (
+                      {freeSelectedCount < 3 && (
                          <motion.div 
                             key="traits-validation"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             className="text-sm text-red-300 mt-2 font-medium bg-red-500/15 py-2 px-4 rounded-full inline-block border border-red-500/30 bg-gradient-to-b from-white/5 to-transparent"
                          >
-                           {t('common.selectAtLeastThree', 'Selecciona al menos 3 rasgos en total')}
+                           {t('common.selectAtLeastThree', 'Selecciona al menos 3 rasgos')}
                          </motion.div>
                       )}
                   </div>

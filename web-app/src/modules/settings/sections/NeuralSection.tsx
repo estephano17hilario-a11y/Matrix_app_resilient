@@ -245,6 +245,10 @@ export const NeuralSection = () => {
   const availableTraits = allTraits.filter(trait => !attributes.find(a => a.id === trait.id));
 
   const startEditing = (attr: any) => {
+    if (!isPro) {
+      showProModal();
+      return;
+    }
     setEditingId(attr.id);
     setIsCreating(false);
     setIsAddingSub(false);
@@ -689,6 +693,10 @@ export const NeuralSection = () => {
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           e.preventDefault();
+                                          if (!isPro) {
+                                            showProModal();
+                                            return;
+                                          }
                                           setEditingSubId(st.id);
                                           setEditSubName(st.name);
                                           setEditSubIcon(st.iconName || 'Hexagon');
@@ -779,7 +787,7 @@ export const NeuralSection = () => {
                         </div>
                       ) : (
                         <button
-                          onClick={() => removeAttribute(attr.id)}
+                          onClick={() => setDeletingId(attr.id)}
                           className="p-2 text-rose-400/40 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors"
                         >
                           <Trash2 size={16} />
@@ -880,6 +888,56 @@ export const NeuralSection = () => {
           )}
         </button>
       </div>
+
+      {/* Red Warning Trait Deletion Modal */}
+      <AnimatePresence>
+        {deletingId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md"
+            onClick={() => setDeletingId(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 10 }}
+              className="w-full max-w-sm bg-gradient-to-b from-[#220a0e] to-[#0d0406] border border-rose-500/40 rounded-[28px] p-6 text-center space-y-4 shadow-2xl relative overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-14 h-14 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center mx-auto text-rose-500 shadow-lg shadow-rose-500/10">
+                <Trash2 size={26} />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-rose-500 uppercase tracking-tight">¿ESTÁS SEGURO?</h3>
+                <p className="text-xs font-semibold text-rose-200/90 leading-relaxed bg-rose-500/15 p-3 rounded-2xl border border-rose-500/30">
+                  El cambio siguiente será irreversible y no podrás poner otro si eres del plan FREE.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    removeAttribute(deletingId);
+                    setDeletingId(null);
+                  }}
+                  className="flex-1 py-3.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-black text-xs uppercase tracking-wider rounded-2xl transition-all shadow-lg shadow-rose-600/30 active:scale-95"
+                >
+                  Sí, Eliminar
+                </button>
+                <button
+                  onClick={() => setDeletingId(null)}
+                  className="flex-1 py-3.5 bg-white/10 hover:bg-white/20 text-white/80 font-bold text-xs uppercase tracking-wider rounded-2xl transition-all border border-white/10 active:scale-95"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

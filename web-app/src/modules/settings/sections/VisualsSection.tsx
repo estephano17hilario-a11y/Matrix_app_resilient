@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Palette, Eye, Check, Sparkles, Briefcase, Zap, Layers, Rocket, Coins, Hexagon, Brain, Dumbbell, Wallet, Target, Users } from 'lucide-react';
+import { Palette, Eye, Check, Sparkles, Briefcase, Zap, Layers, Rocket, Coins, Hexagon, ChevronDown, Brain, Dumbbell, Wallet, Target, Users } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { useTheme } from '@/context/ThemeContext';
 import { THEMES, ThemeId, THEME_PRICES, DEFAULT_UNLOCKED_THEMES, ThemeConfig, ThemeCategory } from '../../../config/themes';
@@ -25,15 +25,20 @@ const CATEGORIES: { id: DisplayCategory; label: string; icon: any }[] = [
   { id: 'gradients', label: 'Gradients', icon: Palette },
 ];
 
-const FILL_PRESETS = [
-  { id: 'white', label: 'Cristal', color: '#ffffff' },
-  { id: 'indigo', label: 'Índigo', color: '#6366f1' },
-  { id: 'cyan', label: 'Cyan', color: '#06b6d4' },
-  { id: 'emerald', label: 'Esmeralda', color: '#10b981' },
-  { id: 'violet', label: 'Violeta', color: '#8b5cf6' },
-  { id: 'rose', label: 'Rosa', color: '#f43f5e' },
-  { id: 'amber', label: 'Ámbar', color: '#f59e0b' },
-  { id: 'sky', label: 'Cielo', color: '#0ea5e9' },
+const FILL_OPTIONS = [
+  { value: 'multicolor', label: '🌈 Multicolor (Proyección por Trait)' },
+  { value: '#ffffff', label: 'Cristal (Blanco)' },
+  { value: '#6366f1', label: 'Índigo' },
+  { value: '#06b6d4', label: 'Cyan' },
+  { value: '#10b981', label: 'Esmeralda' },
+  { value: '#8b5cf6', label: 'Violeta' },
+  { value: '#f43f5e', label: 'Rosa' },
+  { value: '#f59e0b', label: 'Ámbar' },
+  { value: '#0ea5e9', label: 'Cielo' },
+  { value: '#ef4444', label: 'Carmesí' },
+  { value: '#ec4899', label: 'Neón Pink' },
+  { value: '#84cc16', label: 'Lime' },
+  { value: '#f97316', label: 'Naranja Fuego' },
 ];
 
 const DEMO_ATTRIBUTES: Attribute[] = [
@@ -52,6 +57,7 @@ export const VisualsSection = () => {
   const { currentTheme, setTheme, vividMode, toggleVividMode, radarConfig, updateRadarConfig } = useSettings();
   const { previewTheme, setPreviewTheme } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState<DisplayCategory>('all');
+  const [isRadarConfigOpen, setIsRadarConfigOpen] = useState(false);
   
   // Inline theme purchase states
   const [themeToPurchase, setThemeToPurchase] = useState<ThemeConfig | null>(null);
@@ -171,7 +177,7 @@ export const VisualsSection = () => {
 
       <div className="space-y-4">
         {/* Vivid Mode */}
-        <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-5 hover:border-white/[0.08] transition-colors relative overflow-hidden group">
+        <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-4 hover:border-white/[0.08] transition-colors relative overflow-hidden group">
           <div 
             className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity" 
             style={{ 
@@ -180,19 +186,19 @@ export const VisualsSection = () => {
             }} 
           />
           <div className="flex items-center justify-between relative z-10">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
-                <Eye size={18} className="text-amber-400" />
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                <Eye size={16} className="text-amber-400" />
               </div>
               <div>
-                <div className="text-base font-bold text-white tracking-tight">{t('settings.vividMode', 'Vivid Mode')}</div>
-                <div className="text-xs text-white/40 font-medium">{t('settings.vividModeDesc', 'Boost saturation for OLED displays')}</div>
+                <div className="text-sm font-bold text-white tracking-tight">{t('settings.vividMode', 'Vivid Mode')}</div>
+                <div className="text-[11px] text-white/40 font-medium">{t('settings.vividModeDesc', 'Boost saturation for OLED displays')}</div>
               </div>
             </div>
             <button
               onClick={() => toggleVividMode(!vividMode)}
               className={cn(
-                "w-12 h-7 rounded-full transition-all relative shadow-md border border-white/5",
+                "w-11 h-6 rounded-full transition-all relative shadow-md border border-white/5",
                 vividMode ? "bg-gradient-to-r from-emerald-500 to-emerald-400" : "bg-black/50"
               )}
             >
@@ -200,143 +206,150 @@ export const VisualsSection = () => {
                 layout
                 transition={{ type: "spring", stiffness: 500, damping: 25 }}
                 className={cn(
-                  "absolute top-0.5 w-6 h-6 rounded-full shadow-[0_2px_5px_rgba(0,0,0,0.3)]",
-                  vividMode ? "bg-white left-[22px]" : "bg-white/40 left-0.5"
+                  "absolute top-0.5 w-5 h-5 rounded-full shadow-[0_2px_5px_rgba(0,0,0,0.3)]",
+                  vividMode ? "bg-white left-[20px]" : "bg-white/40 left-0.5"
                 )}
               />
             </button>
           </div>
         </div>
 
-        {/* ─── RADAR CHART CUSTOMIZATION SECTION ─── */}
-        <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[24px] p-5 space-y-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-              <Hexagon size={18} className="text-indigo-400" />
+        {/* ─── RADAR CHART CUSTOMIZATION SECTION (COMPACT & COLLAPSIBLE) ─── */}
+        <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-4 transition-colors">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+                <Hexagon size={16} className="text-indigo-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white tracking-tight">Gráfico Radar / Araña</h3>
+                <p className="text-[11px] text-white/40 font-medium">Personaliza figura interior, bordes y puntos</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-base font-bold text-white tracking-tight">Gráfico Radar / Araña</h3>
-              <p className="text-xs text-white/40 font-medium">Personaliza la figura interior, bordes y puntos</p>
-            </div>
+            <button
+              onClick={() => setIsRadarConfigOpen(!isRadarConfigOpen)}
+              className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-all border border-white/10 active:scale-95 flex items-center gap-1.5 shrink-0"
+            >
+              <span>{isRadarConfigOpen ? 'Ocultar' : 'Personalizar'}</span>
+              <ChevronDown size={14} className={cn("transition-transform duration-200", isRadarConfigOpen && "rotate-180")} />
+            </button>
           </div>
 
-          {/* Interactive Live Preview */}
-          <div className="bg-black/50 rounded-2xl p-4 border border-white/10 flex flex-col items-center justify-center relative overflow-hidden shadow-inner">
-            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">
-              Vista Previa en Tiempo Real
-            </span>
-            <TraitRadarChart attributes={DEMO_ATTRIBUTES} radarConfig={radarConfig} />
-          </div>
+          <AnimatePresence>
+            {isRadarConfigOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden pt-3 space-y-3 border-t border-white/10 mt-3"
+              >
+                {/* Live Preview */}
+                <div className="bg-black/50 rounded-xl p-2 border border-white/10 flex flex-col items-center justify-center relative shadow-inner">
+                  <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest mb-1">Vista Previa</span>
+                  <TraitRadarChart attributes={DEMO_ATTRIBUTES} radarConfig={radarConfig} />
+                </div>
 
-          {/* Fill Color */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-white/80 tracking-wide uppercase">Color Interior</label>
-            <div className="flex flex-wrap gap-2">
-              {FILL_PRESETS.map(preset => {
-                const isSelected = radarConfig.fillColor === preset.color;
-                return (
-                  <button
-                    key={preset.id}
-                    onClick={() => updateRadarConfig({ fillColor: preset.color })}
-                    className={cn(
-                      "w-8 h-8 rounded-xl transition-all relative border-2 active:scale-90 flex items-center justify-center",
-                      isSelected ? "border-white scale-110 shadow-lg" : "border-transparent hover:border-white/30"
-                    )}
-                    style={{
-                      background: preset.color === '#ffffff' 
-                        ? 'linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.15) 100%)'
-                        : `linear-gradient(135deg, ${preset.color}CC 0%, ${preset.color}44 100%)`,
-                    }}
-                    title={preset.label}
+                {/* Color Selection Dropdown */}
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-xs font-semibold text-white/80 shrink-0">Color Interior</label>
+                  <select
+                    value={radarConfig.fillColor}
+                    onChange={(e) => updateRadarConfig({ fillColor: e.target.value })}
+                    className="bg-zinc-900 border border-white/15 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white focus:outline-none focus:border-indigo-500 cursor-pointer max-w-[200px] truncate"
                   >
-                    {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-white shadow-sm" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                    {FILL_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value} className="bg-zinc-900 text-white">
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-          {/* Fill Opacity */}
-          <div className="space-y-1.5">
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-semibold text-white/80">Opacidad de la Figura Interior</span>
-              <span className="font-mono text-indigo-400 font-bold">{radarConfig.fillOpacity}%</span>
-            </div>
-            <input 
-              type="range" 
-              min="0" 
-              max="100" 
-              value={radarConfig.fillOpacity} 
-              onChange={(e) => updateRadarConfig({ fillOpacity: Number(e.target.value) })}
-              className="w-full accent-indigo-500 bg-white/10 rounded-lg h-2 cursor-pointer"
-            />
-          </div>
+                {/* Fill Opacity Slider */}
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="font-semibold text-white/70">Opacidad Relleno</span>
+                    <span className="font-mono text-indigo-400 font-bold">{radarConfig.fillOpacity}%</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="100" 
+                    value={radarConfig.fillOpacity} 
+                    onChange={(e) => updateRadarConfig({ fillOpacity: Number(e.target.value) })}
+                    className="w-full accent-indigo-500 bg-white/10 rounded-lg h-1.5 cursor-pointer"
+                  />
+                </div>
 
-          {/* Border Style */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-white/80">Estilo del Borde</label>
-            <div className="flex gap-2">
-              <button
-                onClick={() => updateRadarConfig({ borderStyle: 'gradient' })}
-                className={cn(
-                  "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all border text-center active:scale-95",
-                  radarConfig.borderStyle === 'gradient' ? "bg-white text-black border-white shadow-md" : "bg-white/5 text-white/50 border-white/10 hover:text-white"
-                )}
-              >
-                Degradado Continuo
-              </button>
-              <button
-                onClick={() => updateRadarConfig({ borderStyle: 'dots-only' })}
-                className={cn(
-                  "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all border text-center active:scale-95",
-                  radarConfig.borderStyle === 'dots-only' ? "bg-white text-black border-white shadow-md" : "bg-white/5 text-white/50 border-white/10 hover:text-white"
-                )}
-              >
-                Solo Puntos Punteados
-              </button>
-            </div>
-          </div>
+                {/* Border Style Toggle */}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-white/80">Estilo Borde</span>
+                  <div className="flex gap-1 bg-black/40 p-0.5 rounded-lg border border-white/10">
+                    <button
+                      onClick={() => updateRadarConfig({ borderStyle: 'gradient' })}
+                      className={cn(
+                        "px-2.5 py-1 rounded-md text-[10px] font-bold transition-all",
+                        radarConfig.borderStyle === 'gradient' ? "bg-white text-black shadow-sm" : "text-white/50 hover:text-white"
+                      )}
+                    >
+                      Degradado
+                    </button>
+                    <button
+                      onClick={() => updateRadarConfig({ borderStyle: 'dots-only' })}
+                      className={cn(
+                        "px-2.5 py-1 rounded-md text-[10px] font-bold transition-all",
+                        radarConfig.borderStyle === 'dots-only' ? "bg-white text-black shadow-sm" : "text-white/50 hover:text-white"
+                      )}
+                    >
+                      Punteado
+                    </button>
+                  </div>
+                </div>
 
-          {/* Dot Color Mode */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-white/80">Color de los Puntos</label>
-            <div className="flex gap-2">
-              <button
-                onClick={() => updateRadarConfig({ dotColorMode: 'trait' })}
-                className={cn(
-                  "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all border text-center active:scale-95",
-                  radarConfig.dotColorMode === 'trait' ? "bg-white text-black border-white shadow-md" : "bg-white/5 text-white/50 border-white/10 hover:text-white"
-                )}
-              >
-                Colores de Traits/Hábitos
-              </button>
-              <button
-                onClick={() => updateRadarConfig({ dotColorMode: 'fill' })}
-                className={cn(
-                  "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all border text-center active:scale-95",
-                  radarConfig.dotColorMode === 'fill' ? "bg-white text-black border-white shadow-md" : "bg-white/5 text-white/50 border-white/10 hover:text-white"
-                )}
-              >
-                Mismo Color Interior (Más Fuerte)
-              </button>
-            </div>
-          </div>
+                {/* Dot Color Mode */}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-white/80">Color Puntos</span>
+                  <div className="flex gap-1 bg-black/40 p-0.5 rounded-lg border border-white/10">
+                    <button
+                      onClick={() => updateRadarConfig({ dotColorMode: 'trait' })}
+                      className={cn(
+                        "px-2.5 py-1 rounded-md text-[10px] font-bold transition-all",
+                        radarConfig.dotColorMode === 'trait' ? "bg-white text-black shadow-sm" : "text-white/50 hover:text-white"
+                      )}
+                    >
+                      Traits
+                    </button>
+                    <button
+                      onClick={() => updateRadarConfig({ dotColorMode: 'fill' })}
+                      className={cn(
+                        "px-2.5 py-1 rounded-md text-[10px] font-bold transition-all",
+                        radarConfig.dotColorMode === 'fill' ? "bg-white text-black shadow-sm" : "text-white/50 hover:text-white"
+                      )}
+                    >
+                      Relleno
+                    </button>
+                  </div>
+                </div>
 
-          {/* Dot Opacity */}
-          <div className="space-y-1.5">
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-semibold text-white/80">Opacidad de los Puntos</span>
-              <span className="font-mono text-indigo-400 font-bold">{radarConfig.dotOpacity}%</span>
-            </div>
-            <input 
-              type="range" 
-              min="0" 
-              max="100" 
-              value={radarConfig.dotOpacity} 
-              onChange={(e) => updateRadarConfig({ dotOpacity: Number(e.target.value) })}
-              className="w-full accent-indigo-500 bg-white/10 rounded-lg h-2 cursor-pointer"
-            />
-          </div>
+                {/* Dot Opacity Slider */}
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="font-semibold text-white/70">Opacidad Puntos</span>
+                    <span className="font-mono text-indigo-400 font-bold">{radarConfig.dotOpacity}%</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="100" 
+                    value={radarConfig.dotOpacity} 
+                    onChange={(e) => updateRadarConfig({ dotOpacity: Number(e.target.value) })}
+                    className="w-full accent-indigo-500 bg-white/10 rounded-lg h-1.5 cursor-pointer"
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Themes Section */}
@@ -356,10 +369,10 @@ export const VisualsSection = () => {
             )}
           </div>
 
-          {/* Theme Preview Portal with Tasks Zone Mock Card */}
+          {/* Clean Theme Preview Portal */}
           {previewTheme && typeof document !== 'undefined' && createPortal(
             <div 
-              className="theme-preview-portal fixed inset-0 z-[999999] flex flex-col items-center justify-center p-4 cursor-pointer gpu-accelerated"
+              className="theme-preview-portal fixed inset-0 z-[999999] flex flex-col items-center justify-end pb-24 cursor-pointer gpu-accelerated"
               onClick={handleExitPreview}
             >
               <style>{`
@@ -371,41 +384,6 @@ export const VisualsSection = () => {
                 }
               `}</style>
               
-              {/* Mock Tasks Zone Card Overlay */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                className="w-full max-w-sm bg-black/65 backdrop-blur-xl border border-white/20 rounded-[28px] p-5 shadow-2xl space-y-4 mb-6"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-xs font-black text-white uppercase tracking-wider">Zona de Tareas</span>
-                  </div>
-                  <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/20 border border-indigo-500/30 px-2 py-0.5 rounded-full">
-                    NIVEL 12
-                  </span>
-                </div>
-
-                {/* Radar Chart Sample */}
-                <div className="flex justify-center py-1">
-                  <TraitRadarChart attributes={DEMO_ATTRIBUTES} radarConfig={radarConfig} />
-                </div>
-
-                {/* Sample Tasks */}
-                <div className="space-y-2 pt-1">
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs">
-                    <span className="font-semibold text-white">⚡ Meditación Matutina (15 min)</span>
-                    <span className="text-emerald-400 font-mono font-bold">+50 XP</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs">
-                    <span className="font-semibold text-white">🎯 Completar proyecto prioritario</span>
-                    <span className="text-indigo-400 font-mono font-bold">+120 XP</span>
-                  </div>
-                </div>
-              </motion.div>
-
               <div 
                 className="bg-black/90 border border-white/20 px-8 py-3.5 rounded-full shadow-2xl flex flex-col items-center gap-0.5 animate-enter-view hover:bg-black transition-colors"
               >
