@@ -300,7 +300,7 @@ export const FocusStats = React.memo(({
     };
 
     const { chartMax, yTicks } = useMemo(() => {
-        const base = Math.max(stats.max * 1.15, 60);
+        const base = Math.max(stats.max * 1.05, 60);
         const steps = [15, 30, 60, 90, 120, 180, 240, 360, 480, 720, 960];
         const maxTicks = 6;
         let step = steps.find((s) => Math.ceil(base / s) <= maxTicks - 1);
@@ -725,7 +725,7 @@ export const FocusStats = React.memo(({
                     yTickFormatter={formatYTick}
                     xTickInterval={xTickInterval}
                     barSpacing={barSpacing}
-                    paddingTop="top-10"
+                    paddingTop="top-4"
                     tooltipValueFormatter={formatMinutes}
                     tooltipLabelFormatter={(label) => label}
                 />

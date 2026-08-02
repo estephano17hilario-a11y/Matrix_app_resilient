@@ -1,5 +1,6 @@
 import { ThemeId } from '../../config/themes';
 import { Attribute } from '../../types';
+import { RadarConfig } from '@/types/User';
 import { SettingsProvider } from '../settings/SettingsContext';
 import { SettingsModal } from '../settings/components/SettingsModal';
 
@@ -11,6 +12,8 @@ export interface SettingsViewProps {
   onToggleProfile: (show: boolean) => void;
   defaultChartMode: 'RADAR' | 'BAR';
   onSetDefaultChartMode: (mode: 'RADAR' | 'BAR') => void;
+  radarConfig?: RadarConfig;
+  onUpdateRadarConfig?: (updates: Partial<RadarConfig>) => void;
   attributes?: Attribute[];
   onUpdateAttribute?: (id: string, updates: Partial<Attribute>) => void;
   onAddAttribute?: (id: string) => void;

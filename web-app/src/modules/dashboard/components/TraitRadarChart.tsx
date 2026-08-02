@@ -3,22 +3,27 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Attribute } from '../../../types';
 import { cn } from '../../../utils/cn';
+import { RadarConfig, DEFAULT_RADAR_CONFIG } from '@/types/User';
 
 interface TraitRadarChartProps {
     attributes: Attribute[];
     className?: string;
+    radarConfig?: RadarConfig;
 }
 
-export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, className }) => {
+export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ 
+    attributes, 
+    className,
+    radarConfig = DEFAULT_RADAR_CONFIG 
+}) => {
     const { t } = useTranslation();
-    // 1. CONFIGURATION
-    const CONTAINER_SIZE = 300; // Expanded to fit new radius
+    const CONTAINER_SIZE = 300;
     const [scale, setScale] = useState(1);
 
     useEffect(() => {
         const handleResize = () => {
             const width = window.innerWidth;
-            const availableWidth = width - 24; // Tighter padding
+            const availableWidth = width - 24;
             if (availableWidth < CONTAINER_SIZE) {
                 setScale(availableWidth / CONTAINER_SIZE);
             } else {
@@ -32,26 +37,28 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
     }, []);
 
     const CENTER = CONTAINER_SIZE / 2;
-    const GRID_RADIUS = 95; // Increased to touch icons
-    const ICON_DISTANCE = 110; // Moved further out
+    const GRID_RADIUS = 95;
+    const ICON_DISTANCE = 110;
 
-    // Helper: Map Trait IDs to Hex Colors (Backup/Override)
+    const activeConfig = useMemo(() => ({
+        ...DEFAULT_RADAR_CONFIG,
+        ...radarConfig
+    }), [radarConfig]);
+
+    // Helper: Map Trait IDs to Hex Colors (uses ORIGINAL attribute colors)
     const TRAIT_COLORS: Record<string, string> = {
-        // SPANISH IDs (From Constants)
-        DISCIPLINA: '#3b82f6',  // Blue
-        FISICO: '#ef4444',      // Red
-        MENTAL: '#06b6d4',      // Cyan
-        SOCIAL: '#ec4899',      // Pink
-        ESPIRITU: '#8b5cf6',    // Violet
-        FINANZAS: '#10b981',    // Emerald
-        CREATIVIDAD: '#f59e0b', // Amber
-        ORDEN: '#64748b',       // Slate
-        LIDERAZGO: '#6366f1',   // Indigo
-        RESILIENCIA: '#f97316', // Orange
-        VITALIDAD: '#84cc16',   // Lime
-        ESTILO: '#d946ef',      // Fuchsia
-        
-        // English Fallbacks
+        DISCIPLINA: '#3b82f6',
+        FISICO: '#ef4444',
+        MENTAL: '#06b6d4',
+        SOCIAL: '#ec4899',
+        ESPIRITU: '#8b5cf6',
+        FINANZAS: '#10b981',
+        CREATIVIDAD: '#f59e0b',
+        ORDEN: '#64748b',
+        LIDERAZGO: '#6366f1',
+        RESILIENCIA: '#f97316',
+        VITALIDAD: '#84cc16',
+        ESTILO: '#d946ef',
         relentless: '#ef4444', 
         strategic: '#06b6d4',  
         creative: '#d946ef',   
@@ -60,16 +67,13 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
         analyst: '#6366f1',    
     };
 
-    // 2. DATA PREPARATION
+    // DATA PREPARATION
     const maxLevel = useMemo(() => {
         if (!attributes.length) return 10;
-        // Safety check for NaN or infinite levels
         const validAttributes = attributes.filter(a => !isNaN(a.level) && isFinite(a.level));
         if (!validAttributes.length) return 10;
         
         const max = Math.max(...validAttributes.map(a => a.level || 1), 1);
-        // Add 15% buffer so the highest value isn't stuck to the edge (User Request: "mental demasiado pegado")
-        // This ensures the max value is around ~87% of the radius, leaving breathing room.
         return Math.max(max * 1.15, 5);
     }, [attributes]);
 
@@ -78,34 +82,27 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
         if (count < 3) return [];
 
         return attributes.map((attr, index) => {
-            // Angle: -90deg (Top) is 0 index
             const angleDeg = (360 / count) * index - 90;
             const angleRad = angleDeg * (Math.PI / 180);
 
-            // Helper for coordinates
             const getPoint = (r: number) => ({
                 x: CENTER + r * Math.cos(angleRad),
                 y: CENTER + r * Math.sin(angleRad)
             });
 
-            // Safety checks for NaN
             const lvl = isNaN(attr.level) ? 1 : (attr.level || 1);
             const xp = isNaN(attr.xp) ? 0 : (attr.xp || 0);
             const maxXp = (isNaN(attr.maxXp) || attr.maxXp === 0) ? 100 : (attr.maxXp || 100);
             
             const rawScore = lvl + (xp / maxXp);
-            // Clamp score between 0 and 1.2 (allow slight overflow for visual pop but prevent infinite)
             let normalizedScore = rawScore / maxLevel;
             
             if (isNaN(normalizedScore) || !isFinite(normalizedScore)) {
                 normalizedScore = 0.1;
             }
             
-            // Cap at 1.0 for the graph boundary, or 1.1 for "breaking limits" effect?
-            // User complained about "sale completamente", so cap strictly at 1.0
             const validScore = Math.min(Math.max(normalizedScore, 0.05), 1.0);
 
-            // Determine Label Alignment based on Angle
             let alignment: 'top' | 'right' | 'bottom' | 'left' = 'right';
             
             if (angleDeg === -90 || angleDeg === 270) alignment = 'top';
@@ -113,10 +110,6 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
             else if (angleDeg > -90 && angleDeg < 90) alignment = 'right';
             else alignment = 'left';
 
-            // Resolve color:
-            // 1. Check if attr.color is already a Hex string (Best case)
-            // 2. Lookup by ID (Upper or Lower case)
-            // 3. Fallback to white
             let color = '#ffffff';
             if (attr.color && attr.color.startsWith('#')) {
                 color = attr.color;
@@ -126,7 +119,7 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
 
             return {
                 ...attr,
-                color, // OVERRIDE the gradient string with Hex
+                color,
                 angleRad,
                 gridPoint: getPoint(GRID_RADIUS),
                 valuePoint: getPoint(GRID_RADIUS * validScore),
@@ -145,7 +138,7 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
         return "text-[6px] tracking-normal";
     };
 
-    // 3. POLYGON PATHS
+    // POLYGON PATHS
     const polygonPath = useMemo(() => {
         if (chartData.length < 3) return "";
         return chartData.map((p, i) => 
@@ -153,35 +146,40 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
         ).join(" ") + " Z";
     }, [chartData]);
 
-    // 4. DYNAMIC HEIGHT CALCULATION
+    // DYNAMIC HEIGHT CALCULATION
     const chartHeight = useMemo(() => {
         if (chartData.length < 3) return CONTAINER_SIZE;
         
         let maxY = 0;
         chartData.forEach(p => {
-             // Icon center is p.iconPoint.y. Radius ~16px.
              let bottom = p.iconPoint.y + 16;
-             
-             // If label is at bottom, add extra space for text
              if (p.alignment === 'bottom') {
-                 bottom += 24; // Approx text height
+                 bottom += 24;
              }
-             
              if (bottom > maxY) maxY = bottom;
         });
 
-        // Add padding (10px) and clamp
         return Math.min(Math.max(maxY + 10, CONTAINER_SIZE * 0.5), CONTAINER_SIZE);
     }, [chartData]);
 
     const gridLevels = [0.33, 0.66, 1];
 
+    // Parse hex to RGB for gradient manipulation
+    const hexToRgb = (hex: string) => {
+        const cleanHex = hex.startsWith('#') ? hex.slice(1) : hex;
+        const r = parseInt(cleanHex.slice(0, 2), 16) || 255;
+        const g = parseInt(cleanHex.slice(2, 4), 16) || 255;
+        const b = parseInt(cleanHex.slice(4, 6), 16) || 255;
+        return { r, g, b };
+    };
+
+    const fillRgb = hexToRgb(activeConfig.fillColor || '#ffffff');
+    const fillAlpha = (activeConfig.fillOpacity ?? 35) / 100;
+    const dotAlpha = (activeConfig.dotOpacity ?? 100) / 100;
+
     if (attributes.length < 3) return null;
 
     return (
-        // Removed left-1/2 -translate-x-1/2. Rely on parent Flexbox for true centering.
-        // Added mx-auto for safety.
-        // WRAPPER: Handles the scaled size footprint
         <div 
             className={cn("relative flex items-start justify-center select-none mx-auto", className)} 
             style={{ 
@@ -189,13 +187,12 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                 height: chartHeight * scale 
             }}
         >
-            {/* INNER: The actual chart, scaled */}
             <div style={{
                 width: CONTAINER_SIZE,
                 height: CONTAINER_SIZE,
                 transform: `scale(${scale})`,
                 transformOrigin: 'top center',
-                position: 'relative' // Keeps it centered in the flex parent
+                position: 'relative'
             }}>
             
             {/* SVG LAYER */}
@@ -207,14 +204,36 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                 style={{ overflow: 'visible' }}
             >
                 <defs>
-                    <radialGradient id="radarGradient" cx="50%" cy="50%" r="65%" fx="50%" fy="50%">
-                        <stop offset="0%" stopColor="rgba(100, 116, 139, 0.1)" />
-                        <stop offset="100%" stopColor="rgba(100, 116, 139, 0.05)" />
+                    {/* Radial gradient from center to edge with fillOpacity control */}
+                    <radialGradient id="polyFillGradient" cx="50%" cy="50%" r="55%" fx="50%" fy="50%">
+                        <stop offset="0%" stopColor={`rgba(${fillRgb.r}, ${fillRgb.g}, ${fillRgb.b}, ${fillAlpha * 0.1})`} />
+                        <stop offset="50%" stopColor={`rgba(${fillRgb.r}, ${fillRgb.g}, ${fillRgb.b}, ${fillAlpha * 0.4})`} />
+                        <stop offset="85%" stopColor={`rgba(${fillRgb.r}, ${fillRgb.g}, ${fillRgb.b}, ${fillAlpha * 0.8})`} />
+                        <stop offset="100%" stopColor={`rgba(${fillRgb.r}, ${fillRgb.g}, ${fillRgb.b}, ${fillAlpha})`} />
                     </radialGradient>
-                    {/* OPTIMIZATION: Removed SVG Filter "glow" for GPU performance */}
+
+                    {/* Per-segment gradients for the gradient border style */}
+                    {activeConfig.borderStyle === 'gradient' && chartData.map((p, i) => {
+                        const nextIdx = (i + 1) % chartData.length;
+                        const nextP = chartData[nextIdx];
+                        const segColor1 = activeConfig.dotColorMode === 'fill' ? activeConfig.fillColor : p.color;
+                        const segColor2 = activeConfig.dotColorMode === 'fill' ? activeConfig.fillColor : nextP.color;
+                        return (
+                            <linearGradient 
+                                key={`seg-grad-${i}`} 
+                                id={`segGrad-${i}`}
+                                x1={p.valuePoint.x} y1={p.valuePoint.y}
+                                x2={nextP.valuePoint.x} y2={nextP.valuePoint.y}
+                                gradientUnits="userSpaceOnUse"
+                            >
+                                <stop offset="0%" stopColor={segColor1} stopOpacity="0.85" />
+                                <stop offset="100%" stopColor={segColor2} stopOpacity="0.85" />
+                            </linearGradient>
+                        );
+                    })}
                 </defs>
 
-                {/* Grid Web - WHITE & VISIBLE (Reference Lines) */}
+                {/* Grid Web - Reference Lines */}
                 {gridLevels.map((level, i) => (
                     <path
                         key={`grid-${i}`}
@@ -225,12 +244,12 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                             return `${j === 0 ? 'M' : 'L'} ${x} ${y}`;
                         }).join(" ") + " Z"}
                         fill="none"
-                        stroke="rgba(255, 255, 255, 0.3)" // Increased opacity
-                        strokeWidth="0.6" // Increased visibility
+                        stroke="rgba(255, 255, 255, 0.3)"
+                        strokeWidth="0.6"
                     />
                 ))}
 
-                {/* Connector to Icon - SUBTLE */}
+                {/* Connector to Icon */}
                 {chartData.map((p, i) => (
                     <line
                         key={`conn-${i}`}
@@ -244,57 +263,78 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                     />
                 ))}
 
-                {/* Data Fill (Background) */}
+                {/* POLYGON FILL: Gradient from center to edge */}
                 <motion.path
                     d={polygonPath}
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ 
-                        duration: 0.25,
-                        ease: "easeOut",
-                        delay: 0.1
-                    }}
+                    transition={{ duration: 0.25, ease: "easeOut", delay: 0.1 }}
                     style={{ originX: "50%", originY: "50%" }}
-                    fill="rgba(255, 255, 255, 0.5)" // White fill 50%
-                    stroke="rgba(255, 255, 255, 0.4)" // Slightly brighter
-                    strokeWidth="1.5"
+                    fill="url(#polyFillGradient)"
+                    stroke={`rgba(${fillRgb.r}, ${fillRgb.g}, ${fillRgb.b}, ${fillAlpha * 0.6})`}
+                    strokeWidth="1"
                 />
 
-                {/* Data Perimeter - OPTIMIZED SINGLE PATH (Better Performance than many lines) */}
-                <motion.path
-                    d={polygonPath}
-                    fill="none"
-                    stroke="#ffffff"
-                    strokeWidth="1.5"
-                    strokeOpacity="0.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 1 }}
-                    transition={{ 
-                        pathLength: { duration: 0.15, ease: "easeInOut", delay: 0.1 },
-                        opacity: { duration: 0.2, delay: 0.1 }
-                    }}
-                    style={{ filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.5))' }} // Fake Glow
-                />
-
-                {/* Data Points - JEWELS (Subtle Gradient Tips) */}
-                {chartData.map((p, i) => (
-                    <motion.circle
-                        key={`pt-${i}`}
-                        cx={p.valuePoint.x}
-                        cy={p.valuePoint.y}
-                        r={2.5} // Tiny tip
-                        fill={p.color} // Trait color
-                        fillOpacity="0.9"
-                        stroke={p.color}
-                        strokeWidth="2"
-                        strokeOpacity="0.3" // Gradient glow effect via stroke
-                        initial={{ opacity: 0, scale: 0, cx: p.valuePoint.x, cy: p.valuePoint.y }}
-                        animate={{ opacity: 1, scale: 1, cx: p.valuePoint.x, cy: p.valuePoint.y }}
-                        transition={{ delay: 0.4 + (i * 0.05), duration: 0.2, type: "spring", stiffness: 300 }}
+                {/* BORDER: Gradient segments OR subtle dashed line */}
+                {activeConfig.borderStyle === 'gradient' ? (
+                    chartData.map((p, i) => {
+                        const nextIdx = (i + 1) % chartData.length;
+                        const nextP = chartData[nextIdx];
+                        return (
+                            <motion.line
+                                key={`border-seg-${i}`}
+                                x1={p.valuePoint.x}
+                                y1={p.valuePoint.y}
+                                x2={nextP.valuePoint.x}
+                                y2={nextP.valuePoint.y}
+                                stroke={`url(#segGrad-${i})`}
+                                strokeWidth="2.5"
+                                strokeLinecap="round"
+                                initial={{ pathLength: 0, opacity: 0 }}
+                                animate={{ pathLength: 1, opacity: 1 }}
+                                transition={{ 
+                                    duration: 0.3, 
+                                    ease: "easeInOut", 
+                                    delay: 0.15 + (i * 0.03) 
+                                }}
+                                style={{ filter: `drop-shadow(0 0 6px ${p.color}50)` }}
+                            />
+                        );
+                    })
+                ) : (
+                    <motion.path
+                        d={polygonPath}
+                        fill="none"
+                        stroke="rgba(255,255,255,0.15)"
+                        strokeWidth="1.2"
+                        strokeDasharray="3 3"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3, delay: 0.2 }}
                     />
-                ))}
+                )}
+
+                {/* DATA POINTS: SINGLE CLEAN CIRCLE PER VERTEX (NO DOUBLE CIRCLE) */}
+                {chartData.map((p, i) => {
+                    const dotColor = activeConfig.dotColorMode === 'fill' ? activeConfig.fillColor : p.color;
+                    return (
+                        <motion.circle
+                            key={`pt-${i}`}
+                            cx={p.valuePoint.x}
+                            cy={p.valuePoint.y}
+                            r={activeConfig.borderStyle === 'dots-only' ? 4.5 : 3.5}
+                            fill={dotColor}
+                            fillOpacity={dotAlpha}
+                            stroke="rgba(255,255,255,0.4)"
+                            strokeWidth="0.8"
+                            strokeOpacity={dotAlpha}
+                            initial={{ opacity: 0, scale: 0 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.4 + (i * 0.05), duration: 0.2, type: "spring", stiffness: 300 }}
+                            style={{ filter: `drop-shadow(0 0 5px ${dotColor}aa)` }}
+                        />
+                    );
+                })}
 
             </svg>
 
@@ -312,35 +352,24 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({ attributes, cl
                         className="absolute pointer-events-auto group"
                         style={{
                             left: item.iconPoint.x,
-                            top: item.iconPoint.y, // Zero width wrapper to act as anchor
-                            
+                            top: item.iconPoint.y,
                             overflow: 'visible'
                         }}
                     >
-                         {/* MANUAL OFFSET WRAPPER TO FORCE ICON CENTER TO (0,0) 
-                             Logic: Icon is 32x32 (center 16). 
-                             We want Icon Center to be at Anchor (0,0).
-                             Text flows OUTWARD from the icon.
-                         */}
                          <div 
                             className={cn(
                                 "absolute flex items-center gap-1.5", 
-                                // TOP: Text Above (-90deg). Icon Bottom. Shift Up by (H-16).
                                 item.alignment === 'top' && "flex-col-reverse -translate-x-1/2 -translate-y-[calc(100%-16px)]", 
-                                // BOTTOM: Text Below (90deg). Icon Top. Shift Up by 16.
                                 item.alignment === 'bottom' && "flex-col -translate-x-1/2 -translate-y-[16px]",
-                                // RIGHT: Text Right. Icon Left. Shift Left by 16.
                                 item.alignment === 'right' && "flex-row -translate-y-1/2 -translate-x-[16px]",
-                                // LEFT: Text Left. Icon Right. Shift Left by (W-16).
                                 item.alignment === 'left' && "flex-row-reverse -translate-y-1/2 -translate-x-[calc(100%-16px)]"
                             )}
                         >
                             <div 
                                 className="w-8 h-8 rounded-xl flex items-center justify-center border shadow-sm z-10 shrink-0"
                                 style={{ 
-                                    backgroundColor: `${item.color}20`, // Slightly more opacity to compensate for no blur
+                                    backgroundColor: `${item.color}20`,
                                     borderColor: `${item.color}40`,
-                                    // backdropFilter: 'blur(8px)' // REMOVED: Expensive
                                 }}
                             >
                                 <Icon size={14} style={{ color: item.color }} />

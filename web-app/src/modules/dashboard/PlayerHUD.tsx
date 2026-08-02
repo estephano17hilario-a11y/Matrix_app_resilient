@@ -9,6 +9,7 @@ import { cn } from '@/utils/cn';
 import { TraitRadarChart } from './components/TraitRadarChart';
 import { TRAITS_LIST } from './constants';
 import { Attribute } from '@/types';
+import { RadarConfig } from '@/types/User';
 import { calculateSubTraitMaxXp } from '@/utils/leveling';
 import { IconPicker } from './components/IconPicker';
 
@@ -16,6 +17,7 @@ interface PlayerHUDProps {
  attributes?: Attribute[];
  className?: string;
  defaultChartMode?: 'RADAR' | 'BAR';
+ radarConfig?: RadarConfig;
  onAddSubTrait?: (parentAttrId: string, name: string, iconName: string) => Promise<void> | void;
  onUpdateSubTrait?: (parentAttrId: string, subTraitId: string, updates: any) => Promise<void> | void;
  onDeleteSubTrait?: (parentAttrId: string, subTraitId: string) => Promise<void> | void;
@@ -493,13 +495,14 @@ const TraitBar = ({
 };
 
 export const PlayerHUD: React.FC<PlayerHUDProps> = React.memo(({
- attributes = [],
- className,
- defaultChartMode = 'RADAR',
- onAddSubTrait,
- onUpdateSubTrait,
- onDeleteSubTrait,
- onOpenProgress,
+  attributes = [],
+  className,
+  defaultChartMode = 'RADAR',
+  radarConfig,
+  onAddSubTrait,
+  onUpdateSubTrait,
+  onDeleteSubTrait,
+  onOpenProgress,
 }) => {
  const { t } = useTranslation();
  const [chartMode, setChartMode] = useState<'RADAR' | 'BAR'>(defaultChartMode);
@@ -584,7 +587,7 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = React.memo(({
          transition={{ type: "spring", stiffness: 300, damping: 30 }}
          className="w-full h-full flex items-center justify-center"
        >
-        <TraitRadarChart attributes={orderedAttributes} />
+         <TraitRadarChart attributes={orderedAttributes} radarConfig={radarConfig} />
        </motion.div>
       ) : (
        <motion.div 

@@ -361,6 +361,8 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  setValTempValue,
  defaultChartMode,
  setDefaultChartMode,
+ radarConfig,
+ updateRadarConfig,
  dashboardStyle,
  avatarShape,
  badHabits,
@@ -1778,6 +1780,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  <PlayerHUD 
  attributes={attributes}
  defaultChartMode={defaultChartMode}
+ radarConfig={radarConfig}
  onAddSubTrait={addSubTrait}
  onUpdateSubTrait={updateSubTrait}
  onDeleteSubTrait={deleteSubTrait}
@@ -2439,6 +2442,8 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  initialTab={settingsInitialTab}
  defaultChartMode={defaultChartMode}
  onSetDefaultChartMode={setDefaultChartMode}
+ radarConfig={radarConfig}
+ onUpdateRadarConfig={updateRadarConfig}
  attributes={attributes}
  onUpdateAttribute={updateAttributeMetadata}
  onAddAttribute={addAttribute}

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { ThemeId } from '../../config/themes';
 import { Attribute } from '../../types';
+import { RadarConfig, DEFAULT_RADAR_CONFIG } from '@/types/User';
 import { useAuth } from '@/context/AuthContext';
 
 // Define the shape of the Settings Context
@@ -35,6 +36,8 @@ interface SettingsContextType {
   // System & Charts
   defaultChartMode: 'RADAR' | 'BAR';
   setDefaultChartMode: (mode: 'RADAR' | 'BAR') => void;
+  radarConfig: RadarConfig;
+  updateRadarConfig: (updates: Partial<RadarConfig>) => void;
   habitSectionControl: 'VISIBLE' | 'HIDDEN';
   updateHabitSectionControl: (control: 'VISIBLE' | 'HIDDEN') => void;
   defaultHabitView: 'DEFAULT' | 'CHRONOLOGICAL';
@@ -87,6 +90,8 @@ interface SettingsProviderProps {
   onToggleProfile: (show: boolean) => void;
   defaultChartMode: 'RADAR' | 'BAR';
   onSetDefaultChartMode: (mode: 'RADAR' | 'BAR') => void;
+  radarConfig?: RadarConfig;
+  onUpdateRadarConfig?: (updates: Partial<RadarConfig>) => void;
   attributes?: Attribute[];
   onUpdateAttribute?: (id: string, updates: Partial<Attribute>) => void;
   onAddAttribute?: (id: string) => void;
@@ -178,6 +183,8 @@ export const SettingsProvider = ({ children, ...props }: SettingsProviderProps) 
 
     defaultChartMode: props.defaultChartMode,
     setDefaultChartMode: props.onSetDefaultChartMode,
+    radarConfig: props.radarConfig || DEFAULT_RADAR_CONFIG,
+    updateRadarConfig: props.onUpdateRadarConfig || (() => {}),
     habitSectionControl: props.habitSectionControl || 'VISIBLE',
     updateHabitSectionControl: props.onUpdateHabitSectionControl || (() => {}),
     defaultHabitView: props.defaultHabitView || 'DEFAULT',

@@ -38,6 +38,22 @@ export interface DailyLimits {
   focusMinutes?: number;
 }
 
+export interface RadarConfig {
+  fillColor: string;
+  fillOpacity: number; // 0..100
+  dotOpacity: number; // 0..100
+  borderStyle: 'gradient' | 'dots-only';
+  dotColorMode: 'trait' | 'fill';
+}
+
+export const DEFAULT_RADAR_CONFIG: RadarConfig = {
+  fillColor: '#ffffff',
+  fillOpacity: 35,
+  dotOpacity: 100,
+  borderStyle: 'gradient',
+  dotColorMode: 'trait'
+};
+
 export interface UserProfile {
   id: string; // Used to be uid, migrated to Supabase id
   uid: string; // Kept for backward compatibility
@@ -61,6 +77,7 @@ export interface UserProfile {
     dockConfig?: DockConfig;
     weekStartDay?: 0 | 1;
     defaultChartMode?: 'RADAR' | 'BAR';
+    radarConfig?: RadarConfig;
     showProfile?: boolean;
     defaultChartViews?: any;
     defaultProjectView?: any;

@@ -9,7 +9,7 @@ import {
   Attribute, Quest, Habit, Project, BadHabit,
   NotificationItem, Particle, Session 
 } from '@/types';
-import { DailyLimits, UserPlan, UserProfile } from '@/types/User';
+import { DailyLimits, UserPlan, UserProfile, RadarConfig, DEFAULT_RADAR_CONFIG } from '@/types/User';
 import { TRAITS_LIST } from '../constants';
 import { GAMIFICATION_CONFIG } from '@/config/gamification';
 import { FREE_LIMITS, ENABLE_GLOBAL_PRO } from '@/config/limits';
@@ -279,6 +279,28 @@ export const useDashboardLogic = () => {
             }
         }
     }, [user?.id, user?.preferences, updateProfileLocally]);
+
+    const [radarConfig, _setRadarConfig] = useState<RadarConfig>(() => {
+        const saved = localStorage.getItem('radarConfig');
+        if (saved) {
+            try { return { ...DEFAULT_RADAR_CONFIG, ...JSON.parse(saved) }; } catch (e) {}
+        }
+        return user?.preferences?.radarConfig || DEFAULT_RADAR_CONFIG;
+    });
+
+    const updateRadarConfig = useCallback(async (updates: Partial<RadarConfig>) => {
+        _setRadarConfig(prev => {
+            const updated = { ...prev, ...updates };
+            localStorage.setItem('radarConfig', JSON.stringify(updated));
+            if (user?.id) {
+                const newPrefs = { ...(user.preferences || {}), radarConfig: updated };
+                updateProfileLocally({ preferences: newPrefs });
+                supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id).then();
+            }
+            return updated;
+        });
+    }, [user?.id, user?.preferences, updateProfileLocally]);
+
     const [dashboardStyle, setDashboardStyle] = useState<'BORDER' | 'LIQUID' | 'GLASS' | 'AURA'>(() => user?.preferences?.dashboardStyle || user?.dashboardStyle || 'BORDER');
     const [avatarShape, setAvatarShape] = useState<'CIRCLE' | 'SQUARE'>(() => user?.preferences?.avatarShape || user?.avatarShape || 'CIRCLE');
     const [habitSectionControl, setHabitSectionControl] = useState<'VISIBLE' | 'HIDDEN'>(() => user?.preferences?.habitSectionControl || user?.habitSectionControl || 'VISIBLE');
@@ -6922,6 +6944,8 @@ export const useDashboardLogic = () => {
         deleteSubTrait,
         currentDate,
         setCurrentDate,
-        displayedDailyLimits
+        displayedDailyLimits,
+        radarConfig,
+        updateRadarConfig
     };
 };

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Palette, Eye, Check, Sparkles, Briefcase, Zap, Layers, Rocket, Coins } from 'lucide-react';
+import { Palette, Eye, Check, Sparkles, Briefcase, Zap, Layers, Rocket, Coins, Hexagon, Brain, Dumbbell, Wallet, Target, Users } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { useTheme } from '@/context/ThemeContext';
 import { THEMES, ThemeId, THEME_PRICES, DEFAULT_UNLOCKED_THEMES, ThemeConfig, ThemeCategory } from '../../../config/themes';
@@ -11,6 +11,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useEconomy } from '@/context/EconomyContext';
 import toast from 'react-hot-toast';
 import confetti from 'canvas-confetti';
+import { TraitRadarChart } from '../../dashboard/components/TraitRadarChart';
+import { Attribute } from '../../../types';
 
 type DisplayCategory = 'all' | 'orbs' | 'minimal' | 'gradients' | 'holo' | 'cosmic';
 
@@ -23,11 +25,31 @@ const CATEGORIES: { id: DisplayCategory; label: string; icon: any }[] = [
   { id: 'gradients', label: 'Gradients', icon: Palette },
 ];
 
+const FILL_PRESETS = [
+  { id: 'white', label: 'Cristal', color: '#ffffff' },
+  { id: 'indigo', label: 'Índigo', color: '#6366f1' },
+  { id: 'cyan', label: 'Cyan', color: '#06b6d4' },
+  { id: 'emerald', label: 'Esmeralda', color: '#10b981' },
+  { id: 'violet', label: 'Violeta', color: '#8b5cf6' },
+  { id: 'rose', label: 'Rosa', color: '#f43f5e' },
+  { id: 'amber', label: 'Ámbar', color: '#f59e0b' },
+  { id: 'sky', label: 'Cielo', color: '#0ea5e9' },
+];
+
+const DEMO_ATTRIBUTES: Attribute[] = [
+  { id: 'MENTAL', label: 'Mental', icon: Brain, level: 8, xp: 40, maxXp: 100, color: '#06b6d4' },
+  { id: 'FISICO', label: 'Físico', icon: Dumbbell, level: 6, xp: 75, maxXp: 100, color: '#ef4444' },
+  { id: 'FINANZAS', label: 'Finanzas', icon: Wallet, level: 9, xp: 20, maxXp: 100, color: '#10b981' },
+  { id: 'CREATIVIDAD', label: 'Creatividad', icon: Palette, level: 7, xp: 85, maxXp: 100, color: '#f59e0b' },
+  { id: 'DISCIPLINA', label: 'Disciplina', icon: Target, level: 10, xp: 50, maxXp: 100, color: '#3b82f6' },
+  { id: 'SOCIAL', label: 'Social', icon: Users, level: 5, xp: 30, maxXp: 100, color: '#ec4899' },
+];
+
 export const VisualsSection = () => {
   const { t } = useTranslation();
   const { profile } = useAuth();
   const { purchase } = useEconomy();
-  const { currentTheme, setTheme, vividMode, toggleVividMode } = useSettings();
+  const { currentTheme, setTheme, vividMode, toggleVividMode, radarConfig, updateRadarConfig } = useSettings();
   const { previewTheme, setPreviewTheme } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState<DisplayCategory>('all');
   
@@ -55,7 +77,6 @@ export const VisualsSection = () => {
     };
   }, [previewTheme]);
 
-  // Lock body scroll when purchase modal is open to prevent scrolling in background
   useEffect(() => {
     if (themeToPurchase) {
       document.body.classList.add('overflow-hidden');
@@ -149,6 +170,7 @@ export const VisualsSection = () => {
       </div>
 
       <div className="space-y-4">
+        {/* Vivid Mode */}
         <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-5 hover:border-white/[0.08] transition-colors relative overflow-hidden group">
           <div 
             className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity" 
@@ -186,6 +208,138 @@ export const VisualsSection = () => {
           </div>
         </div>
 
+        {/* ─── RADAR CHART CUSTOMIZATION SECTION ─── */}
+        <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[24px] p-5 space-y-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+              <Hexagon size={18} className="text-indigo-400" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white tracking-tight">Gráfico Radar / Araña</h3>
+              <p className="text-xs text-white/40 font-medium">Personaliza la figura interior, bordes y puntos</p>
+            </div>
+          </div>
+
+          {/* Interactive Live Preview */}
+          <div className="bg-black/50 rounded-2xl p-4 border border-white/10 flex flex-col items-center justify-center relative overflow-hidden shadow-inner">
+            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">
+              Vista Previa en Tiempo Real
+            </span>
+            <TraitRadarChart attributes={DEMO_ATTRIBUTES} radarConfig={radarConfig} />
+          </div>
+
+          {/* Fill Color */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-white/80 tracking-wide uppercase">Color Interior</label>
+            <div className="flex flex-wrap gap-2">
+              {FILL_PRESETS.map(preset => {
+                const isSelected = radarConfig.fillColor === preset.color;
+                return (
+                  <button
+                    key={preset.id}
+                    onClick={() => updateRadarConfig({ fillColor: preset.color })}
+                    className={cn(
+                      "w-8 h-8 rounded-xl transition-all relative border-2 active:scale-90 flex items-center justify-center",
+                      isSelected ? "border-white scale-110 shadow-lg" : "border-transparent hover:border-white/30"
+                    )}
+                    style={{
+                      background: preset.color === '#ffffff' 
+                        ? 'linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.15) 100%)'
+                        : `linear-gradient(135deg, ${preset.color}CC 0%, ${preset.color}44 100%)`,
+                    }}
+                    title={preset.label}
+                  >
+                    {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-white shadow-sm" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Fill Opacity */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center text-xs">
+              <span className="font-semibold text-white/80">Opacidad de la Figura Interior</span>
+              <span className="font-mono text-indigo-400 font-bold">{radarConfig.fillOpacity}%</span>
+            </div>
+            <input 
+              type="range" 
+              min="0" 
+              max="100" 
+              value={radarConfig.fillOpacity} 
+              onChange={(e) => updateRadarConfig({ fillOpacity: Number(e.target.value) })}
+              className="w-full accent-indigo-500 bg-white/10 rounded-lg h-2 cursor-pointer"
+            />
+          </div>
+
+          {/* Border Style */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-white/80">Estilo del Borde</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => updateRadarConfig({ borderStyle: 'gradient' })}
+                className={cn(
+                  "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all border text-center active:scale-95",
+                  radarConfig.borderStyle === 'gradient' ? "bg-white text-black border-white shadow-md" : "bg-white/5 text-white/50 border-white/10 hover:text-white"
+                )}
+              >
+                Degradado Continuo
+              </button>
+              <button
+                onClick={() => updateRadarConfig({ borderStyle: 'dots-only' })}
+                className={cn(
+                  "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all border text-center active:scale-95",
+                  radarConfig.borderStyle === 'dots-only' ? "bg-white text-black border-white shadow-md" : "bg-white/5 text-white/50 border-white/10 hover:text-white"
+                )}
+              >
+                Solo Puntos Punteados
+              </button>
+            </div>
+          </div>
+
+          {/* Dot Color Mode */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-white/80">Color de los Puntos</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => updateRadarConfig({ dotColorMode: 'trait' })}
+                className={cn(
+                  "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all border text-center active:scale-95",
+                  radarConfig.dotColorMode === 'trait' ? "bg-white text-black border-white shadow-md" : "bg-white/5 text-white/50 border-white/10 hover:text-white"
+                )}
+              >
+                Colores de Traits/Hábitos
+              </button>
+              <button
+                onClick={() => updateRadarConfig({ dotColorMode: 'fill' })}
+                className={cn(
+                  "flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all border text-center active:scale-95",
+                  radarConfig.dotColorMode === 'fill' ? "bg-white text-black border-white shadow-md" : "bg-white/5 text-white/50 border-white/10 hover:text-white"
+                )}
+              >
+                Mismo Color Interior (Más Fuerte)
+              </button>
+            </div>
+          </div>
+
+          {/* Dot Opacity */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center text-xs">
+              <span className="font-semibold text-white/80">Opacidad de los Puntos</span>
+              <span className="font-mono text-indigo-400 font-bold">{radarConfig.dotOpacity}%</span>
+            </div>
+            <input 
+              type="range" 
+              min="0" 
+              max="100" 
+              value={radarConfig.dotOpacity} 
+              onChange={(e) => updateRadarConfig({ dotOpacity: Number(e.target.value) })}
+              className="w-full accent-indigo-500 bg-white/10 rounded-lg h-2 cursor-pointer"
+            />
+          </div>
+        </div>
+
+        {/* Themes Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 flex-1">
@@ -202,9 +356,10 @@ export const VisualsSection = () => {
             )}
           </div>
 
+          {/* Theme Preview Portal with Tasks Zone Mock Card */}
           {previewTheme && typeof document !== 'undefined' && createPortal(
             <div 
-              className="theme-preview-portal fixed inset-0 z-[999999] flex flex-col items-center justify-end pb-24 cursor-pointer gpu-accelerated"
+              className="theme-preview-portal fixed inset-0 z-[999999] flex flex-col items-center justify-center p-4 cursor-pointer gpu-accelerated"
               onClick={handleExitPreview}
             >
               <style>{`
@@ -215,11 +370,47 @@ export const VisualsSection = () => {
                   transition: opacity 0.15s ease-out !important;
                 }
               `}</style>
-              <div 
-                className="bg-black/90 border border-white/20 px-8 py-4 rounded-full shadow-lg flex flex-col items-center gap-1 animate-enter-view hover:bg-black transition-colors"
+              
+              {/* Mock Tasks Zone Card Overlay */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className="w-full max-w-sm bg-black/65 backdrop-blur-xl border border-white/20 rounded-[28px] p-5 shadow-2xl space-y-4 mb-6"
+                onClick={(e) => e.stopPropagation()}
               >
-                <span className="text-white font-bold tracking-widest text-sm uppercase">{t('settings.tapToExit', 'Tap anywhere to exit')}</span>
-                <span className="text-white/50 text-[10px] uppercase tracking-wider">{t('settings.previewMode', 'Preview Mode')}</span>
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-xs font-black text-white uppercase tracking-wider">Zona de Tareas</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/20 border border-indigo-500/30 px-2 py-0.5 rounded-full">
+                    NIVEL 12
+                  </span>
+                </div>
+
+                {/* Radar Chart Sample */}
+                <div className="flex justify-center py-1">
+                  <TraitRadarChart attributes={DEMO_ATTRIBUTES} radarConfig={radarConfig} />
+                </div>
+
+                {/* Sample Tasks */}
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs">
+                    <span className="font-semibold text-white">⚡ Meditación Matutina (15 min)</span>
+                    <span className="text-emerald-400 font-mono font-bold">+50 XP</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs">
+                    <span className="font-semibold text-white">🎯 Completar proyecto prioritario</span>
+                    <span className="text-indigo-400 font-mono font-bold">+120 XP</span>
+                  </div>
+                </div>
+              </motion.div>
+
+              <div 
+                className="bg-black/90 border border-white/20 px-8 py-3.5 rounded-full shadow-2xl flex flex-col items-center gap-0.5 animate-enter-view hover:bg-black transition-colors"
+              >
+                <span className="text-white font-bold tracking-widest text-xs uppercase">{t('settings.tapToExit', 'Tap anywhere to exit')}</span>
+                <span className="text-white/50 text-[9px] uppercase tracking-wider">{t('settings.previewMode', 'Preview Mode')}</span>
               </div>
             </div>,
             document.body
