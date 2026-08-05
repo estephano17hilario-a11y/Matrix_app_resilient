@@ -1773,14 +1773,14 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  )}
  </AnimatePresence>
 
-  {/* Full-Screen Note Editor Portal Modal */}
+  {/* Note / Journal Editor Portal Modal */}
   {editorMode !== 'NONE' && typeof document !== 'undefined' && createPortal(
-    <div className="fixed inset-0 z-[10000] bg-[#07070d]/95 backdrop-blur-2xl flex items-center justify-center p-2 sm:p-6 overflow-hidden animate-in fade-in duration-200">
-      <div className="w-full h-full max-w-3xl mx-auto flex flex-col glass-editor rounded-[32px] sm:rounded-[36px] overflow-hidden border border-white/10 shadow-2xl relative">
+    <div className="fixed inset-0 z-[500] bg-black/70 backdrop-blur-xl flex items-center justify-center p-3 sm:p-6 pt-16 sm:pt-20 overflow-hidden animate-in fade-in duration-200">
+      <div className="w-full h-full max-w-2xl mx-auto flex flex-col glass-editor rounded-[32px] sm:rounded-[36px] overflow-hidden border border-white/15 shadow-2xl relative bg-[#0f0f18]/90">
         <div className="absolute top-0 left-0 right-0 h-48 opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 75%)` }} />
 
-        {/* Top Header Controls */}
-        <div className="flex flex-wrap sm:flex-nowrap justify-between items-center p-3 sm:p-4 border-b border-white/10 relative z-20 gap-2 bg-[#0d0d14]/80">
+        {/* Top Header Controls (Matching screenshot UI) */}
+        <div className="flex flex-wrap sm:flex-nowrap justify-between items-center p-3 sm:p-4 border-b border-white/10 relative z-20 gap-2 bg-[#0d0d14]/90">
           <div className="flex items-center gap-2">
             <button 
               onClick={closeEditor} 
@@ -1807,27 +1807,27 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
           <div className="flex items-center gap-2 flex-wrap justify-end flex-1 min-w-0">
             {editorMode === 'NOTE' && (
-              <div className="relative max-w-[150px]">
+              <div className="relative max-w-[140px]">
                 <select 
                   value={draftFolderId || ''} 
                   onChange={(e) => setDraftFolderId(e.target.value || undefined)} 
-                  className="w-full bg-[#181822] border border-white/15 rounded-full pl-3 pr-7 py-1.5 text-xs font-bold text-cyan-300 outline-none cursor-pointer hover:border-cyan-500/40 transition-colors truncate appearance-none"
+                  className="w-full bg-[#181822] border border-white/15 rounded-full pl-3 pr-7 py-1.5 text-xs font-bold text-white outline-none cursor-pointer hover:border-white/30 transition-colors truncate appearance-none"
                 >
                   <option value="">📁 Sin Carpeta</option>
                   {folders.map(f => (
                     <option key={f.id} value={f.id}>{f.icon || '📁'} {f.name}</option>
                   ))}
                 </select>
-                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-cyan-400 text-[9px]">▼</div>
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-white/40 text-[9px]">▼</div>
               </div>
             )}
 
             <button
               onClick={() => handleExportNoteMarkdown(draftTitle, draftBlocks)}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-white/70 hover:text-white transition-colors border border-white/10"
+              className="p-2 rounded-full bg-white/5 hover:bg-white/15 text-white/70 hover:text-white transition-colors border border-white/10"
               title="Exportar como Markdown (.md)"
             >
-              <Download size={16} />
+              <Download size={15} />
             </button>
 
             <BlueprintSelector onSelect={(newBlocks) => setDraftBlocks(prev => [...prev, ...newBlocks])} />
@@ -1839,8 +1839,6 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
               activeProject={draftProjectId} 
               onSelectProject={setDraftProjectId} 
             />
-
-            <div className="w-[1px] h-5 bg-white/10 mx-0.5 hidden sm:block" />
 
             {editorMode === 'NOTE' && (
               <button 
@@ -1854,9 +1852,9 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
             <button 
               onClick={handleSave} 
-              className="h-9 px-5 bg-cyan-500 hover:bg-cyan-400 text-black rounded-full font-black text-xs uppercase tracking-wider transition-transform active:scale-95 shadow-lg shadow-cyan-500/20"
+              className="h-9 px-5 bg-white text-black font-extrabold text-xs uppercase tracking-wider rounded-full hover:scale-105 active:scale-95 transition-transform shadow-md flex items-center justify-center whitespace-nowrap ml-1"
             >
-              {t('notes.save', 'Guardar')}
+              {t('notes.save', 'GUARDAR')}
             </button>
           </div>
         </div>
