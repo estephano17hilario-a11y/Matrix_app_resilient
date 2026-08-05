@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, BarChart3, ChevronLeft, ChevronRight, ArrowLeft, Briefcase, Trash2, Save, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, PieChart, Search } from 'lucide-react';
+import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Save, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, PieChart, Search, Tag, Layers } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { Note, NoteFolder, JournalEntry, NoteBlock, Project, Quest } from '../../types';
@@ -119,12 +119,15 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
    localStorage.setItem('notes_sort_order', next);
  };
 
- // Folder Modal state
- const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
- const [editingFolder, setEditingFolder] = useState<NoteFolder | null>(null);
- const [folderName, setFolderName] = useState('');
- const [folderIcon, setFolderIcon] = useState('📁');
- const [folderColor, setFolderColor] = useState('#3b82f6');
+  // Folder Modal & Ecosystem state
+  const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
+  const [editingFolder, setEditingFolder] = useState<NoteFolder | null>(null);
+  const [folderName, setFolderName] = useState('');
+  const [folderIcon, setFolderIcon] = useState('📁');
+  const [folderColor, setFolderColor] = useState('#3b82f6');
+  const [folderParentId, setFolderParentId] = useState<string | undefined>(undefined);
+  const [folderIsPinned, setFolderIsPinned] = useState<boolean>(false);
+  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
 
  useEffect(() => {
  if (currentSubView) {
@@ -148,20 +151,24 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  const [showSaveBlueprintModal, setShowSaveBlueprintModal] = useState(false);
  const [moodSplash, setMoodSplash] = useState<string | null>(null);
  const [pendingOpenDate, setPendingOpenDate] = useState<Date | null>(null);
- const openCreateFolderModal = () => {
+ const openCreateFolderModal = (parentId?: string) => {
    setEditingFolder(null);
    setFolderName('');
    setFolderIcon('📁');
    setFolderColor('#3b82f6');
+   setFolderParentId(parentId);
+   setFolderIsPinned(false);
    setIsFolderModalOpen(true);
  };
 
- const openEditFolderModal = (folder: NoteFolder, e: React.MouseEvent) => {
-   e.stopPropagation();
+ const openEditFolderModal = (folder: NoteFolder, e?: React.MouseEvent) => {
+   e?.stopPropagation();
    setEditingFolder(folder);
    setFolderName(folder.name);
    setFolderIcon(folder.icon || '📁');
    setFolderColor(folder.color || '#3b82f6');
+   setFolderParentId(folder.parentId);
+   setFolderIsPinned(!!folder.isPinned);
    setIsFolderModalOpen(true);
  };
 
@@ -175,18 +182,31 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
        ...editingFolder,
        name: folderName.trim(),
        icon: folderIcon,
-       color: folderColor
+       color: folderColor,
+       parentId: folderParentId,
+       isPinned: folderIsPinned
      });
      toast.success(t('notes.folderUpdated', 'Carpeta actualizada'));
    } else {
      await handleCreateFolder({
        name: folderName.trim(),
        icon: folderIcon,
-       color: folderColor
+       color: folderColor,
+       parentId: folderParentId,
+       isPinned: folderIsPinned
      });
      toast.success(t('notes.folderCreated', 'Carpeta creada'));
    }
    setIsFolderModalOpen(false);
+ };
+
+ const handleToggleFolderPin = async (folder: NoteFolder, e?: React.MouseEvent) => {
+   e?.stopPropagation();
+   await handleUpdateFolder({
+     ...folder,
+     isPinned: !folder.isPinned
+   });
+   toast.success(folder.isPinned ? 'Carpeta desanclada' : 'Carpeta anclada a la barra de inicio 📌');
  };
 
  const handleDeleteFolderConfirm = async (folderId: string, e: React.MouseEvent) => {
@@ -635,6 +655,53 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  const activeThemeColor = themeColorMap.get(draftTheme) || '#fff';
  const folderMap = useMemo(() => new Map(folders.map(f => [f.id, f])), [folders]);
 
+  const getAllSubFolderIds = useCallback((allFolders: NoteFolder[], targetId: string): string[] => {
+    const result: string[] = [targetId];
+    const children = allFolders.filter(f => f.parentId === targetId);
+    children.forEach(child => {
+      result.push(...getAllSubFolderIds(allFolders, child.id));
+    });
+    return result;
+  }, []);
+
+  const getFolderTotalNotesCount = useCallback((folderId: string): number => {
+    const directNotes = notes.filter(n => n.folderId === folderId).length;
+    const childFolders = folders.filter(f => f.parentId === folderId);
+    const childNotesCount = childFolders.reduce((acc, child) => acc + getFolderTotalNotesCount(child.id), 0);
+    return directNotes + childNotesCount;
+  }, [notes, folders]);
+
+  const toggleFolderExpand = useCallback((folderId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setExpandedFolderIds(prev => {
+      const next = new Set(prev);
+      if (next.has(folderId)) {
+        next.delete(folderId);
+      } else {
+        next.add(folderId);
+      }
+      return next;
+    });
+  }, []);
+
+  const folderBreadcrumbs = useMemo(() => {
+    if (selectedFolderId === 'ALL' || selectedFolderId === 'FAVORITES' || selectedFolderId === 'UNCATEGORIZED') return [];
+    const path: NoteFolder[] = [];
+    let currId: string | undefined = selectedFolderId;
+    const visited = new Set<string>();
+    while (currId && !visited.has(currId)) {
+      visited.add(currId);
+      const f = folders.find(folder => folder.id === currId);
+      if (f) {
+        path.unshift(f);
+        currId = f.parentId;
+      } else {
+        break;
+      }
+    }
+    return path;
+  }, [selectedFolderId, folders]);
+
  const filteredNotes = useMemo(() => {
  return notes.filter(note => {
  const matchesProject = filterProject === 'ALL' || note.projectId === filterProject;
@@ -647,7 +714,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  } else if (selectedFolderId === 'UNCATEGORIZED') {
    matchesFolder = !note.folderId;
  } else if (selectedFolderId !== 'ALL') {
-   matchesFolder = note.folderId === selectedFolderId;
+   const allowedIds = getAllSubFolderIds(folders, selectedFolderId);
+   matchesFolder = !!note.folderId && allowedIds.includes(note.folderId);
  }
 
  return matchesProject && matchesTheme && matchesFolder;
@@ -656,7 +724,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
    const timeB = new Date(b.updatedAt || (b as any).createdAt || 0).getTime();
    return sortOrder === 'NEWEST' ? timeB - timeA : timeA - timeB;
  });
- }, [notes, filterProject, filterTheme, selectedFolderId, sortOrder]);
+ }, [notes, folders, filterProject, filterTheme, selectedFolderId, sortOrder, getAllSubFolderIds]);
 
  const noteCards = useMemo(() => {
  return filteredNotes.slice(0, visibleNotesCount).map(note => {
@@ -1073,7 +1141,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
               {/* Todas Button */}
               <button
                 onClick={() => setSelectedFolderId('ALL')}
-                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all border flex items-center gap-1.5 whitespace-nowrap ${
+                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all border flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                   selectedFolderId === 'ALL'
                     ? 'bg-white text-black border-white shadow-md'
                     : 'bg-white/5 text-white/70 border-white/5 hover:bg-white/10 hover:text-white'
@@ -1082,6 +1150,23 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                 <FolderOpen size={14} />
                 <span>Todas ({notes.length})</span>
               </button>
+
+              {/* Pinned Folders directly on Start Bar */}
+              {folders.filter(f => f.isPinned).map(pinned => (
+                <button
+                  key={pinned.id}
+                  onClick={() => setSelectedFolderId(pinned.id)}
+                  className={`px-3.5 py-2 rounded-2xl text-xs font-bold transition-all border flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                    selectedFolderId === pinned.id
+                      ? 'bg-cyan-500 text-black border-cyan-300 shadow-md ring-2 ring-cyan-400/50'
+                      : 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20 hover:bg-cyan-500/20'
+                  }`}
+                >
+                  <span>{pinned.icon || '📁'}</span>
+                  <span>{pinned.name}</span>
+                  <span className="text-[10px] font-mono opacity-80">📌</span>
+                </button>
+              ))}
             </div>
 
             {/* Sort Order Toggle Button */}
@@ -1114,50 +1199,69 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             </button>
 
             {/* Note Cards */}
-            {noteCards.map(({ note, themeColor, project, folder, previewText, updatedLabel }) => (
-              <div 
-                key={note.id} 
-                onClick={() => openNote(note)} 
-                className="w-full h-44 rounded-[28px] p-4 flex flex-col justify-between hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer group relative overflow-hidden shadow-lg border border-white/10 bg-[#121216] hover:border-white/20"
-              >
-                <div className="absolute top-0 left-0 right-0 h-20 opacity-15 pointer-events-none" style={{ background: `linear-gradient(to bottom, ${themeColor}, transparent)` }} />
-                
-                <div className="relative z-10 flex flex-col flex-1 min-h-0">
-                  {/* Header: Star toggle & optional Folder badge */}
-                  <div className="flex items-center justify-between gap-1 mb-1.5">
-                    <div className="flex items-center gap-1 overflow-hidden">
-                      {folder && (
-                        <span className="text-[9px] font-bold text-cyan-300 bg-cyan-500/10 px-1.5 py-0.5 rounded-md truncate max-w-[80px]">
-                          {folder.name}
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      onClick={(e) => handleToggleNoteFavorite(note, e)}
-                      className={`p-1 rounded-full transition-all flex-shrink-0 ${note.isFavorite ? 'text-amber-400' : 'text-white/20 hover:text-white/60'}`}
-                    >
-                      <Star size={13} fill={note.isFavorite ? 'currentColor' : 'none'} />
-                    </button>
+            {noteCards.map(({ note, themeColor, project, folder, previewText, updatedLabel }) => {
+              const hasFolder = !!folder;
+              const hasTags = note.tags && note.tags.length > 0;
+              const hasHeaderBadges = hasFolder || hasTags;
+
+              return (
+                <div 
+                  key={note.id} 
+                  onClick={() => openNote(note)} 
+                  className="w-full h-44 rounded-[28px] p-4 flex flex-col justify-between hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer group relative overflow-hidden shadow-lg border border-white/10 bg-[#121216] hover:border-white/20"
+                >
+                  <div className="absolute top-0 left-0 right-0 h-20 opacity-15 pointer-events-none" style={{ background: `linear-gradient(to bottom, ${themeColor}, transparent)` }} />
+                  
+                  {/* Top Right Star Button */}
+                  <button
+                    onClick={(e) => handleToggleNoteFavorite(note, e)}
+                    className={`absolute top-3.5 right-3.5 z-20 p-1 rounded-full transition-all ${
+                      note.isFavorite ? 'text-amber-400 bg-amber-500/10' : 'text-white/20 hover:text-white/70 hover:bg-white/5'
+                    }`}
+                    title={note.isFavorite ? "Quitar de favoritos" : "Marcar como favorito"}
+                  >
+                    <Star size={13} fill={note.isFavorite ? 'currentColor' : 'none'} />
+                  </button>
+
+                  <div className="relative z-10 flex flex-col flex-1 min-h-0 pr-6">
+                    {/* Header Badges: Rendered ONLY if tags or folder exist! NO empty vertical gap! */}
+                    {hasHeaderBadges && (
+                      <div className="flex items-center gap-1 overflow-hidden mb-1.5 flex-wrap max-h-5">
+                        {folder && (
+                          <span 
+                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-md truncate max-w-[80px] shadow-sm border border-white/10"
+                            style={{ backgroundColor: `${folder.color || '#3b82f6'}25`, color: folder.color || '#60a5fa' }}
+                          >
+                            {folder.icon || '📁'} {folder.name}
+                          </span>
+                        )}
+                        {note.tags && note.tags.map((t, idx) => (
+                          <span key={idx} className="text-[9px] font-bold text-cyan-300 bg-cyan-500/15 border border-cyan-500/20 px-1.5 py-0.5 rounded-md truncate max-w-[65px]">
+                            #{t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Note Title */}
+                    <h3 className={`text-[15px] sm:text-base font-extrabold text-white leading-snug truncate mb-1 ${!note.title ? 'text-white/30 italic' : ''}`}>
+                      {note.title || t('notes.untitled', 'Sin título')}
+                    </h3>
+
+                    {/* Note Content Snippet */}
+                    <p className="text-xs text-white/50 leading-relaxed font-medium break-words line-clamp-3 flex-1 min-h-0">
+                      {previewText || <span className="italic opacity-40">{t('notes.empty', 'Nota vacía...')}</span>}
+                    </p>
                   </div>
 
-                  {/* Note Title */}
-                  <h3 className={`text-[15px] sm:text-base font-extrabold text-white leading-snug truncate mb-1.5 ${!note.title ? 'text-white/30 italic' : ''}`}>
-                    {note.title || t('notes.untitled', 'Sin título')}
-                  </h3>
-
-                  {/* Note Content Snippet */}
-                  <p className="text-xs text-white/50 leading-relaxed font-medium break-words line-clamp-3 flex-1 min-h-0">
-                    {previewText || <span className="italic opacity-40">{t('notes.empty', 'Buscar...')}</span>}
-                  </p>
+                  {/* Footer: Date & Colored Theme Dot */}
+                  <div className="relative z-10 pt-2 border-t border-white/5 flex justify-between items-center text-[10px] font-medium text-white/40">
+                    <span>{updatedLabel}</span>
+                    <div className="w-2.5 h-2.5 rounded-full shadow-[0_0_6px_currentColor]" style={{ backgroundColor: themeColor, color: themeColor }} />
+                  </div>
                 </div>
-
-                {/* Footer: Date & Colored Theme Dot */}
-                <div className="relative z-10 pt-2 border-t border-white/5 flex justify-between items-center text-[10px] font-medium text-white/40">
-                  <span>{updatedLabel}</span>
-                  <div className="w-2.5 h-2.5 rounded-full shadow-[0_0_6px_currentColor]" style={{ backgroundColor: themeColor, color: themeColor }} />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           {/* Load More Trigger */}
           {filteredNotes.length > visibleNotesCount && !isLocked && (
@@ -1843,369 +1947,545 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  document.body
  )}
 
-  {/* Notion Ultra Library Hub Modal */}
+  {/* Fullscreen Biblioteca Workspace Ecosystem Modal */}
   {isLibraryOpen && typeof document !== 'undefined' && createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity duration-200"
-        onClick={() => setIsLibraryOpen(false)}
-      />
-      
-      <div className="relative z-10 w-full max-w-3xl bg-[#0d0d10] border border-white/10 rounded-t-[32px] sm:rounded-[32px] p-5 sm:p-6 shadow-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-8 duration-250">
-        
-        {/* Top Bar: Title & Primary Actions */}
-        <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-3">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 text-cyan-400 border border-cyan-500/30 shadow-md">
-              <BookOpen size={22} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black text-white tracking-tight">Biblioteca Notion Workspace</h2>
-                <span className="px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 text-[10px] font-bold uppercase tracking-wider">Pro</span>
-              </div>
-              <p className="text-xs text-white/50">Organiza, busca y administra todas tus notas y espacios</p>
-            </div>
+    <div className="fixed inset-0 z-[9999] bg-[#07070a] text-white flex flex-col overflow-hidden animate-in fade-in duration-200">
+      {/* Top Header Navigation Bar */}
+      <div className="bg-[#0f0f16] border-b border-white/10 px-4 sm:px-6 py-3 flex items-center justify-between gap-4 shrink-0 shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl bg-gradient-to-br from-cyan-500/20 via-blue-600/20 to-purple-600/20 text-cyan-400 border border-cyan-500/30 shadow-md">
+            <BookOpen size={24} />
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                setIsLibraryOpen(false);
-                openCreateFolderModal();
-              }}
-              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-bold text-xs flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow-md"
-            >
-              <FolderPlus size={14} />
-              <span>+ Crear Carpeta</span>
-            </button>
-            <button
-              onClick={() => setIsLibraryOpen(false)}
-              className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors"
-            >
-              <X size={16} />
-            </button>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-black text-white tracking-tight">ECOSISTEMA BIBLIOTECA</h2>
+              <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-extrabold uppercase tracking-wider border border-cyan-500/30">
+                ULTRA WORKSPACE
+              </span>
+            </div>
+            <p className="text-[11px] text-white/50 hidden sm:block">Gestión inteligente de carpetas, subcarpetas y notas en pantalla completa</p>
           </div>
         </div>
 
-        {/* Library Navigation Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-3 border-b border-white/5 mb-4">
-          <button
-            onClick={() => setLibraryTab('FOLDERS')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-              libraryTab === 'FOLDERS'
-                ? 'bg-white text-black shadow-md'
-                : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
-            }`}
-          >
-            <Folder size={14} />
-            <span>Mis Carpetas ({folders.length})</span>
-          </button>
-
-          <button
-            onClick={() => setLibraryTab('FAVORITES')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-              libraryTab === 'FAVORITES'
-                ? 'bg-amber-500 text-black shadow-md'
-                : 'bg-white/5 text-amber-400/80 hover:bg-white/10 hover:text-amber-300'
-            }`}
-          >
-            <Star size={14} fill="currentColor" />
-            <span>Favoritos ({notes.filter(n => n.isFavorite).length})</span>
-          </button>
-
-          <button
-            onClick={() => setLibraryTab('PROJECTS')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-              libraryTab === 'PROJECTS'
-                ? 'bg-blue-500 text-black shadow-md'
-                : 'bg-white/5 text-blue-400/80 hover:bg-white/10 hover:text-blue-300'
-            }`}
-          >
-            <Briefcase size={14} />
-            <span>Proyectos ({projects.length})</span>
-          </button>
-
-          <button
-            onClick={() => setLibraryTab('STATS')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-              libraryTab === 'STATS'
-                ? 'bg-emerald-500 text-black shadow-md'
-                : 'bg-white/5 text-emerald-400/80 hover:bg-white/10 hover:text-emerald-300'
-            }`}
-          >
-            <PieChart size={14} />
-            <span>Métricas Workspace</span>
-          </button>
-        </div>
-
-        {/* Library Search Bar */}
-        <div className="relative w-full mb-4">
+        {/* Global Library Search */}
+        <div className="relative flex-1 max-w-xs sm:max-w-md mx-2">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
           <input
             type="text"
             value={librarySearchQuery}
             onChange={(e) => setLibrarySearchQuery(e.target.value)}
-            placeholder="Buscar carpetas o notas en la biblioteca..."
-            className="w-full pl-10 pr-9 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-white placeholder-white/40 focus:outline-none focus:border-cyan-500/50 transition-all"
+            placeholder="Buscar notas o carpetas rápidamente..."
+            className="w-full pl-9 pr-8 py-2 rounded-xl bg-white/[0.06] border border-white/10 text-xs text-white placeholder-white/40 focus:outline-none focus:border-cyan-500/50 transition-all shadow-inner"
           />
           {librarySearchQuery && (
-            <button onClick={() => setLibrarySearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white">
+            <button onClick={() => setLibrarySearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white">
               <X size={13} />
             </button>
           )}
         </div>
 
-        {/* Content Container based on Tab */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-1 pb-4">
+        {/* Actions & Close */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => openCreateFolderModal(selectedFolderId !== 'ALL' && selectedFolderId !== 'FAVORITES' && selectedFolderId !== 'UNCATEGORIZED' ? selectedFolderId : undefined)}
+            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-bold text-xs flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow-md shrink-0"
+          >
+            <FolderPlus size={15} />
+            <span className="hidden sm:inline">+ Nueva Carpeta</span>
+          </button>
+
+          <button
+            onClick={() => setIsLibraryOpen(false)}
+            className="p-2 rounded-full bg-white/5 hover:bg-white/15 text-white/60 hover:text-white transition-colors border border-white/10"
+            title="Cerrar Biblioteca"
+          >
+            <X size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* Pinned Start Bar ("Barra de Inicio de la Biblioteca") */}
+      {folders.some(f => f.isPinned) && (
+        <div className="bg-[#0b0b10] border-b border-cyan-500/20 px-4 sm:px-6 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0 shadow-inner">
+          <div className="flex items-center gap-1 text-[11px] font-black text-cyan-400 shrink-0 uppercase tracking-wider mr-2">
+            <Star size={13} className="text-amber-400" fill="currentColor" />
+            <span>Inicio Rápido:</span>
+          </div>
+          {folders.filter(f => f.isPinned).map(pinned => {
+            const isSelected = selectedFolderId === pinned.id;
+            const count = getFolderTotalNotesCount(pinned.id);
+            return (
+              <button
+                key={pinned.id}
+                onClick={() => setSelectedFolderId(pinned.id)}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all border flex items-center gap-1.5 whitespace-nowrap shadow-sm ${
+                  isSelected
+                    ? 'bg-cyan-500 text-black border-cyan-300 ring-2 ring-cyan-400/40 scale-105'
+                    : 'bg-white/5 hover:bg-white/15 text-white border-white/10'
+                }`}
+              >
+                <span>{pinned.icon || '📁'}</span>
+                <span>{pinned.name}</span>
+                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-black/30 text-white' : 'bg-white/10 text-white/60'}`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Main Workspace Body Split (Sidebar Tree + Main View) */}
+      <div className="flex-1 flex overflow-hidden min-h-0">
+        
+        {/* Left Sidebar: Collapsible Multi-level Folder Tree & Quick Tabs */}
+        <div className="w-64 sm:w-80 bg-[#0c0c12] border-r border-white/10 flex flex-col shrink-0 overflow-y-auto custom-scrollbar p-3 gap-4">
           
-          {/* TAB 1: FOLDERS */}
-          {libraryTab === 'FOLDERS' && (
-            <>
-              {/* Quick Preset Spaces */}
-              <div className="grid grid-cols-3 gap-2.5">
-                <div
-                  onClick={() => { setSelectedFolderId('ALL'); setIsLibraryOpen(false); }}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between h-20 ${
-                    selectedFolderId === 'ALL'
-                      ? 'bg-blue-600/20 border-blue-500 text-white shadow-lg'
-                      : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.07]'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <FolderOpen size={18} className="text-blue-400" />
-                    <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold font-mono">
-                      {notes.length}
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-bold text-white truncate">Todas las Notas</h4>
-                </div>
-
-                <div
-                  onClick={() => { setSelectedFolderId('FAVORITES'); setIsLibraryOpen(false); }}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between h-20 ${
-                    selectedFolderId === 'FAVORITES'
-                      ? 'bg-amber-600/20 border-amber-500 text-white shadow-lg'
-                      : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.07]'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <Star size={18} className="text-amber-400" fill="currentColor" />
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold font-mono">
-                      {notes.filter(n => n.isFavorite).length}
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-bold text-white truncate">Favoritos</h4>
-                </div>
-
-                <div
-                  onClick={() => { setSelectedFolderId('UNCATEGORIZED'); setIsLibraryOpen(false); }}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between h-20 ${
-                    selectedFolderId === 'UNCATEGORIZED'
-                      ? 'bg-slate-600/20 border-white/40 text-white shadow-lg'
-                      : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.07]'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <Folder size={18} className="text-slate-400" />
-                    <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/60 text-[10px] font-bold font-mono">
-                      {notes.filter(n => !n.folderId).length}
-                    </span>
-                  </div>
-                  <h4 className="text-xs font-bold text-white truncate">Sin Carpeta</h4>
-                </div>
+          {/* Navigation Presets */}
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest px-3 mb-1 block">Espacios Principales</span>
+            
+            <button
+              onClick={() => setSelectedFolderId('ALL')}
+              className={`w-full flex items-center justify-between py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
+                selectedFolderId === 'ALL'
+                  ? 'bg-blue-600/20 border-blue-500 text-white shadow-md'
+                  : 'bg-transparent border-transparent hover:bg-white/5 text-white/70 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <FolderOpen size={16} className="text-blue-400" />
+                <span>Todas las Notas</span>
               </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-white/60">{notes.length}</span>
+            </button>
 
-              {/* Folders List Grid */}
-              <div className="pt-2">
-                <div className="flex justify-between items-center mb-2.5">
-                  <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider">Carpetas Personalizadas ({folders.length})</h3>
-                </div>
+            <button
+              onClick={() => setSelectedFolderId('FAVORITES')}
+              className={`w-full flex items-center justify-between py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
+                selectedFolderId === 'FAVORITES'
+                  ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-md'
+                  : 'bg-transparent border-transparent hover:bg-white/5 text-white/70 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Star size={16} className="text-amber-400" fill="currentColor" />
+                <span>Favoritos</span>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">{notes.filter(n => n.isFavorite).length}</span>
+            </button>
 
-                {folders.length === 0 ? (
-                  <div className="p-8 rounded-2xl bg-white/[0.02] border border-dashed border-white/10 text-center space-y-3">
-                    <p className="text-xs text-white/40">No tienes carpetas organizadas aún.</p>
-                    <button
-                      onClick={() => { setIsLibraryOpen(false); openCreateFolderModal(); }}
-                      className="px-4 py-2 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-bold hover:bg-cyan-500/30 transition-all inline-flex items-center gap-1.5"
-                    >
-                      <FolderPlus size={14} />
-                      <span>Crear mi primera carpeta</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {folders
-                      .filter(f => !librarySearchQuery || f.name.toLowerCase().includes(librarySearchQuery.toLowerCase()))
-                      .map(folder => {
-                        const count = notes.filter(n => n.folderId === folder.id).length;
-                        const isSelected = selectedFolderId === folder.id;
-                        const color = folder.color || '#3b82f6';
-                        return (
-                          <div
-                            key={folder.id}
-                            onClick={() => { setSelectedFolderId(folder.id); setIsLibraryOpen(false); }}
-                            className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group/fcard ${
-                              isSelected
-                                ? 'bg-white/[0.12] border-cyan-400 shadow-xl ring-1 ring-cyan-400/50'
-                                : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.07] hover:border-white/20'
-                            }`}
-                          >
-                            <div className="absolute top-0 left-0 bottom-0 w-1.5" style={{ backgroundColor: color }} />
-                            <div className="pl-2 flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <span className="text-2xl p-2 rounded-xl bg-white/5 border border-white/5">{folder.icon || '📁'}</span>
-                                <div className="min-w-0 flex-1">
-                                  <h4 className="text-sm font-bold text-white truncate">{folder.name}</h4>
-                                  <span className="text-[11px] font-medium text-white/40 font-mono">{count} {count === 1 ? 'nota' : 'notas'}</span>
-                                </div>
-                              </div>
+            <button
+              onClick={() => setSelectedFolderId('UNCATEGORIZED')}
+              className={`w-full flex items-center justify-between py-2 px-3 rounded-xl text-xs font-bold transition-all border ${
+                selectedFolderId === 'UNCATEGORIZED'
+                  ? 'bg-slate-600/20 border-white/30 text-white shadow-md'
+                  : 'bg-transparent border-transparent hover:bg-white/5 text-white/70 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Folder size={16} className="text-slate-400" />
+                <span>Sin Carpeta</span>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-white/60">{notes.filter(n => !n.folderId).length}</span>
+            </button>
+          </div>
 
-                              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                                <button
-                                  onClick={() => { setIsLibraryOpen(false); createNoteInFolder(folder.id); }}
-                                  className="p-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/40"
-                                  title="Añadir nota en carpeta"
-                                >
-                                  <Plus size={14} />
-                                </button>
-                                <button
-                                  onClick={(e) => openEditFolderModal(folder, e)}
-                                  className="p-1.5 rounded-lg bg-white/5 text-white/60 hover:text-white hover:bg-white/10"
-                                  title="Editar carpeta"
-                                >
-                                  <Pencil size={13} />
-                                </button>
-                                <button
-                                  onClick={(e) => handleDeleteFolderConfirm(folder.id, e)}
-                                  className="p-1.5 rounded-lg bg-red-500/10 text-red-400/80 hover:text-red-400 hover:bg-red-500/20"
-                                  title="Eliminar carpeta"
-                                >
-                                  <Trash2 size={13} />
-                                </button>
-                              </div>
+          <div className="w-full h-[1px] bg-white/5" />
+
+          {/* Hierarchical Folder Tree */}
+          <div className="flex-1 space-y-1">
+            <div className="flex items-center justify-between px-3 mb-2">
+              <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Árbol de Carpetas</span>
+              <button
+                onClick={() => openCreateFolderModal()}
+                className="p-1 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+                title="Crear Carpeta Raíz"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+
+            {folders.filter(f => !f.parentId).length === 0 ? (
+              <p className="text-xs text-white/30 italic px-3 py-4 text-center">No hay carpetas creadas aún.</p>
+            ) : (
+              <div className="space-y-0.5">
+                {folders.filter(f => !f.parentId).map(rootFolder => {
+                  const renderTree = (folder: NoteFolder, depth = 0): React.ReactNode => {
+                    const children = folders.filter(f => f.parentId === folder.id);
+                    const hasChildren = children.length > 0;
+                    const isExpanded = expandedFolderIds.has(folder.id);
+                    const isSelected = selectedFolderId === folder.id;
+                    const totalCount = getFolderTotalNotesCount(folder.id);
+                    const color = folder.color || '#3b82f6';
+
+                    return (
+                      <div key={folder.id} className="flex flex-col">
+                        <div
+                          onClick={() => setSelectedFolderId(folder.id)}
+                          className={`group/item flex items-center justify-between py-1.5 px-2.5 rounded-xl transition-all cursor-pointer select-none border ${
+                            isSelected
+                              ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300 font-bold shadow-md'
+                              : 'bg-transparent border-transparent hover:bg-white/5 text-white/80 hover:text-white'
+                          }`}
+                          style={{ paddingLeft: `${Math.max(10, depth * 14 + 10)}px` }}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {hasChildren ? (
+                              <button
+                                onClick={(e) => toggleFolderExpand(folder.id, e)}
+                                className="p-1 rounded-md hover:bg-white/10 text-white/50 hover:text-white transition-colors shrink-0"
+                              >
+                                {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                              </button>
+                            ) : (
+                              <span className="w-3.5 h-3.5 inline-block shrink-0" />
+                            )}
+                            <span className="text-sm shrink-0" style={{ color }}>{folder.icon || '📁'}</span>
+                            <span className="text-xs truncate">{folder.name}</span>
+                            {folder.isPinned && <span className="text-[10px] text-amber-400 shrink-0">📌</span>}
+                          </div>
+
+                          <div className="flex items-center gap-1 opacity-70 group-hover/item:opacity-100 shrink-0">
+                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-white/10 text-white/60">
+                              {totalCount}
+                            </span>
+                            <div className="hidden group-hover/item:flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => openCreateFolderModal(folder.id)}
+                                className="p-1 rounded bg-white/10 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300"
+                                title="Añadir subcarpeta"
+                              >
+                                <Plus size={11} />
+                              </button>
+                              <button
+                                onClick={(e) => handleToggleFolderPin(folder, e)}
+                                className={`p-1 rounded ${folder.isPinned ? 'bg-amber-500/20 text-amber-300' : 'bg-white/10 text-white/50 hover:text-white'}`}
+                                title={folder.isPinned ? "Desanclar" : "Anclar a inicio"}
+                              >
+                                📌
+                              </button>
+                              <button
+                                onClick={(e) => openEditFolderModal(folder, e)}
+                                className="p-1 rounded bg-white/10 hover:bg-white/20 text-white/50 hover:text-white"
+                                title="Editar"
+                              >
+                                <Pencil size={11} />
+                              </button>
                             </div>
                           </div>
-                        );
-                      })}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* TAB 2: FAVORITES */}
-          {libraryTab === 'FAVORITES' && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Star size={14} fill="currentColor" />
-                <span>Notas Destacadas ({notes.filter(n => n.isFavorite).length})</span>
-              </h3>
-
-              {notes.filter(n => n.isFavorite).length === 0 ? (
-                <p className="text-xs text-white/40 italic py-6 text-center">No tienes notas marcadas como favoritas.</p>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {notes.filter(n => n.isFavorite).map(note => (
-                    <div
-                      key={note.id}
-                      onClick={() => { openNote(note); setIsLibraryOpen(false); }}
-                      className="p-3.5 rounded-2xl bg-white/[0.04] border border-amber-500/20 hover:border-amber-500/50 hover:bg-white/[0.08] transition-all cursor-pointer flex flex-col justify-between h-28"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <h4 className="text-xs font-bold text-white truncate flex-1">{note.title || 'Nota sin título'}</h4>
-                        <Star size={13} className="text-amber-400 flex-shrink-0" fill="currentColor" />
-                      </div>
-                      <p className="text-[11px] text-white/50 line-clamp-2">{note.blocks.find(b => b.content.trim())?.content || 'Nota vacía...'}</p>
-                      <span className="text-[10px] text-white/30 font-mono">{note.updatedAt ? new Date(note.updatedAt).toLocaleDateString() : ''}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 3: PROJECTS */}
-          {libraryTab === 'PROJECTS' && (
-            <div className="space-y-4">
-              <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Briefcase size={14} />
-                <span>Agrupado por Proyectos ({projects.length})</span>
-              </h3>
-
-              {projects.length === 0 ? (
-                <p className="text-xs text-white/40 italic py-6 text-center">No tienes proyectos activos aún.</p>
-              ) : (
-                <div className="space-y-3">
-                  {projects.map(project => {
-                    const projectNotes = notes.filter(n => n.projectId === project.id);
-                    return (
-                      <div key={project.id} className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 rounded-full bg-blue-400" />
-                            <h4 className="text-xs font-bold text-white uppercase tracking-wider">{project.title}</h4>
-                          </div>
-                          <span className="text-[10px] font-mono text-white/40">{projectNotes.length} notas</span>
                         </div>
 
-                        {projectNotes.length === 0 ? (
-                          <p className="text-[11px] text-white/30 italic">Sin notas vinculadas a este proyecto.</p>
-                        ) : (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                            {projectNotes.map(n => (
-                              <div
-                                key={n.id}
-                                onClick={() => { openNote(n); setIsLibraryOpen(false); }}
-                                className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-medium text-white/80 hover:text-white truncate cursor-pointer transition-all border border-white/5"
-                              >
-                                {n.title || 'Nota sin título'}
-                              </div>
-                            ))}
+                        {hasChildren && isExpanded && (
+                          <div className="flex flex-col gap-0.5 border-l border-white/10 ml-3.5 pl-1 my-0.5">
+                            {children.map(child => renderTree(child, depth + 1))}
                           </div>
                         )}
                       </div>
                     );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+                  };
 
-          {/* TAB 4: METRICS */}
-          {libraryTab === 'STATS' && (
-            <div className="space-y-4">
-              <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                <PieChart size={14} />
-                <span>Resumen Estadístico del Workspace</span>
+                  return renderTree(rootFolder);
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Main Workspace Right Panel */}
+        <div className="flex-1 flex flex-col bg-[#09090e] overflow-y-auto custom-scrollbar p-5 sm:p-8 space-y-6">
+          
+          {/* Breadcrumb Navigation Bar */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 border-b border-white/5 text-xs text-white/60 font-medium">
+            <button onClick={() => setSelectedFolderId('ALL')} className="hover:text-white transition-colors flex items-center gap-1">
+              <BookOpen size={14} className="text-cyan-400" />
+              <span>Biblioteca</span>
+            </button>
+
+            {folderBreadcrumbs.map((bFolder, index) => (
+              <React.Fragment key={bFolder.id}>
+                <ChevronRight size={13} className="text-white/30" />
+                <button
+                  onClick={() => setSelectedFolderId(bFolder.id)}
+                  className={`hover:text-white transition-colors flex items-center gap-1.5 ${
+                    index === folderBreadcrumbs.length - 1 ? 'text-white font-bold' : ''
+                  }`}
+                >
+                  <span>{bFolder.icon || '📁'}</span>
+                  <span>{bFolder.name}</span>
+                </button>
+              </React.Fragment>
+            ))}
+          </div>
+
+          {/* Current Folder / View Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-white/[0.04] to-transparent border border-white/10 p-5 rounded-3xl shadow-xl">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl shadow-inner">
+                {selectedFolderId === 'ALL' ? '📂' : selectedFolderId === 'FAVORITES' ? '⭐' : selectedFolderId === 'UNCATEGORIZED' ? '📦' : folders.find(f => f.id === selectedFolderId)?.icon || '📁'}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                    {selectedFolderId === 'ALL' ? 'Todas las Notas' : selectedFolderId === 'FAVORITES' ? 'Notas Favoritas' : selectedFolderId === 'UNCATEGORIZED' ? 'Notas Sin Carpeta' : folders.find(f => f.id === selectedFolderId)?.name || 'Carpeta'}
+                  </h1>
+                  {selectedFolderId !== 'ALL' && selectedFolderId !== 'FAVORITES' && selectedFolderId !== 'UNCATEGORIZED' && folders.find(f => f.id === selectedFolderId)?.isPinned && (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">Anclada 📌</span>
+                  )}
+                </div>
+                <p className="text-xs text-white/50 font-mono mt-0.5">
+                  {filteredNotes.length} {filteredNotes.length === 1 ? 'nota' : 'notas'} en este espacio
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {selectedFolderId !== 'ALL' && selectedFolderId !== 'FAVORITES' && selectedFolderId !== 'UNCATEGORIZED' && (
+                <>
+                  <button
+                    onClick={() => openCreateFolderModal(selectedFolderId)}
+                    className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-1.5 transition-all border border-white/10 shadow-sm"
+                  >
+                    <FolderPlus size={14} />
+                    <span>+ Subcarpeta</span>
+                  </button>
+                  <button
+                    onClick={() => { const f = folders.find(folder => folder.id === selectedFolderId); if (f) handleToggleFolderPin(f); }}
+                    className="px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold text-xs flex items-center gap-1.5 transition-all border border-amber-500/20"
+                  >
+                    <span>📌 Anclar</span>
+                  </button>
+                  <button
+                    onClick={() => { const f = folders.find(folder => folder.id === selectedFolderId); if (f) openEditFolderModal(f); }}
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors border border-white/10"
+                    title="Editar carpeta"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                </>
+              )}
+
+              <button
+                onClick={() => { setIsLibraryOpen(false); createNoteInFolder(selectedFolderId !== 'ALL' && selectedFolderId !== 'FAVORITES' && selectedFolderId !== 'UNCATEGORIZED' ? selectedFolderId : undefined); }}
+                className="px-4 py-2 rounded-xl bg-cyan-500 text-black font-bold text-xs flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow-md"
+              >
+                <Plus size={15} />
+                <span>Crear Nota Aquí</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Sub-Folders Carousel / Grid inside active folder */}
+          {selectedFolderId !== 'ALL' && selectedFolderId !== 'FAVORITES' && selectedFolderId !== 'UNCATEGORIZED' && folders.filter(f => f.parentId === selectedFolderId).length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Folder size={14} />
+                <span>Subcarpetas Directas ({folders.filter(f => f.parentId === selectedFolderId).length})</span>
               </h3>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 text-center">
-                  <span className="text-2xl font-black text-white font-mono">{notes.length}</span>
-                  <p className="text-[10px] font-bold text-white/40 uppercase mt-1">Notas Totales</p>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 text-center">
-                  <span className="text-2xl font-black text-cyan-400 font-mono">{folders.length}</span>
-                  <p className="text-[10px] font-bold text-white/40 uppercase mt-1">Carpetas</p>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 text-center">
-                  <span className="text-2xl font-black text-amber-400 font-mono">{notes.filter(n => n.isFavorite).length}</span>
-                  <p className="text-[10px] font-bold text-white/40 uppercase mt-1">Favoritos</p>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 text-center">
-                  <span className="text-2xl font-black text-emerald-400 font-mono">{journalEntries.length}</span>
-                  <p className="text-[10px] font-bold text-white/40 uppercase mt-1">Diarios</p>
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {folders.filter(f => f.parentId === selectedFolderId).map(sub => {
+                  const subCount = getFolderTotalNotesCount(sub.id);
+                  return (
+                    <div
+                      key={sub.id}
+                      onClick={() => setSelectedFolderId(sub.id)}
+                      className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-cyan-500/40 hover:bg-white/[0.07] transition-all cursor-pointer flex items-center justify-between group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-2xl p-2 rounded-xl bg-white/5 border border-white/5 shrink-0">{sub.icon || '📁'}</span>
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-bold text-white truncate group-hover:text-cyan-300 transition-colors">{sub.name}</h4>
+                          <span className="text-[10px] text-white/40 font-mono">{subCount} notas</span>
+                        </div>
+                      </div>
+                      <ChevronRight size={16} className="text-white/30 group-hover:text-cyan-400 transition-colors shrink-0" />
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
 
+          {/* Notes Grid inside active folder scope */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider">Notas ({filteredNotes.length})</h3>
+            </div>
+
+            {filteredNotes.length === 0 ? (
+              <div className="p-12 rounded-3xl bg-white/[0.02] border border-dashed border-white/10 text-center space-y-3">
+                <p className="text-sm text-white/40">No hay notas en este espacio aún.</p>
+                <button
+                  onClick={() => { setIsLibraryOpen(false); createNoteInFolder(selectedFolderId !== 'ALL' && selectedFolderId !== 'FAVORITES' && selectedFolderId !== 'UNCATEGORIZED' ? selectedFolderId : undefined); }}
+                  className="px-5 py-2.5 rounded-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-bold hover:bg-cyan-500/30 transition-all inline-flex items-center gap-2"
+                >
+                  <Plus size={15} />
+                  <span>Crear la primera nota</span>
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {filteredNotes
+                  .filter(n => !librarySearchQuery || n.title.toLowerCase().includes(librarySearchQuery.toLowerCase()))
+                  .map(note => {
+                    const themeId = note.theme || 'slate';
+                    const themeColor = themeColorMap.get(themeId) || '#64748b';
+                    const noteFolder = note.folderId ? folderMap.get(note.folderId) : undefined;
+                    const previewText = note.blocks.find(b => b.type === 'text' && b.content.trim().length > 0)?.content || '';
+
+                    return (
+                      <div
+                        key={note.id}
+                        onClick={() => { openNote(note); setIsLibraryOpen(false); }}
+                        className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 hover:border-cyan-500/40 hover:bg-white/[0.08] transition-all cursor-pointer flex flex-col justify-between h-40 relative group/ncard"
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <h4 className="text-xs sm:text-sm font-extrabold text-white truncate flex-1">{note.title || 'Nota sin título'}</h4>
+                            <button
+                              onClick={(e) => handleToggleNoteFavorite(note, e)}
+                              className={`p-1 rounded-full ${note.isFavorite ? 'text-amber-400' : 'text-white/20 hover:text-white/60'}`}
+                            >
+                              <Star size={13} fill={note.isFavorite ? 'currentColor' : 'none'} />
+                            </button>
+                          </div>
+
+                          {noteFolder && (
+                            <span className="inline-block text-[9px] font-bold text-cyan-300 bg-cyan-500/15 border border-cyan-500/20 px-2 py-0.5 rounded-md truncate max-w-[120px]">
+                              {noteFolder.icon || '📁'} {noteFolder.name}
+                            </span>
+                          )}
+
+                          <p className="text-[11px] text-white/50 leading-relaxed line-clamp-3">
+                            {previewText || <span className="italic opacity-30">Sin contenido...</span>}
+                          </p>
+                        </div>
+
+                        <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-white/40">
+                          <span className="font-mono">{note.updatedAt ? new Date(note.updatedAt).toLocaleDateString() : ''}</span>
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: themeColor }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+          </div>
+
         </div>
 
+      </div>
+    </div>,
+    document.body
+  )}
+
+  {/* Folder Creation & Editing Modal Portal */}
+  {isFolderModalOpen && typeof document !== 'undefined' && createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
+        onClick={() => setIsFolderModalOpen(false)}
+      />
+      
+      <div className="relative z-10 w-full max-w-md bg-[#121218] border border-white/15 rounded-3xl p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150">
+        <div className="flex items-center justify-between pb-3 border-b border-white/10">
+          <h3 className="text-base font-black text-white flex items-center gap-2">
+            <FolderPlus size={18} className="text-cyan-400" />
+            <span>{editingFolder ? 'Editar Carpeta' : 'Nueva Carpeta / Subcarpeta'}</span>
+          </h3>
+          <button onClick={() => setIsFolderModalOpen(false)} className="p-1 rounded-full text-white/40 hover:text-white">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {/* Name Input */}
+          <div>
+            <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-1.5">Nombre de la Carpeta</label>
+            <input
+              type="text"
+              value={folderName}
+              onChange={(e) => setFolderName(e.target.value)}
+              placeholder="Ej: Proyectos 2026, Ideas, Finanzas..."
+              className="w-full px-4 py-2.5 rounded-xl bg-white/[0.06] border border-white/10 text-xs text-white placeholder-white/30 focus:outline-none focus:border-cyan-500/50"
+              autoFocus
+            />
+          </div>
+
+          {/* Parent Folder Selector (Subfolder nesting) */}
+          <div>
+            <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-1.5">Carpeta Padre (Opcional)</label>
+            <select
+              value={folderParentId || ''}
+              onChange={(e) => setFolderParentId(e.target.value || undefined)}
+              className="w-full px-3 py-2.5 rounded-xl bg-[#1a1a22] border border-white/10 text-xs text-white outline-none cursor-pointer"
+            >
+              <option value="">📁 Ninguna (Carpeta Raíz)</option>
+              {folders
+                .filter(f => f.id !== editingFolder?.id)
+                .map(f => (
+                  <option key={f.id} value={f.id}>{f.icon || '📁'} {f.name}</option>
+                ))}
+            </select>
+          </div>
+
+          {/* Icon & Color Pickers */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-1.5">Icono (Emoji)</label>
+              <input
+                type="text"
+                value={folderIcon}
+                onChange={(e) => setFolderIcon(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-white/[0.06] border border-white/10 text-center text-lg text-white"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-1.5">Color Accent</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={folderColor}
+                  onChange={(e) => setFolderColor(e.target.value)}
+                  className="w-10 h-9 rounded-xl bg-transparent border border-white/10 cursor-pointer"
+                />
+                <span className="text-xs font-mono text-white/60">{folderColor}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Pin toggle */}
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5">
+            <div className="flex items-center gap-2">
+              <Star size={16} className="text-amber-400" fill={folderIsPinned ? 'currentColor' : 'none'} />
+              <span className="text-xs font-bold text-white">Anclar a la Barra de Inicio</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFolderIsPinned(!folderIsPinned)}
+              className={`w-9 h-5 rounded-full relative transition-colors border border-white/10 ${folderIsPinned ? 'bg-cyan-500' : 'bg-white/10'}`}
+            >
+              <span className={`block w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-transform ${folderIsPinned ? 'right-0.5' : 'left-0.5'}`} />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 pt-2">
+          <button
+            onClick={() => setIsFolderModalOpen(false)}
+            className="px-4 py-2 rounded-xl bg-white/5 text-white/60 hover:text-white text-xs font-bold"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSaveFolder}
+            className="px-5 py-2.5 rounded-xl bg-cyan-500 text-black font-bold text-xs uppercase hover:brightness-110 active:scale-95 transition-all shadow-md"
+          >
+            {editingFolder ? 'Guardar Cambios' : 'Crear Carpeta'}
+          </button>
+        </div>
       </div>
     </div>,
     document.body

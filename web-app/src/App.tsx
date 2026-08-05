@@ -70,7 +70,7 @@ const AppRoutes = () => {
     if (dashboardUnlocked) {
       const timer = setTimeout(() => {
         setShowSplash(false);
-      }, 3500);
+      }, 1500);
       return () => clearTimeout(timer);
     }
   }, [dashboardUnlocked]);

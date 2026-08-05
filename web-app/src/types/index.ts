@@ -236,6 +236,9 @@ export interface NoteFolder {
   icon?: string;
   color?: string;
   createdAt: number;
+  parentId?: string;
+  isPinned?: boolean;
+  order?: number;
 }
 
 export interface Note {
