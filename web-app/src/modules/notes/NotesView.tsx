@@ -1775,8 +1775,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
   {/* Note / Journal Editor Portal Modal */}
   {editorMode !== 'NONE' && typeof document !== 'undefined' && createPortal(
-    <div className="fixed inset-0 z-[500] bg-black/70 backdrop-blur-xl flex items-center justify-center p-3 sm:p-6 pt-16 sm:pt-20 overflow-hidden animate-in fade-in duration-200">
-      <div className="w-full h-full max-w-2xl mx-auto flex flex-col glass-editor rounded-[32px] sm:rounded-[36px] overflow-hidden border border-white/15 shadow-2xl relative bg-[#0f0f18]/90">
+    <div className="fixed inset-0 z-[500] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 pt-16 sm:pt-24 pb-8 overflow-y-auto animate-in fade-in duration-200">
+      <div className="w-full max-w-xl sm:max-w-2xl mx-auto flex flex-col glass-editor rounded-[32px] sm:rounded-[36px] overflow-hidden border border-white/15 shadow-2xl relative bg-[#0f0f18]/95 my-auto max-h-[82vh] transition-all">
         <div className="absolute top-0 left-0 right-0 h-48 opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 75%)` }} />
 
         {/* Top Header Controls (Matching screenshot UI) */}
@@ -1878,7 +1878,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                 value={draftTitle}
                 onChange={(e) => setDraftTitle(e.target.value)}
                 placeholder={t('notes.untitledPlaceholder', 'Título de la Nota...')}
-                className="w-full bg-transparent text-2xl sm:text-4xl font-black text-white placeholder:text-white/20 outline-none leading-normal tracking-tight border-b border-white/10 pb-3 mb-6"
+                className="w-full bg-transparent text-2xl sm:text-4xl font-black text-white placeholder:text-white/20 outline-none leading-normal tracking-tight border-b border-white/10 pb-3 mb-4"
               />
 
               {/* Word + Notion Clone Rich Block Editor */}
@@ -1916,12 +1916,11 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
         </div>
 
         {/* Editor Bottom Footer Stats Bar */}
-        <div className="px-6 py-2.5 bg-[#0a0a10] border-t border-white/5 flex items-center justify-between text-[11px] text-white/40 font-mono">
+        <div className="px-6 py-2 bg-[#0a0a10] border-t border-white/5 flex items-center justify-between text-[11px] text-white/40 font-mono">
           <div className="flex items-center gap-4">
             <span>Palabras: <strong className="text-white/80">{draftBlocks.reduce((acc, b) => acc + (b.content ? b.content.trim().split(/\s+/).filter(Boolean).length : 0), 0)}</strong></span>
             <span>Caracteres: <strong className="text-white/80">{draftBlocks.reduce((acc, b) => acc + (b.content ? b.content.length : 0), 0)}</strong></span>
           </div>
-          <EditorToolbar onAdd={addBlock} />
         </div>
       </div>
     </div>,
