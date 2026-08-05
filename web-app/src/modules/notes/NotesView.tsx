@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Save, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, PieChart, Search, Tag, Layers, Menu } from 'lucide-react';
+import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Save, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, PieChart, Search, Tag, Layers, Menu, CheckSquare, Square, Move, Eye, FileText, Copy, Download } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { Note, NoteFolder, JournalEntry, NoteBlock, Project, Quest } from '../../types';
@@ -469,6 +469,11 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   const [librarySearchQuery, setLibrarySearchQuery] = useState('');
   const [librarySidebarOpen, setLibrarySidebarOpen] = useState(false);
 
+  // Multi-select & Batch Operations State
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
+  const [isBatchMoveModalOpen, setIsBatchMoveModalOpen] = useState(false);
+
  // Pagination State
  const [visibleNotesCount, setVisibleNotesCount] = useState(12);
  const handleLoadMore = useCallback(() => {
@@ -498,7 +503,62 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   setDraftFolderId(note.folderId);
   setDraftIsFavorite(!!note.isFavorite);
   onInteractionStart(); 
-  }, [onInteractionStart]);
+ }, [onInteractionStart]);
+
+ // Batch operations handlers
+ const handleToggleSelectNote = (id: string) => {
+   setSelectedNoteIds(prev => 
+     prev.includes(id) ? prev.filter(nId => nId !== id) : [...prev, id]
+   );
+ };
+
+ const handleSelectAllNotes = (allFilteredNotes: Note[]) => {
+   const allIds = allFilteredNotes.map(n => n.id);
+   if (selectedNoteIds.length === allIds.length) {
+     setSelectedNoteIds([]);
+   } else {
+     setSelectedNoteIds(allIds);
+   }
+ };
+
+ const handleBatchMove = (targetFolderId?: string) => {
+   if (selectedNoteIds.length === 0) return;
+   selectedNoteIds.forEach(id => {
+     const n = notes.find(item => item.id === id);
+     if (n) {
+       handleUpdateNote({ ...n, folderId: targetFolderId, updatedAt: new Date().toISOString() });
+     }
+   });
+   toast.success(`${selectedNoteIds.length} notas movidas con éxito`);
+   setSelectedNoteIds([]);
+   setIsSelectionMode(false);
+   setIsBatchMoveModalOpen(false);
+ };
+
+ const handleBatchFavorite = () => {
+   if (selectedNoteIds.length === 0) return;
+   selectedNoteIds.forEach(id => {
+     const n = notes.find(item => item.id === id);
+     if (n) {
+       handleUpdateNote({ ...n, isFavorite: !n.isFavorite, updatedAt: new Date().toISOString() });
+     }
+   });
+   toast.success(`Favoritos actualizados (${selectedNoteIds.length} notas)`);
+   setSelectedNoteIds([]);
+   setIsSelectionMode(false);
+ };
+
+ const handleBatchDelete = () => {
+   if (selectedNoteIds.length === 0) return;
+   if (confirm(`¿Eliminar ${selectedNoteIds.length} notas seleccionadas?`)) {
+     selectedNoteIds.forEach(id => {
+       handleDeleteNote(id);
+     });
+     toast.success(`${selectedNoteIds.length} notas eliminadas`);
+     setSelectedNoteIds([]);
+     setIsSelectionMode(false);
+   }
+ };
   
   const createNote = useCallback(() => { 
   if (!canCreateNote()) {
@@ -1204,19 +1264,28 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
               const hasFolder = !!folder;
               const hasTags = note.tags && note.tags.length > 0;
               const hasHeaderBadges = hasFolder || hasTags;
+              const isSelected = selectedNoteIds.includes(note.id);
 
               return (
                 <div 
                   key={note.id} 
-                  onClick={() => openNote(note)} 
-                  className="w-full h-44 rounded-[28px] p-4 flex flex-col justify-between hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer group relative overflow-hidden shadow-lg border border-white/10 bg-[#121216] hover:border-white/20"
+                  className={`w-full h-44 rounded-[28px] p-4 flex flex-col justify-between hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer group relative overflow-hidden shadow-lg border ${isSelected ? 'border-cyan-500 bg-[#121216]/90' : 'border-white/10 bg-[#121216] hover:border-white/20'}`}
                 >
                   <div className="absolute top-0 left-0 right-0 h-20 opacity-15 pointer-events-none" style={{ background: `linear-gradient(to bottom, ${themeColor}, transparent)` }} />
                   
-                  {/* Top Right Star Button */}
+                    {/* Selection Mode Checkbox Badge */}
+                  {isSelectionMode && (
+                    <div 
+                      onClick={(e) => { e.stopPropagation(); handleToggleSelectNote(note.id); }}
+                      className="absolute top-3 left-3 z-30 p-1.5 rounded-lg bg-black/60 border border-white/20 text-cyan-400 cursor-pointer"
+                    >
+                      {isSelected ? <CheckSquare size={18} className="text-cyan-400" /> : <Square size={18} className="text-white/40" />}
+                    </div>
+                  )}
+
                   <button
                     onClick={(e) => handleToggleNoteFavorite(note, e)}
-                    className={`absolute top-3.5 right-3.5 z-20 p-1 rounded-full transition-all ${
+                    className={`absolute top-3 right-3 z-20 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
                       note.isFavorite ? 'text-amber-400 bg-amber-500/10' : 'text-white/20 hover:text-white/70 hover:bg-white/5'
                     }`}
                     title={note.isFavorite ? "Quitar de favoritos" : "Marcar como favorito"}
@@ -1224,7 +1293,21 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                     <Star size={13} fill={note.isFavorite ? 'currentColor' : 'none'} />
                   </button>
 
-                  <div className="relative z-10 flex flex-col flex-1 min-h-0 pr-6">
+                  <div 
+                    onClick={() => {
+                      if (isSelectionMode) {
+                        handleToggleSelectNote(note.id);
+                      } else {
+                        openNote(note);
+                      }
+                    }}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setIsSelectionMode(true);
+                      handleToggleSelectNote(note.id);
+                    }}
+                    className="relative z-10 flex flex-col flex-1 min-h-0 pr-6"
+                  >
                     {/* Header Badges: Rendered ONLY if tags or folder exist! NO empty vertical gap! */}
                     {hasHeaderBadges && (
                       <div className="flex items-center gap-1 overflow-hidden mb-1.5 flex-wrap max-h-5">
@@ -1264,6 +1347,63 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
               );
             })}
           </div>
+
+          {/* Floating Batch Operations Bar */}
+          {isSelectionMode && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[500] w-[92%] max-w-xl bg-[#12121a]/95 border border-cyan-500/40 rounded-3xl p-3 shadow-[0_0_30px_rgba(6,182,212,0.25)] backdrop-blur-xl flex items-center justify-between gap-2 text-xs font-bold text-white animate-in slide-in-from-bottom-5 duration-200">
+              <button 
+                onClick={() => handleSelectAllNotes(filteredNotes)} 
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors shrink-0"
+              >
+                {selectedNoteIds.length === filteredNotes.length && filteredNotes.length > 0 ? (
+                  <CheckSquare size={16} className="text-cyan-400" />
+                ) : (
+                  <Square size={16} className="text-white/40" />
+                )}
+                <span>{selectedNoteIds.length === filteredNotes.length ? 'Todas' : 'Seleccionar Todas'}</span>
+              </button>
+
+              <span className="text-[11px] font-mono text-cyan-300 shrink-0">
+                {selectedNoteIds.length} selec.
+              </span>
+
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                <button 
+                  onClick={() => setIsBatchMoveModalOpen(true)} 
+                  disabled={selectedNoteIds.length === 0}
+                  className="px-3 py-2 rounded-xl bg-cyan-500 text-black hover:bg-cyan-400 font-extrabold flex items-center gap-1 transition-all disabled:opacity-30 shrink-0"
+                >
+                  <Move size={14} />
+                  <span>Mover</span>
+                </button>
+
+                <button 
+                  onClick={handleBatchFavorite} 
+                  disabled={selectedNoteIds.length === 0}
+                  className="p-2 rounded-xl bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition-all disabled:opacity-30 shrink-0"
+                  title="Favorito"
+                >
+                  <Star size={15} />
+                </button>
+
+                <button 
+                  onClick={handleBatchDelete} 
+                  disabled={selectedNoteIds.length === 0}
+                  className="p-2 rounded-xl bg-red-500/20 text-red-300 hover:bg-red-500/30 transition-all disabled:opacity-30 shrink-0"
+                  title="Eliminar"
+                >
+                  <Trash2 size={15} />
+                </button>
+
+                <button 
+                  onClick={() => { setIsSelectionMode(false); setSelectedNoteIds([]); }} 
+                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors shrink-0"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+            </div>
+          )}
           {/* Load More Trigger */}
           {filteredNotes.length > visibleNotesCount && !isLocked && (
             <div className="flex justify-center pb-8 pt-4">
@@ -1631,179 +1771,167 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  )}
  </AnimatePresence>
 
- <div 
- className={`absolute inset-0 z-50 flex items-center justify-center transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] ${editorMode !== 'NONE' ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-98 translate-y-4 pointer-events-none'}`}
- style={{ willChange: 'transform, opacity', transform: 'translate3d(0,0,0)' }}
- >
- {editorMode !== 'NONE' && (
- <div className="w-full h-full max-w-2xl mx-auto flex flex-col p-4 sm:p-6 min-h-0">
- <div className="glass-editor rounded-[36px] flex-1 flex flex-col min-h-0 relative animate-in fade-in slide-in-from-bottom-2 duration-200 shadow-md" style={{ willChange: 'transform, opacity' }}>
- <div className="absolute inset-0 rounded-[36px] overflow-hidden pointer-events-none">
- <div className="absolute top-0 left-0 right-0 h-64 opacity-15 pointer-events-none transition-colors duration-200" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 70%)` }} />
- </div>
- 
- <div className="flex flex-wrap sm:flex-nowrap justify-between items-center p-3 sm:p-5 border-b border-white/5 relative z-20 gap-2">
-    {/* Left Section: Back Button + Favorite Star */}
-    <div className="flex items-center gap-2 flex-shrink-0">
-      <button 
-        onClick={closeEditor} 
-        className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all active:scale-95 border border-white/5"
-      >
-        <ArrowLeft size={18} />
-      </button>
-      {editorMode === 'NOTE' && (
-        <button 
-          onClick={() => setDraftIsFavorite(!draftIsFavorite)} 
-          className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full border transition-all flex items-center justify-center ${
-            draftIsFavorite 
-              ? 'bg-amber-500/20 text-amber-400 border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.25)]' 
-              : 'bg-white/5 text-white/40 border-white/5 hover:text-white'
-          }`} 
-          title="Marcar como favorito"
-        >
-          <Star size={16} fill={draftIsFavorite ? 'currentColor' : 'none'} />
-        </button>
-      )}
-    </div>
+  {/* Fullscreen Editor Modal Portal (Isolated from top header overlap) */}
+  {editorMode !== 'NONE' && typeof document !== 'undefined' && createPortal(
+    <div className="fixed inset-0 z-[100000] bg-black/90 backdrop-blur-xl flex flex-col p-3 sm:p-6 pt-16 sm:pt-20 animate-in fade-in duration-200 overflow-hidden">
+      <div className="w-full h-full max-w-3xl mx-auto flex flex-col min-h-0">
+        <div className="glass-editor rounded-[36px] flex-1 flex flex-col min-h-0 relative shadow-2xl border border-white/10 overflow-hidden">
+          <div className="absolute inset-0 rounded-[36px] overflow-hidden pointer-events-none">
+            <div className="absolute top-0 left-0 right-0 h-64 opacity-20 pointer-events-none transition-colors duration-200" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 70%)` }} />
+          </div>
 
-    {/* Center / Right Section: Folder Selector + Tools + Save */}
-    <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end flex-1 min-w-0">
-      {editorMode === 'NOTE' && (
-        <div className="relative flex-shrink-1 min-w-0 max-w-[130px] sm:max-w-[170px]">
-          <select 
-            value={draftFolderId || ''} 
-            onChange={(e) => setDraftFolderId(e.target.value || undefined)} 
-            className="w-full bg-[#18181b] border border-white/10 rounded-full pl-3 pr-7 py-1.5 text-[11px] sm:text-xs font-medium text-white outline-none cursor-pointer hover:border-white/20 transition-colors truncate appearance-none shadow-sm"
-          >
-            <option value="">📁 Sin Carpeta</option>
-            {folders.map(f => (
-              <option key={f.id} value={f.id}>{f.icon || '📁'} {f.name}</option>
-            ))}
-          </select>
-          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-white/40 text-[9px]">▼</div>
-        </div>
-      )}
+          {/* Editor Header Bar */}
+          <div className="flex flex-wrap sm:flex-nowrap justify-between items-center p-3 sm:p-5 border-b border-white/10 relative z-20 gap-2 bg-white/[0.02]">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button 
+                onClick={closeEditor} 
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-white/70 hover:text-white transition-all active:scale-95 border border-white/10"
+              >
+                <ArrowLeft size={18} />
+              </button>
+              {editorMode === 'NOTE' && (
+                <button 
+                  onClick={() => setDraftIsFavorite(!draftIsFavorite)} 
+                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full border transition-all flex items-center justify-center ${
+                    draftIsFavorite 
+                      ? 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]' 
+                      : 'bg-white/5 text-white/40 border-white/5 hover:text-white'
+                  }`} 
+                  title="Marcar como favorito"
+                >
+                  <Star size={16} fill={draftIsFavorite ? 'currentColor' : 'none'} />
+                </button>
+              )}
+            </div>
 
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        <BlueprintSelector onSelect={(newBlocks) => setDraftBlocks(prev => [...prev, ...newBlocks])} />
-        <button 
-          onClick={() => setShowSaveBlueprintModal(true)} 
-          className="hidden sm:flex p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors" 
-          title={t('notes.editor.saveBlueprint', 'Save as Blueprint')}
-        >
-          <Save size={16} />
-        </button>
-        <DropdownThemePicker 
-          currentTheme={draftTheme} 
-          onSelect={setDraftTheme} 
-          projects={editorMode === 'NOTE' ? projects : null} 
-          activeProject={draftProjectId} 
-          onSelectProject={setDraftProjectId} 
-        />
-      </div>
-
-      <div className="w-[1px] h-5 bg-white/10 mx-0.5 hidden sm:block" />
-
-      <div className="flex items-center gap-2 flex-shrink-0">
-        {editorMode === 'NOTE' && (
-          <button 
-            onClick={handleDelete} 
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full hover:bg-red-500/10 text-white/40 hover:text-red-400 flex items-center justify-center transition-all"
-          >
-            <Trash2 size={16} />
-          </button>
-        )}
-        <button 
-          onClick={handleSave} 
-          className="h-8 sm:h-9 px-4 sm:px-5 bg-white text-black rounded-full font-bold text-[10px] sm:text-xs uppercase tracking-wider hover:scale-105 active:scale-95 transition-transform shadow-md flex items-center justify-center whitespace-nowrap"
-        >
-          {t('notes.save')}
-        </button>
-      </div>
-    </div>
-  </div>
- <div ref={editorScrollContainerRef} className="flex-1 overflow-y-auto no-scrollbar p-6 sm:p-8 relative rounded-b-[36px]">
- {editorMode === 'NOTE' ? (
- <div className="animate-in slide-in-from-bottom-4 duration-200">
- <div className="relative mb-6">
- {draftProjectId && (<div className="inline-flex items-center gap-1 mb-3 px-2 py-0.5 rounded-md bg-white/5 border border-white/5"><Briefcase size={10} className="text-slate-400"/><span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide">{projects.find((p) => p.id === draftProjectId)?.title}</span></div>)}
- <textarea value={draftTitle} onChange={(e) => { setDraftTitle(e.target.value); const el = e.target; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }} onInput={(e) => { const el = e.target as HTMLTextAreaElement; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }} ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; } }} placeholder={t('notes.untitledPlaceholder', 'Untitled Note')} className="w-full bg-transparent text-4xl font-black text-white placeholder:text-white/10 outline-none leading-tight tracking-tight resize-none overflow-hidden break-words" rows={1} />
- </div>
- <BlockEditor blocks={draftBlocks} onChange={setDraftBlocks} />
- </div>
- ) : (
- <div className="animate-in slide-in-from-bottom-4 duration-200">
- <div className="text-center mb-8 relative z-10 flex flex-col items-center">
-                <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] block mb-6">
-                  {draftDate.toLocaleDateString(i18n.language, { weekday: 'long', month: 'long', day: 'numeric' })}
-                </span>
-
-                <textarea 
-                   value={draftTitle} 
-                   onChange={(e) => { setDraftTitle(e.target.value); const el = e.target; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }} 
-                   onInput={(e) => { const el = e.target as HTMLTextAreaElement; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }} 
-                   ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; } }} 
-                   placeholder={t('notes.untitledPlaceholder', 'Untitled Note')} 
-                   className="w-full bg-transparent text-3xl font-black text-white placeholder:text-white/10 outline-none leading-tight tracking-tight text-center mb-6 resize-none overflow-hidden break-words" 
-                   rows={1} 
-                 />
-
-                {(activeSpecialEvent || activeDayQuests.length > 0) && (
-                  <div className="w-full max-w-md flex flex-col gap-3 mb-6">
-                    {activeSpecialEvent && (
-                      <div 
-                        onClick={() => setSelectedMemory(activeSpecialEvent)}
-                        className="w-full rounded-[24px] bg-gradient-to-r from-pink-500/10 to-transparent border border-pink-500/20 p-4 flex items-center gap-4 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(236,72,153,0.05)] group relative overflow-hidden"
-                      >
-                        <div className="absolute inset-0 bg-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="w-12 h-12 shrink-0 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl shadow-md relative z-10">
-                          {activeSpecialEvent.type === 'BIRTHDAY' ? '🎂' : (activeSpecialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
-                        </div>
-                        <div className="flex-1 text-left relative z-10">
-                          <h3 className="text-lg font-black text-white tracking-tight leading-tight line-clamp-1">{activeSpecialEvent.title}</h3>
-                          <div className="flex items-center gap-1.5 text-pink-400 mt-0.5">
-                            <Gift size={10} />
-                            <span className="text-[9px] font-bold uppercase tracking-widest">{t(`notes.event.types.${activeSpecialEvent.type}`, activeSpecialEvent.type) as string}</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {activeDayQuests.map((quest) => (
-                      <div 
-                        key={quest.id}
-                        onClick={() => setSelectedQuest(quest)}
-                        className="w-full rounded-[24px] border border-white/10 p-4 flex items-center gap-4 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md group relative overflow-hidden"
-                        style={{ background: `linear-gradient(to right, ${quest.journalIconColor || '#3b82f6'}15, transparent)` }}
-                      >
-                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: `${quest.journalIconColor || '#3b82f6'}10` }} />
-                        <div className="w-12 h-12 shrink-0 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl shadow-md relative z-10" style={{ color: quest.journalIconColor || '#3b82f6' }}>
-                          <ListTodo size={20} />
-                        </div>
-                        <div className="flex-1 text-left relative z-10 min-w-0">
-                          <h3 className="text-lg font-black text-white tracking-tight leading-tight truncate">{quest.title}</h3>
-                          <div className="flex items-center gap-1.5 mt-0.5" style={{ color: quest.journalIconColor || '#3b82f6' }}>
-                            <Repeat size={10} />
-                            <span className="text-[9px] font-bold uppercase tracking-widest">{t('notes.editor.repeatedTask', 'Repeated Task')}</span>
-                          </div>
-                        </div>
-                      </div>
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end flex-1 min-w-0">
+              {editorMode === 'NOTE' && (
+                <div className="relative flex-shrink-1 min-w-0 max-w-[130px] sm:max-w-[170px]">
+                  <select 
+                    value={draftFolderId || ''} 
+                    onChange={(e) => setDraftFolderId(e.target.value || undefined)} 
+                    className="w-full bg-[#18181b] border border-white/10 rounded-full pl-3 pr-7 py-1.5 text-[11px] sm:text-xs font-medium text-white outline-none cursor-pointer hover:border-white/20 transition-colors truncate appearance-none shadow-sm"
+                  >
+                    <option value="">📁 Sin Carpeta</option>
+                    {folders.map(f => (
+                      <option key={f.id} value={f.id}>{f.icon || '📁'} {f.name}</option>
                     ))}
-                  </div>
+                  </select>
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-white/40 text-[9px]">▼</div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <BlueprintSelector onSelect={(newBlocks) => setDraftBlocks(prev => [...prev, ...newBlocks])} />
+                <button 
+                  onClick={() => setShowSaveBlueprintModal(true)} 
+                  className="hidden sm:flex p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors" 
+                  title={t('notes.editor.saveBlueprint', 'Save as Blueprint')}
+                >
+                  <Save size={16} />
+                </button>
+                <DropdownThemePicker 
+                  currentTheme={draftTheme} 
+                  onSelect={setDraftTheme} 
+                  projects={editorMode === 'NOTE' ? projects : null} 
+                  activeProject={draftProjectId} 
+                  onSelectProject={setDraftProjectId} 
+                />
+              </div>
+
+              <div className="w-[1px] h-5 bg-white/10 mx-0.5 hidden sm:block" />
+
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {editorMode === 'NOTE' && (
+                  <button 
+                    onClick={handleDelete} 
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full hover:bg-red-500/10 text-white/40 hover:text-red-400 flex items-center justify-center transition-all"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 )}
-            <div className="inline-flex justify-center gap-1 bg-white/5 p-1.5 rounded-2xl border border-white/5">
- {MOODS.map(m => ( <button key={m.id} onClick={() => { setDraftMood(m.id); setMoodSplash(m.id); }} className={`w-9 h-9 rounded-xl flex items-center justify-center text-xl transition-transform ${draftMood === m.id ? 'bg-white/10 scale-110 shadow-sm ring-1 ring-white/20' : 'opacity-40 hover:opacity-100 hover:bg-white/5'}`}>{m.icon}</button> ))}
- </div>
- </div>
- <BlockEditor blocks={draftBlocks} onChange={setDraftBlocks} />
- </div>
- )}
- </div>
- <EditorToolbar onAdd={addBlock} />
- </div>
- </div>
- )}
- </div>
+                <button 
+                  onClick={handleSave} 
+                  className="h-8 sm:h-9 px-4 sm:px-5 bg-cyan-500 text-black rounded-full font-black text-[10px] sm:text-xs uppercase tracking-wider hover:bg-cyan-400 active:scale-95 transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center whitespace-nowrap"
+                >
+                  {t('notes.save')}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Editor Body Scrollable Area */}
+          <div ref={editorScrollContainerRef} className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-8 relative rounded-b-[36px]">
+            {editorMode === 'NOTE' ? (
+              <div className="animate-in slide-in-from-bottom-4 duration-200">
+                <div className="relative mb-6">
+                  {draftProjectId && (
+                    <div className="inline-flex items-center gap-1 mb-3 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10">
+                      <Briefcase size={11} className="text-cyan-400"/>
+                      <span className="text-[10px] font-bold text-slate-200 uppercase tracking-wider">{projects.find((p) => p.id === draftProjectId)?.title}</span>
+                    </div>
+                  )}
+                  <textarea 
+                    value={draftTitle} 
+                    onChange={(e) => { setDraftTitle(e.target.value); const el = e.target; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }} 
+                    onInput={(e) => { const el = e.target as HTMLTextAreaElement; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }} 
+                    ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = (el.scrollHeight || 50) + 'px'; } }} 
+                    placeholder={t('notes.untitledPlaceholder', 'Título de la nota...')} 
+                    className="w-full bg-transparent text-3xl sm:text-4xl font-black text-white placeholder:text-white/20 outline-none leading-normal tracking-tight resize-none p-2 min-h-[60px] break-words" 
+                    rows={1} 
+                  />
+                </div>
+                <BlockEditor blocks={draftBlocks} onChange={setDraftBlocks} />
+              </div>
+            ) : (
+              <div className="animate-in slide-in-from-bottom-4 duration-200">
+                <div className="text-center mb-8 relative z-10 flex flex-col items-center">
+                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] block mb-6">
+                    {draftDate.toLocaleDateString(i18n.language, { weekday: 'long', month: 'long', day: 'numeric' })}
+                  </span>
+
+                  <textarea 
+                    value={draftTitle} 
+                    onChange={(e) => { setDraftTitle(e.target.value); const el = e.target; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }} 
+                    onInput={(e) => { const el = e.target as HTMLTextAreaElement; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }} 
+                    ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = (el.scrollHeight || 50) + 'px'; } }} 
+                    placeholder={t('notes.untitledPlaceholder', 'Título de la entrada...')} 
+                    className="w-full bg-transparent text-2xl sm:text-3xl font-black text-white placeholder:text-white/20 outline-none leading-normal tracking-tight text-center mb-6 resize-none p-2 min-h-[50px] break-words" 
+                    rows={1} 
+                  />
+
+                  {(activeSpecialEvent || activeDayQuests.length > 0) && (
+                    <div className="w-full max-w-md flex flex-col gap-3 mb-6">
+                      {activeSpecialEvent && (
+                        <div 
+                          onClick={() => setSelectedMemory(activeSpecialEvent)}
+                          className="w-full rounded-[24px] bg-gradient-to-r from-pink-500/10 to-transparent border border-pink-500/20 p-4 flex items-center gap-4 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md group relative overflow-hidden"
+                        >
+                          <div className="w-12 h-12 shrink-0 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl shadow-md relative z-10">
+                            {activeSpecialEvent.type === 'BIRTHDAY' ? '🎂' : (activeSpecialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
+                          </div>
+                          <div className="flex-1 text-left relative z-10">
+                            <h3 className="text-lg font-black text-white tracking-tight leading-tight line-clamp-1">{activeSpecialEvent.title}</h3>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="inline-flex justify-center gap-1 bg-white/5 p-1.5 rounded-2xl border border-white/5">
+                    {MOODS.map(m => ( <button key={m.id} onClick={() => { setDraftMood(m.id); setMoodSplash(m.id); }} className={`w-9 h-9 rounded-xl flex items-center justify-center text-xl transition-transform ${draftMood === m.id ? 'bg-white/10 scale-110 shadow-sm ring-1 ring-white/20' : 'opacity-40 hover:opacity-100 hover:bg-white/5'}`}>{m.icon}</button> ))}
+                  </div>
+                </div>
+                <BlockEditor blocks={draftBlocks} onChange={setDraftBlocks} />
+              </div>
+            )}
+          </div>
+          <EditorToolbar onAdd={addBlock} />
+        </div>
+      </div>
+    </div>,
+    document.body
+  )}
  <SaveBlueprintModal isOpen={showSaveBlueprintModal} onClose={() => setShowSaveBlueprintModal(false)} currentBlocks={draftBlocks} />
  
  {moodSplash && createPortal(
@@ -2113,58 +2241,74 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                     return (
                       <div key={folder.id} className="flex flex-col">
                         <div
-                          onClick={() => { setSelectedFolderId(folder.id); setLibrarySidebarOpen(false); }}
-                          className={`group/item flex items-center justify-between py-2.5 sm:py-1.5 px-2.5 rounded-xl transition-all cursor-pointer select-none border ${
-                            isSelected
-                              ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300 font-bold shadow-md'
-                              : 'bg-transparent border-transparent hover:bg-white/5 text-white/80 hover:text-white'
-                          }`}
-                          style={{ paddingLeft: `${Math.max(10, depth * 14 + 10)}px` }}
-                        >
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            {hasChildren ? (
-                              <button
-                                onClick={(e) => toggleFolderExpand(folder.id, e)}
-                                className="p-1 rounded-md hover:bg-white/10 text-white/50 hover:text-white transition-colors shrink-0"
-                              >
-                                {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                              </button>
-                            ) : (
-                              <span className="w-3.5 h-3.5 inline-block shrink-0" />
-                            )}
-                            <span className="text-sm shrink-0" style={{ color }}>{folder.icon || '📁'}</span>
-                            <span className="text-xs truncate">{folder.name}</span>
-                          </div>
+                           onClick={() => { 
+                             const hasSub = folders.some(f => f.parentId === folder.id);
+                             if (!hasSub) {
+                               setSelectedFolderId(folder.id); 
+                               setIsLibraryOpen(false); 
+                               toast.success(`Viendo notas de ${folder.name}`);
+                             } else {
+                               setSelectedFolderId(folder.id); 
+                             }
+                           }}
+                           className={`group/item flex items-center justify-between py-2.5 sm:py-1.5 px-2.5 rounded-xl transition-all cursor-pointer select-none border ${
+                             isSelected
+                               ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300 font-bold shadow-md'
+                               : 'bg-transparent border-transparent hover:bg-white/5 text-white/80 hover:text-white'
+                           }`}
+                           style={{ paddingLeft: `${Math.max(10, depth * 14 + 10)}px` }}
+                         >
+                           <div className="flex items-center gap-2 min-w-0 flex-1">
+                             {hasChildren ? (
+                               <button
+                                 onClick={(e) => toggleFolderExpand(folder.id, e)}
+                                 className="p-1 rounded-md hover:bg-white/10 text-white/50 hover:text-white transition-colors shrink-0"
+                               >
+                                 {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                               </button>
+                             ) : (
+                               <span className="w-3.5 h-3.5 inline-block shrink-0" />
+                             )}
+                             <span className="text-sm shrink-0" style={{ color }}>{folder.icon || '📁'}</span>
+                             <span className="text-xs truncate">{folder.name}</span>
+                           </div>
 
-                          <div className="flex items-center gap-1 opacity-70 group-hover/item:opacity-100 shrink-0">
-                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-white/10 text-white/60">
-                              {totalCount}
-                            </span>
-                            <div className="hidden group-hover/item:flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                onClick={() => openCreateFolderModal(folder.id)}
-                                className="p-1 rounded bg-white/10 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300"
-                                title="Añadir subcarpeta"
-                              >
-                                <Plus size={11} />
-                              </button>
-                              <button
-                                onClick={(e) => handleToggleFolderPin(folder, e)}
-                                className={`p-1 rounded ${folder.isPinned ? 'bg-amber-500/20 text-amber-300' : 'bg-white/10 text-white/50 hover:text-white'}`}
-                                title={folder.isPinned ? "Desanclar" : "Anclar a inicio"}
-                              >
-                                📌
-                              </button>
-                              <button
-                                onClick={(e) => openEditFolderModal(folder, e)}
-                                className="p-1 rounded bg-white/10 hover:bg-white/20 text-white/50 hover:text-white"
-                                title="Editar"
-                              >
-                                <Pencil size={11} />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
+                           <div className="flex items-center gap-1 opacity-80 group-hover/item:opacity-100 shrink-0">
+                             <button
+                               onClick={(e) => { e.stopPropagation(); setSelectedFolderId(folder.id); setIsLibraryOpen(false); }}
+                               className="px-2 py-0.5 rounded-md bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[10px] font-bold border border-cyan-500/30 flex items-center gap-1 transition-colors"
+                             >
+                               <Eye size={11} />
+                               <span>Ver</span>
+                             </button>
+                             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-white/10 text-white/60">
+                               {totalCount}
+                             </span>
+                             <div className="hidden group-hover/item:flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                               <button
+                                 onClick={() => openCreateFolderModal(folder.id)}
+                                 className="p-1 rounded bg-white/10 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300"
+                                 title="Añadir subcarpeta"
+                               >
+                                 <Plus size={11} />
+                               </button>
+                               <button
+                                 onClick={(e) => handleToggleFolderPin(folder, e)}
+                                 className={`p-1 rounded ${folder.isPinned ? 'bg-amber-500/20 text-amber-300' : 'bg-white/10 text-white/50 hover:text-white'}`}
+                                 title={folder.isPinned ? "Desanclar" : "Anclar a inicio"}
+                               >
+                                 📌
+                               </button>
+                               <button
+                                 onClick={(e) => openEditFolderModal(folder, e)}
+                                 className="p-1 rounded bg-white/10 hover:bg-white/20 text-white/50 hover:text-white"
+                                 title="Editar"
+                               >
+                                 <Pencil size={11} />
+                               </button>
+                             </div>
+                           </div>
+                         </div>
 
                         {hasChildren && isExpanded && (
                           <div className="flex flex-col gap-0.5 border-l border-white/10 ml-3.5 pl-1 my-0.5">
@@ -2277,7 +2421,16 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                   return (
                     <div
                       key={sub.id}
-                      onClick={() => setSelectedFolderId(sub.id)}
+                      onClick={() => {
+                        const hasSub = folders.some(f => f.parentId === sub.id);
+                        if (!hasSub) {
+                          setSelectedFolderId(sub.id);
+                          setIsLibraryOpen(false);
+                          toast.success(`Viendo notas de ${sub.name}`);
+                        } else {
+                          setSelectedFolderId(sub.id);
+                        }
+                      }}
                       className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-cyan-500/40 hover:bg-white/[0.07] transition-all cursor-pointer flex items-center justify-between group"
                     >
                       <div className="flex items-center gap-3 min-w-0">
@@ -2287,7 +2440,14 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                           <span className="text-[10px] text-white/40 font-mono">{subCount} notas</span>
                         </div>
                       </div>
-                      <ChevronRight size={16} className="text-white/30 group-hover:text-cyan-400 transition-colors shrink-0" />
+                      
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setSelectedFolderId(sub.id); setIsLibraryOpen(false); }}
+                        className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-extrabold text-xs flex items-center gap-1 transition-all border border-cyan-500/30 shrink-0"
+                      >
+                        <Eye size={13} />
+                        <span>Ver Notas</span>
+                      </button>
                     </div>
                   );
                 })}
@@ -2473,6 +2633,49 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
           >
             {editingFolder ? 'Guardar Cambios' : 'Crear Carpeta'}
           </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )}
+
+  {/* Batch Move Target Folder Modal Portal */}
+  {isBatchMoveModalOpen && typeof document !== 'undefined' && createPortal(
+    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsBatchMoveModalOpen(false)} />
+      <div className="relative z-10 w-full max-w-sm bg-[#12121a] border border-cyan-500/30 rounded-3xl p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+        <div className="flex items-center justify-between pb-2 border-b border-white/10">
+          <h3 className="text-base font-black text-white flex items-center gap-2">
+            <Move size={18} className="text-cyan-400" />
+            <span>Mover {selectedNoteIds.length} Notas</span>
+          </h3>
+          <button onClick={() => setIsBatchMoveModalOpen(false)} className="text-white/40 hover:text-white">
+            <X size={16} />
+          </button>
+        </div>
+
+        <p className="text-xs text-white/50">Selecciona la carpeta destino para mover tus notas seleccionadas:</p>
+
+        <div className="space-y-1.5 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+          <button
+            onClick={() => handleBatchMove(undefined)}
+            className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/15 text-left text-xs font-bold text-white transition-colors border border-white/5"
+          >
+            <span className="text-lg">📁</span>
+            <span>Sin Carpeta (Raíz)</span>
+          </button>
+
+          {folders.map(f => (
+            <button
+              key={f.id}
+              onClick={() => handleBatchMove(f.id)}
+              className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-cyan-500/20 text-left text-xs font-bold text-white hover:text-cyan-300 transition-colors border border-white/5"
+            >
+              <span className="text-lg" style={{ color: f.color }}>{f.icon || '📁'}</span>
+              <span className="truncate flex-1">{f.name}</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-white/50">{getFolderTotalNotesCount(f.id)} notas</span>
+            </button>
+          ))}
         </div>
       </div>
     </div>,

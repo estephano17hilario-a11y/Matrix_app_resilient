@@ -225,9 +225,18 @@ export interface Session {
 
 export interface NoteBlock {
   id: string;
-  type: 'text' | 'check' | 'image';
+  type: 'text' | 'h1' | 'h2' | 'h3' | 'quote' | 'code' | 'latex' | 'callout' | 'check' | 'image';
   content: string;
   checked?: boolean;
+  color?: string;
+  bgColor?: string;
+  fontFamily?: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  strikethrough?: boolean;
+  shadow?: boolean;
+  calloutIcon?: string;
 }
 
 export interface NoteFolder {
