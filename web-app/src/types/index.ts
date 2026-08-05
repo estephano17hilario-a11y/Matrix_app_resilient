@@ -225,18 +225,18 @@ export interface Session {
 
 export interface NoteBlock {
   id: string;
-  type: 'text' | 'h1' | 'h2' | 'h3' | 'quote' | 'code' | 'latex' | 'callout' | 'check' | 'image';
+  type: 'text' | 'check' | 'image' | 'heading1' | 'heading2' | 'heading3' | 'quote' | 'code' | 'latex' | 'callout';
   content: string;
   checked?: boolean;
   color?: string;
-  bgColor?: string;
-  fontFamily?: string;
-  bold?: boolean;
-  italic?: boolean;
-  underline?: boolean;
-  strikethrough?: boolean;
-  shadow?: boolean;
+  fontFamily?: 'sans' | 'serif' | 'mono' | 'display' | 'handwriting';
+  isBold?: boolean;
+  isItalic?: boolean;
+  isUnderline?: boolean;
+  isStrikethrough?: boolean;
+  hasShadow?: boolean;
   calloutIcon?: string;
+  language?: string;
 }
 
 export interface NoteFolder {
@@ -260,6 +260,8 @@ export interface Note {
   projectId?: string;
   folderId?: string;
   isFavorite?: boolean;
+  isPinned?: boolean;
+  isProtected?: boolean;
   tags?: string[];
 }
 

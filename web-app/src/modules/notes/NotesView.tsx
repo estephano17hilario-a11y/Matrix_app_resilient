@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Save, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, PieChart, Search, Tag, Layers, Menu, CheckSquare, Square, Move, Eye, FileText, Copy, Download } from 'lucide-react';
+import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Save, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, PieChart, Search, Tag, Layers, Menu, Eye, Download, CheckSquare, Square, Move, Copy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { Note, NoteFolder, JournalEntry, NoteBlock, Project, Quest } from '../../types';
@@ -468,11 +468,66 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   const [libraryTab, setLibraryTab] = useState<'FOLDERS' | 'FAVORITES' | 'PROJECTS' | 'STATS'>('FOLDERS');
   const [librarySearchQuery, setLibrarySearchQuery] = useState('');
   const [librarySidebarOpen, setLibrarySidebarOpen] = useState(false);
-
-  // Multi-select & Batch Operations State
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
-  const [isBatchMoveModalOpen, setIsBatchMoveModalOpen] = useState(false);
+  const [isBatchMoveOpen, setIsBatchMoveOpen] = useState(false);
+
+  const toggleSelectNote = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setSelectedNoteIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const handleSelectAllNotes = () => {
+    if (selectedNoteIds.length === filteredNotes.length) {
+      setSelectedNoteIds([]);
+    } else {
+      setSelectedNoteIds(filteredNotes.map(n => n.id));
+    }
+  };
+
+  const handleBatchMoveNotes = (targetFolderId?: string) => {
+    if (selectedNoteIds.length === 0) return;
+    selectedNoteIds.forEach(noteId => {
+      const targetNote = notes.find(n => n.id === noteId);
+      if (targetNote) {
+        handleUpdateNote({ ...targetNote, folderId: targetFolderId });
+      }
+    });
+    const folderObj = targetFolderId ? folderMap.get(targetFolderId) : undefined;
+    toast.success(`¡${selectedNoteIds.length} notas movidas a ${folderObj ? folderObj.name : 'Sin Carpeta'}!`);
+    setSelectedNoteIds([]);
+    setIsBatchMoveOpen(false);
+  };
+
+  const handleBatchDeleteNotes = () => {
+    if (selectedNoteIds.length === 0) return;
+    if (window.confirm(`¿Eliminar ${selectedNoteIds.length} notas seleccionadas?`)) {
+      selectedNoteIds.forEach(id => handleDeleteNote(id));
+      toast.success(`${selectedNoteIds.length} notas eliminadas`);
+      setSelectedNoteIds([]);
+    }
+  };
+
+  const handleExportNoteMarkdown = (noteTitle: string, blocks: NoteBlock[]) => {
+    const text = `# ${noteTitle || 'Sin Título'}\n\n` + blocks.map(b => {
+      if (b.type === 'check') return `- [${b.checked ? 'x' : ' '}] ${b.content}`;
+      if (b.type === 'heading1') return `# ${b.content}`;
+      if (b.type === 'heading2') return `## ${b.content}`;
+      if (b.type === 'heading3') return `### ${b.content}`;
+      if (b.type === 'quote') return `> ${b.content}`;
+      if (b.type === 'code') return `\`\`\`\n${b.content}\n\`\`\``;
+      if (b.type === 'latex') return `$$ ${b.content} $$`;
+      return b.content;
+    }).join('\n\n');
+
+    const blob = new Blob([text], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(noteTitle || 'nota').toLowerCase().replace(/\s+/g, '_')}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Nota exportada como .md');
+  };
 
  // Pagination State
  const [visibleNotesCount, setVisibleNotesCount] = useState(12);
@@ -503,62 +558,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   setDraftFolderId(note.folderId);
   setDraftIsFavorite(!!note.isFavorite);
   onInteractionStart(); 
- }, [onInteractionStart]);
-
- // Batch operations handlers
- const handleToggleSelectNote = (id: string) => {
-   setSelectedNoteIds(prev => 
-     prev.includes(id) ? prev.filter(nId => nId !== id) : [...prev, id]
-   );
- };
-
- const handleSelectAllNotes = (allFilteredNotes: Note[]) => {
-   const allIds = allFilteredNotes.map(n => n.id);
-   if (selectedNoteIds.length === allIds.length) {
-     setSelectedNoteIds([]);
-   } else {
-     setSelectedNoteIds(allIds);
-   }
- };
-
- const handleBatchMove = (targetFolderId?: string) => {
-   if (selectedNoteIds.length === 0) return;
-   selectedNoteIds.forEach(id => {
-     const n = notes.find(item => item.id === id);
-     if (n) {
-       handleUpdateNote({ ...n, folderId: targetFolderId, updatedAt: new Date().toISOString() });
-     }
-   });
-   toast.success(`${selectedNoteIds.length} notas movidas con éxito`);
-   setSelectedNoteIds([]);
-   setIsSelectionMode(false);
-   setIsBatchMoveModalOpen(false);
- };
-
- const handleBatchFavorite = () => {
-   if (selectedNoteIds.length === 0) return;
-   selectedNoteIds.forEach(id => {
-     const n = notes.find(item => item.id === id);
-     if (n) {
-       handleUpdateNote({ ...n, isFavorite: !n.isFavorite, updatedAt: new Date().toISOString() });
-     }
-   });
-   toast.success(`Favoritos actualizados (${selectedNoteIds.length} notas)`);
-   setSelectedNoteIds([]);
-   setIsSelectionMode(false);
- };
-
- const handleBatchDelete = () => {
-   if (selectedNoteIds.length === 0) return;
-   if (confirm(`¿Eliminar ${selectedNoteIds.length} notas seleccionadas?`)) {
-     selectedNoteIds.forEach(id => {
-       handleDeleteNote(id);
-     });
-     toast.success(`${selectedNoteIds.length} notas eliminadas`);
-     setSelectedNoteIds([]);
-     setIsSelectionMode(false);
-   }
- };
+  }, [onInteractionStart]);
   
   const createNote = useCallback(() => { 
   if (!canCreateNote()) {
@@ -1269,46 +1269,45 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
               return (
                 <div 
                   key={note.id} 
-                  className={`w-full h-44 rounded-[28px] p-4 flex flex-col justify-between hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer group relative overflow-hidden shadow-lg border ${isSelected ? 'border-cyan-500 bg-[#121216]/90' : 'border-white/10 bg-[#121216] hover:border-white/20'}`}
+                  onClick={() => {
+                    if (selectedNoteIds.length > 0) {
+                      toggleSelectNote(note.id);
+                    } else {
+                      openNote(note);
+                    }
+                  }} 
+                  className={`w-full h-44 rounded-[28px] p-4 flex flex-col justify-between hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer group relative overflow-hidden shadow-lg border ${
+                    isSelected 
+                      ? 'border-cyan-400 ring-2 ring-cyan-500/40 bg-cyan-950/20' 
+                      : 'border-white/10 bg-[#121216] hover:border-white/20'
+                  }`}
                 >
                   <div className="absolute top-0 left-0 right-0 h-20 opacity-15 pointer-events-none" style={{ background: `linear-gradient(to bottom, ${themeColor}, transparent)` }} />
                   
-                    {/* Selection Mode Checkbox Badge */}
-                  {isSelectionMode && (
-                    <div 
-                      onClick={(e) => { e.stopPropagation(); handleToggleSelectNote(note.id); }}
-                      className="absolute top-3 left-3 z-30 p-1.5 rounded-lg bg-black/60 border border-white/20 text-cyan-400 cursor-pointer"
+                  {/* Select Checkbox / Favorite Star */}
+                  <div className="absolute top-3 right-3 z-20 flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={(e) => toggleSelectNote(note.id, e)}
+                      className={`p-1 rounded-lg transition-all ${isSelected ? 'text-cyan-400 bg-cyan-500/20' : 'text-white/30 hover:text-white hover:bg-white/10'}`}
+                      title="Seleccionar nota"
                     >
-                      {isSelected ? <CheckSquare size={18} className="text-cyan-400" /> : <Square size={18} className="text-white/40" />}
-                    </div>
-                  )}
+                      {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleToggleNoteFavorite(note, e)}
+                      className={`p-1 rounded-full transition-all ${
+                        note.isFavorite ? 'text-amber-400 bg-amber-500/10' : 'text-white/20 hover:text-white/70 hover:bg-white/5'
+                      }`}
+                      title={note.isFavorite ? "Quitar de favoritos" : "Marcar como favorito"}
+                    >
+                      <Star size={14} fill={note.isFavorite ? 'currentColor' : 'none'} />
+                    </button>
+                  </div>
 
-                  <button
-                    onClick={(e) => handleToggleNoteFavorite(note, e)}
-                    className={`absolute top-3 right-3 z-20 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                      note.isFavorite ? 'text-amber-400 bg-amber-500/10' : 'text-white/20 hover:text-white/70 hover:bg-white/5'
-                    }`}
-                    title={note.isFavorite ? "Quitar de favoritos" : "Marcar como favorito"}
-                  >
-                    <Star size={13} fill={note.isFavorite ? 'currentColor' : 'none'} />
-                  </button>
-
-                  <div 
-                    onClick={() => {
-                      if (isSelectionMode) {
-                        handleToggleSelectNote(note.id);
-                      } else {
-                        openNote(note);
-                      }
-                    }}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      setIsSelectionMode(true);
-                      handleToggleSelectNote(note.id);
-                    }}
-                    className="relative z-10 flex flex-col flex-1 min-h-0 pr-6"
-                  >
-                    {/* Header Badges: Rendered ONLY if tags or folder exist! NO empty vertical gap! */}
+                  <div className="relative z-10 flex flex-col flex-1 min-h-0 pr-12">
+                    {/* Header Badges */}
                     {hasHeaderBadges && (
                       <div className="flex items-center gap-1 overflow-hidden mb-1.5 flex-wrap max-h-5">
                         {folder && (
@@ -1338,7 +1337,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                     </p>
                   </div>
 
-                  {/* Footer: Date & Colored Theme Dot */}
+                  {/* Footer */}
                   <div className="relative z-10 pt-2 border-t border-white/5 flex justify-between items-center text-[10px] font-medium text-white/40">
                     <span>{updatedLabel}</span>
                     <div className="w-2.5 h-2.5 rounded-full shadow-[0_0_6px_currentColor]" style={{ backgroundColor: themeColor, color: themeColor }} />
@@ -1348,60 +1347,35 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             })}
           </div>
 
-          {/* Floating Batch Operations Bar */}
-          {isSelectionMode && (
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[500] w-[92%] max-w-xl bg-[#12121a]/95 border border-cyan-500/40 rounded-3xl p-3 shadow-[0_0_30px_rgba(6,182,212,0.25)] backdrop-blur-xl flex items-center justify-between gap-2 text-xs font-bold text-white animate-in slide-in-from-bottom-5 duration-200">
-              <button 
-                onClick={() => handleSelectAllNotes(filteredNotes)} 
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors shrink-0"
-              >
-                {selectedNoteIds.length === filteredNotes.length && filteredNotes.length > 0 ? (
-                  <CheckSquare size={16} className="text-cyan-400" />
-                ) : (
-                  <Square size={16} className="text-white/40" />
-                )}
-                <span>{selectedNoteIds.length === filteredNotes.length ? 'Todas' : 'Seleccionar Todas'}</span>
+          {/* Floating Batch Selection Bar */}
+          {selectedNoteIds.length > 0 && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[300] bg-[#12121c]/95 border border-cyan-500/40 rounded-full px-5 py-3 shadow-2xl backdrop-blur-xl flex items-center gap-3 animate-in slide-in-from-bottom-5 text-white">
+              <button onClick={handleSelectAllNotes} className="flex items-center gap-1.5 text-xs font-bold text-cyan-300 hover:text-white transition-colors">
+                <CheckSquare size={16} />
+                <span>{selectedNoteIds.length === filteredNotes.length ? 'Deseleccionar' : 'Todas'} ({selectedNoteIds.length})</span>
               </button>
 
-              <span className="text-[11px] font-mono text-cyan-300 shrink-0">
-                {selectedNoteIds.length} selec.
-              </span>
+              <div className="w-[1px] h-5 bg-white/20" />
 
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                <button 
-                  onClick={() => setIsBatchMoveModalOpen(true)} 
-                  disabled={selectedNoteIds.length === 0}
-                  className="px-3 py-2 rounded-xl bg-cyan-500 text-black hover:bg-cyan-400 font-extrabold flex items-center gap-1 transition-all disabled:opacity-30 shrink-0"
-                >
-                  <Move size={14} />
-                  <span>Mover</span>
-                </button>
+              <button 
+                onClick={() => setIsBatchMoveOpen(true)} 
+                className="px-4 py-1.5 rounded-full bg-cyan-500 text-black font-bold text-xs flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow-md"
+              >
+                <Folder size={14} />
+                <span>Mover ({selectedNoteIds.length})</span>
+              </button>
 
-                <button 
-                  onClick={handleBatchFavorite} 
-                  disabled={selectedNoteIds.length === 0}
-                  className="p-2 rounded-xl bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition-all disabled:opacity-30 shrink-0"
-                  title="Favorito"
-                >
-                  <Star size={15} />
-                </button>
+              <button 
+                onClick={handleBatchDeleteNotes} 
+                className="p-2 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+                title="Eliminar seleccionadas"
+              >
+                <Trash2 size={15} />
+              </button>
 
-                <button 
-                  onClick={handleBatchDelete} 
-                  disabled={selectedNoteIds.length === 0}
-                  className="p-2 rounded-xl bg-red-500/20 text-red-300 hover:bg-red-500/30 transition-all disabled:opacity-30 shrink-0"
-                  title="Eliminar"
-                >
-                  <Trash2 size={15} />
-                </button>
-
-                <button 
-                  onClick={() => { setIsSelectionMode(false); setSelectedNoteIds([]); }} 
-                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors shrink-0"
-                >
-                  <X size={15} />
-                </button>
-              </div>
+              <button onClick={() => setSelectedNoteIds([])} className="p-1.5 text-white/40 hover:text-white">
+                <X size={15} />
+              </button>
             </div>
           )}
           {/* Load More Trigger */}
@@ -1771,168 +1745,162 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  )}
  </AnimatePresence>
 
-  {/* Fullscreen Editor Modal Portal (Isolated from top header overlap) */}
+  {/* Full-Screen Note Editor Portal Modal */}
   {editorMode !== 'NONE' && typeof document !== 'undefined' && createPortal(
-    <div className="fixed inset-0 z-[100000] bg-black/90 backdrop-blur-xl flex flex-col p-3 sm:p-6 pt-16 sm:pt-20 animate-in fade-in duration-200 overflow-hidden">
-      <div className="w-full h-full max-w-3xl mx-auto flex flex-col min-h-0">
-        <div className="glass-editor rounded-[36px] flex-1 flex flex-col min-h-0 relative shadow-2xl border border-white/10 overflow-hidden">
-          <div className="absolute inset-0 rounded-[36px] overflow-hidden pointer-events-none">
-            <div className="absolute top-0 left-0 right-0 h-64 opacity-20 pointer-events-none transition-colors duration-200" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 70%)` }} />
-          </div>
+    <div className="fixed inset-0 z-[10000] bg-[#07070d]/95 backdrop-blur-2xl flex items-center justify-center p-2 sm:p-6 overflow-hidden animate-in fade-in duration-200">
+      <div className="w-full h-full max-w-3xl mx-auto flex flex-col glass-editor rounded-[32px] sm:rounded-[36px] overflow-hidden border border-white/10 shadow-2xl relative">
+        <div className="absolute top-0 left-0 right-0 h-48 opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 75%)` }} />
 
-          {/* Editor Header Bar */}
-          <div className="flex flex-wrap sm:flex-nowrap justify-between items-center p-3 sm:p-5 border-b border-white/10 relative z-20 gap-2 bg-white/[0.02]">
-            <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Top Header Controls */}
+        <div className="flex flex-wrap sm:flex-nowrap justify-between items-center p-3 sm:p-4 border-b border-white/10 relative z-20 gap-2 bg-[#0d0d14]/80">
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={closeEditor} 
+              className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-white/70 hover:text-white transition-all border border-white/10 active:scale-95"
+              title="Cerrar editor"
+            >
+              <ArrowLeft size={18} />
+            </button>
+
+            {editorMode === 'NOTE' && (
               <button 
-                onClick={closeEditor} 
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-white/70 hover:text-white transition-all active:scale-95 border border-white/10"
+                onClick={() => setDraftIsFavorite(!draftIsFavorite)} 
+                className={`w-9 h-9 rounded-full border transition-all flex items-center justify-center ${
+                  draftIsFavorite 
+                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.3)]' 
+                    : 'bg-white/5 text-white/40 border-white/10 hover:text-white'
+                }`} 
+                title="Marcar como favorito"
               >
-                <ArrowLeft size={18} />
+                <Star size={16} fill={draftIsFavorite ? 'currentColor' : 'none'} />
               </button>
-              {editorMode === 'NOTE' && (
-                <button 
-                  onClick={() => setDraftIsFavorite(!draftIsFavorite)} 
-                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full border transition-all flex items-center justify-center ${
-                    draftIsFavorite 
-                      ? 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.25)]' 
-                      : 'bg-white/5 text-white/40 border-white/5 hover:text-white'
-                  }`} 
-                  title="Marcar como favorito"
-                >
-                  <Star size={16} fill={draftIsFavorite ? 'currentColor' : 'none'} />
-                </button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end flex-1 min-w-0">
-              {editorMode === 'NOTE' && (
-                <div className="relative flex-shrink-1 min-w-0 max-w-[130px] sm:max-w-[170px]">
-                  <select 
-                    value={draftFolderId || ''} 
-                    onChange={(e) => setDraftFolderId(e.target.value || undefined)} 
-                    className="w-full bg-[#18181b] border border-white/10 rounded-full pl-3 pr-7 py-1.5 text-[11px] sm:text-xs font-medium text-white outline-none cursor-pointer hover:border-white/20 transition-colors truncate appearance-none shadow-sm"
-                  >
-                    <option value="">📁 Sin Carpeta</option>
-                    {folders.map(f => (
-                      <option key={f.id} value={f.id}>{f.icon || '📁'} {f.name}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-white/40 text-[9px]">▼</div>
-                </div>
-              )}
-
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                <BlueprintSelector onSelect={(newBlocks) => setDraftBlocks(prev => [...prev, ...newBlocks])} />
-                <button 
-                  onClick={() => setShowSaveBlueprintModal(true)} 
-                  className="hidden sm:flex p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors" 
-                  title={t('notes.editor.saveBlueprint', 'Save as Blueprint')}
-                >
-                  <Save size={16} />
-                </button>
-                <DropdownThemePicker 
-                  currentTheme={draftTheme} 
-                  onSelect={setDraftTheme} 
-                  projects={editorMode === 'NOTE' ? projects : null} 
-                  activeProject={draftProjectId} 
-                  onSelectProject={setDraftProjectId} 
-                />
-              </div>
-
-              <div className="w-[1px] h-5 bg-white/10 mx-0.5 hidden sm:block" />
-
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {editorMode === 'NOTE' && (
-                  <button 
-                    onClick={handleDelete} 
-                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full hover:bg-red-500/10 text-white/40 hover:text-red-400 flex items-center justify-center transition-all"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
-                <button 
-                  onClick={handleSave} 
-                  className="h-8 sm:h-9 px-4 sm:px-5 bg-cyan-500 text-black rounded-full font-black text-[10px] sm:text-xs uppercase tracking-wider hover:bg-cyan-400 active:scale-95 transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center whitespace-nowrap"
-                >
-                  {t('notes.save')}
-                </button>
-              </div>
-            </div>
+            )}
           </div>
 
-          {/* Editor Body Scrollable Area */}
-          <div ref={editorScrollContainerRef} className="flex-1 overflow-y-auto custom-scrollbar p-5 sm:p-8 relative rounded-b-[36px]">
-            {editorMode === 'NOTE' ? (
-              <div className="animate-in slide-in-from-bottom-4 duration-200">
-                <div className="relative mb-6">
-                  {draftProjectId && (
-                    <div className="inline-flex items-center gap-1 mb-3 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10">
-                      <Briefcase size={11} className="text-cyan-400"/>
-                      <span className="text-[10px] font-bold text-slate-200 uppercase tracking-wider">{projects.find((p) => p.id === draftProjectId)?.title}</span>
-                    </div>
-                  )}
-                  <textarea 
-                    value={draftTitle} 
-                    onChange={(e) => { setDraftTitle(e.target.value); const el = e.target; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }} 
-                    onInput={(e) => { const el = e.target as HTMLTextAreaElement; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }} 
-                    ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = (el.scrollHeight || 50) + 'px'; } }} 
-                    placeholder={t('notes.untitledPlaceholder', 'Título de la nota...')} 
-                    className="w-full bg-transparent text-3xl sm:text-4xl font-black text-white placeholder:text-white/20 outline-none leading-normal tracking-tight resize-none p-2 min-h-[60px] break-words" 
-                    rows={1} 
-                  />
-                </div>
-                <BlockEditor blocks={draftBlocks} onChange={setDraftBlocks} />
-              </div>
-            ) : (
-              <div className="animate-in slide-in-from-bottom-4 duration-200">
-                <div className="text-center mb-8 relative z-10 flex flex-col items-center">
-                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] block mb-6">
-                    {draftDate.toLocaleDateString(i18n.language, { weekday: 'long', month: 'long', day: 'numeric' })}
-                  </span>
-
-                  <textarea 
-                    value={draftTitle} 
-                    onChange={(e) => { setDraftTitle(e.target.value); const el = e.target; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }} 
-                    onInput={(e) => { const el = e.target as HTMLTextAreaElement; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }} 
-                    ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = (el.scrollHeight || 50) + 'px'; } }} 
-                    placeholder={t('notes.untitledPlaceholder', 'Título de la entrada...')} 
-                    className="w-full bg-transparent text-2xl sm:text-3xl font-black text-white placeholder:text-white/20 outline-none leading-normal tracking-tight text-center mb-6 resize-none p-2 min-h-[50px] break-words" 
-                    rows={1} 
-                  />
-
-                  {(activeSpecialEvent || activeDayQuests.length > 0) && (
-                    <div className="w-full max-w-md flex flex-col gap-3 mb-6">
-                      {activeSpecialEvent && (
-                        <div 
-                          onClick={() => setSelectedMemory(activeSpecialEvent)}
-                          className="w-full rounded-[24px] bg-gradient-to-r from-pink-500/10 to-transparent border border-pink-500/20 p-4 flex items-center gap-4 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md group relative overflow-hidden"
-                        >
-                          <div className="w-12 h-12 shrink-0 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl shadow-md relative z-10">
-                            {activeSpecialEvent.type === 'BIRTHDAY' ? '🎂' : (activeSpecialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
-                          </div>
-                          <div className="flex-1 text-left relative z-10">
-                            <h3 className="text-lg font-black text-white tracking-tight leading-tight line-clamp-1">{activeSpecialEvent.title}</h3>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="inline-flex justify-center gap-1 bg-white/5 p-1.5 rounded-2xl border border-white/5">
-                    {MOODS.map(m => ( <button key={m.id} onClick={() => { setDraftMood(m.id); setMoodSplash(m.id); }} className={`w-9 h-9 rounded-xl flex items-center justify-center text-xl transition-transform ${draftMood === m.id ? 'bg-white/10 scale-110 shadow-sm ring-1 ring-white/20' : 'opacity-40 hover:opacity-100 hover:bg-white/5'}`}>{m.icon}</button> ))}
-                  </div>
-                </div>
-                <BlockEditor blocks={draftBlocks} onChange={setDraftBlocks} />
+          <div className="flex items-center gap-2 flex-wrap justify-end flex-1 min-w-0">
+            {editorMode === 'NOTE' && (
+              <div className="relative max-w-[150px]">
+                <select 
+                  value={draftFolderId || ''} 
+                  onChange={(e) => setDraftFolderId(e.target.value || undefined)} 
+                  className="w-full bg-[#181822] border border-white/15 rounded-full pl-3 pr-7 py-1.5 text-xs font-bold text-cyan-300 outline-none cursor-pointer hover:border-cyan-500/40 transition-colors truncate appearance-none"
+                >
+                  <option value="">📁 Sin Carpeta</option>
+                  {folders.map(f => (
+                    <option key={f.id} value={f.id}>{f.icon || '📁'} {f.name}</option>
+                  ))}
+                </select>
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-cyan-400 text-[9px]">▼</div>
               </div>
             )}
+
+            <button
+              onClick={() => handleExportNoteMarkdown(draftTitle, draftBlocks)}
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-white/70 hover:text-white transition-colors border border-white/10"
+              title="Exportar como Markdown (.md)"
+            >
+              <Download size={16} />
+            </button>
+
+            <BlueprintSelector onSelect={(newBlocks) => setDraftBlocks(prev => [...prev, ...newBlocks])} />
+
+            <DropdownThemePicker 
+              currentTheme={draftTheme} 
+              onSelect={setDraftTheme} 
+              projects={editorMode === 'NOTE' ? projects : null} 
+              activeProject={draftProjectId} 
+              onSelectProject={setDraftProjectId} 
+            />
+
+            <div className="w-[1px] h-5 bg-white/10 mx-0.5 hidden sm:block" />
+
+            {editorMode === 'NOTE' && (
+              <button 
+                onClick={handleDelete} 
+                className="p-2 rounded-full hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all"
+                title="Eliminar nota"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+
+            <button 
+              onClick={handleSave} 
+              className="h-9 px-5 bg-cyan-500 hover:bg-cyan-400 text-black rounded-full font-black text-xs uppercase tracking-wider transition-transform active:scale-95 shadow-lg shadow-cyan-500/20"
+            >
+              {t('notes.save', 'Guardar')}
+            </button>
+          </div>
+        </div>
+
+        {/* Editor Body Scrollable Area */}
+        <div ref={editorScrollContainerRef} className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-8 relative">
+          {editorMode === 'NOTE' ? (
+            <div className="max-w-2xl mx-auto space-y-4">
+              {draftProjectId && (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+                  <Briefcase size={12} className="text-cyan-400"/>
+                  <span className="text-[10px] font-bold text-cyan-300 uppercase tracking-wide">
+                    {projects.find((p) => p.id === draftProjectId)?.title}
+                  </span>
+                </div>
+              )}
+
+              {/* Clean Title Input (No clipping!) */}
+              <input
+                type="text"
+                value={draftTitle}
+                onChange={(e) => setDraftTitle(e.target.value)}
+                placeholder={t('notes.untitledPlaceholder', 'Título de la Nota...')}
+                className="w-full bg-transparent text-2xl sm:text-4xl font-black text-white placeholder:text-white/20 outline-none leading-normal tracking-tight border-b border-white/10 pb-3 mb-6"
+              />
+
+              {/* Word + Notion Clone Rich Block Editor */}
+              <BlockEditor blocks={draftBlocks} onChange={setDraftBlocks} />
+            </div>
+          ) : (
+            <div className="max-w-2xl mx-auto text-center space-y-6">
+              <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] block">
+                {draftDate.toLocaleDateString(i18n.language, { weekday: 'long', month: 'long', day: 'numeric' })}
+              </span>
+
+              <input
+                type="text"
+                value={draftTitle}
+                onChange={(e) => setDraftTitle(e.target.value)}
+                placeholder={t('notes.untitledPlaceholder', 'Título de la Entrada...')}
+                className="w-full bg-transparent text-2xl sm:text-3xl font-black text-white placeholder:text-white/20 outline-none leading-normal tracking-tight text-center border-b border-white/10 pb-3"
+              />
+
+              <div className="inline-flex justify-center gap-1 bg-white/5 p-1.5 rounded-2xl border border-white/5">
+                {MOODS.map(m => (
+                  <button 
+                    key={m.id} 
+                    onClick={() => { setDraftMood(m.id); setMoodSplash(m.id); }} 
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center text-xl transition-transform ${draftMood === m.id ? 'bg-white/10 scale-110 shadow-sm ring-1 ring-white/20' : 'opacity-40 hover:opacity-100 hover:bg-white/5'}`}
+                  >
+                    {m.icon}
+                  </button>
+                ))}
+              </div>
+
+              <BlockEditor blocks={draftBlocks} onChange={setDraftBlocks} />
+            </div>
+          )}
+        </div>
+
+        {/* Editor Bottom Footer Stats Bar */}
+        <div className="px-6 py-2.5 bg-[#0a0a10] border-t border-white/5 flex items-center justify-between text-[11px] text-white/40 font-mono">
+          <div className="flex items-center gap-4">
+            <span>Palabras: <strong className="text-white/80">{draftBlocks.reduce((acc, b) => acc + (b.content ? b.content.trim().split(/\s+/).filter(Boolean).length : 0), 0)}</strong></span>
+            <span>Caracteres: <strong className="text-white/80">{draftBlocks.reduce((acc, b) => acc + (b.content ? b.content.length : 0), 0)}</strong></span>
           </div>
           <EditorToolbar onAdd={addBlock} />
         </div>
       </div>
     </div>,
-    document.body
   )}
- <SaveBlueprintModal isOpen={showSaveBlueprintModal} onClose={() => setShowSaveBlueprintModal(false)} currentBlocks={draftBlocks} />
+  <SaveBlueprintModal isOpen={showSaveBlueprintModal} onClose={() => setShowSaveBlueprintModal(false)} currentBlocks={draftBlocks} />
  
  {moodSplash && createPortal(
  <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
@@ -2241,74 +2209,72 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                     return (
                       <div key={folder.id} className="flex flex-col">
                         <div
-                           onClick={() => { 
-                             const hasSub = folders.some(f => f.parentId === folder.id);
-                             if (!hasSub) {
-                               setSelectedFolderId(folder.id); 
-                               setIsLibraryOpen(false); 
-                               toast.success(`Viendo notas de ${folder.name}`);
-                             } else {
-                               setSelectedFolderId(folder.id); 
-                             }
-                           }}
-                           className={`group/item flex items-center justify-between py-2.5 sm:py-1.5 px-2.5 rounded-xl transition-all cursor-pointer select-none border ${
-                             isSelected
-                               ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300 font-bold shadow-md'
-                               : 'bg-transparent border-transparent hover:bg-white/5 text-white/80 hover:text-white'
-                           }`}
-                           style={{ paddingLeft: `${Math.max(10, depth * 14 + 10)}px` }}
-                         >
-                           <div className="flex items-center gap-2 min-w-0 flex-1">
-                             {hasChildren ? (
-                               <button
-                                 onClick={(e) => toggleFolderExpand(folder.id, e)}
-                                 className="p-1 rounded-md hover:bg-white/10 text-white/50 hover:text-white transition-colors shrink-0"
-                               >
-                                 {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                               </button>
-                             ) : (
-                               <span className="w-3.5 h-3.5 inline-block shrink-0" />
-                             )}
-                             <span className="text-sm shrink-0" style={{ color }}>{folder.icon || '📁'}</span>
-                             <span className="text-xs truncate">{folder.name}</span>
-                           </div>
+                          onClick={() => { setSelectedFolderId(folder.id); setLibrarySidebarOpen(false); }}
+                          className={`group/item flex items-center justify-between py-2.5 sm:py-1.5 px-2.5 rounded-xl transition-all cursor-pointer select-none border ${
+                            isSelected
+                              ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300 font-bold shadow-md'
+                              : 'bg-transparent border-transparent hover:bg-white/5 text-white/80 hover:text-white'
+                          }`}
+                          style={{ paddingLeft: `${Math.max(10, depth * 14 + 10)}px` }}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            {hasChildren ? (
+                              <button
+                                onClick={(e) => toggleFolderExpand(folder.id, e)}
+                                className="p-1 rounded-md hover:bg-white/10 text-white/50 hover:text-white transition-colors shrink-0"
+                              >
+                                {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                              </button>
+                            ) : (
+                              <span className="w-3.5 h-3.5 inline-block shrink-0" />
+                            )}
+                            <span className="text-sm shrink-0" style={{ color }}>{folder.icon || '📁'}</span>
+                            <span className="text-xs truncate">{folder.name}</span>
+                          </div>
 
-                           <div className="flex items-center gap-1 opacity-80 group-hover/item:opacity-100 shrink-0">
-                             <button
-                               onClick={(e) => { e.stopPropagation(); setSelectedFolderId(folder.id); setIsLibraryOpen(false); }}
-                               className="px-2 py-0.5 rounded-md bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[10px] font-bold border border-cyan-500/30 flex items-center gap-1 transition-colors"
-                             >
-                               <Eye size={11} />
-                               <span>Ver</span>
-                             </button>
-                             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-white/10 text-white/60">
-                               {totalCount}
-                             </span>
-                             <div className="hidden group-hover/item:flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                               <button
-                                 onClick={() => openCreateFolderModal(folder.id)}
-                                 className="p-1 rounded bg-white/10 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300"
-                                 title="Añadir subcarpeta"
-                               >
-                                 <Plus size={11} />
-                               </button>
-                               <button
-                                 onClick={(e) => handleToggleFolderPin(folder, e)}
-                                 className={`p-1 rounded ${folder.isPinned ? 'bg-amber-500/20 text-amber-300' : 'bg-white/10 text-white/50 hover:text-white'}`}
-                                 title={folder.isPinned ? "Desanclar" : "Anclar a inicio"}
-                               >
-                                 📌
-                               </button>
-                               <button
-                                 onClick={(e) => openEditFolderModal(folder, e)}
-                                 className="p-1 rounded bg-white/10 hover:bg-white/20 text-white/50 hover:text-white"
-                                 title="Editar"
-                               >
-                                 <Pencil size={11} />
-                               </button>
-                             </div>
-                           </div>
-                         </div>
+                          <div className="flex items-center gap-1 opacity-70 group-hover/item:opacity-100 shrink-0">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedFolderId(folder.id);
+                                setLibrarySidebarOpen(false);
+                                setIsLibraryOpen(false);
+                              }}
+                              className="px-2 py-0.5 rounded-md bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-[10px] uppercase flex items-center gap-1 transition-transform active:scale-95 shadow-sm"
+                              title="Ver notas de esta carpeta"
+                            >
+                              <Eye size={11} />
+                              <span>Ver</span>
+                            </button>
+                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-white/10 text-white/60">
+                              {totalCount}
+                            </span>
+                            <div className="hidden group-hover/item:flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => openCreateFolderModal(folder.id)}
+                                className="p-1 rounded bg-white/10 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300"
+                                title="Añadir subcarpeta"
+                              >
+                                <Plus size={11} />
+                              </button>
+                              <button
+                                onClick={(e) => handleToggleFolderPin(folder, e)}
+                                className={`p-1 rounded ${folder.isPinned ? 'bg-amber-500/20 text-amber-300' : 'bg-white/10 text-white/50 hover:text-white'}`}
+                                title={folder.isPinned ? "Desanclar" : "Anclar a inicio"}
+                              >
+                                📌
+                              </button>
+                              <button
+                                onClick={(e) => openEditFolderModal(folder, e)}
+                                className="p-1 rounded bg-white/10 hover:bg-white/20 text-white/50 hover:text-white"
+                                title="Editar"
+                              >
+                                <Pencil size={11} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
 
                         {hasChildren && isExpanded && (
                           <div className="flex flex-col gap-0.5 border-l border-white/10 ml-3.5 pl-1 my-0.5">
@@ -2421,16 +2387,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                   return (
                     <div
                       key={sub.id}
-                      onClick={() => {
-                        const hasSub = folders.some(f => f.parentId === sub.id);
-                        if (!hasSub) {
-                          setSelectedFolderId(sub.id);
-                          setIsLibraryOpen(false);
-                          toast.success(`Viendo notas de ${sub.name}`);
-                        } else {
-                          setSelectedFolderId(sub.id);
-                        }
-                      }}
+                      onClick={() => setSelectedFolderId(sub.id)}
                       className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-cyan-500/40 hover:bg-white/[0.07] transition-all cursor-pointer flex items-center justify-between group"
                     >
                       <div className="flex items-center gap-3 min-w-0">
@@ -2442,10 +2399,16 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                       </div>
                       
                       <button
-                        onClick={(e) => { e.stopPropagation(); setSelectedFolderId(sub.id); setIsLibraryOpen(false); }}
-                        className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-extrabold text-xs flex items-center gap-1 transition-all border border-cyan-500/30 shrink-0"
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedFolderId(sub.id);
+                          setLibrarySidebarOpen(false);
+                          setIsLibraryOpen(false);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-[10px] uppercase flex items-center gap-1 shadow-md transition-transform active:scale-95 shrink-0"
                       >
-                        <Eye size={13} />
+                        <Eye size={12} />
                         <span>Ver Notas</span>
                       </button>
                     </div>
@@ -2455,74 +2418,50 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             </div>
           )}
 
-          {/* Notes Grid inside active folder scope */}
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider">Notas ({filteredNotes.length})</h3>
-            </div>
-
-            {filteredNotes.length === 0 ? (
-              <div className="p-12 rounded-3xl bg-white/[0.02] border border-dashed border-white/10 text-center space-y-3">
-                <p className="text-sm text-white/40">No hay notas en este espacio aún.</p>
-                <button
-                  onClick={() => { setIsLibraryOpen(false); createNoteInFolder(selectedFolderId !== 'ALL' && selectedFolderId !== 'FAVORITES' && selectedFolderId !== 'UNCATEGORIZED' ? selectedFolderId : undefined); }}
-                  className="px-5 py-2.5 rounded-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-bold hover:bg-cyan-500/30 transition-all inline-flex items-center gap-2"
-                >
-                  <Plus size={15} />
-                  <span>Crear la primera nota</span>
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {filteredNotes
-                  .filter(n => !librarySearchQuery || n.title.toLowerCase().includes(librarySearchQuery.toLowerCase()))
-                  .map(note => {
-                    const themeId = note.theme || 'slate';
-                    const themeColor = themeColorMap.get(themeId) || '#64748b';
-                    const noteFolder = note.folderId ? folderMap.get(note.folderId) : undefined;
-                    const previewText = note.blocks.find(b => b.type === 'text' && b.content.trim().length > 0)?.content || '';
-
-                    return (
-                      <div
-                        key={note.id}
-                        onClick={() => { openNote(note); setIsLibraryOpen(false); }}
-                        className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 hover:border-cyan-500/40 hover:bg-white/[0.08] transition-all cursor-pointer flex flex-col justify-between h-40 relative group/ncard"
-                      >
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between gap-2">
-                            <h4 className="text-xs sm:text-sm font-extrabold text-white truncate flex-1">{note.title || 'Nota sin título'}</h4>
-                            <button
-                              onClick={(e) => handleToggleNoteFavorite(note, e)}
-                              className={`p-1 rounded-full ${note.isFavorite ? 'text-amber-400' : 'text-white/20 hover:text-white/60'}`}
-                            >
-                              <Star size={13} fill={note.isFavorite ? 'currentColor' : 'none'} />
-                            </button>
-                          </div>
-
-                          {noteFolder && (
-                            <span className="inline-block text-[9px] font-bold text-cyan-300 bg-cyan-500/15 border border-cyan-500/20 px-2 py-0.5 rounded-md truncate max-w-[120px]">
-                              {noteFolder.icon || '📁'} {noteFolder.name}
-                            </span>
-                          )}
-
-                          <p className="text-[11px] text-white/50 leading-relaxed line-clamp-3">
-                            {previewText || <span className="italic opacity-30">Sin contenido...</span>}
-                          </p>
-                        </div>
-
-                        <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-white/40">
-                          <span className="font-mono">{note.updatedAt ? new Date(note.updatedAt).toLocaleDateString() : ''}</span>
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: themeColor }} />
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
-          </div>
-
         </div>
 
+      </div>
+    </div>,
+    document.body
+  )}
+
+  {/* Batch Move Folder Selector Modal Portal */}
+  {isBatchMoveOpen && typeof document !== 'undefined' && createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsBatchMoveOpen(false)} />
+      <div className="relative z-10 w-full max-w-sm bg-[#121218] border border-white/15 rounded-3xl p-5 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 text-white">
+        <div className="flex items-center justify-between pb-2 border-b border-white/10">
+          <h3 className="text-sm font-black text-white flex items-center gap-2">
+            <Folder size={16} className="text-cyan-400" />
+            <span>Mover {selectedNoteIds.length} Notas a...</span>
+          </h3>
+          <button onClick={() => setIsBatchMoveOpen(false)} className="text-white/40 hover:text-white">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="space-y-1.5 max-h-60 overflow-y-auto custom-scrollbar pr-1">
+          <button
+            onClick={() => handleBatchMoveNotes(undefined)}
+            className="w-full flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-cyan-500/20 text-xs font-bold text-left transition-all border border-white/5 hover:border-cyan-500/30"
+          >
+            <span className="flex items-center gap-2">📂 Sin Carpeta (Raíz)</span>
+          </button>
+
+          {folders.map(f => (
+            <button
+              key={f.id}
+              onClick={() => handleBatchMoveNotes(f.id)}
+              className="w-full flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-cyan-500/20 text-xs font-bold text-left transition-all border border-white/5 hover:border-cyan-500/30"
+            >
+              <span className="flex items-center gap-2">
+                <span>{f.icon || '📁'}</span>
+                <span>{f.name}</span>
+              </span>
+              <span className="text-[10px] font-mono text-white/40">{getFolderTotalNotesCount(f.id)} notas</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>,
     document.body
@@ -2633,49 +2572,6 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
           >
             {editingFolder ? 'Guardar Cambios' : 'Crear Carpeta'}
           </button>
-        </div>
-      </div>
-    </div>,
-    document.body
-  )}
-
-  {/* Batch Move Target Folder Modal Portal */}
-  {isBatchMoveModalOpen && typeof document !== 'undefined' && createPortal(
-    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsBatchMoveModalOpen(false)} />
-      <div className="relative z-10 w-full max-w-sm bg-[#12121a] border border-cyan-500/30 rounded-3xl p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between pb-2 border-b border-white/10">
-          <h3 className="text-base font-black text-white flex items-center gap-2">
-            <Move size={18} className="text-cyan-400" />
-            <span>Mover {selectedNoteIds.length} Notas</span>
-          </h3>
-          <button onClick={() => setIsBatchMoveModalOpen(false)} className="text-white/40 hover:text-white">
-            <X size={16} />
-          </button>
-        </div>
-
-        <p className="text-xs text-white/50">Selecciona la carpeta destino para mover tus notas seleccionadas:</p>
-
-        <div className="space-y-1.5 max-h-60 overflow-y-auto custom-scrollbar pr-1">
-          <button
-            onClick={() => handleBatchMove(undefined)}
-            className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/15 text-left text-xs font-bold text-white transition-colors border border-white/5"
-          >
-            <span className="text-lg">📁</span>
-            <span>Sin Carpeta (Raíz)</span>
-          </button>
-
-          {folders.map(f => (
-            <button
-              key={f.id}
-              onClick={() => handleBatchMove(f.id)}
-              className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-cyan-500/20 text-left text-xs font-bold text-white hover:text-cyan-300 transition-colors border border-white/5"
-            >
-              <span className="text-lg" style={{ color: f.color }}>{f.icon || '📁'}</span>
-              <span className="truncate flex-1">{f.name}</span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-white/50">{getFolderTotalNotesCount(f.id)} notas</span>
-            </button>
-          ))}
         </div>
       </div>
     </div>,
