@@ -32,8 +32,9 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
     const editorRef = useRef<HTMLDivElement | null>(null);
     const [showSelectionToolbar, setShowSelectionToolbar] = useState(false);
     const [customColor, setCustomColor] = useState('#06b6d4');
+    const initializedRef = useRef(false);
 
-    // Initialize contentEditable HTML from blocks
+    // Convert initial blocks to HTML string
     const getInitialHtml = () => {
         if (!blocks || blocks.length === 0) return '<div><br></div>';
         return blocks.map(b => {
@@ -47,15 +48,19 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
         }).join('');
     };
 
-    const [htmlContent, setHtmlContent] = useState<string>(getInitialHtml);
+    // Initialize contentEditable DOM ONCE on mount (prevents caret jumping to start on typing)
+    useEffect(() => {
+        if (editorRef.current && !initializedRef.current) {
+            editorRef.current.innerHTML = getInitialHtml();
+            initializedRef.current = true;
+        }
+    }, []);
 
-    // Sync contentEditable edits back to blocks state
+    // Sync contentEditable edits back to blocks state without resetting DOM
     const handleContentChange = () => {
         if (!editorRef.current) return;
         const currentHtml = editorRef.current.innerHTML;
-        setHtmlContent(currentHtml);
 
-        // Parse HTML to blocks
         const parser = new DOMParser();
         const doc = parser.parseFromString(currentHtml, 'text/html');
         const nodes = Array.from(doc.body.childNodes);
@@ -203,7 +208,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                 </div>
             )}
 
-            {/* SEAMLESS WORD/NOTION CONTINUOUS WRITING CANVAS (contentEditable) */}
+            {/* UNCONTROLLED CONTINUOUS WRITING CANVAS (Fixes caret positioning) */}
             <div
                 ref={editorRef}
                 contentEditable={!readOnly}
@@ -211,12 +216,11 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                 onMouseUp={checkTextSelection}
                 onKeyUp={checkTextSelection}
                 onTouchEnd={checkTextSelection}
-                dangerouslySetInnerHTML={{ __html: htmlContent }}
                 className="w-full min-h-[180px] bg-transparent text-slate-100 placeholder:text-slate-600 outline-none leading-relaxed text-base sm:text-lg custom-scrollbar selection:bg-cyan-500/30 selection:text-white"
                 style={{ wordBreak: 'break-word' }}
             />
 
-            {/* FLOATING CARD BOTTOM CONTROL PILL (Matching screenshot: list, image, pen) */}
+            {/* FLOATING CARD BOTTOM CONTROL PILL */}
             {!readOnly && (
                 <div className="sticky bottom-2 z-[80] self-center mt-4 bg-[#141420]/90 backdrop-blur-md border border-white/15 rounded-full px-4 py-2 shadow-2xl flex items-center gap-4 text-white/70">
                     <button
