@@ -1260,50 +1260,59 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             </button>
 
             {/* Note Cards */}
-            {noteCards.map(({ note, themeColor, project, folder, previewText, updatedLabel }) => {
+            {noteCards.map(({ note, themeColor, folder, previewText, updatedLabel }) => {
               const hasFolder = !!folder;
               const hasTags = note.tags && note.tags.length > 0;
               const hasHeaderBadges = hasFolder || hasTags;
               const isSelected = selectedNoteIds.includes(note.id);
+              const isSelectionActive = selectedNoteIds.length > 0;
 
               return (
                 <div 
-                  key={note.id} 
+                  key={note.id}
+                  onMouseDown={() => handlePressStart(note.id)}
+                  onMouseUp={handlePressEnd}
+                  onMouseLeave={handlePressEnd}
+                  onTouchStart={() => handlePressStart(note.id)}
+                  onTouchEnd={handlePressEnd}
                   onClick={() => {
-                    if (selectedNoteIds.length > 0) {
+                    if (isSelectionActive) {
                       toggleSelectNote(note.id);
                     } else {
                       openNote(note);
                     }
                   }} 
-                  className={`w-full h-44 rounded-[28px] p-4 flex flex-col justify-between hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer group relative overflow-hidden shadow-lg border ${
+                  className={`w-full h-44 rounded-[28px] p-4 flex flex-col justify-between hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer group relative overflow-hidden shadow-lg border select-none ${
                     isSelected 
-                      ? 'border-cyan-400 ring-2 ring-cyan-500/40 bg-cyan-950/20' 
+                      ? 'border-cyan-400 ring-2 ring-cyan-500/40 bg-cyan-950/30 scale-[1.02]' 
                       : 'border-white/10 bg-[#121216] hover:border-white/20'
                   }`}
                 >
                   <div className="absolute top-0 left-0 right-0 h-20 opacity-15 pointer-events-none" style={{ background: `linear-gradient(to bottom, ${themeColor}, transparent)` }} />
                   
-                  {/* Select Checkbox / Favorite Star */}
+                  {/* Select Checkbox (Appears on Long Press / Selection Mode) OR Favorite Star */}
                   <div className="absolute top-3 right-3 z-20 flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={(e) => toggleSelectNote(note.id, e)}
-                      className={`p-1 rounded-lg transition-all ${isSelected ? 'text-cyan-400 bg-cyan-500/20' : 'text-white/30 hover:text-white hover:bg-white/10'}`}
-                      title="Seleccionar nota"
-                    >
-                      {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => handleToggleNoteFavorite(note, e)}
-                      className={`p-1 rounded-full transition-all ${
-                        note.isFavorite ? 'text-amber-400 bg-amber-500/10' : 'text-white/20 hover:text-white/70 hover:bg-white/5'
-                      }`}
-                      title={note.isFavorite ? "Quitar de favoritos" : "Marcar como favorito"}
-                    >
-                      <Star size={14} fill={note.isFavorite ? 'currentColor' : 'none'} />
-                    </button>
+                    {isSelectionActive ? (
+                      <button
+                        type="button"
+                        onClick={(e) => toggleSelectNote(note.id, e)}
+                        className={`p-1.5 rounded-xl transition-all ${isSelected ? 'text-cyan-400 bg-cyan-500/20 ring-1 ring-cyan-400/50 scale-110' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
+                        title="Seleccionar nota"
+                      >
+                        {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleNoteFavorite(note, e)}
+                        className={`p-1 rounded-full transition-all ${
+                          note.isFavorite ? 'text-amber-400 bg-amber-500/10' : 'text-white/20 hover:text-white/70 hover:bg-white/5'
+                        }`}
+                        title={note.isFavorite ? "Quitar de favoritos" : "Marcar como favorito"}
+                      >
+                        <Star size={14} fill={note.isFavorite ? 'currentColor' : 'none'} />
+                      </button>
+                    )}
                   </div>
 
                   <div className="relative z-10 flex flex-col flex-1 min-h-0 pr-12">
@@ -1899,6 +1908,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
         </div>
       </div>
     </div>,
+    document.body
   )}
   <SaveBlueprintModal isOpen={showSaveBlueprintModal} onClose={() => setShowSaveBlueprintModal(false)} currentBlocks={draftBlocks} />
  
