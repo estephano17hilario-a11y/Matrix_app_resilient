@@ -1,8 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { 
   Trash2, Check, ImageIcon, Bold, Italic, Underline, Strikethrough, 
-  Quote, Code, Sigma, Type, Palette, Sparkles, Heading1, Heading2, Heading3, 
-  MessageSquareQuote, Terminal, ChevronDown, Plus, Baseline, HelpCircle
+  Sigma, Type, Sparkles, Heading1, Heading2, Heading3, 
+  MessageSquareQuote, Terminal, ChevronDown
 } from 'lucide-react';
 import { NoteBlock } from '../../../types';
 import { useTranslation } from 'react-i18next';
@@ -90,7 +90,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
 
     return (
         <div className="flex flex-col gap-3 w-full pb-24">
-            {blocks.map((block, index) => {
+            {blocks.map((block) => {
                 const isMenuOpen = activeBlockMenu === block.id;
 
                 return (

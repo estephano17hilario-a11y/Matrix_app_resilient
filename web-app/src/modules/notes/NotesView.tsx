@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Save, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, PieChart, Search, Tag, Layers, Menu, Eye, Download, CheckSquare, Square, Move, Copy } from 'lucide-react';
+import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, Search, Menu, Eye, Download, CheckSquare, Square } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { Note, NoteFolder, JournalEntry, NoteBlock, Project, Quest } from '../../types';
@@ -470,6 +470,25 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   const [librarySidebarOpen, setLibrarySidebarOpen] = useState(false);
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
   const [isBatchMoveOpen, setIsBatchMoveOpen] = useState(false);
+
+  const touchTimerRef = useRef<any>(null);
+
+  const handlePressStart = (noteId: string) => {
+    touchTimerRef.current = setTimeout(() => {
+      setSelectedNoteIds(prev => prev.includes(noteId) ? prev : [...prev, noteId]);
+      if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
+        navigator.vibrate?.(40);
+      }
+      toast.success('Modo Selección activado', { id: 'select-toast', duration: 1500 });
+    }, 450);
+  };
+
+  const handlePressEnd = () => {
+    if (touchTimerRef.current) {
+      clearTimeout(touchTimerRef.current);
+      touchTimerRef.current = null;
+    }
+  };
 
   const toggleSelectNote = (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
