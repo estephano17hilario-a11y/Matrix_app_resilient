@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { 
   Trash2, Check, ImageIcon, Bold, Italic, Underline, Strikethrough, 
   Sigma, Sparkles, ListTodo, Image as ImageLucide, PenTool, X, Palette,
-  Heading1, Heading2, Heading3, MessageSquareQuote, Terminal
+  Heading1, Heading2, Heading3, MessageSquareQuote, Terminal, ChevronDown, AlignLeft
 } from 'lucide-react';
 import { NoteBlock } from '../../../types';
 import { useTranslation } from 'react-i18next';
@@ -32,6 +32,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
     const { t } = useTranslation();
     const editorRef = useRef<HTMLDivElement | null>(null);
     const [showSelectionToolbar, setShowSelectionToolbar] = useState(false);
+    const [showStyleMenu, setShowStyleMenu] = useState(false);
     const [customColor, setCustomColor] = useState('#06b6d4');
     const initializedRef = useRef(false);
 
@@ -45,6 +46,12 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
             if (b.type === 'image' && b.content) {
                 return `<div class="my-2 rounded-2xl overflow-hidden"><img src="${b.content}" class="w-full rounded-2xl" /></div>`;
             }
+            if (b.type === 'heading1') return `<h1>${b.content || ''}</h1>`;
+            if (b.type === 'heading2') return `<h2>${b.content || ''}</h2>`;
+            if (b.type === 'heading3') return `<h3>${b.content || ''}</h3>`;
+            if (b.type === 'quote') return `<blockquote class="pl-4 border-l-4 border-cyan-400 italic my-2">${b.content || ''}</blockquote>`;
+            if (b.type === 'code') return `<pre class="bg-black/60 p-3 rounded-xl border border-white/10 font-mono text-emerald-400 text-sm my-2"><code>${b.content || ''}</code></pre>`;
+            if (b.type === 'latex') return `<div class="bg-purple-950/40 p-3 rounded-xl border border-purple-500/30 font-mono text-rose-300 my-2">$$\ ${b.content || ''}\ $$</div>`;
             return `<div>${b.content || ''}</div>`;
         }).join('');
     };
@@ -106,7 +113,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
         formatSelection('fontName', font);
     };
 
-    // RESET INLINE FORMATTING ON ENTER KEY (Fixes style persisting on new lines)
+    // RESET INLINE FORMATTING ON ENTER KEY
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.key === 'Enter') {
             setTimeout(() => {
@@ -117,18 +124,10 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
         }
     };
 
-    const addChecklistItem = () => {
+    const insertBlockHTML = (html: string) => {
         if (!editorRef.current) return;
         editorRef.current.focus();
-        formatSelection('insertHTML', '<div class="flex items-start gap-2 my-1"><input type="checkbox" /> <span>Elemento de lista</span></div><div><br></div>');
-    };
-
-    const addImageBlock = () => {
-        const url = window.prompt('URL de la imagen:');
-        if (url && editorRef.current) {
-            editorRef.current.focus();
-            formatSelection('insertHTML', `<div class="my-2 rounded-2xl overflow-hidden"><img src="${url}" class="w-full rounded-2xl" /></div><div><br></div>`);
-        }
+        formatSelection('insertHTML', html + '<div><br></div>');
     };
 
     return (
@@ -136,28 +135,73 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
             
             {/* FLOATING TEXT SELECTION FORMATTING TOOLBAR (Appears ONLY when text is highlighted/selected) */}
             {showSelectionToolbar && !readOnly && (
-                <div className="sticky top-2 z-[90] self-center my-2 bg-[#12121e]/95 backdrop-blur-xl border border-cyan-500/40 rounded-2xl p-2 shadow-2xl flex items-center gap-1.5 flex-wrap animate-in zoom-in-95 duration-150 text-white max-w-full overflow-x-auto">
+                <div className="sticky top-2 z-[90] self-center my-2 bg-[#12121e]/95 backdrop-blur-xl border border-cyan-500/40 rounded-2xl p-2 shadow-2xl flex items-center gap-2 flex-wrap animate-in zoom-in-95 duration-150 text-white max-w-full overflow-x-auto">
                     
-                    {/* RESTORED STYLE / BLOCK TYPE SELECTOR (H1, H2, H3, Quote, Code) */}
-                    <select
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === 'h1') formatSelection('formatBlock', '<h1>');
-                        else if (val === 'h2') formatSelection('formatBlock', '<h2>');
-                        else if (val === 'h3') formatSelection('formatBlock', '<h3>');
-                        else if (val === 'quote') formatSelection('formatBlock', '<blockquote>');
-                        else if (val === 'code') formatSelection('formatBlock', '<pre>');
-                        else formatSelection('formatBlock', '<div>');
-                      }}
-                      className="bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30 rounded-lg px-2 py-1 text-[11px] outline-none cursor-pointer"
-                    >
-                        <option value="div" className="bg-slate-900 text-white">Texto Normal</option>
-                        <option value="h1" className="bg-slate-900 text-white">Título H1</option>
-                        <option value="h2" className="bg-slate-900 text-white">Subtítulo H2</option>
-                        <option value="h3" className="bg-slate-900 text-white">Encabezado H3</option>
-                        <option value="quote" className="bg-slate-900 text-white">Cita (Quote)</option>
-                        <option value="code" className="bg-slate-900 text-white">Código (Code)</option>
-                    </select>
+                    {/* SLEEK RESTORED STYLE SWITCHER DROPDOWN */}
+                    <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowStyleMenu(!showStyleMenu)}
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-xs font-black hover:bg-cyan-500/30 transition-colors"
+                        >
+                            <AlignLeft size={14} />
+                            <span>Estilo Bloque</span>
+                            <ChevronDown size={12} />
+                        </button>
+
+                        {showStyleMenu && (
+                            <div className="absolute left-0 top-full mt-1.5 w-48 bg-[#161626] border border-white/15 rounded-2xl p-1.5 shadow-2xl z-[100] flex flex-col gap-1">
+                                <button 
+                                  type="button"
+                                  onClick={() => { formatSelection('formatBlock', '<div>'); setShowStyleMenu(false); }}
+                                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-white/10 text-xs text-white/90 text-left font-medium"
+                                >
+                                    <AlignLeft size={14} className="text-white/60" />
+                                    <span>Texto Normal</span>
+                                </button>
+                                <button 
+                                  type="button"
+                                  onClick={() => { formatSelection('formatBlock', '<h1>'); setShowStyleMenu(false); }}
+                                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-white/10 text-xs text-white font-bold text-left"
+                                >
+                                    <Heading1 size={14} className="text-cyan-400" />
+                                    <span>Título H1</span>
+                                </button>
+                                <button 
+                                  type="button"
+                                  onClick={() => { formatSelection('formatBlock', '<h2>'); setShowStyleMenu(false); }}
+                                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-white/10 text-xs text-white/90 font-semibold text-left"
+                                >
+                                    <Heading2 size={14} className="text-cyan-300" />
+                                    <span>Subtítulo H2</span>
+                                </button>
+                                <button 
+                                  type="button"
+                                  onClick={() => { formatSelection('formatBlock', '<h3>'); setShowStyleMenu(false); }}
+                                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-white/10 text-xs text-white/80 text-left"
+                                >
+                                    <Heading3 size={14} className="text-cyan-200" />
+                                    <span>Encabezado H3</span>
+                                </button>
+                                <button 
+                                  type="button"
+                                  onClick={() => { formatSelection('formatBlock', '<blockquote>'); setShowStyleMenu(false); }}
+                                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-white/10 text-xs text-cyan-200 italic text-left"
+                                >
+                                    <MessageSquareQuote size={14} className="text-amber-400" />
+                                    <span>Cita Destacada</span>
+                                </button>
+                                <button 
+                                  type="button"
+                                  onClick={() => { formatSelection('formatBlock', '<pre>'); setShowStyleMenu(false); }}
+                                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-white/10 text-xs text-emerald-300 font-mono text-left"
+                                >
+                                    <Terminal size={14} className="text-emerald-400" />
+                                    <span>Bloque de Código</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
 
                     <div className="w-[1px] h-4 bg-white/15 mx-0.5" />
 
@@ -165,7 +209,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                     <button 
                       type="button"
                       onMouseDown={(e) => { e.preventDefault(); formatSelection('bold'); }}
-                      className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                      className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors font-bold"
                       title="Negrita"
                     >
                         <Bold size={14} />
@@ -173,7 +217,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                     <button 
                       type="button"
                       onMouseDown={(e) => { e.preventDefault(); formatSelection('italic'); }}
-                      className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                      className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors italic"
                       title="Cursiva"
                     >
                         <Italic size={14} />
@@ -181,7 +225,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                     <button 
                       type="button"
                       onMouseDown={(e) => { e.preventDefault(); formatSelection('underline'); }}
-                      className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                      className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors underline"
                       title="Subrayado"
                     >
                         <Underline size={14} />
@@ -189,7 +233,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                     <button 
                       type="button"
                       onMouseDown={(e) => { e.preventDefault(); formatSelection('strikeThrough'); }}
-                      className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                      className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors line-through"
                       title="Tachado"
                     >
                         <Strikethrough size={14} />
@@ -244,7 +288,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                 </div>
             )}
 
-            {/* CONTINUOUS WRITING CANVAS (Resets inline format on Enter key) */}
+            {/* CONTINUOUS WRITING CANVAS */}
             <div
                 ref={editorRef}
                 contentEditable={!readOnly}
@@ -257,12 +301,12 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                 style={{ wordBreak: 'break-word' }}
             />
 
-            {/* FLOATING CARD BOTTOM CONTROL PILL */}
+            {/* FLOATING CARD BOTTOM CONTROL PILL WITH RESTORED RICH INSERTIONS (Checklist, Image, Code, LaTeX, Quote, Callout) */}
             {!readOnly && (
-                <div className="sticky bottom-2 z-[80] self-center mt-4 bg-[#141420]/90 backdrop-blur-md border border-white/15 rounded-full px-4 py-2 shadow-2xl flex items-center gap-4 text-white/70">
+                <div className="sticky bottom-2 z-[80] self-center mt-4 bg-[#141420]/95 backdrop-blur-xl border border-white/15 rounded-full px-4 py-2 shadow-2xl flex items-center gap-3 text-white/70">
                     <button
                       type="button"
-                      onClick={addChecklistItem}
+                      onClick={() => insertBlockHTML('<div class="flex items-start gap-2 my-1"><input type="checkbox" /> <span>Lista de Tarea</span></div>')}
                       className="hover:text-cyan-400 p-1.5 transition-colors"
                       title="Agregar Lista de Tareas"
                     >
@@ -271,7 +315,10 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                     <div className="w-[1px] h-4 bg-white/15" />
                     <button
                       type="button"
-                      onClick={addImageBlock}
+                      onClick={() => {
+                        const url = window.prompt('URL de la imagen:');
+                        if (url) insertBlockHTML(`<div class="my-2 rounded-2xl overflow-hidden"><img src="${url}" class="w-full rounded-2xl" /></div>`);
+                      }}
                       className="hover:text-cyan-400 p-1.5 transition-colors"
                       title="Agregar Imagen"
                     >
@@ -280,9 +327,36 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                     <div className="w-[1px] h-4 bg-white/15" />
                     <button
                       type="button"
+                      onClick={() => insertBlockHTML('<pre class="bg-black/60 p-3 rounded-xl border border-white/10 font-mono text-emerald-400 text-sm my-2"><code>// Código aquí...</code></pre>')}
+                      className="hover:text-emerald-400 p-1.5 transition-colors"
+                      title="Agregar Bloque de Código"
+                    >
+                        <Terminal size={18} />
+                    </button>
+                    <div className="w-[1px] h-4 bg-white/15" />
+                    <button
+                      type="button"
+                      onClick={() => insertBlockHTML('<div class="bg-purple-950/40 p-3 rounded-xl border border-purple-500/30 font-mono text-rose-300 my-2">$$\ E=mc^2\ $$</div>')}
+                      className="hover:text-rose-400 p-1.5 transition-colors"
+                      title="Agregar Fórmula LaTeX"
+                    >
+                        <Sigma size={18} />
+                    </button>
+                    <div className="w-[1px] h-4 bg-white/15" />
+                    <button
+                      type="button"
+                      onClick={() => insertBlockHTML('<blockquote class="pl-4 border-l-4 border-cyan-400 italic text-cyan-200 my-2">"Cita destacada..."</blockquote>')}
+                      className="hover:text-amber-400 p-1.5 transition-colors"
+                      title="Agregar Cita"
+                    >
+                        <MessageSquareQuote size={18} />
+                    </button>
+                    <div className="w-[1px] h-4 bg-white/15" />
+                    <button
+                      type="button"
                       onClick={() => setShowSelectionToolbar(!showSelectionToolbar)}
                       className={`p-1.5 transition-colors ${showSelectionToolbar ? 'text-cyan-400' : 'hover:text-cyan-400'}`}
-                      title="Barra de Formato de Texto"
+                      title="Barra de Formato"
                     >
                         <PenTool size={18} />
                     </button>

@@ -40,7 +40,7 @@ export const DropdownThemePicker = ({ currentTheme, onSelect, projects, activePr
  initial={{ opacity: 0 }}
  animate={{ opacity: 1 }}
  exit={{ opacity: 0 }}
- className="fixed inset-0 z-[90] bg-black/60"
+ className="fixed inset-0 z-[2000] bg-black/60 backdrop-blur-xs"
  onClick={() => setIsOpen(false)} 
  />
  <motion.div 
@@ -51,8 +51,8 @@ export const DropdownThemePicker = ({ currentTheme, onSelect, projects, activePr
  transition={{ type: "spring", stiffness: 450, damping: 25 }}
  className="
  fixed inset-0 m-auto w-72 h-fit origin-center
- bg-[#111]/95 border border-white/10 shadow-md
- rounded-2xl p-4 z-[100] flex flex-col gap-4
+ bg-[#111]/95 border border-white/10 shadow-2xl
+ rounded-2xl p-4 z-[2010] flex flex-col gap-4
  "
  >
  <div>

@@ -149,6 +149,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  const [currentMonth, setCurrentMonth] = useState(new Date());
  const [showStats, setShowStats] = useState(false);
  const [showSaveBlueprintModal, setShowSaveBlueprintModal] = useState(false);
+ const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<{ type: 'SINGLE' | 'BATCH', id?: string } | null>(null);
  const [moodSplash, setMoodSplash] = useState<string | null>(null);
  const [pendingOpenDate, setPendingOpenDate] = useState<Date | null>(null);
  const openCreateFolderModal = (parentId?: string) => {
@@ -519,11 +520,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
   const handleBatchDeleteNotes = () => {
     if (selectedNoteIds.length === 0) return;
-    if (window.confirm(`¿Eliminar ${selectedNoteIds.length} notas seleccionadas?`)) {
-      selectedNoteIds.forEach(id => handleDeleteNote(id));
-      toast.success(`${selectedNoteIds.length} notas eliminadas`);
-      setSelectedNoteIds([]);
-    }
+    setDeleteConfirmTarget({ type: 'BATCH' });
   };
 
   const handleExportNoteMarkdown = (noteTitle: string, blocks: NoteBlock[]) => {
@@ -1842,7 +1839,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
             {editorMode === 'NOTE' && (
               <button 
-                onClick={handleDelete} 
+                onClick={() => setDeleteConfirmTarget({ type: 'SINGLE' })} 
                 className="p-2 rounded-full hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all"
                 title="Eliminar nota"
               >
@@ -1927,6 +1924,55 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     document.body
   )}
   <SaveBlueprintModal isOpen={showSaveBlueprintModal} onClose={() => setShowSaveBlueprintModal(false)} currentBlocks={draftBlocks} />
+
+  {/* Deletion Confirmation Modal ("¿Estás seguro que quieres hacer eso?") */}
+  <AnimatePresence>
+    {deleteConfirmTarget && (
+      <div className="fixed inset-0 z-[5000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="w-full max-w-sm bg-[#12121e] border border-red-500/30 rounded-3xl p-6 shadow-2xl text-center space-y-4"
+        >
+          <div className="w-12 h-12 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center mx-auto border border-red-500/40">
+            <Trash2 size={24} />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-lg font-black text-white">¿Estás seguro que quieres hacer eso?</h3>
+            <p className="text-xs text-white/60">
+              {deleteConfirmTarget.type === 'BATCH'
+                ? `Vas a eliminar ${selectedNoteIds.length} notas seleccionadas. Esta acción no se puede deshacer.`
+                : `Esta nota se eliminará permanentemente. Esta acción no se puede deshacer.`}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 pt-2">
+            <button
+              onClick={() => setDeleteConfirmTarget(null)}
+              className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 font-bold text-xs transition-colors border border-white/10"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => {
+                if (deleteConfirmTarget.type === 'BATCH') {
+                  selectedNoteIds.forEach(id => handleDeleteNote(id));
+                  toast.success(`${selectedNoteIds.length} notas eliminadas`);
+                  setSelectedNoteIds([]);
+                } else {
+                  handleDelete();
+                }
+                setDeleteConfirmTarget(null);
+              }}
+              className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-black text-xs transition-colors shadow-lg shadow-red-500/30"
+            >
+              Sí, Eliminar
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    )}
+  </AnimatePresence>
  
  {moodSplash && createPortal(
  <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
