@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { 
   Trash2, Check, ImageIcon, Bold, Italic, Underline, Strikethrough, 
-  Sigma, Sparkles, ListTodo, Image as ImageLucide, PenTool, X, Palette
+  Sigma, Sparkles, ListTodo, Image as ImageLucide, PenTool, X, Palette,
+  Heading1, Heading2, Heading3, MessageSquareQuote, Terminal
 } from 'lucide-react';
 import { NoteBlock } from '../../../types';
 import { useTranslation } from 'react-i18next';
@@ -48,7 +49,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
         }).join('');
     };
 
-    // Initialize contentEditable DOM ONCE on mount (prevents caret jumping to start on typing)
+    // Initialize contentEditable DOM ONCE on mount
     useEffect(() => {
         if (editorRef.current && !initializedRef.current) {
             editorRef.current.innerHTML = getInitialHtml();
@@ -105,6 +106,17 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
         formatSelection('fontName', font);
     };
 
+    // RESET INLINE FORMATTING ON ENTER KEY (Fixes style persisting on new lines)
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === 'Enter') {
+            setTimeout(() => {
+                document.execCommand('removeFormat', false, undefined);
+                document.execCommand('foreColor', false, '#f8fafc');
+                handleContentChange();
+            }, 10);
+        }
+    };
+
     const addChecklistItem = () => {
         if (!editorRef.current) return;
         editorRef.current.focus();
@@ -125,6 +137,30 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
             {/* FLOATING TEXT SELECTION FORMATTING TOOLBAR (Appears ONLY when text is highlighted/selected) */}
             {showSelectionToolbar && !readOnly && (
                 <div className="sticky top-2 z-[90] self-center my-2 bg-[#12121e]/95 backdrop-blur-xl border border-cyan-500/40 rounded-2xl p-2 shadow-2xl flex items-center gap-1.5 flex-wrap animate-in zoom-in-95 duration-150 text-white max-w-full overflow-x-auto">
+                    
+                    {/* RESTORED STYLE / BLOCK TYPE SELECTOR (H1, H2, H3, Quote, Code) */}
+                    <select
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === 'h1') formatSelection('formatBlock', '<h1>');
+                        else if (val === 'h2') formatSelection('formatBlock', '<h2>');
+                        else if (val === 'h3') formatSelection('formatBlock', '<h3>');
+                        else if (val === 'quote') formatSelection('formatBlock', '<blockquote>');
+                        else if (val === 'code') formatSelection('formatBlock', '<pre>');
+                        else formatSelection('formatBlock', '<div>');
+                      }}
+                      className="bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30 rounded-lg px-2 py-1 text-[11px] outline-none cursor-pointer"
+                    >
+                        <option value="div" className="bg-slate-900 text-white">Texto Normal</option>
+                        <option value="h1" className="bg-slate-900 text-white">Título H1</option>
+                        <option value="h2" className="bg-slate-900 text-white">Subtítulo H2</option>
+                        <option value="h3" className="bg-slate-900 text-white">Encabezado H3</option>
+                        <option value="quote" className="bg-slate-900 text-white">Cita (Quote)</option>
+                        <option value="code" className="bg-slate-900 text-white">Código (Code)</option>
+                    </select>
+
+                    <div className="w-[1px] h-4 bg-white/15 mx-0.5" />
+
                     {/* Bold, Italic, Underline, Strikethrough */}
                     <button 
                       type="button"
@@ -208,11 +244,12 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                 </div>
             )}
 
-            {/* UNCONTROLLED CONTINUOUS WRITING CANVAS (Fixes caret positioning) */}
+            {/* CONTINUOUS WRITING CANVAS (Resets inline format on Enter key) */}
             <div
                 ref={editorRef}
                 contentEditable={!readOnly}
                 onInput={handleContentChange}
+                onKeyDown={handleKeyDown}
                 onMouseUp={checkTextSelection}
                 onKeyUp={checkTextSelection}
                 onTouchEnd={checkTextSelection}

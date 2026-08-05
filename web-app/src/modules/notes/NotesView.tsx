@@ -1775,8 +1775,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
   {/* Note / Journal Editor Portal Modal */}
   {editorMode !== 'NONE' && typeof document !== 'undefined' && createPortal(
-    <div className="fixed inset-0 z-[500] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 pt-16 sm:pt-24 pb-8 overflow-y-auto animate-in fade-in duration-200">
-      <div className="w-full max-w-xl sm:max-w-2xl mx-auto flex flex-col glass-editor rounded-[32px] sm:rounded-[36px] overflow-hidden border border-white/15 shadow-2xl relative bg-[#0f0f18]/95 my-auto max-h-[82vh] transition-all">
+    <div className="fixed inset-0 z-[500] bg-black/70 backdrop-blur-md flex items-start justify-center p-3 sm:p-6 pt-10 sm:pt-12 pb-6 overflow-y-auto animate-in fade-in duration-200">
+      <div className="w-full max-w-xl sm:max-w-2xl mx-auto flex flex-col glass-editor rounded-[32px] sm:rounded-[36px] overflow-hidden border border-white/15 shadow-2xl relative bg-[#0f0f18]/95 my-2 max-h-[85vh] transition-all">
         <div className="absolute top-0 left-0 right-0 h-48 opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 75%)` }} />
 
         {/* Top Header Controls (Matching screenshot UI) */}
