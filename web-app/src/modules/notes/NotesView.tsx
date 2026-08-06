@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, Search, Menu, Eye, Download, CheckSquare, Square, Book, GraduationCap, Layers, Sparkles, Undo2, Redo2, Check, DollarSign, Dumbbell, Code2, Award, CheckCircle2, Clock, ExternalLink } from 'lucide-react';
+import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, Search, Menu, Eye, Download, CheckSquare, Square, Book, GraduationCap, Layers, Sparkles, Undo2, Redo2, Check, DollarSign, Dumbbell, Code2, Award, CheckCircle2, Clock, ExternalLink, Palette } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { Note, NoteFolder, JournalEntry, NoteBlock, Project, Quest } from '../../types';
@@ -126,6 +126,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   const [folderIcon, setFolderIcon] = useState('📁');
   const [folderColor, setFolderColor] = useState('#3b82f6');
   const [folderParentId, setFolderParentId] = useState<string | undefined>(undefined);
+  const [folderIsPinned, setFolderIsPinned] = useState<boolean>(false);
   const [folderTemplateType, setFolderTemplateType] = useState<'GENERAL' | 'BOOK' | 'STUDY' | 'PROJECT' | 'FINANCE' | 'FITNESS' | 'CREATIVE' | 'CODE'>('GENERAL');
   // Book Template
   const [bookAuthor, setBookAuthor] = useState('');
