@@ -163,9 +163,10 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   const [folderPickerSearch, setFolderPickerSearch] = useState('');
   const [expandedFolderPickerIds, setExpandedFolderPickerIds] = useState<Set<string>>(new Set());
 
-  // Undo / Redo History State
-  const [history, setHistory] = useState<{ title: string; blocks: NoteBlock[] }[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
+  // Solid Undo / Redo History State
+  const historyRef = useRef<{ title: string; blocks: NoteBlock[] }[]>([]);
+  const historyIndexRef = useRef<number>(-1);
+  const [, setHistoryVersion] = useState(0);
   const isUndoRedoRef = useRef(false);
 
   const openCreateFolderModal = (parentId?: string) => {
@@ -606,51 +607,64 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  }, [journalEntries]);
  const notesContainerRef = useRef<HTMLDivElement | null>(null);
 
- const openNote = useCallback((note: Note) => { 
-  setEditorMode('NOTE'); 
-  setDraftId(note.id); 
-  setDraftTitle(note.title || ''); 
-  setDraftBlocks(note.blocks || [{ id: 'init-1', type: 'text', content: '' }]); 
-  setDraftTheme(note.theme || 'slate'); 
-  setDraftProjectId(note.projectId); 
-  setDraftFolderId(note.folderId);
-  setDraftIsFavorite(!!note.isFavorite);
-  onInteractionStart(); 
-  }, [onInteractionStart]);
+   const openNote = useCallback((note: Note) => { 
+   setEditorMode('NOTE'); 
+   setDraftId(note.id); 
+   const initTitle = note.title || '';
+   const initBlocks = note.blocks || [{ id: 'init-1', type: 'text', content: '' }];
+   setDraftTitle(initTitle); 
+   setDraftBlocks(initBlocks); 
+   setDraftTheme(note.theme || 'slate'); 
+   setDraftProjectId(note.projectId); 
+   setDraftFolderId(note.folderId);
+   setDraftIsFavorite(!!note.isFavorite);
+   historyRef.current = [{ title: initTitle, blocks: initBlocks }];
+   historyIndexRef.current = 0;
+   setHistoryVersion(v => v + 1);
+   onInteractionStart(); 
+   }, [onInteractionStart]);
   
-  const createNote = useCallback(() => { 
-  if (!canCreateNote()) {
-  if (onShowPro) onShowPro();
-  return;
-  }
-  const newId = Date.now().toString(); 
-  setEditorMode('NOTE'); 
-  setDraftId(newId); 
-  setDraftTitle(''); 
-  setDraftBlocks([{ id: 'init-1', type: 'text', content: '' }]); 
-  setDraftTheme('slate'); 
-  setDraftProjectId(undefined); 
-  setDraftFolderId(selectedFolderId !== 'ALL' && selectedFolderId !== 'FAVORITES' && selectedFolderId !== 'UNCATEGORIZED' ? selectedFolderId : undefined);
-  setDraftIsFavorite(selectedFolderId === 'FAVORITES');
-  onInteractionStart(); 
-  }, [onInteractionStart, canCreateNote, onShowPro, selectedFolderId]);
+   const createNote = useCallback(() => { 
+   if (!canCreateNote()) {
+   if (onShowPro) onShowPro();
+   return;
+   }
+   const newId = Date.now().toString(); 
+   setEditorMode('NOTE'); 
+   setDraftId(newId); 
+   setDraftTitle(''); 
+   const initBlocks = [{ id: 'init-1', type: 'text' as const, content: '' }];
+   setDraftBlocks(initBlocks); 
+   setDraftTheme('slate'); 
+   setDraftProjectId(undefined); 
+   setDraftFolderId(selectedFolderId !== 'ALL' && selectedFolderId !== 'FAVORITES' && selectedFolderId !== 'UNCATEGORIZED' ? selectedFolderId : undefined);
+   setDraftIsFavorite(selectedFolderId === 'FAVORITES');
+   historyRef.current = [{ title: '', blocks: initBlocks }];
+   historyIndexRef.current = 0;
+   setHistoryVersion(v => v + 1);
+   onInteractionStart(); 
+   }, [onInteractionStart, canCreateNote, onShowPro, selectedFolderId]);
 
-  const createNoteInFolder = useCallback((folderId?: string) => {
-    if (!canCreateNote()) {
-      if (onShowPro) onShowPro();
-      return;
-    }
-    const newId = Date.now().toString();
-    setEditorMode('NOTE');
-    setDraftId(newId);
-    setDraftTitle('');
-    setDraftBlocks([{ id: 'init-1', type: 'text', content: '' }]);
-    setDraftTheme('slate');
-    setDraftProjectId(undefined);
-    setDraftFolderId(folderId === 'UNCATEGORIZED' ? undefined : (folderId === 'FAVORITES' ? undefined : folderId));
-    setDraftIsFavorite(folderId === 'FAVORITES');
-    onInteractionStart();
-  }, [canCreateNote, onShowPro, onInteractionStart]);
+   const createNoteInFolder = useCallback((folderId?: string) => {
+     if (!canCreateNote()) {
+       if (onShowPro) onShowPro();
+       return;
+     }
+     const newId = Date.now().toString();
+     setEditorMode('NOTE');
+     setDraftId(newId);
+     setDraftTitle('');
+     const initBlocks = [{ id: 'init-1', type: 'text' as const, content: '' }];
+     setDraftBlocks(initBlocks);
+     setDraftTheme('slate');
+     setDraftProjectId(undefined);
+     setDraftFolderId(folderId === 'UNCATEGORIZED' ? undefined : (folderId === 'FAVORITES' ? undefined : folderId));
+     setDraftIsFavorite(folderId === 'FAVORITES');
+     historyRef.current = [{ title: '', blocks: initBlocks }];
+     historyIndexRef.current = 0;
+     setHistoryVersion(v => v + 1);
+     onInteractionStart();
+   }, [canCreateNote, onShowPro, onInteractionStart]);
 
   const handleToggleNoteFavorite = useCallback((note: Note, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -679,11 +693,15 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
          initialBlocks = initialBlocks.slice(1);
      }
      
-      setDraftBlocks(initialBlocks.length > 0 ? initialBlocks : [{ id: 'init-1', type: 'text', content: '' }]);
-     setDraftTitle(extractedTitle);
-     setDraftMood(entry?.mood); 
-     setDraftTheme(entry?.theme || 'slate'); 
-     onInteractionStart(); 
+      const finalInitBlocks = initialBlocks.length > 0 ? initialBlocks : [{ id: 'init-1', type: 'text' as const, content: '' }];
+      setDraftBlocks(finalInitBlocks);
+      setDraftTitle(extractedTitle);
+      setDraftMood(entry?.mood); 
+      setDraftTheme(entry?.theme || 'slate'); 
+      historyRef.current = [{ title: extractedTitle, blocks: finalInitBlocks }];
+      historyIndexRef.current = 0;
+      setHistoryVersion(v => v + 1);
+      onInteractionStart(); 
    }, [journalEntryMap, onInteractionStart]);
 
    useEffect(() => {
@@ -776,49 +794,64 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     return () => clearTimeout(timer);
   }, [draftTitle, draftBlocks, draftTheme, draftProjectId, draftFolderId, draftIsFavorite, draftMood, handleSave, editorMode, draftId]);
 
+  // Solid Record history helper
+  const recordHistoryState = useCallback((title: string, blocks: NoteBlock[]) => {
+    if (isUndoRedoRef.current) return;
+    const currentIdx = historyIndexRef.current;
+    const currentStack = historyRef.current.slice(0, currentIdx + 1);
+    const last = currentStack[currentStack.length - 1];
+
+    if (last && last.title === title && JSON.stringify(last.blocks) === JSON.stringify(blocks)) {
+      return;
+    }
+
+    const nextStack = [...currentStack.slice(-49), { title, blocks }];
+    historyRef.current = nextStack;
+    historyIndexRef.current = nextStack.length - 1;
+    setHistoryVersion(v => v + 1);
+  }, []);
+
   // Undo & Redo Handlers
   const handleUndo = useCallback(() => {
-    if (historyIndex > 0) {
+    if (historyIndexRef.current > 0) {
       isUndoRedoRef.current = true;
-      const targetIndex = historyIndex - 1;
-      const targetState = history[targetIndex];
+      historyIndexRef.current -= 1;
+      const targetState = historyRef.current[historyIndexRef.current];
       if (targetState) {
         setDraftTitle(targetState.title);
         setDraftBlocks(targetState.blocks);
-        setHistoryIndex(targetIndex);
       }
-      setTimeout(() => { isUndoRedoRef.current = false; }, 50);
+      setHistoryVersion(v => v + 1);
+      setTimeout(() => { isUndoRedoRef.current = false; }, 80);
     }
-  }, [historyIndex, history]);
+  }, []);
 
   const handleRedo = useCallback(() => {
-    if (historyIndex < history.length - 1) {
+    if (historyIndexRef.current < historyRef.current.length - 1) {
       isUndoRedoRef.current = true;
-      const targetIndex = historyIndex + 1;
-      const targetState = history[targetIndex];
+      historyIndexRef.current += 1;
+      const targetState = historyRef.current[historyIndexRef.current];
       if (targetState) {
         setDraftTitle(targetState.title);
         setDraftBlocks(targetState.blocks);
-        setHistoryIndex(targetIndex);
       }
-      setTimeout(() => { isUndoRedoRef.current = false; }, 50);
+      setHistoryVersion(v => v + 1);
+      setTimeout(() => { isUndoRedoRef.current = false; }, 80);
     }
-  }, [historyIndex, history]);
+  }, []);
+
+  const canUndo = historyIndexRef.current > 0;
+  const canRedo = historyIndexRef.current < historyRef.current.length - 1;
 
   // Record history changes for Undo/Redo
   useEffect(() => {
     if (editorMode === 'NONE' || !draftId) return;
     if (isUndoRedoRef.current) return;
-    setHistory(prev => {
-      const newHist = prev.slice(0, historyIndex + 1);
-      const last = newHist[newHist.length - 1];
-      if (last && last.title === draftTitle && JSON.stringify(last.blocks) === JSON.stringify(draftBlocks)) {
-        return prev;
-      }
-      return [...newHist.slice(-49), { title: draftTitle, blocks: draftBlocks }];
-    });
-    setHistoryIndex(prev => Math.min(prev + 1, 49));
-  }, [draftTitle, draftBlocks, editorMode, draftId]);
+    const timer = setTimeout(() => {
+      recordHistoryState(draftTitle, draftBlocks);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [draftTitle, draftBlocks, editorMode, draftId, recordHistoryState]);
  const addBlock = (type: 'text' | 'check' | 'image') => { setDraftBlocks(prev => [...prev, { id: Date.now().toString(), type, content: '', checked: false }]); };
  
  const { days, firstDay } = useMemo(() => getDaysInMonth(currentMonth), [currentMonth]);
@@ -2054,8 +2087,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
   {/* Note / Journal Editor Portal Modal */}
   {editorMode !== 'NONE' && typeof document !== 'undefined' && createPortal(
-    <div className="fixed inset-0 z-[500] bg-black/70 backdrop-blur-md flex items-start justify-center p-4 sm:p-8 pt-8 sm:pt-10 pb-6 overflow-y-auto animate-in fade-in duration-200">
-      <div className="w-full max-w-lg sm:max-w-xl mx-auto flex flex-col glass-editor rounded-[32px] sm:rounded-[36px] overflow-hidden border border-white/15 shadow-2xl relative bg-[#0f0f18]/95 my-2 max-h-[85vh] transition-all">
+    <div className="fixed inset-0 z-[500] bg-[#07070b] flex items-start justify-center p-3 sm:p-6 pt-16 sm:pt-20 pb-6 overflow-y-auto animate-in fade-in duration-200">
+      <div className="w-full max-w-md sm:max-w-lg mx-auto flex flex-col rounded-[28px] sm:rounded-[32px] overflow-hidden border border-white/15 shadow-2xl relative bg-[#0e0e16] my-2 max-h-[82vh] transition-all">
         <div className="absolute top-0 left-0 right-0 h-48 opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 75%)` }} />
 
         {/* Top Header Controls - Single Responsive Row */}
@@ -2102,26 +2135,26 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
             <button
               onClick={handleUndo}
-              disabled={historyIndex <= 0}
+              disabled={!canUndo}
               className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all shrink-0 ${
-                historyIndex > 0
-                  ? 'bg-white/5 text-white/80 border-white/10 hover:bg-white/15 hover:text-white active:scale-95'
+                canUndo
+                  ? 'bg-white/10 text-white border-white/20 hover:bg-white/20 active:scale-95'
                   : 'bg-white/[0.02] text-white/20 border-white/5 cursor-not-allowed'
               }`}
-              title="Deshacer"
+              title="Deshacer (Undo)"
             >
               <Undo2 size={14} />
             </button>
 
             <button
               onClick={handleRedo}
-              disabled={historyIndex >= history.length - 1}
+              disabled={!canRedo}
               className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all shrink-0 ${
-                historyIndex < history.length - 1
-                  ? 'bg-white/5 text-white/80 border-white/10 hover:bg-white/15 hover:text-white active:scale-95'
+                canRedo
+                  ? 'bg-white/10 text-white border-white/20 hover:bg-white/20 active:scale-95'
                   : 'bg-white/[0.02] text-white/20 border-white/5 cursor-not-allowed'
               }`}
-              title="Rehacer"
+              title="Rehacer (Redo)"
             >
               <Redo2 size={14} />
             </button>
@@ -2139,7 +2172,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
         </div>
 
         {/* Editor Body Scrollable Area */}
-        <div ref={editorScrollContainerRef} className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-8 relative">
+        <div ref={editorScrollContainerRef} className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-10 relative">
           {editorMode === 'NOTE' ? (
             <div className="max-w-2xl mx-auto space-y-4">
               {draftProjectId && (
@@ -3125,8 +3158,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   )}
 
   {/* Custom Interactive Folder Picker Modal (Tree View + Live Search + Breadcrumbs) */}
-  {isFolderPickerOpen && (
-    <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
+  {isFolderPickerOpen && typeof document !== 'undefined' && createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150">
       <div className="w-full max-w-md bg-[#0f0f18] border border-white/15 rounded-3xl p-5 shadow-2xl flex flex-col gap-3.5 max-h-[85vh] relative overflow-hidden text-white">
         
         {/* Header */}
@@ -3248,7 +3281,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )}
 
  </div>
