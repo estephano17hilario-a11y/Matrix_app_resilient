@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, Search, Menu, Eye, Download, CheckSquare, Square, Book, GraduationCap, Layers, Sparkles, Undo2, Redo2, Check, DollarSign, Dumbbell, Code2, Award, CheckCircle2, Clock, ExternalLink, Palette } from 'lucide-react';
+import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, Search, Menu, Eye, Download, CheckSquare, Square, Book, GraduationCap, Layers, Sparkles, Undo2, Redo2, Check, DollarSign, Dumbbell, Code2, Award, CheckCircle2, Clock, ExternalLink, Palette, Info, MoreVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { Note, NoteFolder, JournalEntry, NoteBlock, Project, Quest } from '../../types';
@@ -101,6 +101,15 @@ const WigglyLine = () => (
  </div>
 );
 
+const formatTimestampWithTime = (ts?: string | number) => {
+  if (!ts) return 'Reciente';
+  const d = typeof ts === 'number' ? new Date(ts) : new Date(ts);
+  if (isNaN(d.getTime())) return 'Reciente';
+  const dateStr = d.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  return `${dateStr} a las ${timeStr}`;
+};
+
 export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, projects, quests, onShowPro, currentSubView, sectionControl = 'VISIBLE', onStatsOpenChange, onClose, isActive = true, isPro, defaultChartViews }: NotesViewProps) => {
  const { t, i18n } = useTranslation();
  const { notes, folders, journalEntries, handleUpdateNote, handleDeleteNote, handleCreateFolder, handleUpdateFolder, handleDeleteFolder, handleUpdateJournal, canCreateNote } = useNotesLogic();
@@ -181,7 +190,10 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  const [draftMood, setDraftMood] = useState<string | undefined>(undefined);
  const [draftProjectId, setDraftProjectId] = useState<string | undefined>(undefined);
  const [draftFolderId, setDraftFolderId] = useState<string | undefined>(undefined);
- const [draftIsFavorite, setDraftIsFavorite] = useState<boolean>(false);
+  const [draftIsFavorite, setDraftIsFavorite] = useState<boolean>(false);
+  const [draftCreatedAt, setDraftCreatedAt] = useState<string | number | undefined>(undefined);
+  const [draftUpdatedAt, setDraftUpdatedAt] = useState<string | undefined>(undefined);
+  const [showNoteInfoPopover, setShowNoteInfoPopover] = useState(false);
  const [draftDate, setDraftDate] = useState<Date>(new Date());
  const [currentMonth, setCurrentMonth] = useState(new Date());
  const [showStats, setShowStats] = useState(false);
@@ -709,41 +721,49 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  const notesContainerRef = useRef<HTMLDivElement | null>(null);
 
    const openNote = useCallback((note: Note) => { 
-   setEditorMode('NOTE'); 
-   setDraftId(note.id); 
-   const initTitle = note.title || '';
-   const initBlocks = note.blocks || [{ id: 'init-1', type: 'text', content: '' }];
-   setDraftTitle(initTitle); 
-   setDraftBlocks(initBlocks); 
-   setDraftTheme(note.theme || 'slate'); 
-   setDraftProjectId(note.projectId); 
-   setDraftFolderId(note.folderId);
-   setDraftIsFavorite(!!note.isFavorite);
-   historyRef.current = [{ title: initTitle, blocks: initBlocks }];
-   historyIndexRef.current = 0;
-   setHistoryVersion(v => v + 1);
-   onInteractionStart(); 
+     setEditorMode('NOTE'); 
+     setDraftId(note.id); 
+     const initTitle = note.title || '';
+     const initBlocks = note.blocks || [{ id: 'init-1', type: 'text', content: '' }];
+     setDraftTitle(initTitle); 
+     setDraftBlocks(initBlocks); 
+     setDraftTheme(note.theme || 'slate'); 
+     setDraftProjectId(note.projectId); 
+     setDraftFolderId(note.folderId);
+     setDraftIsFavorite(!!note.isFavorite);
+     setDraftCreatedAt(note.createdAt || note.updatedAt || Date.now());
+     setDraftUpdatedAt(note.updatedAt || new Date().toISOString());
+     setShowNoteInfoPopover(false);
+     historyRef.current = [{ title: initTitle, blocks: JSON.parse(JSON.stringify(initBlocks)) }];
+     historyIndexRef.current = 0;
+     setHistoryVersion(v => v + 1);
+     onInteractionStart(); 
    }, [onInteractionStart]);
   
    const createNote = useCallback(() => { 
-   if (!canCreateNote()) {
-   if (onShowPro) onShowPro();
-   return;
-   }
-   const newId = Date.now().toString(); 
-   setEditorMode('NOTE'); 
-   setDraftId(newId); 
-   setDraftTitle(''); 
-   const initBlocks = [{ id: 'init-1', type: 'text' as const, content: '' }];
-   setDraftBlocks(initBlocks); 
-   setDraftTheme('slate'); 
-   setDraftProjectId(undefined); 
-   setDraftFolderId(selectedFolderId !== 'ALL' && selectedFolderId !== 'FAVORITES' && selectedFolderId !== 'UNCATEGORIZED' ? selectedFolderId : undefined);
-   setDraftIsFavorite(selectedFolderId === 'FAVORITES');
-   historyRef.current = [{ title: '', blocks: initBlocks }];
-   historyIndexRef.current = 0;
-   setHistoryVersion(v => v + 1);
-   onInteractionStart(); 
+     if (!canCreateNote()) {
+       if (onShowPro) onShowPro();
+       return;
+     }
+     const newId = Date.now().toString(); 
+     const nowIso = new Date().toISOString();
+     const nowMs = Date.now();
+     setEditorMode('NOTE'); 
+     setDraftId(newId); 
+     setDraftTitle(''); 
+     const initBlocks = [{ id: 'init-1', type: 'text' as const, content: '' }];
+     setDraftBlocks(initBlocks); 
+     setDraftTheme('slate'); 
+     setDraftProjectId(undefined); 
+     setDraftFolderId(selectedFolderId !== 'ALL' && selectedFolderId !== 'FAVORITES' && selectedFolderId !== 'UNCATEGORIZED' ? selectedFolderId : undefined);
+     setDraftIsFavorite(selectedFolderId === 'FAVORITES');
+     setDraftCreatedAt(nowMs);
+     setDraftUpdatedAt(nowIso);
+     setShowNoteInfoPopover(false);
+     historyRef.current = [{ title: '', blocks: JSON.parse(JSON.stringify(initBlocks)) }];
+     historyIndexRef.current = 0;
+     setHistoryVersion(v => v + 1);
+     onInteractionStart(); 
    }, [onInteractionStart, canCreateNote, onShowPro, selectedFolderId]);
 
    const createNoteInFolder = useCallback((folderId?: string) => {
@@ -752,6 +772,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
        return;
      }
      const newId = Date.now().toString();
+     const nowIso = new Date().toISOString();
+     const nowMs = Date.now();
      setEditorMode('NOTE');
      setDraftId(newId);
      setDraftTitle('');
@@ -761,7 +783,10 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
      setDraftProjectId(undefined);
      setDraftFolderId(folderId === 'UNCATEGORIZED' ? undefined : (folderId === 'FAVORITES' ? undefined : folderId));
      setDraftIsFavorite(folderId === 'FAVORITES');
-     historyRef.current = [{ title: '', blocks: initBlocks }];
+     setDraftCreatedAt(nowMs);
+     setDraftUpdatedAt(nowIso);
+     setShowNoteInfoPopover(false);
+     historyRef.current = [{ title: '', blocks: JSON.parse(JSON.stringify(initBlocks)) }];
      historyIndexRef.current = 0;
      setHistoryVersion(v => v + 1);
      onInteractionStart();
@@ -858,6 +883,13 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
   const handleSave = useCallback(() => { 
     if (editorMode === 'NOTE' && draftId) { 
+      const hasTitle = draftTitle.trim().length > 0;
+      const hasContent = draftBlocks.some(b => b.content && b.content.trim().length > 0);
+      if (!hasTitle && !hasContent) {
+        // DO NOT SAVE empty notes (no title AND no content)
+        handleDeleteNote(draftId);
+        return;
+      }
       handleUpdateNote({ 
         id: draftId, 
         title: draftTitle, 
@@ -866,6 +898,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
         projectId: draftProjectId, 
         folderId: draftFolderId,
         isFavorite: draftIsFavorite,
+        createdAt: draftCreatedAt || Date.now(),
         updatedAt: new Date().toISOString() 
       }); 
     } else if (editorMode === 'JOURNAL' && draftId) { 
@@ -875,7 +908,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
       }
       handleUpdateJournal({ id: draftId, date: toLocalISOString(draftDate), blocks: finalBlocks, mood: draftMood, theme: draftTheme, tags: [] }); 
     } 
-  }, [editorMode, draftId, draftTitle, draftBlocks, draftTheme, draftProjectId, draftFolderId, draftIsFavorite, draftDate, draftMood, handleUpdateNote, handleUpdateJournal]);
+  }, [editorMode, draftId, draftTitle, draftBlocks, draftTheme, draftProjectId, draftFolderId, draftIsFavorite, draftCreatedAt, draftDate, draftMood, handleUpdateNote, handleUpdateJournal, handleDeleteNote]);
  
   const handleDelete = () => { if (editorMode === 'NOTE' && draftId) { handleDeleteNote(draftId); } closeEditor(); };
   const closeEditor = useCallback(() => { 
@@ -902,11 +935,13 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     const currentStack = historyRef.current.slice(0, currentIdx + 1);
     const last = currentStack[currentStack.length - 1];
 
-    if (last && last.title === title && JSON.stringify(last.blocks) === JSON.stringify(blocks)) {
+    const clonedBlocks = JSON.parse(JSON.stringify(blocks));
+
+    if (last && last.title === title && JSON.stringify(last.blocks) === JSON.stringify(clonedBlocks)) {
       return;
     }
 
-    const nextStack = [...currentStack.slice(-49), { title, blocks }];
+    const nextStack = [...currentStack.slice(-49), { title, blocks: clonedBlocks }];
     historyRef.current = nextStack;
     historyIndexRef.current = nextStack.length - 1;
     setHistoryVersion(v => v + 1);
@@ -920,10 +955,10 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
       const targetState = historyRef.current[historyIndexRef.current];
       if (targetState) {
         setDraftTitle(targetState.title);
-        setDraftBlocks(targetState.blocks);
+        setDraftBlocks(JSON.parse(JSON.stringify(targetState.blocks)));
       }
       setHistoryVersion(v => v + 1);
-      setTimeout(() => { isUndoRedoRef.current = false; }, 80);
+      setTimeout(() => { isUndoRedoRef.current = false; }, 60);
     }
   }, []);
 
@@ -934,10 +969,10 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
       const targetState = historyRef.current[historyIndexRef.current];
       if (targetState) {
         setDraftTitle(targetState.title);
-        setDraftBlocks(targetState.blocks);
+        setDraftBlocks(JSON.parse(JSON.stringify(targetState.blocks)));
       }
       setHistoryVersion(v => v + 1);
-      setTimeout(() => { isUndoRedoRef.current = false; }, 80);
+      setTimeout(() => { isUndoRedoRef.current = false; }, 60);
     }
   }, []);
 
@@ -950,9 +985,30 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     if (isUndoRedoRef.current) return;
     const timer = setTimeout(() => {
       recordHistoryState(draftTitle, draftBlocks);
-    }, 500);
+    }, 300);
     return () => clearTimeout(timer);
   }, [draftTitle, draftBlocks, editorMode, draftId, recordHistoryState]);
+
+  // Global Keyboard Shortcuts for Undo (Ctrl+Z) and Redo (Ctrl+Y / Ctrl+Shift+Z)
+  useEffect(() => {
+    if (editorMode === 'NONE') return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        if (e.shiftKey) {
+          e.preventDefault();
+          handleRedo();
+        } else {
+          e.preventDefault();
+          handleUndo();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editorMode, handleUndo, handleRedo]);
  const addBlock = (type: 'text' | 'check' | 'image') => { setDraftBlocks(prev => [...prev, { id: Date.now().toString(), type, content: '', checked: false }]); };
  
  const { days, firstDay } = useMemo(() => getDaysInMonth(currentMonth), [currentMonth]);
@@ -2269,6 +2325,53 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
               activeProject={draftProjectId} 
               onSelectProject={setDraftProjectId} 
             />
+
+            {/* Note Timestamps Info Popover (3 dots / Info) */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowNoteInfoPopover(prev => !prev)}
+                className={`w-8 h-8 rounded-full border transition-all flex items-center justify-center shrink-0 ${
+                  showNoteInfoPopover
+                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50 shadow-md'
+                    : 'bg-white/5 text-white/50 border-white/10 hover:text-white hover:bg-white/10'
+                }`}
+                title="Información y Fechas de la Nota"
+              >
+                <MoreVertical size={15} />
+              </button>
+
+              {showNoteInfoPopover && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-[#141420]/95 backdrop-blur-xl border border-white/20 rounded-2xl p-3.5 shadow-2xl z-[600] flex flex-col gap-2.5 text-xs text-white animate-in fade-in zoom-in-95 duration-150">
+                  <div className="text-[10px] font-extrabold text-cyan-400 uppercase tracking-widest border-b border-white/10 pb-1.5 flex items-center justify-between">
+                    <span>Detalles de la Nota</span>
+                    <button onClick={() => setShowNoteInfoPopover(false)} className="text-white/40 hover:text-white"><X size={12} /></button>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-start gap-2 bg-white/5 p-2 rounded-xl border border-white/5">
+                      <Calendar size={14} className="text-cyan-400 shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-bold text-white/50 block">Creado:</span>
+                        <span className="font-mono text-[11px] text-white/90">
+                          {formatTimestampWithTime(draftCreatedAt)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2 bg-white/5 p-2 rounded-xl border border-white/5">
+                      <Clock size={14} className="text-purple-400 shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-bold text-white/50 block">Última Modificación:</span>
+                        <span className="font-mono text-[11px] text-white/90">
+                          {formatTimestampWithTime(draftUpdatedAt)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
