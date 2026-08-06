@@ -454,7 +454,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                         </button>
 
                         {showColorPicker && (
-                            <div className="absolute left-0 top-full mt-1.5 w-60 bg-[#161626]/95 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-[100] flex flex-col gap-2.5">
+                            <div className="absolute right-0 left-auto top-full mt-1.5 w-60 bg-[#161626]/95 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-[100] flex flex-col gap-2.5">
                                 <div className="text-[10px] uppercase tracking-wider font-extrabold text-white/40">Gama de Colores</div>
                                 <div className="grid grid-cols-4 gap-1.5">
                                     {EXPANDED_TEXT_COLORS.map(tc => (

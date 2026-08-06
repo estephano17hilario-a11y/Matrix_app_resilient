@@ -248,10 +248,43 @@ export interface NoteFolder {
   parentId?: string;
   isPinned?: boolean;
   order?: number;
-  templateType?: 'GENERAL' | 'BOOK' | 'STUDY' | 'PROJECT';
+  templateType?: 'GENERAL' | 'BOOK' | 'STUDY' | 'PROJECT' | 'FINANCE' | 'FITNESS' | 'CREATIVE' | 'CODE';
+  // Book Template
   bookAuthor?: string;
   bookTotalPages?: number;
   bookCurrentPage?: number;
+  bookStartYear?: string;
+  bookCompletionDate?: string;
+  bookRating?: number;
+  bookGenre?: string;
+  // Study Template
+  studyCourseName?: string;
+  studyProfessor?: string;
+  studyTotalLessons?: number;
+  studyCompletedLessons?: number;
+  studyNextExamDate?: string;
+  studyTargetGrade?: string;
+  // Project Template
+  projectClient?: string;
+  projectDeadline?: string;
+  projectTotalDeliverables?: number;
+  projectCompletedDeliverables?: number;
+  projectStatus?: 'PLANNING' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED';
+  // Finance Template
+  financeBudget?: number;
+  financeCurrent?: number;
+  financeCurrency?: string;
+  // Fitness Template
+  fitnessGoal?: string;
+  fitnessTargetSessions?: number;
+  fitnessCompletedSessions?: number;
+  fitnessTargetMetric?: string;
+  // Creative Template
+  creativeConceptStatus?: string;
+  creativePlatform?: string;
+  // Code Template
+  codeStack?: string;
+  codeRepoUrl?: string;
 }
 
 export interface Note {

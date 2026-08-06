@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, Search, Menu, Eye, Download, CheckSquare, Square, Book, GraduationCap, Layers, Sparkles, Undo2, Redo2, Check } from 'lucide-react';
+import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, Search, Menu, Eye, Download, CheckSquare, Square, Book, GraduationCap, Layers, Sparkles, Undo2, Redo2, Check, DollarSign, Dumbbell, Code2, Award, CheckCircle2, Clock, ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { Note, NoteFolder, JournalEntry, NoteBlock, Project, Quest } from '../../types';
@@ -126,11 +126,42 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   const [folderIcon, setFolderIcon] = useState('📁');
   const [folderColor, setFolderColor] = useState('#3b82f6');
   const [folderParentId, setFolderParentId] = useState<string | undefined>(undefined);
-  const [folderIsPinned, setFolderIsPinned] = useState<boolean>(false);
-  const [folderTemplateType, setFolderTemplateType] = useState<'GENERAL' | 'BOOK' | 'STUDY' | 'PROJECT'>('GENERAL');
+  const [folderTemplateType, setFolderTemplateType] = useState<'GENERAL' | 'BOOK' | 'STUDY' | 'PROJECT' | 'FINANCE' | 'FITNESS' | 'CREATIVE' | 'CODE'>('GENERAL');
+  // Book Template
   const [bookAuthor, setBookAuthor] = useState('');
   const [bookTotalPages, setBookTotalPages] = useState<number>(300);
   const [bookCurrentPage, setBookCurrentPage] = useState<number>(0);
+  const [bookStartYear, setBookStartYear] = useState('');
+  const [bookRating, setBookRating] = useState<number>(5);
+  const [bookGenre, setBookGenre] = useState('');
+  // Study Template
+  const [studyCourseName, setStudyCourseName] = useState('');
+  const [studyProfessor, setStudyProfessor] = useState('');
+  const [studyTotalLessons, setStudyTotalLessons] = useState<number>(20);
+  const [studyCompletedLessons, setStudyCompletedLessons] = useState<number>(0);
+  const [studyNextExamDate, setStudyNextExamDate] = useState('');
+  const [studyTargetGrade, setStudyTargetGrade] = useState('');
+  // Project Template
+  const [projectClient, setProjectClient] = useState('');
+  const [projectDeadline, setProjectDeadline] = useState('');
+  const [projectTotalDeliverables, setProjectTotalDeliverables] = useState<number>(10);
+  const [projectCompletedDeliverables, setProjectCompletedDeliverables] = useState<number>(0);
+  const [projectStatus, setProjectStatus] = useState<'PLANNING' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED'>('IN_PROGRESS');
+  // Finance Template
+  const [financeBudget, setFinanceBudget] = useState<number>(1000);
+  const [financeCurrent, setFinanceCurrent] = useState<number>(0);
+  const [financeCurrency, setFinanceCurrency] = useState('$');
+  // Fitness Template
+  const [fitnessGoal, setFitnessGoal] = useState('');
+  const [fitnessTargetSessions, setFitnessTargetSessions] = useState<number>(4);
+  const [fitnessCompletedSessions, setFitnessCompletedSessions] = useState<number>(0);
+  const [fitnessTargetMetric, setFitnessTargetMetric] = useState('');
+  // Creative & Code Templates
+  const [creativeConceptStatus, setCreativeConceptStatus] = useState('En Desarrollo');
+  const [creativePlatform, setCreativePlatform] = useState('YouTube');
+  const [codeStack, setCodeStack] = useState('React / Node');
+  const [codeRepoUrl, setCodeRepoUrl] = useState('');
+
   const [showIconPickerModal, setShowIconPickerModal] = useState(false);
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
 
@@ -180,6 +211,31 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     setBookAuthor('');
     setBookTotalPages(300);
     setBookCurrentPage(0);
+    setBookStartYear(new Date().getFullYear().toString());
+    setBookRating(5);
+    setBookGenre('');
+    setStudyCourseName('');
+    setStudyProfessor('');
+    setStudyTotalLessons(20);
+    setStudyCompletedLessons(0);
+    setStudyNextExamDate('');
+    setStudyTargetGrade('');
+    setProjectClient('');
+    setProjectDeadline('');
+    setProjectTotalDeliverables(10);
+    setProjectCompletedDeliverables(0);
+    setProjectStatus('IN_PROGRESS');
+    setFinanceBudget(1000);
+    setFinanceCurrent(0);
+    setFinanceCurrency('$');
+    setFitnessGoal('');
+    setFitnessTargetSessions(4);
+    setFitnessCompletedSessions(0);
+    setFitnessTargetMetric('');
+    setCreativeConceptStatus('En Desarrollo');
+    setCreativePlatform('YouTube');
+    setCodeStack('React / Node');
+    setCodeRepoUrl('');
     setIsFolderModalOpen(true);
   };
 
@@ -195,6 +251,31 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     setBookAuthor(folder.bookAuthor || '');
     setBookTotalPages(folder.bookTotalPages || 300);
     setBookCurrentPage(folder.bookCurrentPage || 0);
+    setBookStartYear(folder.bookStartYear || new Date().getFullYear().toString());
+    setBookRating(folder.bookRating || 5);
+    setBookGenre(folder.bookGenre || '');
+    setStudyCourseName(folder.studyCourseName || '');
+    setStudyProfessor(folder.studyProfessor || '');
+    setStudyTotalLessons(folder.studyTotalLessons || 20);
+    setStudyCompletedLessons(folder.studyCompletedLessons || 0);
+    setStudyNextExamDate(folder.studyNextExamDate || '');
+    setStudyTargetGrade(folder.studyTargetGrade || '');
+    setProjectClient(folder.projectClient || '');
+    setProjectDeadline(folder.projectDeadline || '');
+    setProjectTotalDeliverables(folder.projectTotalDeliverables || 10);
+    setProjectCompletedDeliverables(folder.projectCompletedDeliverables || 0);
+    setProjectStatus(folder.projectStatus || 'IN_PROGRESS');
+    setFinanceBudget(folder.financeBudget || 1000);
+    setFinanceCurrent(folder.financeCurrent || 0);
+    setFinanceCurrency(folder.financeCurrency || '$');
+    setFitnessGoal(folder.fitnessGoal || '');
+    setFitnessTargetSessions(folder.fitnessTargetSessions || 4);
+    setFitnessCompletedSessions(folder.fitnessCompletedSessions || 0);
+    setFitnessTargetMetric(folder.fitnessTargetMetric || '');
+    setCreativeConceptStatus(folder.creativeConceptStatus || 'En Desarrollo');
+    setCreativePlatform(folder.creativePlatform || 'YouTube');
+    setCodeStack(folder.codeStack || 'React / Node');
+    setCodeRepoUrl(folder.codeRepoUrl || '');
     setIsFolderModalOpen(true);
   };
 
@@ -203,32 +284,51 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
       toast.error(t('notes.folderNameRequired', 'Ingrese el nombre de la carpeta'));
       return;
     }
+    const folderPayload: Omit<NoteFolder, 'id' | 'createdAt'> = {
+      name: folderName.trim(),
+      icon: folderIcon,
+      color: folderColor,
+      parentId: folderParentId,
+      isPinned: folderIsPinned,
+      templateType: folderTemplateType,
+      bookAuthor: bookAuthor.trim() || undefined,
+      bookTotalPages: Number(bookTotalPages) || 300,
+      bookCurrentPage: Number(bookCurrentPage) || 0,
+      bookStartYear: bookStartYear.trim() || undefined,
+      bookRating: Number(bookRating) || 5,
+      bookGenre: bookGenre.trim() || undefined,
+      studyCourseName: studyCourseName.trim() || undefined,
+      studyProfessor: studyProfessor.trim() || undefined,
+      studyTotalLessons: Number(studyTotalLessons) || 20,
+      studyCompletedLessons: Number(studyCompletedLessons) || 0,
+      studyNextExamDate: studyNextExamDate || undefined,
+      studyTargetGrade: studyTargetGrade.trim() || undefined,
+      projectClient: projectClient.trim() || undefined,
+      projectDeadline: projectDeadline || undefined,
+      projectTotalDeliverables: Number(projectTotalDeliverables) || 10,
+      projectCompletedDeliverables: Number(projectCompletedDeliverables) || 0,
+      projectStatus,
+      financeBudget: Number(financeBudget) || 1000,
+      financeCurrent: Number(financeCurrent) || 0,
+      financeCurrency: financeCurrency || '$',
+      fitnessGoal: fitnessGoal.trim() || undefined,
+      fitnessTargetSessions: Number(fitnessTargetSessions) || 4,
+      fitnessCompletedSessions: Number(fitnessCompletedSessions) || 0,
+      fitnessTargetMetric: fitnessTargetMetric.trim() || undefined,
+      creativeConceptStatus: creativeConceptStatus.trim() || undefined,
+      creativePlatform: creativePlatform.trim() || undefined,
+      codeStack: codeStack.trim() || undefined,
+      codeRepoUrl: codeRepoUrl.trim() || undefined,
+    };
+
     if (editingFolder) {
       await handleUpdateFolder({
         ...editingFolder,
-        name: folderName.trim(),
-        icon: folderIcon,
-        color: folderColor,
-        parentId: folderParentId,
-        isPinned: folderIsPinned,
-        templateType: folderTemplateType,
-        bookAuthor: bookAuthor.trim() || undefined,
-        bookTotalPages: Number(bookTotalPages) || 300,
-        bookCurrentPage: Number(bookCurrentPage) || 0
+        ...folderPayload
       });
       toast.success(t('notes.folderUpdated', 'Carpeta actualizada'));
     } else {
-      await handleCreateFolder({
-        name: folderName.trim(),
-        icon: folderIcon,
-        color: folderColor,
-        parentId: folderParentId,
-        isPinned: folderIsPinned,
-        templateType: folderTemplateType,
-        bookAuthor: bookAuthor.trim() || undefined,
-        bookTotalPages: Number(bookTotalPages) || 300,
-        bookCurrentPage: Number(bookCurrentPage) || 0
-      });
+      await handleCreateFolder(folderPayload);
       toast.success(t('notes.folderCreated', 'Carpeta creada'));
     }
     setIsFolderModalOpen(false);
@@ -2087,7 +2187,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
   {/* Note / Journal Editor Portal Modal */}
   {editorMode !== 'NONE' && typeof document !== 'undefined' && createPortal(
-    <div className="fixed inset-0 z-[500] bg-[#07070b] flex items-start justify-center p-3 sm:p-6 pt-16 sm:pt-20 pb-6 overflow-y-auto animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[500] bg-[#07070b] flex items-start justify-center p-3 sm:p-6 pt-20 sm:pt-24 pb-6 overflow-y-auto animate-in fade-in duration-200">
       <div className="w-full max-w-md sm:max-w-lg mx-auto flex flex-col rounded-[28px] sm:rounded-[32px] overflow-hidden border border-white/15 shadow-2xl relative bg-[#0e0e16] my-2 max-h-[82vh] transition-all">
         <div className="absolute top-0 left-0 right-0 h-48 opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 75%)` }} />
 
@@ -2429,7 +2529,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
   {isLibraryOpen && typeof document !== 'undefined' && createPortal(
     <div className="fixed inset-0 z-[9999] bg-[#07070a] text-white flex flex-col overflow-hidden animate-in fade-in duration-200">
-      <div className="bg-[#0f0f16] border-b border-white/10 px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 shrink-0 shadow-lg">
+      <div className="bg-[#0f0f16] border-b border-white/10 px-3 sm:px-6 pt-7 sm:pt-8 pb-3 flex items-center justify-between gap-2 sm:gap-4 shrink-0 shadow-lg">
          <button
            onClick={() => setLibrarySidebarOpen(!librarySidebarOpen)}
            className="sm:hidden p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors border border-white/10 shrink-0"
@@ -2733,67 +2833,409 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
              </div>
            </div>
 
-           {/* Interactive Book Reading Hub Header Card */}
+           {/* Dynamic Interactive Template Hub Cards */}
            {(() => {
              const currentActiveFolder = folders.find(f => f.id === selectedFolderId);
-             if (!currentActiveFolder || currentActiveFolder.templateType !== 'BOOK') return null;
+             if (!currentActiveFolder || !currentActiveFolder.templateType || currentActiveFolder.templateType === 'GENERAL') return null;
 
-             const total = currentActiveFolder.bookTotalPages || 300;
-             const current = currentActiveFolder.bookCurrentPage || 0;
-             const pct = Math.min(100, Math.round((current / total) * 100));
+             // BOOK HUB
+             if (currentActiveFolder.templateType === 'BOOK') {
+               const total = currentActiveFolder.bookTotalPages || 300;
+               const current = currentActiveFolder.bookCurrentPage || 0;
+               const pct = Math.min(100, Math.round((current / total) * 100));
 
-             return (
-               <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-950/40 via-amber-900/20 to-black border border-amber-500/30 shadow-xl space-y-3">
-                 <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-2">
-                     <Book size={18} className="text-amber-400" />
-                     <h3 className="text-sm font-bold text-amber-200">Hub de Lectura del Libro</h3>
+               return (
+                 <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-950/40 via-amber-900/20 to-black border border-amber-500/30 shadow-xl space-y-3">
+                   <div className="flex items-center justify-between flex-wrap gap-2">
+                     <div className="flex items-center gap-2">
+                       <Book size={18} className="text-amber-400" />
+                       <h3 className="text-sm font-bold text-amber-200">Hub de Lectura de Libro</h3>
+                     </div>
+                     <div className="flex items-center gap-2">
+                       {currentActiveFolder.bookAuthor && (
+                         <span className="text-xs font-medium text-amber-300/80 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+                           Autor: {currentActiveFolder.bookAuthor}
+                         </span>
+                       )}
+                       {currentActiveFolder.bookStartYear && (
+                         <span className="text-xs font-mono text-amber-300/60 bg-amber-500/5 px-2 py-0.5 rounded-full border border-amber-500/10">
+                           📅 {currentActiveFolder.bookStartYear}
+                         </span>
+                       )}
+                     </div>
                    </div>
-                   {currentActiveFolder.bookAuthor && (
-                     <span className="text-xs font-medium text-amber-300/80 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
-                       Autor: {currentActiveFolder.bookAuthor}
+
+                   <div>
+                     <div className="flex justify-between text-xs font-mono text-amber-200/80 mb-1.5">
+                       <span>Página {current} de {total}</span>
+                       <span className="font-bold text-amber-400">{pct}% Leído</span>
+                     </div>
+                     <div className="w-full h-3 rounded-full bg-black/50 border border-amber-500/20 overflow-hidden p-0.5">
+                       <div
+                         className="h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 transition-all duration-300 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                         style={{ width: `${pct}%` }}
+                       />
+                     </div>
+                   </div>
+
+                   <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+                     {/* Granular Page Controls: -5, -1, Direct Input, +1, +5 */}
+                     <div className="flex items-center gap-1.5">
+                       <button
+                         onClick={() => handleUpdateFolder({ ...currentActiveFolder, bookCurrentPage: Math.max(0, current - 5) })}
+                         className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-[11px] font-mono border border-amber-500/20"
+                         title="-5 páginas"
+                       >
+                         -5
+                       </button>
+                       <button
+                         onClick={() => handleUpdateFolder({ ...currentActiveFolder, bookCurrentPage: Math.max(0, current - 1) })}
+                         className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold border border-amber-500/30"
+                         title="-1 página"
+                       >
+                         -1
+                       </button>
+                       
+                       {/* DIRECT NUMERIC INPUT BOX */}
+                       <div className="flex items-center gap-1 bg-black/60 border border-amber-500/40 rounded-lg px-2 py-0.5">
+                         <span className="text-[10px] font-mono text-amber-400/60 uppercase">Pág</span>
+                         <input
+                           type="number"
+                           value={current}
+                           min={0}
+                           max={total}
+                           onChange={(e) => {
+                             const val = Math.max(0, Math.min(total, Number(e.target.value) || 0));
+                             handleUpdateFolder({ ...currentActiveFolder, bookCurrentPage: val });
+                           }}
+                           className="w-14 bg-transparent text-amber-300 text-xs font-mono font-bold text-center outline-none"
+                         />
+                       </div>
+
+                       <button
+                         onClick={() => handleUpdateFolder({ ...currentActiveFolder, bookCurrentPage: Math.min(total, current + 1) })}
+                         className="px-2.5 py-1 rounded-lg bg-amber-500 text-black text-xs font-black hover:brightness-110 active:scale-95 shadow-sm"
+                         title="+1 página"
+                       >
+                         +1
+                       </button>
+                       <button
+                         onClick={() => handleUpdateFolder({ ...currentActiveFolder, bookCurrentPage: Math.min(total, current + 5) })}
+                         className="px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[11px] font-mono border border-amber-500/30"
+                         title="+5 páginas"
+                       >
+                         +5
+                       </button>
+                     </div>
+
+                     <button
+                       onClick={() => openEditFolderModal(currentActiveFolder)}
+                       className="text-xs text-amber-400/80 hover:text-amber-300 underline font-medium ml-auto"
+                     >
+                       Editar libro
+                     </button>
+                   </div>
+                 </div>
+               );
+             }
+
+             // STUDY HUB
+             if (currentActiveFolder.templateType === 'STUDY') {
+               const total = currentActiveFolder.studyTotalLessons || 20;
+               const current = currentActiveFolder.studyCompletedLessons || 0;
+               const pct = Math.min(100, Math.round((current / total) * 100));
+
+               return (
+                 <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-purple-950/40 via-purple-900/20 to-black border border-purple-500/30 shadow-xl space-y-3">
+                   <div className="flex items-center justify-between flex-wrap gap-2">
+                     <div className="flex items-center gap-2">
+                       <GraduationCap size={18} className="text-purple-400" />
+                       <h3 className="text-sm font-bold text-purple-200">Hub de Estudio / Asignatura</h3>
+                     </div>
+                     <div className="flex items-center gap-2">
+                       {currentActiveFolder.studyProfessor && (
+                         <span className="text-xs font-medium text-purple-300/80 bg-purple-500/10 px-2.5 py-0.5 rounded-full border border-purple-500/20">
+                           Prof / Plataforma: {currentActiveFolder.studyProfessor}
+                         </span>
+                       )}
+                       {currentActiveFolder.studyNextExamDate && (
+                         <span className="text-xs font-mono text-purple-300 bg-purple-500/20 px-2.5 py-0.5 rounded-full border border-purple-500/40 font-bold flex items-center gap-1">
+                           <Clock size={11} /> Examen: {currentActiveFolder.studyNextExamDate}
+                         </span>
+                       )}
+                     </div>
+                   </div>
+
+                   <div>
+                     <div className="flex justify-between text-xs font-mono text-purple-200/80 mb-1.5">
+                       <span>Lecciones {current} de {total}</span>
+                       <span className="font-bold text-purple-400">{pct}% Progreso</span>
+                     </div>
+                     <div className="w-full h-3 rounded-full bg-black/50 border border-purple-500/20 overflow-hidden p-0.5">
+                       <div
+                         className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300 shadow-[0_0_10px_rgba(168,85,247,0.5)]"
+                         style={{ width: `${pct}%` }}
+                       />
+                     </div>
+                   </div>
+
+                   <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+                     <div className="flex items-center gap-1.5">
+                       <button
+                         onClick={() => handleUpdateFolder({ ...currentActiveFolder, studyCompletedLessons: Math.max(0, current - 1) })}
+                         className="px-2.5 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-xs font-bold border border-purple-500/30"
+                       >
+                         -1 lección
+                       </button>
+                       <div className="flex items-center gap-1 bg-black/60 border border-purple-500/40 rounded-lg px-2 py-0.5">
+                         <span className="text-[10px] font-mono text-purple-400/60 uppercase">Completado</span>
+                         <input
+                           type="number"
+                           value={current}
+                           min={0}
+                           max={total}
+                           onChange={(e) => {
+                             const val = Math.max(0, Math.min(total, Number(e.target.value) || 0));
+                             handleUpdateFolder({ ...currentActiveFolder, studyCompletedLessons: val });
+                           }}
+                           className="w-14 bg-transparent text-purple-300 text-xs font-mono font-bold text-center outline-none"
+                         />
+                       </div>
+                       <button
+                         onClick={() => handleUpdateFolder({ ...currentActiveFolder, studyCompletedLessons: Math.min(total, current + 1) })}
+                         className="px-2.5 py-1 rounded-lg bg-purple-500 text-white text-xs font-black hover:brightness-110 active:scale-95 shadow-sm"
+                       >
+                         +1 lección
+                       </button>
+                     </div>
+                     <button
+                       onClick={() => openEditFolderModal(currentActiveFolder)}
+                       className="text-xs text-purple-400/80 hover:text-purple-300 underline font-medium ml-auto"
+                     >
+                       Editar asignatura
+                     </button>
+                   </div>
+                 </div>
+               );
+             }
+
+             // PROJECT HUB
+             if (currentActiveFolder.templateType === 'PROJECT') {
+               const total = currentActiveFolder.projectTotalDeliverables || 10;
+               const current = currentActiveFolder.projectCompletedDeliverables || 0;
+               const pct = Math.min(100, Math.round((current / total) * 100));
+
+               return (
+                 <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-emerald-900/20 to-black border border-emerald-500/30 shadow-xl space-y-3">
+                   <div className="flex items-center justify-between flex-wrap gap-2">
+                     <div className="flex items-center gap-2">
+                       <Layers size={18} className="text-emerald-400" />
+                       <h3 className="text-sm font-bold text-emerald-200">Hub de Proyecto</h3>
+                     </div>
+                     <div className="flex items-center gap-2">
+                       {currentActiveFolder.projectClient && (
+                         <span className="text-xs font-medium text-emerald-300/80 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                           Cliente: {currentActiveFolder.projectClient}
+                         </span>
+                       )}
+                       <span className="text-xs font-bold text-emerald-300 bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-500/40">
+                         {currentActiveFolder.projectStatus || 'IN_PROGRESS'}
+                       </span>
+                     </div>
+                   </div>
+
+                   <div>
+                     <div className="flex justify-between text-xs font-mono text-emerald-200/80 mb-1.5">
+                       <span>Entregables {current} de {total}</span>
+                       <span className="font-bold text-emerald-400">{pct}% Completado</span>
+                     </div>
+                     <div className="w-full h-3 rounded-full bg-black/50 border border-emerald-500/20 overflow-hidden p-0.5">
+                       <div
+                         className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                         style={{ width: `${pct}%` }}
+                       />
+                     </div>
+                   </div>
+
+                   <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+                     <div className="flex items-center gap-1.5">
+                       <button
+                         onClick={() => handleUpdateFolder({ ...currentActiveFolder, projectCompletedDeliverables: Math.max(0, current - 1) })}
+                         className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-bold border border-emerald-500/30"
+                       >
+                         -1 entregable
+                       </button>
+                       <div className="flex items-center gap-1 bg-black/60 border border-emerald-500/40 rounded-lg px-2 py-0.5">
+                         <span className="text-[10px] font-mono text-emerald-400/60 uppercase">Hecho</span>
+                         <input
+                           type="number"
+                           value={current}
+                           min={0}
+                           max={total}
+                           onChange={(e) => {
+                             const val = Math.max(0, Math.min(total, Number(e.target.value) || 0));
+                             handleUpdateFolder({ ...currentActiveFolder, projectCompletedDeliverables: val });
+                           }}
+                           className="w-14 bg-transparent text-emerald-300 text-xs font-mono font-bold text-center outline-none"
+                         />
+                       </div>
+                       <button
+                         onClick={() => handleUpdateFolder({ ...currentActiveFolder, projectCompletedDeliverables: Math.min(total, current + 1) })}
+                         className="px-2.5 py-1 rounded-lg bg-emerald-500 text-black text-xs font-black hover:brightness-110 active:scale-95 shadow-sm"
+                       >
+                         +1 entregable
+                       </button>
+                     </div>
+                     <button
+                       onClick={() => openEditFolderModal(currentActiveFolder)}
+                       className="text-xs text-emerald-400/80 hover:text-emerald-300 underline font-medium ml-auto"
+                     >
+                       Editar proyecto
+                     </button>
+                   </div>
+                 </div>
+               );
+             }
+
+             // FINANCE HUB
+             if (currentActiveFolder.templateType === 'FINANCE') {
+               const budget = currentActiveFolder.financeBudget || 1000;
+               const current = currentActiveFolder.financeCurrent || 0;
+               const currSymbol = currentActiveFolder.financeCurrency || '$';
+               const pct = Math.min(100, Math.round((current / budget) * 100));
+
+               return (
+                 <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-blue-900/20 to-black border border-cyan-500/30 shadow-xl space-y-3">
+                   <div className="flex items-center justify-between">
+                     <div className="flex items-center gap-2">
+                       <DollarSign size={18} className="text-cyan-400" />
+                       <h3 className="text-sm font-bold text-cyan-200">Hub de Finanzas y Presupuesto</h3>
+                     </div>
+                     <span className="text-xs font-mono text-cyan-300 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
+                       Meta: {currSymbol}{budget}
                      </span>
-                   )}
-                 </div>
-
-                 <div>
-                   <div className="flex justify-between text-xs font-mono text-amber-200/80 mb-1.5">
-                     <span>Página {current} de {total}</span>
-                     <span className="font-bold text-amber-400">{pct}% Leído</span>
                    </div>
-                   <div className="w-full h-3 rounded-full bg-black/50 border border-amber-500/20 overflow-hidden p-0.5">
-                     <div
-                       className="h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 transition-all duration-300 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
-                       style={{ width: `${pct}%` }}
-                     />
-                   </div>
-                 </div>
 
-                 <div className="flex items-center justify-between pt-1">
-                   <div className="flex items-center gap-1.5">
+                   <div>
+                     <div className="flex justify-between text-xs font-mono text-cyan-200/80 mb-1.5">
+                       <span>Actual: {currSymbol}{current}</span>
+                       <span className="font-bold text-cyan-400">{pct}% Alcanzado</span>
+                     </div>
+                     <div className="w-full h-3 rounded-full bg-black/50 border border-cyan-500/20 overflow-hidden p-0.5">
+                       <div
+                         className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-300"
+                         style={{ width: `${pct}%` }}
+                       />
+                     </div>
+                   </div>
+
+                   <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+                     <div className="flex items-center gap-1.5">
+                       <button
+                         onClick={() => handleUpdateFolder({ ...currentActiveFolder, financeCurrent: Math.max(0, current - 50) })}
+                         className="px-2 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-mono border border-cyan-500/20"
+                       >
+                         -50
+                       </button>
+                       <div className="flex items-center gap-1 bg-black/60 border border-cyan-500/40 rounded-lg px-2 py-0.5">
+                         <span className="text-[10px] font-mono text-cyan-400/60">{currSymbol}</span>
+                         <input
+                           type="number"
+                           value={current}
+                           min={0}
+                           onChange={(e) => handleUpdateFolder({ ...currentActiveFolder, financeCurrent: Number(e.target.value) || 0 })}
+                           className="w-16 bg-transparent text-cyan-300 text-xs font-mono font-bold text-center outline-none"
+                         />
+                       </div>
+                       <button
+                         onClick={() => handleUpdateFolder({ ...currentActiveFolder, financeCurrent: current + 50 })}
+                         className="px-2 py-1 rounded-lg bg-cyan-500 text-black text-xs font-black hover:brightness-110 active:scale-95"
+                       >
+                         +50
+                       </button>
+                     </div>
                      <button
-                       onClick={() => handleUpdateFolder({ ...currentActiveFolder, bookCurrentPage: Math.max(0, current - 10) })}
-                       className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-mono border border-amber-500/20 transition-all"
+                       onClick={() => openEditFolderModal(currentActiveFolder)}
+                       className="text-xs text-cyan-400/80 hover:text-cyan-300 underline font-medium ml-auto"
                      >
-                       -10 pág
-                     </button>
-                     <button
-                       onClick={() => handleUpdateFolder({ ...currentActiveFolder, bookCurrentPage: Math.min(total, current + 10) })}
-                       className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-mono font-bold border border-amber-500/30 transition-all"
-                     >
-                       +10 pág
+                       Editar finanzas
                      </button>
                    </div>
-
-                   <button
-                     onClick={() => openEditFolderModal(currentActiveFolder)}
-                     className="text-xs text-amber-400/80 hover:text-amber-300 underline font-medium"
-                   >
-                     Editar progreso del libro
-                   </button>
                  </div>
-               </div>
-             );
+               );
+             }
+
+             // FITNESS HUB
+             if (currentActiveFolder.templateType === 'FITNESS') {
+               const target = currentActiveFolder.fitnessTargetSessions || 4;
+               const current = currentActiveFolder.fitnessCompletedSessions || 0;
+               const pct = Math.min(100, Math.round((current / target) * 100));
+
+               return (
+                 <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-red-950/40 via-orange-900/20 to-black border border-red-500/30 shadow-xl space-y-3">
+                   <div className="flex items-center justify-between">
+                     <div className="flex items-center gap-2">
+                       <Dumbbell size={18} className="text-red-400" />
+                       <h3 className="text-sm font-bold text-red-200">Hub de Fitness & Salud</h3>
+                     </div>
+                     {currentActiveFolder.fitnessGoal && (
+                       <span className="text-xs font-medium text-red-300 bg-red-500/10 px-2.5 py-0.5 rounded-full border border-red-500/20">
+                         Meta: {currentActiveFolder.fitnessGoal}
+                       </span>
+                     )}
+                   </div>
+
+                   <div>
+                     <div className="flex justify-between text-xs font-mono text-red-200/80 mb-1.5">
+                       <span>Sesiones: {current} de {target}</span>
+                       <span className="font-bold text-red-400">{pct}% Cumplido</span>
+                     </div>
+                     <div className="w-full h-3 rounded-full bg-black/50 border border-red-500/20 overflow-hidden p-0.5">
+                       <div
+                         className="h-full rounded-full bg-gradient-to-r from-red-500 to-orange-400 transition-all duration-300"
+                         style={{ width: `${pct}%` }}
+                       />
+                     </div>
+                   </div>
+
+                   <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+                     <div className="flex items-center gap-1.5">
+                       <button
+                         onClick={() => handleUpdateFolder({ ...currentActiveFolder, fitnessCompletedSessions: Math.max(0, current - 1) })}
+                         className="px-2.5 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-bold border border-red-500/30"
+                       >
+                         -1 sesión
+                       </button>
+                       <div className="flex items-center gap-1 bg-black/60 border border-red-500/40 rounded-lg px-2 py-0.5">
+                         <span className="text-[10px] font-mono text-red-400/60 uppercase">Sesión</span>
+                         <input
+                           type="number"
+                           value={current}
+                           min={0}
+                           max={target}
+                           onChange={(e) => handleUpdateFolder({ ...currentActiveFolder, fitnessCompletedSessions: Number(e.target.value) || 0 })}
+                           className="w-14 bg-transparent text-red-300 text-xs font-mono font-bold text-center outline-none"
+                         />
+                       </div>
+                       <button
+                         onClick={() => handleUpdateFolder({ ...currentActiveFolder, fitnessCompletedSessions: Math.min(target, current + 1) })}
+                         className="px-2.5 py-1 rounded-lg bg-red-500 text-white text-xs font-black hover:brightness-110 active:scale-95"
+                       >
+                         +1 sesión
+                       </button>
+                     </div>
+                     <button
+                       onClick={() => openEditFolderModal(currentActiveFolder)}
+                       className="text-xs text-red-400/80 hover:text-red-300 underline font-medium ml-auto"
+                     >
+                       Editar rutina
+                     </button>
+                   </div>
+                 </div>
+               );
+             }
+
+             return null;
            })()}
 
           {/* Sub-Folders Carousel / Grid inside active folder */}
@@ -2923,71 +3365,127 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             />
           </div>
 
-          {/* Folder Template Type Selector */}
+          {/* Folder Template Type Selector - 8 Rich Categories */}
           <div>
             <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-1.5">Tipo / Plantilla de Carpeta</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <button
                 type="button"
                 onClick={() => { setFolderTemplateType('GENERAL'); setFolderIcon('📁'); }}
-                className={`p-2.5 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all ${
                   folderTemplateType === 'GENERAL'
                     ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-md'
                     : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
                 }`}
               >
-                <Folder size={16} className="text-cyan-400" />
-                <div className="text-left">
-                  <div className="leading-tight">General</div>
-                  <div className="text-[9px] opacity-60 font-normal">Carpeta estándar</div>
+                <Folder size={16} className="text-cyan-400 shrink-0" />
+                <div className="text-left min-w-0">
+                  <div className="leading-tight truncate">General</div>
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => { setFolderTemplateType('BOOK'); setFolderIcon('📚'); }}
-                className={`p-2.5 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all ${
                   folderTemplateType === 'BOOK'
                     ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-md'
                     : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
                 }`}
               >
-                <Book size={16} className="text-amber-400" />
-                <div className="text-left">
-                  <div className="leading-tight">Libro / Lectura</div>
-                  <div className="text-[9px] opacity-60 font-normal">Páginas, capítulos y notas</div>
+                <Book size={16} className="text-amber-400 shrink-0" />
+                <div className="text-left min-w-0">
+                  <div className="leading-tight truncate">Libro</div>
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => { setFolderTemplateType('STUDY'); setFolderIcon('🎓'); }}
-                className={`p-2.5 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all ${
                   folderTemplateType === 'STUDY'
                     ? 'bg-purple-500/20 border-purple-400 text-purple-300 shadow-md'
                     : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
                 }`}
               >
-                <GraduationCap size={16} className="text-purple-400" />
-                <div className="text-left">
-                  <div className="leading-tight">Estudio / Curso</div>
-                  <div className="text-[9px] opacity-60 font-normal">Temario y lecciones</div>
+                <GraduationCap size={16} className="text-purple-400 shrink-0" />
+                <div className="text-left min-w-0">
+                  <div className="leading-tight truncate">Estudio</div>
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => { setFolderTemplateType('PROJECT'); setFolderIcon('💼'); }}
-                className={`p-2.5 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all ${
                   folderTemplateType === 'PROJECT'
                     ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-md'
                     : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
                 }`}
               >
-                <Layers size={16} className="text-emerald-400" />
-                <div className="text-left">
-                  <div className="leading-tight">Proyecto Hub</div>
-                  <div className="text-[9px] opacity-60 font-normal">Hitos y entregables</div>
+                <Layers size={16} className="text-emerald-400 shrink-0" />
+                <div className="text-left min-w-0">
+                  <div className="leading-tight truncate">Proyecto</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setFolderTemplateType('FINANCE'); setFolderIcon('💰'); }}
+                className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                  folderTemplateType === 'FINANCE'
+                    ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-md'
+                    : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                }`}
+              >
+                <DollarSign size={16} className="text-cyan-400 shrink-0" />
+                <div className="text-left min-w-0">
+                  <div className="leading-tight truncate">Finanzas</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setFolderTemplateType('FITNESS'); setFolderIcon('🏋️'); }}
+                className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                  folderTemplateType === 'FITNESS'
+                    ? 'bg-red-500/20 border-red-400 text-red-300 shadow-md'
+                    : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                }`}
+              >
+                <Dumbbell size={16} className="text-red-400 shrink-0" />
+                <div className="text-left min-w-0">
+                  <div className="leading-tight truncate">Fitness</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setFolderTemplateType('CREATIVE'); setFolderIcon('🎨'); }}
+                className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                  folderTemplateType === 'CREATIVE'
+                    ? 'bg-pink-500/20 border-pink-400 text-pink-300 shadow-md'
+                    : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                }`}
+              >
+                <Palette size={16} className="text-pink-400 shrink-0" />
+                <div className="text-left min-w-0">
+                  <div className="leading-tight truncate">Arte/Ideas</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setFolderTemplateType('CODE'); setFolderIcon('💻'); }}
+                className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                  folderTemplateType === 'CODE'
+                    ? 'bg-indigo-500/20 border-indigo-400 text-indigo-300 shadow-md'
+                    : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                }`}
+              >
+                <Code2 size={16} className="text-indigo-400 shrink-0" />
+                <div className="text-left min-w-0">
+                  <div className="leading-tight truncate">Código</div>
                 </div>
               </button>
             </div>
@@ -3000,15 +3498,27 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                 <Book size={14} />
                 <span>Configuración de Lectura</span>
               </div>
-              <div>
-                <label className="text-[9px] font-bold text-amber-200/70 uppercase block mb-1">Autor del Libro</label>
-                <input
-                  type="text"
-                  value={bookAuthor}
-                  onChange={(e) => setBookAuthor(e.target.value)}
-                  placeholder="Ej: James Clear, Robert Greene..."
-                  className="w-full px-3 py-2 rounded-xl bg-black/40 border border-amber-500/30 text-xs text-white placeholder-white/30 focus:outline-none"
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[9px] font-bold text-amber-200/70 uppercase block mb-1">Autor</label>
+                  <input
+                    type="text"
+                    value={bookAuthor}
+                    onChange={(e) => setBookAuthor(e.target.value)}
+                    placeholder="Ej: James Clear..."
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-amber-500/30 text-xs text-white placeholder-white/30 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold text-amber-200/70 uppercase block mb-1">Año Inicio</label>
+                  <input
+                    type="text"
+                    value={bookStartYear}
+                    onChange={(e) => setBookStartYear(e.target.value)}
+                    placeholder="Ej: 2026"
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-amber-500/30 text-xs text-white outline-none"
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -3029,6 +3539,194 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                     onChange={(e) => setBookTotalPages(Number(e.target.value))}
                     min={1}
                     className="w-full px-3 py-2 rounded-xl bg-black/40 border border-amber-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Study Specific Fields */}
+          {folderTemplateType === 'STUDY' && (
+            <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 space-y-3 animate-in fade-in duration-150">
+              <div className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+                <GraduationCap size={14} />
+                <span>Configuración de Asignatura / Curso</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[9px] font-bold text-purple-200/70 uppercase block mb-1">Profesor / Plataforma</label>
+                  <input
+                    type="text"
+                    value={studyProfessor}
+                    onChange={(e) => setStudyProfessor(e.target.value)}
+                    placeholder="Ej: Dr. García, Udemy..."
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-purple-500/30 text-xs text-white outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold text-purple-200/70 uppercase block mb-1">Fecha de Examen</label>
+                  <input
+                    type="date"
+                    value={studyNextExamDate}
+                    onChange={(e) => setStudyNextExamDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-purple-500/30 text-xs text-white outline-none"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[9px] font-bold text-purple-200/70 uppercase block mb-1">Lecciones Hechas</label>
+                  <input
+                    type="number"
+                    value={studyCompletedLessons}
+                    onChange={(e) => setStudyCompletedLessons(Number(e.target.value))}
+                    min={0}
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-purple-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold text-purple-200/70 uppercase block mb-1">Lecciones Totales</label>
+                  <input
+                    type="number"
+                    value={studyTotalLessons}
+                    onChange={(e) => setStudyTotalLessons(Number(e.target.value))}
+                    min={1}
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-purple-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Project Specific Fields */}
+          {folderTemplateType === 'PROJECT' && (
+            <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-3 animate-in fade-in duration-150">
+              <div className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                <Layers size={14} />
+                <span>Configuración de Proyecto Hub</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[9px] font-bold text-emerald-200/70 uppercase block mb-1">Cliente / Responsable</label>
+                  <input
+                    type="text"
+                    value={projectClient}
+                    onChange={(e) => setProjectClient(e.target.value)}
+                    placeholder="Ej: Cliente X..."
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-emerald-500/30 text-xs text-white outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold text-emerald-200/70 uppercase block mb-1">Fecha Límite</label>
+                  <input
+                    type="date"
+                    value={projectDeadline}
+                    onChange={(e) => setProjectDeadline(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-emerald-500/30 text-xs text-white outline-none"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[9px] font-bold text-emerald-200/70 uppercase block mb-1">Entregables Hechos</label>
+                  <input
+                    type="number"
+                    value={projectCompletedDeliverables}
+                    onChange={(e) => setProjectCompletedDeliverables(Number(e.target.value))}
+                    min={0}
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-emerald-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold text-emerald-200/70 uppercase block mb-1">Entregables Totales</label>
+                  <input
+                    type="number"
+                    value={projectTotalDeliverables}
+                    onChange={(e) => setProjectTotalDeliverables(Number(e.target.value))}
+                    min={1}
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-emerald-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Finance Specific Fields */}
+          {folderTemplateType === 'FINANCE' && (
+            <div className="p-3.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 space-y-3 animate-in fade-in duration-150">
+              <div className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+                <DollarSign size={14} />
+                <span>Configuración de Finanzas</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-[9px] font-bold text-cyan-200/70 uppercase block mb-1">Moneda</label>
+                  <input
+                    type="text"
+                    value={financeCurrency}
+                    onChange={(e) => setFinanceCurrency(e.target.value)}
+                    placeholder="$"
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-cyan-500/30 text-xs text-white outline-none font-bold text-center"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold text-cyan-200/70 uppercase block mb-1">Actual</label>
+                  <input
+                    type="number"
+                    value={financeCurrent}
+                    onChange={(e) => setFinanceCurrent(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-cyan-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold text-cyan-200/70 uppercase block mb-1">Presupuesto</label>
+                  <input
+                    type="number"
+                    value={financeBudget}
+                    onChange={(e) => setFinanceBudget(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-cyan-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Fitness Specific Fields */}
+          {folderTemplateType === 'FITNESS' && (
+            <div className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/20 space-y-3 animate-in fade-in duration-150">
+              <div className="text-xs font-bold text-red-300 flex items-center gap-1.5">
+                <Dumbbell size={14} />
+                <span>Configuración de Rutina / Salud</span>
+              </div>
+              <div>
+                <label className="text-[9px] font-bold text-red-200/70 uppercase block mb-1">Meta Principal</label>
+                <input
+                  type="text"
+                  value={fitnessGoal}
+                  onChange={(e) => setFitnessGoal(e.target.value)}
+                  placeholder="Ej: Ganar masa muscular, Maratón..."
+                  className="w-full px-3 py-2 rounded-xl bg-black/40 border border-red-500/30 text-xs text-white outline-none"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[9px] font-bold text-red-200/70 uppercase block mb-1">Sesiones Hechas</label>
+                  <input
+                    type="number"
+                    value={fitnessCompletedSessions}
+                    onChange={(e) => setFitnessCompletedSessions(Number(e.target.value))}
+                    min={0}
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-red-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold text-red-200/70 uppercase block mb-1">Sesiones Objetivo</label>
+                  <input
+                    type="number"
+                    value={fitnessTargetSessions}
+                    onChange={(e) => setFitnessTargetSessions(Number(e.target.value))}
+                    min={1}
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-red-500/30 text-xs text-white font-mono"
                   />
                 </div>
               </div>
