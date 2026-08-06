@@ -33,6 +33,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [isQuantityModalOpen, setIsQuantityModalOpen] = React.useState(false);
   const [isChecklistModalOpen, setIsChecklistModalOpen] = React.useState(false);
+  const [isSubtasksFolderOpen, setIsSubtasksFolderOpen] = React.useState(false);
   
   const today = (currentDate || new Date()).getDay();
   const subTrait = React.useMemo(() => {

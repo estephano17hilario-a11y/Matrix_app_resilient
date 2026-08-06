@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Quest, Habit, Note, JournalEntry, Attribute, Project, BadHabit } from '../types';
+import { Quest, Habit, Note, NoteFolder, JournalEntry, Attribute, Project, BadHabit } from '../types';
 import { SmartProject } from '../types/SmartGoal';
 import { DailyFeedEntry } from '../types/DailyFeedEntry';
 import { sanitizeFirestoreData } from '../utils/firestoreUtils';

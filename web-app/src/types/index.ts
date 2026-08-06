@@ -248,6 +248,10 @@ export interface NoteFolder {
   parentId?: string;
   isPinned?: boolean;
   order?: number;
+  templateType?: 'GENERAL' | 'BOOK' | 'STUDY' | 'PROJECT';
+  bookAuthor?: string;
+  bookTotalPages?: number;
+  bookCurrentPage?: number;
 }
 
 export interface Note {

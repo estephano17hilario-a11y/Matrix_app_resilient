@@ -1,13 +1,12 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, Search, Menu, Eye, Download, CheckSquare, Square } from 'lucide-react';
+import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, Search, Menu, Eye, Download, CheckSquare, Square, Book, GraduationCap, Layers, Sparkles, Undo2, Redo2, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { Note, NoteFolder, JournalEntry, NoteBlock, Project, Quest } from '../../types';
 import { BlockEditor } from './components/BlockEditor';
 import { DropdownThemePicker, NOTE_THEMES } from './components/DropdownThemePicker';
-import { EditorToolbar } from './components/EditorToolbar';
 import { NotesStatsModal } from './components/NotesStatsModal';
 import { NotesConfigModal, NotesConfig } from './components/NotesConfigModal';
 import { SpecialEventsHub } from './components/SpecialEventsHub';
@@ -20,6 +19,7 @@ import { toLocalISOString, getDaysInMonth, calculateStreak, parseLocalDate, getW
 import { useNotesLogic } from './hooks/useNotesLogic';
 import { useAuth } from '@/context/AuthContext';
 import { persistenceService } from '@/services/persistenceService';
+import { IconPicker } from '../dashboard/components/IconPicker';
 
 // Constants
 const MOODS = [
@@ -127,6 +127,11 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   const [folderColor, setFolderColor] = useState('#3b82f6');
   const [folderParentId, setFolderParentId] = useState<string | undefined>(undefined);
   const [folderIsPinned, setFolderIsPinned] = useState<boolean>(false);
+  const [folderTemplateType, setFolderTemplateType] = useState<'GENERAL' | 'BOOK' | 'STUDY' | 'PROJECT'>('GENERAL');
+  const [bookAuthor, setBookAuthor] = useState('');
+  const [bookTotalPages, setBookTotalPages] = useState<number>(300);
+  const [bookCurrentPage, setBookCurrentPage] = useState<number>(0);
+  const [showIconPickerModal, setShowIconPickerModal] = useState(false);
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
 
  useEffect(() => {
@@ -152,54 +157,92 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<{ type: 'SINGLE' | 'BATCH', id?: string } | null>(null);
  const [moodSplash, setMoodSplash] = useState<string | null>(null);
  const [pendingOpenDate, setPendingOpenDate] = useState<Date | null>(null);
- const openCreateFolderModal = (parentId?: string) => {
-   setEditingFolder(null);
-   setFolderName('');
-   setFolderIcon('📁');
-   setFolderColor('#3b82f6');
-   setFolderParentId(parentId);
-   setFolderIsPinned(false);
-   setIsFolderModalOpen(true);
- };
 
- const openEditFolderModal = (folder: NoteFolder, e?: React.MouseEvent) => {
-   e?.stopPropagation();
-   setEditingFolder(folder);
-   setFolderName(folder.name);
-   setFolderIcon(folder.icon || '📁');
-   setFolderColor(folder.color || '#3b82f6');
-   setFolderParentId(folder.parentId);
-   setFolderIsPinned(!!folder.isPinned);
-   setIsFolderModalOpen(true);
- };
+  // Custom Folder Picker Modal State
+  const [isFolderPickerOpen, setIsFolderPickerOpen] = useState(false);
+  const [folderPickerSearch, setFolderPickerSearch] = useState('');
+  const [expandedFolderPickerIds, setExpandedFolderPickerIds] = useState<Set<string>>(new Set());
 
- const handleSaveFolder = async () => {
-   if (!folderName.trim()) {
-     toast.error(t('notes.folderNameRequired', 'Ingrese el nombre de la carpeta'));
-     return;
-   }
-   if (editingFolder) {
-     await handleUpdateFolder({
-       ...editingFolder,
-       name: folderName.trim(),
-       icon: folderIcon,
-       color: folderColor,
-       parentId: folderParentId,
-       isPinned: folderIsPinned
-     });
-     toast.success(t('notes.folderUpdated', 'Carpeta actualizada'));
-   } else {
-     await handleCreateFolder({
-       name: folderName.trim(),
-       icon: folderIcon,
-       color: folderColor,
-       parentId: folderParentId,
-       isPinned: folderIsPinned
-     });
-     toast.success(t('notes.folderCreated', 'Carpeta creada'));
-   }
-   setIsFolderModalOpen(false);
- };
+  // Undo / Redo History State
+  const [history, setHistory] = useState<{ title: string; blocks: NoteBlock[] }[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const isUndoRedoRef = useRef(false);
+
+  const openCreateFolderModal = (parentId?: string) => {
+    setEditingFolder(null);
+    setFolderName('');
+    setFolderIcon('📁');
+    setFolderColor('#3b82f6');
+    setFolderParentId(parentId);
+    setFolderIsPinned(false);
+    setFolderTemplateType('GENERAL');
+    setBookAuthor('');
+    setBookTotalPages(300);
+    setBookCurrentPage(0);
+    setIsFolderModalOpen(true);
+  };
+
+  const openEditFolderModal = (folder: NoteFolder, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditingFolder(folder);
+    setFolderName(folder.name);
+    setFolderIcon(folder.icon || '📁');
+    setFolderColor(folder.color || '#3b82f6');
+    setFolderParentId(folder.parentId);
+    setFolderIsPinned(!!folder.isPinned);
+    setFolderTemplateType(folder.templateType || 'GENERAL');
+    setBookAuthor(folder.bookAuthor || '');
+    setBookTotalPages(folder.bookTotalPages || 300);
+    setBookCurrentPage(folder.bookCurrentPage || 0);
+    setIsFolderModalOpen(true);
+  };
+
+  const handleSaveFolder = async () => {
+    if (!folderName.trim()) {
+      toast.error(t('notes.folderNameRequired', 'Ingrese el nombre de la carpeta'));
+      return;
+    }
+    if (editingFolder) {
+      await handleUpdateFolder({
+        ...editingFolder,
+        name: folderName.trim(),
+        icon: folderIcon,
+        color: folderColor,
+        parentId: folderParentId,
+        isPinned: folderIsPinned,
+        templateType: folderTemplateType,
+        bookAuthor: bookAuthor.trim() || undefined,
+        bookTotalPages: Number(bookTotalPages) || 300,
+        bookCurrentPage: Number(bookCurrentPage) || 0
+      });
+      toast.success(t('notes.folderUpdated', 'Carpeta actualizada'));
+    } else {
+      await handleCreateFolder({
+        name: folderName.trim(),
+        icon: folderIcon,
+        color: folderColor,
+        parentId: folderParentId,
+        isPinned: folderIsPinned,
+        templateType: folderTemplateType,
+        bookAuthor: bookAuthor.trim() || undefined,
+        bookTotalPages: Number(bookTotalPages) || 300,
+        bookCurrentPage: Number(bookCurrentPage) || 0
+      });
+      toast.success(t('notes.folderCreated', 'Carpeta creada'));
+    }
+    setIsFolderModalOpen(false);
+  };
+
+  const handleBatchFavoriteNotes = async () => {
+    if (selectedNoteIds.length === 0) return;
+    const targetNotes = notes.filter(n => selectedNoteIds.includes(n.id));
+    const allFav = targetNotes.every(n => n.isFavorite);
+    for (const n of targetNotes) {
+      await handleUpdateNote({ ...n, isFavorite: !allFav });
+    }
+    toast.success(!allFav ? 'Notas marcadas como favoritas ⭐' : 'Notas desmarcadas de favoritas');
+    setSelectedNoteIds([]);
+  };
 
  const handleToggleFolderPin = async (folder: NoteFolder, e?: React.MouseEvent) => {
    e?.stopPropagation();
@@ -466,7 +509,6 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   const [filterProject, setFilterProject] = useState<string | 'ALL'>('ALL');
   const [filterTheme, setFilterTheme] = useState<string | 'ALL'>('ALL');
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
-  const [libraryTab, setLibraryTab] = useState<'FOLDERS' | 'FAVORITES' | 'PROJECTS' | 'STATS'>('FOLDERS');
   const [librarySearchQuery, setLibrarySearchQuery] = useState('');
   const [librarySidebarOpen, setLibrarySidebarOpen] = useState(false);
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
@@ -695,7 +737,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     }
   }, [journalEntries, openJournal]);
 
-  const handleSave = () => { 
+  const handleSave = useCallback(() => { 
     if (editorMode === 'NOTE' && draftId) { 
       handleUpdateNote({ 
         id: draftId, 
@@ -709,21 +751,74 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
       }); 
     } else if (editorMode === 'JOURNAL' && draftId) { 
       let finalBlocks = [...draftBlocks];
-      if (draftTitle.trim()) {
+      if (draftTitle.trim() && (!finalBlocks[0] || !finalBlocks[0].id.startsWith('title-'))) {
         finalBlocks.unshift({ id: 'title-' + Date.now(), type: 'text', content: draftTitle });
       }
       handleUpdateJournal({ id: draftId, date: toLocalISOString(draftDate), blocks: finalBlocks, mood: draftMood, theme: draftTheme, tags: [] }); 
     } 
-    closeEditor(); 
-  };
+  }, [editorMode, draftId, draftTitle, draftBlocks, draftTheme, draftProjectId, draftFolderId, draftIsFavorite, draftDate, draftMood, handleUpdateNote, handleUpdateJournal]);
  
- const handleDelete = () => { if (editorMode === 'NOTE' && draftId) { handleDeleteNote(draftId); } closeEditor(); };
- const closeEditor = () => { 
- setEditorMode('NONE'); 
- setDraftId(null); 
- onInteractionEnd(); 
- window.dispatchEvent(new CustomEvent('note-closed'));
- };
+  const handleDelete = () => { if (editorMode === 'NOTE' && draftId) { handleDeleteNote(draftId); } closeEditor(); };
+  const closeEditor = useCallback(() => { 
+    handleSave();
+    setEditorMode('NONE'); 
+    setDraftId(null); 
+    onInteractionEnd(); 
+    window.dispatchEvent(new CustomEvent('note-closed'));
+  }, [handleSave, onInteractionEnd]);
+
+  // Continuous Auto-Save effect while editing
+  useEffect(() => {
+    if (editorMode === 'NONE' || !draftId) return;
+    const timer = setTimeout(() => {
+      handleSave();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [draftTitle, draftBlocks, draftTheme, draftProjectId, draftFolderId, draftIsFavorite, draftMood, handleSave, editorMode, draftId]);
+
+  // Undo & Redo Handlers
+  const handleUndo = useCallback(() => {
+    if (historyIndex > 0) {
+      isUndoRedoRef.current = true;
+      const targetIndex = historyIndex - 1;
+      const targetState = history[targetIndex];
+      if (targetState) {
+        setDraftTitle(targetState.title);
+        setDraftBlocks(targetState.blocks);
+        setHistoryIndex(targetIndex);
+      }
+      setTimeout(() => { isUndoRedoRef.current = false; }, 50);
+    }
+  }, [historyIndex, history]);
+
+  const handleRedo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      isUndoRedoRef.current = true;
+      const targetIndex = historyIndex + 1;
+      const targetState = history[targetIndex];
+      if (targetState) {
+        setDraftTitle(targetState.title);
+        setDraftBlocks(targetState.blocks);
+        setHistoryIndex(targetIndex);
+      }
+      setTimeout(() => { isUndoRedoRef.current = false; }, 50);
+    }
+  }, [historyIndex, history]);
+
+  // Record history changes for Undo/Redo
+  useEffect(() => {
+    if (editorMode === 'NONE' || !draftId) return;
+    if (isUndoRedoRef.current) return;
+    setHistory(prev => {
+      const newHist = prev.slice(0, historyIndex + 1);
+      const last = newHist[newHist.length - 1];
+      if (last && last.title === draftTitle && JSON.stringify(last.blocks) === JSON.stringify(draftBlocks)) {
+        return prev;
+      }
+      return [...newHist.slice(-49), { title: draftTitle, blocks: draftBlocks }];
+    });
+    setHistoryIndex(prev => Math.min(prev + 1, 49));
+  }, [draftTitle, draftBlocks, editorMode, draftId]);
  const addBlock = (type: 'text' | 'check' | 'image') => { setDraftBlocks(prev => [...prev, { id: Date.now().toString(), type, content: '', checked: false }]); };
  
  const { days, firstDay } = useMemo(() => getDaysInMonth(currentMonth), [currentMonth]);
@@ -778,6 +873,138 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     }
     return path;
   }, [selectedFolderId, folders]);
+
+  const [showAllBreadcrumbs, setShowAllBreadcrumbs] = useState(false);
+  const breadcrumbContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (breadcrumbContainerRef.current) {
+      breadcrumbContainerRef.current.scrollTo({
+        left: breadcrumbContainerRef.current.scrollWidth,
+        behavior: 'smooth'
+      });
+    }
+  }, [selectedFolderId]);
+
+  const displayedBreadcrumbs = useMemo(() => {
+    if (folderBreadcrumbs.length <= 4 || showAllBreadcrumbs) {
+      return { items: folderBreadcrumbs, isTruncated: false, hiddenCount: 0 };
+    }
+    return {
+      items: folderBreadcrumbs.slice(-3),
+      isTruncated: true,
+      hiddenCount: folderBreadcrumbs.length - 3
+    };
+  }, [folderBreadcrumbs, showAllBreadcrumbs]);
+
+  const draftFolderBreadcrumbs = useMemo(() => {
+    if (!draftFolderId) return [];
+    const path: NoteFolder[] = [];
+    let currId: string | undefined = draftFolderId;
+    const visited = new Set<string>();
+    while (currId && !visited.has(currId)) {
+      visited.add(currId);
+      const f = folders.find(folder => folder.id === currId);
+      if (f) {
+        path.unshift(f);
+        currId = f.parentId;
+      } else {
+        break;
+      }
+    }
+    return path;
+  }, [draftFolderId, folders]);
+
+  const activeFolderObj = useMemo(() => {
+    if (!draftFolderId) return undefined;
+    return folders.find(f => f.id === draftFolderId);
+  }, [draftFolderId, folders]);
+
+  const rootFolders = useMemo(() => {
+    return folders.filter(f => !f.parentId);
+  }, [folders]);
+
+  const renderFolderPickerTree = (folderList: NoteFolder[], depth = 0) => {
+    const searchLower = folderPickerSearch.trim().toLowerCase();
+    const filtered = folderList.filter(f => {
+      if (!searchLower) return true;
+      const matchesSelf = f.name.toLowerCase().includes(searchLower);
+      const matchesChild = folders.some(child => child.parentId === f.id && child.name.toLowerCase().includes(searchLower));
+      return matchesSelf || matchesChild;
+    });
+
+    if (filtered.length === 0 && depth === 0) {
+      return (
+        <div className="text-center py-6 text-xs text-white/40 italic">
+          No se encontraron carpetas con "{folderPickerSearch}"
+        </div>
+      );
+    }
+
+    return filtered.map(folder => {
+      const isSelected = draftFolderId === folder.id;
+      const children = folders.filter(child => child.parentId === folder.id);
+      const hasChildren = children.length > 0;
+      const isExpanded = expandedFolderPickerIds.has(folder.id) || !!searchLower;
+
+      return (
+        <div key={folder.id} className="flex flex-col gap-1">
+          <div
+            className={`w-full p-2.5 rounded-xl border flex items-center justify-between text-xs transition-all ${
+              isSelected
+                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 ring-1 ring-cyan-400/30 font-bold'
+                : 'bg-white/5 text-white/80 border-white/5 hover:bg-white/10 hover:text-white font-medium'
+            }`}
+            style={{ paddingLeft: `${10 + depth * 14}px` }}
+          >
+            <div
+              onClick={() => {
+                setDraftFolderId(folder.id);
+                setIsFolderPickerOpen(false);
+              }}
+              className="flex items-center gap-2 flex-1 cursor-pointer min-w-0"
+            >
+              {hasChildren ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpandedFolderPickerIds(prev => {
+                      const next = new Set(prev);
+                      if (next.has(folder.id)) next.delete(folder.id);
+                      else next.add(folder.id);
+                      return next;
+                    });
+                  }}
+                  className="p-1 rounded text-white/40 hover:text-white hover:bg-white/10 shrink-0"
+                >
+                  {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                </button>
+              ) : (
+                <span className="w-4 shrink-0" />
+              )}
+
+              <span className="text-base shrink-0">{folder.icon || '📁'}</span>
+              <span className="truncate">{folder.name}</span>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-white/10 text-white/50">
+                {notes.filter(n => n.folderId === folder.id).length}
+              </span>
+              {isSelected && <Check size={14} className="text-cyan-400 shrink-0" />}
+            </div>
+          </div>
+
+          {hasChildren && isExpanded && (
+            <div className="flex flex-col gap-1 border-l border-white/10 ml-3 pl-1">
+              {renderFolderPickerTree(children, depth + 1)}
+            </div>
+          )}
+        </div>
+      );
+    });
+  };
 
  const filteredNotes = useMemo(() => {
  return notes.filter(note => {
@@ -1098,9 +1325,6 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <Cake size={16} />
  </button>
  )}
- {config.enabledFeatures.includes('TARGET') && (
- <button className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors text-white/60 hover:text-white"><Target size={16} /></button>
- )}
  {config.enabledFeatures.includes('KEY') && (
  <button 
  onClick={() => {
@@ -1203,60 +1427,111 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
         </div>
       ) : (
         <>
-          {/* Header Bar: Only Biblioteca & Todas */}
-          <div className="flex items-center justify-between gap-3 mb-5">
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-              {/* Biblioteca Button */}
+          {/* Compact Header Bar: Biblio + Interactive Folder Tree Breadcrumbs + Compact Recientes */}
+          <div className="flex items-center justify-between gap-1.5 mb-5 w-full">
+            <div className="flex items-center gap-1.5 overflow-hidden min-w-0 flex-1">
+              {/* Compact Biblioteca Button */}
               <button
                 onClick={() => setIsLibraryOpen(true)}
-                className="px-4 py-2 rounded-2xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-black shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap"
+                className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-600 text-black shadow-md hover:brightness-110 active:scale-95 transition-all flex items-center gap-1 whitespace-nowrap shrink-0"
+                title="Abrir Biblioteca completa"
               >
                 <BookOpen size={15} />
-                <span>📚 Biblioteca</span>
+                <span className="hidden sm:inline">Biblio</span>
               </button>
 
-              {/* Todas Button */}
-              <button
-                onClick={() => setSelectedFolderId('ALL')}
-                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all border flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                  selectedFolderId === 'ALL'
-                    ? 'bg-white text-black border-white shadow-md'
-                    : 'bg-white/5 text-white/70 border-white/5 hover:bg-white/10 hover:text-white'
-                }`}
+              {/* Interactive Folder Tree Breadcrumb Trail */}
+              <div
+                ref={breadcrumbContainerRef}
+                className="flex items-center gap-0.5 sm:gap-1 overflow-x-auto no-scrollbar py-0.5 min-w-0 flex-1 scroll-smooth"
               >
-                <FolderOpen size={14} />
-                <span>Todas ({notes.length})</span>
-              </button>
-
-              {/* Pinned Folders directly on Start Bar */}
-              {folders.filter(f => f.isPinned).map(pinned => (
                 <button
-                  key={pinned.id}
-                  onClick={() => setSelectedFolderId(pinned.id)}
-                  className={`px-3.5 py-2 rounded-2xl text-xs font-bold transition-all border flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                    selectedFolderId === pinned.id
-                      ? 'bg-cyan-500 text-black border-cyan-300 shadow-md ring-2 ring-cyan-400/50'
-                      : 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20 hover:bg-cyan-500/20'
+                  onClick={() => {
+                    setSelectedFolderId('ALL');
+                    setShowAllBreadcrumbs(false);
+                  }}
+                  className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-xl text-[11px] sm:text-xs font-semibold transition-all border flex items-center gap-1 whitespace-nowrap shrink-0 ${
+                    selectedFolderId === 'ALL'
+                      ? 'bg-white text-black border-white shadow-sm'
+                      : 'bg-white/5 text-white/70 border-white/5 hover:bg-white/10 hover:text-white'
                   }`}
+                  title="Ver todas las notas"
                 >
-                  <span>{pinned.icon || '📁'}</span>
-                  <span>{pinned.name}</span>
-                  <span className="text-[10px] font-mono opacity-80">📌</span>
+                  <FolderOpen size={12} className={selectedFolderId === 'ALL' ? 'text-cyan-600' : 'text-cyan-400'} />
+                  <span className={selectedFolderId === 'ALL' ? 'inline' : 'hidden sm:inline'}>
+                    Todas {selectedFolderId === 'ALL' ? `(${notes.length})` : ''}
+                  </span>
                 </button>
-              ))}
+
+                {selectedFolderId !== 'ALL' && selectedFolderId !== 'FAVORITES' && selectedFolderId !== 'UNCATEGORIZED' && (
+                  <>
+                    {displayedBreadcrumbs.isTruncated && (
+                      <>
+                        <ChevronRight size={10} className="text-white/30 shrink-0 mx-0" />
+                        <button
+                          onClick={() => setShowAllBreadcrumbs(true)}
+                          className="px-1.5 py-0.5 rounded-lg text-[10px] sm:text-[11px] font-medium bg-white/5 hover:bg-white/15 text-white/60 hover:text-white border border-white/10 flex items-center gap-0.5 shrink-0 transition-colors"
+                          title="Click para ver la ruta completa"
+                        >
+                          <span>... (+{displayedBreadcrumbs.hiddenCount})</span>
+                        </button>
+                      </>
+                    )}
+
+                    {displayedBreadcrumbs.items.map((bFolder) => {
+                      const isCurrent = bFolder.id === selectedFolderId;
+                      return (
+                        <React.Fragment key={bFolder.id}>
+                          <ChevronRight size={10} className="text-white/30 shrink-0 mx-0" />
+                          <button
+                            onClick={() => setSelectedFolderId(bFolder.id)}
+                            title={bFolder.name}
+                            className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-xl text-[11px] sm:text-xs transition-all border flex items-center gap-1 whitespace-nowrap shrink-0 max-w-[100px] sm:max-w-[130px] md:max-w-[160px] ${
+                              isCurrent
+                                ? 'bg-cyan-500 text-black border-cyan-300 font-bold shadow-md ring-1 ring-cyan-400/40'
+                                : 'bg-white/5 text-white/80 border-white/10 hover:bg-white/15 font-medium'
+                            }`}
+                          >
+                            <span className="shrink-0 text-xs">{bFolder.icon || '📁'}</span>
+                            <span className="truncate max-w-[65px] sm:max-w-[90px] md:max-w-[120px]">{bFolder.name}</span>
+                          </button>
+                        </React.Fragment>
+                      );
+                    })}
+                  </>
+                )}
+
+                {selectedFolderId === 'FAVORITES' && (
+                  <>
+                    <ChevronRight size={11} className="text-white/30 shrink-0 mx-0.5" />
+                    <button className="px-2.5 py-1 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5 shrink-0">
+                      <Star size={13} fill="currentColor" />
+                      <span>Favoritos</span>
+                    </button>
+                  </>
+                )}
+
+                {selectedFolderId === 'UNCATEGORIZED' && (
+                  <>
+                    <ChevronRight size={11} className="text-white/30 shrink-0 mx-0.5" />
+                    <button className="px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-600/20 text-slate-200 border border-white/20 flex items-center gap-1.5 shrink-0">
+                      <Folder size={13} />
+                      <span>Sin Carpeta</span>
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
-            {/* Sort Order Toggle Button */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleToggleSortOrder}
-                className="px-3.5 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold border border-white/10 flex items-center gap-1.5 whitespace-nowrap shadow-sm"
-                title="Cambiar orden de notas"
-              >
-                <ArrowUpDown size={13} className="text-emerald-400" />
-                <span>{sortOrder === 'NEWEST' ? 'Recientes' : 'Antiguas'}</span>
-              </button>
-            </div>
+            {/* Compact Sort Toggle */}
+            <button
+              onClick={handleToggleSortOrder}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold border border-white/10 flex items-center gap-1 whitespace-nowrap shrink-0 shadow-sm"
+              title={sortOrder === 'NEWEST' ? 'Orden: Más recientes' : 'Orden: Más antiguas'}
+            >
+              <ArrowUpDown size={14} className="text-emerald-400" />
+              <span className="hidden sm:inline">{sortOrder === 'NEWEST' ? 'Recientes' : 'Antiguas'}</span>
+            </button>
           </div>
 
           {/* Exact 2-Column Grid (Left and Right quadrants) */}
@@ -1306,9 +1581,9 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                 >
                   <div className="absolute top-0 left-0 right-0 h-20 opacity-15 pointer-events-none" style={{ background: `linear-gradient(to bottom, ${themeColor}, transparent)` }} />
                   
-                  {/* Select Checkbox (Appears on Long Press / Selection Mode) OR Favorite Star */}
-                  <div className="absolute top-3 right-3 z-20 flex items-center gap-1">
-                    {isSelectionActive ? (
+                  {/* Select Checkbox (Appears on Long Press / Selection Mode) */}
+                  {isSelectionActive && (
+                    <div className="absolute top-3 right-3 z-20">
                       <button
                         type="button"
                         onClick={(e) => toggleSelectNote(note.id, e)}
@@ -1317,21 +1592,10 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                       >
                         {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
                       </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={(e) => handleToggleNoteFavorite(note, e)}
-                        className={`p-1 rounded-full transition-all ${
-                          note.isFavorite ? 'text-amber-400 bg-amber-500/10' : 'text-white/20 hover:text-white/70 hover:bg-white/5'
-                        }`}
-                        title={note.isFavorite ? "Quitar de favoritos" : "Marcar como favorito"}
-                      >
-                        <Star size={14} fill={note.isFavorite ? 'currentColor' : 'none'} />
-                      </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
-                  <div className="relative z-10 flex flex-col flex-1 min-h-0 pr-12">
+                  <div className="relative z-10 flex flex-col flex-1 min-h-0 pr-6">
                     {/* Header Badges */}
                     {hasHeaderBadges && (
                       <div className="flex items-center gap-1 overflow-hidden mb-1.5 flex-wrap max-h-5">
@@ -1364,7 +1628,17 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
                   {/* Footer */}
                   <div className="relative z-10 pt-2 border-t border-white/5 flex justify-between items-center text-[10px] font-medium text-white/40">
-                    <span>{updatedLabel}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span>{updatedLabel}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleNoteFavorite(note, e)}
+                        className="p-0.5 rounded hover:scale-110 transition-transform"
+                        title={note.isFavorite ? 'Quitar de favoritos' : 'Marcar como favorito'}
+                      >
+                        <Star size={11} className={note.isFavorite ? "text-amber-400" : "text-white/20 hover:text-amber-300"} fill={note.isFavorite ? "currentColor" : "none"} />
+                      </button>
+                    </div>
                     <div className="w-2.5 h-2.5 rounded-full shadow-[0_0_6px_currentColor]" style={{ backgroundColor: themeColor, color: themeColor }} />
                   </div>
                 </div>
@@ -1374,13 +1648,21 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
           {/* Floating Batch Selection Bar */}
           {selectedNoteIds.length > 0 && (
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[300] bg-[#12121c]/95 border border-cyan-500/40 rounded-full px-5 py-3 shadow-2xl backdrop-blur-xl flex items-center gap-3 animate-in slide-in-from-bottom-5 text-white">
+            <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[300] bg-[#12121c]/95 border border-cyan-500/40 rounded-full px-5 py-3 shadow-2xl backdrop-blur-xl flex items-center gap-3 animate-in slide-in-from-top-5 text-white">
               <button onClick={handleSelectAllNotes} className="flex items-center gap-1.5 text-xs font-bold text-cyan-300 hover:text-white transition-colors">
                 <CheckSquare size={16} />
                 <span>{selectedNoteIds.length === filteredNotes.length ? 'Deseleccionar' : 'Todas'} ({selectedNoteIds.length})</span>
               </button>
 
               <div className="w-[1px] h-5 bg-white/20" />
+
+              <button 
+                onClick={handleBatchFavoriteNotes} 
+                className="p-2 rounded-full bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition-colors"
+                title="Favorito"
+              >
+                <Star size={15} fill="currentColor" />
+              </button>
 
               <button 
                 onClick={() => setIsBatchMoveOpen(true)} 
@@ -1772,59 +2054,76 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
   {/* Note / Journal Editor Portal Modal */}
   {editorMode !== 'NONE' && typeof document !== 'undefined' && createPortal(
-    <div className="fixed inset-0 z-[500] bg-black/70 backdrop-blur-md flex items-start justify-center p-3 sm:p-6 pt-10 sm:pt-12 pb-6 overflow-y-auto animate-in fade-in duration-200">
-      <div className="w-full max-w-xl sm:max-w-2xl mx-auto flex flex-col glass-editor rounded-[32px] sm:rounded-[36px] overflow-hidden border border-white/15 shadow-2xl relative bg-[#0f0f18]/95 my-2 max-h-[85vh] transition-all">
+    <div className="fixed inset-0 z-[500] bg-black/70 backdrop-blur-md flex items-start justify-center p-4 sm:p-8 pt-8 sm:pt-10 pb-6 overflow-y-auto animate-in fade-in duration-200">
+      <div className="w-full max-w-lg sm:max-w-xl mx-auto flex flex-col glass-editor rounded-[32px] sm:rounded-[36px] overflow-hidden border border-white/15 shadow-2xl relative bg-[#0f0f18]/95 my-2 max-h-[85vh] transition-all">
         <div className="absolute top-0 left-0 right-0 h-48 opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 75%)` }} />
 
-        {/* Top Header Controls (Matching screenshot UI) */}
-        <div className="flex flex-wrap sm:flex-nowrap justify-between items-center p-3 sm:p-4 border-b border-white/10 relative z-20 gap-2 bg-[#0d0d14]/90">
-          <div className="flex items-center gap-2">
+        {/* Top Header Controls - Single Responsive Row */}
+        <div className="flex items-center justify-between p-2.5 sm:p-3 border-b border-white/10 relative z-20 bg-[#0d0d14]/95 gap-1.5 overflow-x-auto no-scrollbar w-full flex-nowrap">
+          {/* Left: BLUE Exit Button + Favorite Star */}
+          <div className="flex items-center gap-1.5 shrink-0">
             <button 
               onClick={closeEditor} 
-              className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-white/70 hover:text-white transition-all border border-white/10 active:scale-95"
-              title="Cerrar editor"
+              className="h-8 px-3 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-1 shadow-md active:scale-95 transition-all shrink-0 border border-blue-400/30"
+              title="Salir del editor"
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft size={14} />
+              <span>Salir</span>
             </button>
 
             {editorMode === 'NOTE' && (
               <button 
                 onClick={() => setDraftIsFavorite(!draftIsFavorite)} 
-                className={`w-9 h-9 rounded-full border transition-all flex items-center justify-center ${
+                className={`w-8 h-8 rounded-full border transition-all flex items-center justify-center shrink-0 ${
                   draftIsFavorite 
-                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.3)]' 
+                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.3)]' 
                     : 'bg-white/5 text-white/40 border-white/10 hover:text-white'
                 }`} 
-                title="Marcar como favorito"
+                title={draftIsFavorite ? 'Quitar de favoritos' : 'Marcar como favorito'}
               >
-                <Star size={16} fill={draftIsFavorite ? 'currentColor' : 'none'} />
+                <Star size={14} fill={draftIsFavorite ? 'currentColor' : 'none'} />
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap justify-end flex-1 min-w-0">
+          {/* Right: Folder Tree Selector + Undo + Redo + Blueprint + Theme Picker */}
+          <div className="flex items-center gap-1.5 shrink-0">
             {editorMode === 'NOTE' && (
-              <div className="relative max-w-[140px]">
-                <select 
-                  value={draftFolderId || ''} 
-                  onChange={(e) => setDraftFolderId(e.target.value || undefined)} 
-                  className="w-full bg-[#181822] border border-white/15 rounded-full pl-3 pr-7 py-1.5 text-xs font-bold text-white outline-none cursor-pointer hover:border-white/30 transition-colors truncate appearance-none"
-                >
-                  <option value="">📁 Sin Carpeta</option>
-                  {folders.map(f => (
-                    <option key={f.id} value={f.id}>{f.icon || '📁'} {f.name}</option>
-                  ))}
-                </select>
-                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-white/40 text-[9px]">▼</div>
-              </div>
+              <button
+                onClick={() => setIsFolderPickerOpen(true)}
+                className="h-8 px-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-xs font-semibold text-white flex items-center gap-1.5 shrink-0 max-w-[130px] sm:max-w-[170px] transition-all"
+                title="Cambiar carpeta de destino"
+              >
+                <span className="shrink-0">{activeFolderObj ? (activeFolderObj.icon || '📁') : '📁'}</span>
+                <span className="truncate max-w-[80px] sm:max-w-[110px]">{activeFolderObj ? activeFolderObj.name : 'Sin Carpeta'}</span>
+                <ChevronDown size={11} className="text-white/40 shrink-0" />
+              </button>
             )}
 
             <button
-              onClick={() => handleExportNoteMarkdown(draftTitle, draftBlocks)}
-              className="p-2 rounded-full bg-white/5 hover:bg-white/15 text-white/70 hover:text-white transition-colors border border-white/10"
-              title="Exportar como Markdown (.md)"
+              onClick={handleUndo}
+              disabled={historyIndex <= 0}
+              className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all shrink-0 ${
+                historyIndex > 0
+                  ? 'bg-white/5 text-white/80 border-white/10 hover:bg-white/15 hover:text-white active:scale-95'
+                  : 'bg-white/[0.02] text-white/20 border-white/5 cursor-not-allowed'
+              }`}
+              title="Deshacer"
             >
-              <Download size={15} />
+              <Undo2 size={14} />
+            </button>
+
+            <button
+              onClick={handleRedo}
+              disabled={historyIndex >= history.length - 1}
+              className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all shrink-0 ${
+                historyIndex < history.length - 1
+                  ? 'bg-white/5 text-white/80 border-white/10 hover:bg-white/15 hover:text-white active:scale-95'
+                  : 'bg-white/[0.02] text-white/20 border-white/5 cursor-not-allowed'
+              }`}
+              title="Rehacer"
+            >
+              <Redo2 size={14} />
             </button>
 
             <BlueprintSelector onSelect={(newBlocks) => setDraftBlocks(prev => [...prev, ...newBlocks])} />
@@ -1836,23 +2135,6 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
               activeProject={draftProjectId} 
               onSelectProject={setDraftProjectId} 
             />
-
-            {editorMode === 'NOTE' && (
-              <button 
-                onClick={() => setDeleteConfirmTarget({ type: 'SINGLE' })} 
-                className="p-2 rounded-full hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all"
-                title="Eliminar nota"
-              >
-                <Trash2 size={16} />
-              </button>
-            )}
-
-            <button 
-              onClick={handleSave} 
-              className="h-9 px-5 bg-white text-black font-extrabold text-xs uppercase tracking-wider rounded-full hover:scale-105 active:scale-95 transition-transform shadow-md flex items-center justify-center whitespace-nowrap ml-1"
-            >
-              {t('notes.save', 'GUARDAR')}
-            </button>
           </div>
         </div>
 
@@ -2304,47 +2586,13 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                             <span className="text-xs truncate">{folder.name}</span>
                           </div>
 
-                          <div className="flex items-center gap-1 opacity-70 group-hover/item:opacity-100 shrink-0">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedFolderId(folder.id);
-                                setLibrarySidebarOpen(false);
-                                setIsLibraryOpen(false);
-                              }}
-                              className="px-2 py-0.5 rounded-md bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-[10px] uppercase flex items-center gap-1 transition-transform active:scale-95 shadow-sm"
-                              title="Ver notas de esta carpeta"
-                            >
-                              <Eye size={11} />
-                              <span>Ver</span>
-                            </button>
-                            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-white/10 text-white/60">
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {folder.isPinned && (
+                              <span className="text-[10px] text-amber-300">📌</span>
+                            )}
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-white/60">
                               {totalCount}
                             </span>
-                            <div className="hidden group-hover/item:flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                onClick={() => openCreateFolderModal(folder.id)}
-                                className="p-1 rounded bg-white/10 hover:bg-cyan-500/20 text-white/70 hover:text-cyan-300"
-                                title="Añadir subcarpeta"
-                              >
-                                <Plus size={11} />
-                              </button>
-                              <button
-                                onClick={(e) => handleToggleFolderPin(folder, e)}
-                                className={`p-1 rounded ${folder.isPinned ? 'bg-amber-500/20 text-amber-300' : 'bg-white/10 text-white/50 hover:text-white'}`}
-                                title={folder.isPinned ? "Desanclar" : "Anclar a inicio"}
-                              >
-                                📌
-                              </button>
-                              <button
-                                onClick={(e) => openEditFolderModal(folder, e)}
-                                className="p-1 rounded bg-white/10 hover:bg-white/20 text-white/50 hover:text-white"
-                                title="Editar"
-                              >
-                                <Pencil size={11} />
-                              </button>
-                            </div>
                           </div>
                         </div>
 
@@ -2432,6 +2680,13 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                    >
                      <Pencil size={14} />
                    </button>
+                   <button
+                      onClick={(e) => handleDeleteFolderConfirm(selectedFolderId, e)}
+                      className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors border border-red-500/20"
+                      title="Eliminar carpeta"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                  </>
                )}
 
@@ -2444,6 +2699,69 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                </button>
              </div>
            </div>
+
+           {/* Interactive Book Reading Hub Header Card */}
+           {(() => {
+             const currentActiveFolder = folders.find(f => f.id === selectedFolderId);
+             if (!currentActiveFolder || currentActiveFolder.templateType !== 'BOOK') return null;
+
+             const total = currentActiveFolder.bookTotalPages || 300;
+             const current = currentActiveFolder.bookCurrentPage || 0;
+             const pct = Math.min(100, Math.round((current / total) * 100));
+
+             return (
+               <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-950/40 via-amber-900/20 to-black border border-amber-500/30 shadow-xl space-y-3">
+                 <div className="flex items-center justify-between">
+                   <div className="flex items-center gap-2">
+                     <Book size={18} className="text-amber-400" />
+                     <h3 className="text-sm font-bold text-amber-200">Hub de Lectura del Libro</h3>
+                   </div>
+                   {currentActiveFolder.bookAuthor && (
+                     <span className="text-xs font-medium text-amber-300/80 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+                       Autor: {currentActiveFolder.bookAuthor}
+                     </span>
+                   )}
+                 </div>
+
+                 <div>
+                   <div className="flex justify-between text-xs font-mono text-amber-200/80 mb-1.5">
+                     <span>Página {current} de {total}</span>
+                     <span className="font-bold text-amber-400">{pct}% Leído</span>
+                   </div>
+                   <div className="w-full h-3 rounded-full bg-black/50 border border-amber-500/20 overflow-hidden p-0.5">
+                     <div
+                       className="h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 transition-all duration-300 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                       style={{ width: `${pct}%` }}
+                     />
+                   </div>
+                 </div>
+
+                 <div className="flex items-center justify-between pt-1">
+                   <div className="flex items-center gap-1.5">
+                     <button
+                       onClick={() => handleUpdateFolder({ ...currentActiveFolder, bookCurrentPage: Math.max(0, current - 10) })}
+                       className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-mono border border-amber-500/20 transition-all"
+                     >
+                       -10 pág
+                     </button>
+                     <button
+                       onClick={() => handleUpdateFolder({ ...currentActiveFolder, bookCurrentPage: Math.min(total, current + 10) })}
+                       className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-mono font-bold border border-amber-500/30 transition-all"
+                     >
+                       +10 pág
+                     </button>
+                   </div>
+
+                   <button
+                     onClick={() => openEditFolderModal(currentActiveFolder)}
+                     className="text-xs text-amber-400/80 hover:text-amber-300 underline font-medium"
+                   >
+                     Editar progreso del libro
+                   </button>
+                 </div>
+               </div>
+             );
+           })()}
 
           {/* Sub-Folders Carousel / Grid inside active folder */}
           {selectedFolderId !== 'ALL' && selectedFolderId !== 'FAVORITES' && selectedFolderId !== 'UNCATEGORIZED' && folders.filter(f => f.parentId === selectedFolderId).length > 0 && (
@@ -2547,7 +2865,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
         onClick={() => setIsFolderModalOpen(false)}
       />
       
-      <div className="relative z-10 w-full max-w-md bg-[#121218] border border-white/15 rounded-3xl p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150">
+      <div className="relative z-10 w-full max-w-md bg-[#121218] border border-white/15 rounded-3xl p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto custom-scrollbar">
         <div className="flex items-center justify-between pb-3 border-b border-white/10">
           <h3 className="text-base font-black text-white flex items-center gap-2">
             <FolderPlus size={18} className="text-cyan-400" />
@@ -2566,11 +2884,123 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
               type="text"
               value={folderName}
               onChange={(e) => setFolderName(e.target.value)}
-              placeholder="Ej: Proyectos 2026, Ideas, Finanzas..."
+              placeholder="Ej: Proyectos 2026, Hábitos Atómicos, Finanzas..."
               className="w-full px-4 py-2.5 rounded-xl bg-white/[0.06] border border-white/10 text-xs text-white placeholder-white/30 focus:outline-none focus:border-cyan-500/50"
               autoFocus
             />
           </div>
+
+          {/* Folder Template Type Selector */}
+          <div>
+            <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-1.5">Tipo / Plantilla de Carpeta</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => { setFolderTemplateType('GENERAL'); setFolderIcon('📁'); }}
+                className={`p-2.5 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                  folderTemplateType === 'GENERAL'
+                    ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-md'
+                    : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                }`}
+              >
+                <Folder size={16} className="text-cyan-400" />
+                <div className="text-left">
+                  <div className="leading-tight">General</div>
+                  <div className="text-[9px] opacity-60 font-normal">Carpeta estándar</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setFolderTemplateType('BOOK'); setFolderIcon('📚'); }}
+                className={`p-2.5 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                  folderTemplateType === 'BOOK'
+                    ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-md'
+                    : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                }`}
+              >
+                <Book size={16} className="text-amber-400" />
+                <div className="text-left">
+                  <div className="leading-tight">Libro / Lectura</div>
+                  <div className="text-[9px] opacity-60 font-normal">Páginas, capítulos y notas</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setFolderTemplateType('STUDY'); setFolderIcon('🎓'); }}
+                className={`p-2.5 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                  folderTemplateType === 'STUDY'
+                    ? 'bg-purple-500/20 border-purple-400 text-purple-300 shadow-md'
+                    : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                }`}
+              >
+                <GraduationCap size={16} className="text-purple-400" />
+                <div className="text-left">
+                  <div className="leading-tight">Estudio / Curso</div>
+                  <div className="text-[9px] opacity-60 font-normal">Temario y lecciones</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setFolderTemplateType('PROJECT'); setFolderIcon('💼'); }}
+                className={`p-2.5 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                  folderTemplateType === 'PROJECT'
+                    ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-md'
+                    : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                }`}
+              >
+                <Layers size={16} className="text-emerald-400" />
+                <div className="text-left">
+                  <div className="leading-tight">Proyecto Hub</div>
+                  <div className="text-[9px] opacity-60 font-normal">Hitos y entregables</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Book Specific Fields */}
+          {folderTemplateType === 'BOOK' && (
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-3 animate-in fade-in duration-150">
+              <div className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                <Book size={14} />
+                <span>Configuración de Lectura</span>
+              </div>
+              <div>
+                <label className="text-[9px] font-bold text-amber-200/70 uppercase block mb-1">Autor del Libro</label>
+                <input
+                  type="text"
+                  value={bookAuthor}
+                  onChange={(e) => setBookAuthor(e.target.value)}
+                  placeholder="Ej: James Clear, Robert Greene..."
+                  className="w-full px-3 py-2 rounded-xl bg-black/40 border border-amber-500/30 text-xs text-white placeholder-white/30 focus:outline-none"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[9px] font-bold text-amber-200/70 uppercase block mb-1">Página Actual</label>
+                  <input
+                    type="number"
+                    value={bookCurrentPage}
+                    onChange={(e) => setBookCurrentPage(Number(e.target.value))}
+                    min={0}
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-amber-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold text-amber-200/70 uppercase block mb-1">Páginas Totales</label>
+                  <input
+                    type="number"
+                    value={bookTotalPages}
+                    onChange={(e) => setBookTotalPages(Number(e.target.value))}
+                    min={1}
+                    className="w-full px-3 py-2 rounded-xl bg-black/40 border border-amber-500/30 text-xs text-white font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Parent Folder Selector (Subfolder nesting) */}
           <div>
@@ -2590,28 +3020,49 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
           </div>
 
           {/* Icon & Color Pickers */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-1.5">Icono (Emoji)</label>
-              <input
-                type="text"
-                value={folderIcon}
-                onChange={(e) => setFolderIcon(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-white/[0.06] border border-white/10 text-center text-lg text-white"
-              />
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block">Icono de la Carpeta</label>
+            <div className="flex items-center gap-2">
+              <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/15 flex items-center justify-center text-xl shrink-0 shadow-inner">
+                {folderIcon || '📁'}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowIconPickerModal(true)}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-xs font-bold text-cyan-300 flex items-center justify-center gap-2 transition-all"
+              >
+                <Sparkles size={14} />
+                <span>Explorar Catálogo de Iconos</span>
+              </button>
             </div>
 
-            <div>
-              <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-1.5">Color Accent</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={folderColor}
-                  onChange={(e) => setFolderColor(e.target.value)}
-                  className="w-10 h-9 rounded-xl bg-transparent border border-white/10 cursor-pointer"
-                />
-                <span className="text-xs font-mono text-white/60">{folderColor}</span>
-              </div>
+            {/* Quick Emoji Swatches */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+              {['📁', '📚', '🎓', '💼', '🎯', '🔒', '💡', '🎨', '⚡', '⭐', '📌', '📝', '📖', '📕', '📊'].map(emoji => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => setFolderIcon(emoji)}
+                  className={`w-7 h-7 rounded-lg text-sm flex items-center justify-center transition-all ${
+                    folderIcon === emoji ? 'bg-cyan-500/30 border border-cyan-400 scale-110' : 'bg-white/5 hover:bg-white/15 border border-white/5'
+                  }`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-1.5">Color Accent</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={folderColor}
+                onChange={(e) => setFolderColor(e.target.value)}
+                className="w-12 h-9 rounded-xl bg-transparent border border-white/10 cursor-pointer"
+              />
+              <span className="text-xs font-mono text-white/60">{folderColor}</span>
             </div>
           </div>
 
@@ -2645,9 +3096,159 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             {editingFolder ? 'Guardar Cambios' : 'Crear Carpeta'}
           </button>
         </div>
+
+        {/* IconPicker Popup Modal */}
+        {showIconPickerModal && (
+          <div className="fixed inset-0 z-[10001] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-[#12121c] border border-white/15 rounded-3xl p-4 max-w-md w-full max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="text-sm font-bold text-white">Seleccionar Icono</h4>
+                <button onClick={() => setShowIconPickerModal(false)} className="text-white/40 hover:text-white"><X size={16} /></button>
+              </div>
+              <IconPicker
+                selectedIcon={folderIcon}
+                onSelectIcon={(icon) => {
+                  if (icon) setFolderIcon(icon);
+                  setShowIconPickerModal(false);
+                }}
+                selectedColor={folderColor}
+                onSelectColor={(col) => {
+                  if (col) setFolderColor(col);
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>,
     document.body
+  )}
+
+  {/* Custom Interactive Folder Picker Modal (Tree View + Live Search + Breadcrumbs) */}
+  {isFolderPickerOpen && (
+    <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
+      <div className="w-full max-w-md bg-[#0f0f18] border border-white/15 rounded-3xl p-5 shadow-2xl flex flex-col gap-3.5 max-h-[85vh] relative overflow-hidden text-white">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center">
+              <FolderOpen size={16} />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-white leading-none">Mover a Carpeta</h3>
+              <p className="text-[10px] text-white/50 mt-1">Selecciona el destino para esta nota</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsFolderPickerOpen(false)}
+            className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/15 text-white/60 hover:text-white flex items-center justify-center transition-colors border border-white/10"
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Active Selected Folder Breadcrumb Path Header */}
+        <div className="bg-white/5 border border-white/10 rounded-xl p-2 flex items-center gap-1 overflow-x-auto no-scrollbar text-xs">
+          <span className="text-white/40 font-bold shrink-0 text-[10px] uppercase">Ruta:</span>
+          <button
+            onClick={() => {
+              setDraftFolderId(undefined);
+              setIsFolderPickerOpen(false);
+            }}
+            className={`px-2 py-0.5 rounded-md text-[11px] font-medium flex items-center gap-1 shrink-0 ${
+              !draftFolderId ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold' : 'text-white/60 hover:text-white'
+            }`}
+          >
+            <Folder size={11} />
+            <span>Sin Carpeta</span>
+          </button>
+
+          {draftFolderBreadcrumbs.map((bFolder, idx) => (
+            <React.Fragment key={bFolder.id}>
+              <ChevronRight size={10} className="text-white/30 shrink-0" />
+              <button
+                onClick={() => setDraftFolderId(bFolder.id)}
+                className={`px-2 py-0.5 rounded-md text-[11px] font-bold flex items-center gap-1 shrink-0 ${
+                  idx === draftFolderBreadcrumbs.length - 1
+                    ? 'bg-cyan-500 text-black shadow-sm'
+                    : 'bg-white/10 text-white/80 hover:bg-white/20'
+                }`}
+              >
+                <span>{bFolder.icon || '📁'}</span>
+                <span>{bFolder.name}</span>
+              </button>
+            </React.Fragment>
+          ))}
+        </div>
+
+        {/* Live Folder Search Input */}
+        <div className="relative">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+          <input
+            type="text"
+            value={folderPickerSearch}
+            onChange={(e) => setFolderPickerSearch(e.target.value)}
+            placeholder="Buscar carpeta por nombre..."
+            className="w-full pl-9 pr-8 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white placeholder:text-white/30 outline-none focus:border-cyan-500/50 transition-colors"
+          />
+          {folderPickerSearch && (
+            <button
+              onClick={() => setFolderPickerSearch('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+
+        {/* Folder Tree Scrollable Body */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1.5 pr-1 min-h-[200px] max-h-[320px]">
+          {/* Sin Carpeta Root Option */}
+          <button
+            onClick={() => {
+              setDraftFolderId(undefined);
+              setIsFolderPickerOpen(false);
+            }}
+            className={`w-full p-2.5 rounded-xl border flex items-center justify-between text-xs transition-all ${
+              !draftFolderId
+                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 ring-1 ring-cyan-400/30 font-bold'
+                : 'bg-white/5 text-white/70 border-white/5 hover:bg-white/10 hover:text-white font-medium'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-base">📦</span>
+              <span>Sin Carpeta (Raíz)</span>
+            </div>
+            {!draftFolderId && <Check size={14} className="text-cyan-400" />}
+          </button>
+
+          {/* Hierarchical Folder Tree */}
+          {renderFolderPickerTree(rootFolders, 0)}
+        </div>
+
+        {/* Footer Actions */}
+        <div className="border-t border-white/10 pt-3 flex items-center justify-between gap-2">
+          <button
+            onClick={() => {
+              setIsFolderPickerOpen(false);
+              openCreateFolderModal(draftFolderId);
+            }}
+            className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 border border-white/10 transition-all"
+          >
+            <FolderPlus size={14} className="text-cyan-400" />
+            <span>+ Crear Carpeta</span>
+          </button>
+
+          <button
+            onClick={() => setIsFolderPickerOpen(false)}
+            className="px-4 py-1.5 rounded-xl bg-cyan-500 text-black text-xs font-extrabold hover:brightness-110 active:scale-95 transition-all shadow-md"
+          >
+            Listo
+          </button>
+        </div>
+      </div>
+    </div>
   )}
 
  </div>
