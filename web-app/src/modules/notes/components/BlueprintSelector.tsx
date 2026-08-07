@@ -179,69 +179,87 @@ export const BlueprintSelector: React.FC<BlueprintSelectorProps> = ({ onSelect }
                             <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-8 overflow-y-auto flex-1 no-scrollbar">
                                 {/* Create Preset Card */}
                                 <motion.div
-                                    whileHover={{ y: -4, scale: 1.02 }}
+                                    whileHover={{ y: -3, scale: 1.01 }}
                                     whileTap={{ scale: 0.98 }}
                                     onClick={handleStartCreating}
-                                    className="group relative min-h-[260px] rounded-[24px] border-2 border-white/10 border-dashed bg-white/5 hover:bg-white/10 p-6 cursor-pointer overflow-hidden transition-all duration-300 flex flex-col items-center justify-center text-center"
+                                    className="group relative min-h-[140px] rounded-[20px] border-2 border-white/10 border-dashed bg-white/5 hover:bg-white/10 p-4 cursor-pointer overflow-hidden transition-all duration-300 flex flex-col items-center justify-center text-center"
                                 >
-                                    <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-white/40 group-hover:text-white group-hover:bg-indigo-500/20 transition-all duration-300 mb-6 group-hover:scale-110 group-hover:rotate-90">
-                                        <Plus size={32} strokeWidth={1.5} />
+                                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40 group-hover:text-white group-hover:bg-indigo-500/20 transition-all duration-300 mb-2 group-hover:scale-110 group-hover:rotate-90">
+                                        <Plus size={22} strokeWidth={1.5} />
                                     </div>
-                                    <h3 className="font-bold text-white/70 group-hover:text-white text-lg tracking-tight">{t('notes.createPreset', 'Create Preset')}</h3>
-                                    <p className="text-xs text-white/40 mt-2 font-medium">{t('notes.designBlueprint', 'Design your own blueprint')}</p>
+                                    <h3 className="font-bold text-white/70 group-hover:text-white text-sm tracking-tight">{t('notes.createPreset', 'Create Preset')}</h3>
+                                    <p className="text-[10px] text-white/40 mt-1 font-medium">{t('notes.designBlueprint', 'Design your own blueprint')}</p>
                                 </motion.div>
 
-                                {blueprints.map((bp) => (
+                                {blueprints.map((bp, index) => (
                                     <motion.div
                                         key={bp.id}
-                                        whileHover={{ y: -4, scale: 1.02 }}
+                                        whileHover={{ y: -3, scale: 1.01 }}
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => handleSelect(bp)}
-                                        className={`group relative min-h-[260px] rounded-[24px] border border-white/10 bg-[#161616] p-6 cursor-pointer overflow-hidden transition-all duration-300 shadow-md hover:shadow-xl hover:border-white/20`}
+                                        className={`group relative min-h-[140px] rounded-[20px] border border-white/10 bg-[#161616] p-4 cursor-pointer overflow-hidden transition-all duration-300 shadow-md hover:shadow-xl hover:border-white/20`}
                                     >
                                         {/* Hover Glow Effect using accentColor */}
                                         <div className={`absolute inset-0 opacity-0 group-hover:opacity-15 transition-opacity duration-300 bg-gradient-to-br ${bp.accentColor}`} />
                                         
-                                        <div className="relative z-10 flex flex-col h-full">
+                                        <div className="relative z-10 flex flex-col h-full justify-between">
                                             <div className="flex justify-between items-start">
-                                                <span className="text-4xl filter drop-shadow-md transform group-hover:scale-110 transition-transform duration-300 origin-top-left">{bp.icon}</span>
-                                                {bp.category === 'USER' && (
-                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button 
-                                                            onClick={(e) => handleEditBlueprint(e, bp)}
-                                                            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/20 flex items-center justify-center text-white/40 hover:text-white transition-colors"
-                                                            title={t('notes.editPreset', 'Edit Preset')}
+                                                <span className="text-2xl filter drop-shadow-md transform group-hover:scale-110 transition-transform duration-300 origin-top-left">{bp.icon}</span>
+                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {index > 0 && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const next = [...blueprints];
+                                                                const temp = next[index];
+                                                                next[index] = next[index - 1];
+                                                                next[index - 1] = temp;
+                                                                setBlueprints(next);
+                                                                if (user) localStorage.setItem(`blueprint_order_${user.id}`, JSON.stringify(next.map(b => b.id)));
+                                                            }}
+                                                            className="w-6 h-6 rounded-full bg-white/5 hover:bg-white/20 flex items-center justify-center text-white/50 hover:text-white transition-colors"
+                                                            title="Mover arriba"
                                                         >
-                                                            <Pencil size={14} />
+                                                            ↑
                                                         </button>
-                                                        <button 
-                                                            onClick={(e) => handleDelete(e, bp.id)}
-                                                            className="w-8 h-8 rounded-full bg-white/5 hover:bg-red-500/20 flex items-center justify-center text-white/40 hover:text-red-400 transition-colors"
-                                                            title={t('notes.deletePreset', 'Delete Preset')}
+                                                    )}
+                                                    {index < blueprints.length - 1 && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const next = [...blueprints];
+                                                                const temp = next[index];
+                                                                next[index] = next[index + 1];
+                                                                next[index + 1] = temp;
+                                                                setBlueprints(next);
+                                                                if (user) localStorage.setItem(`blueprint_order_${user.id}`, JSON.stringify(next.map(b => b.id)));
+                                                            }}
+                                                            className="w-6 h-6 rounded-full bg-white/5 hover:bg-white/20 flex items-center justify-center text-white/50 hover:text-white transition-colors"
+                                                            title="Mover abajo"
                                                         >
-                                                            <Trash2 size={14} />
+                                                            ↓
                                                         </button>
-                                                    </div>
-                                                )}
+                                                    )}
+                                                    <button 
+                                                        onClick={(e) => handleEditBlueprint(e, bp)}
+                                                        className="w-6 h-6 rounded-full bg-white/5 hover:bg-white/20 flex items-center justify-center text-white/40 hover:text-white transition-colors"
+                                                        title={t('notes.editPreset', 'Edit Preset')}
+                                                    >
+                                                        <Pencil size={12} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => handleDelete(e, bp.id)}
+                                                        className="w-6 h-6 rounded-full bg-white/5 hover:bg-red-500/20 flex items-center justify-center text-white/40 hover:text-red-400 transition-colors"
+                                                        title={t('notes.deletePreset', 'Delete Preset')}
+                                                    >
+                                                        <Trash2 size={12} />
+                                                    </button>
+                                                </div>
                                             </div>
                                             
-                                            <h3 className="mt-6 font-bold text-white text-xl leading-tight tracking-tight">{bp.name}</h3>
-                                            
-                                            {/* Ghost Preview */}
-                                            <div className="mt-6 flex-1 space-y-3 overflow-hidden opacity-20 group-hover:opacity-40 transition-opacity duration-300 select-none pointer-events-none" style={{ maskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)' }}>
-                                                <div className="h-2 w-3/4 bg-white rounded-full" />
-                                                <div className="h-2 w-full bg-white rounded-full" />
-                                                <div className="h-2 w-5/6 bg-white rounded-full" />
-                                                <div className="space-y-2 mt-4">
-                                                    <div className="flex gap-2 items-center">
-                                                        <div className="w-3 h-3 border-2 border-white rounded-[4px]" />
-                                                        <div className="h-2 w-1/2 bg-white rounded-full" />
-                                                    </div>
-                                                    <div className="flex gap-2 items-center">
-                                                        <div className="w-3 h-3 border-2 border-white rounded-[4px]" />
-                                                        <div className="h-2 w-2/3 bg-white rounded-full" />
-                                                    </div>
-                                                </div>
+                                            <div className="mt-3">
+                                                <h3 className="font-extrabold text-white text-sm leading-tight tracking-tight">{bp.name}</h3>
+                                                <p className="text-[10px] text-white/40 mt-0.5 line-clamp-1">{bp.category === 'USER' ? 'Personalizada' : 'Plantilla Base'}</p>
                                             </div>
                                         </div>
                                     </motion.div>

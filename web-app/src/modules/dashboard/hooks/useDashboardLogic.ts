@@ -1136,13 +1136,17 @@ export const useDashboardLogic = () => {
                 };
                 
 
-                // Reset Project Streaks if goal was not met yesterday
+                // Reset Project Streaks if goal was not met for 2 consecutive days (1 grace day allowed)
+                const dayBeforeYesterday = new Date();
+                dayBeforeYesterday.setDate(dayBeforeYesterday.getDate() - 2);
+                const dayBeforeYesterdayStr = toLocalISOString(dayBeforeYesterday);
+
                 const currentProjects = projectsRef.current;
                 const resetProjects = currentProjects.map(p => {
                     if (p.goalTarget > 0 && p.streak && p.streak > 0) {
                         const lastCompletion = p.lastStreakDate || '';
-                        if (lastCompletion < yesterdayStr && !isFrozen) {
-                            console.log(`❌ [Project Streak] LOST for "${p.title}". Last: ${lastCompletion}, Yesterday: ${yesterdayStr}`);
+                        if (lastCompletion < dayBeforeYesterdayStr && !isFrozen) {
+                            console.log(`❌ [Project Streak] LOST for "${p.title}". Last: ${lastCompletion}, DayBeforeYesterday: ${dayBeforeYesterdayStr}`);
                             return { ...p, streak: 0 };
                         }
                     }
@@ -3633,8 +3637,13 @@ export const useDashboardLogic = () => {
                     yesterday.setDate(yesterday.getDate() - 1);
                     const yesterdayKey = toLocalISOString(yesterday);
                     
+                    const dayBeforeYesterday = new Date();
+                    dayBeforeYesterday.setDate(dayBeforeYesterday.getDate() - 2);
+                    const dayBeforeYesterdayKey = toLocalISOString(dayBeforeYesterday);
+                    
                     if (lastStreakDate !== todayKey) {
-                        if (lastStreakDate === yesterdayKey) {
+                        // Allow 1 grace day: if last streak was yesterday OR day before yesterday, increment streak
+                        if (lastStreakDate === yesterdayKey || lastStreakDate === dayBeforeYesterdayKey) {
                             streak += 1;
                         } else {
                             streak = 1;

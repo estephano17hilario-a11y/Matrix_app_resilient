@@ -307,6 +307,7 @@ export interface JournalEntry {
   date: string;
   blocks: NoteBlock[];
   mood?: string;
+  customEmoji?: string;
   theme?: string;
   tags: string[];
 }

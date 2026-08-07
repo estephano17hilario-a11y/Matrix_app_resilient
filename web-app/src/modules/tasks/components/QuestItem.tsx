@@ -194,19 +194,32 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
              )}
           </button>
           
-          <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5 mr-2">
-            <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5 mr-1">
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
               <h3 className={cn(
-                "text-[15px] font-semibold truncate leading-tight tracking-tight transition-all duration-200",
+                "text-[15px] font-semibold leading-tight tracking-tight transition-all duration-200 flex-1 min-w-0",
+                expanded ? "line-clamp-2 break-words" : "truncate",
                 quest.completed ? "text-white/30 line-through" : "text-white/95 drop-shadow-md"
               )}>
                 {quest.title}
               </h3>
               
-              {/* Difficulty Badge - Row 1 */}
-               <span className={cn("text-[9px] px-1.5 py-[2px] rounded-md font-bold border uppercase tracking-wide opacity-80 shrink-0", diffColor)}>
-                    {quest.difficulty}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Subtasks Progress Counter Badge (e.g. 0/3) */}
+                {quest.subtasks && quest.subtasks.length > 0 && (
+                  <span 
+                    className="text-[9px] px-1.5 py-[2px] rounded-md font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-mono tracking-tight shrink-0"
+                    title={`${quest.subtasks.filter(s => s.completed).length} de ${quest.subtasks.length} subtareas completadas`}
+                  >
+                    {quest.subtasks.filter(s => s.completed).length}/{quest.subtasks.length}
+                  </span>
+                )}
+
+                {/* Difficulty Badge */}
+                <span className={cn("text-[9px] px-1.5 py-[2px] rounded-md font-bold border uppercase tracking-wide opacity-80 shrink-0", diffColor)}>
+                  {quest.difficulty}
                 </span>
+              </div>
             </div>
             
             {/* Pomodoro target circles indicator */}

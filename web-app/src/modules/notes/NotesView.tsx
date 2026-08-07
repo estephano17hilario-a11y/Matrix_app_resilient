@@ -215,6 +215,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  const [draftBlocks, setDraftBlocks] = useState<NoteBlock[]>([]);
  const [draftTheme, setDraftTheme] = useState('slate');
  const [draftMood, setDraftMood] = useState<string | undefined>(undefined);
+ const [draftCustomEmoji, setDraftCustomEmoji] = useState<string | undefined>(undefined);
  const [draftProjectId, setDraftProjectId] = useState<string | undefined>(undefined);
  const [draftFolderId, setDraftFolderId] = useState<string | undefined>(undefined);
   const [draftIsFavorite, setDraftIsFavorite] = useState<boolean>(false);
@@ -850,6 +851,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
       setDraftBlocks(finalInitBlocks);
       setDraftTitle(extractedTitle);
       setDraftMood(entry?.mood); 
+      setDraftCustomEmoji(entry?.customEmoji);
       setDraftTheme(entry?.theme || 'slate'); 
       historyRef.current = [{ title: extractedTitle, blocks: finalInitBlocks }];
       historyIndexRef.current = 0;
@@ -933,9 +935,9 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
       if (draftTitle.trim() && (!finalBlocks[0] || !finalBlocks[0].id.startsWith('title-'))) {
         finalBlocks.unshift({ id: 'title-' + Date.now(), type: 'text', content: draftTitle });
       }
-      handleUpdateJournal({ id: draftId, date: toLocalISOString(draftDate), blocks: finalBlocks, mood: draftMood, theme: draftTheme, tags: [] }); 
+      handleUpdateJournal({ id: draftId, date: toLocalISOString(draftDate), blocks: finalBlocks, mood: draftMood, customEmoji: draftCustomEmoji, theme: draftTheme, tags: [] }); 
     } 
-  }, [editorMode, draftId, draftTitle, draftBlocks, draftTheme, draftProjectId, draftFolderId, draftIsFavorite, draftCreatedAt, draftDate, draftMood, handleUpdateNote, handleUpdateJournal, handleDeleteNote]);
+  }, [editorMode, draftId, draftTitle, draftBlocks, draftTheme, draftProjectId, draftFolderId, draftIsFavorite, draftCreatedAt, draftDate, draftMood, draftCustomEmoji, handleUpdateNote, handleUpdateJournal, handleDeleteNote]);
  
   const handleDelete = () => { if (editorMode === 'NOTE' && draftId) { handleDeleteNote(draftId); } closeEditor(); };
   const closeEditor = useCallback(() => { 
@@ -953,7 +955,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
       handleSave();
     }, 250);
     return () => clearTimeout(timer);
-  }, [draftTitle, draftBlocks, draftTheme, draftProjectId, draftFolderId, draftIsFavorite, draftMood, handleSave, editorMode, draftId]);
+  }, [draftTitle, draftBlocks, draftTheme, draftProjectId, draftFolderId, draftIsFavorite, draftMood, draftCustomEmoji, handleSave, editorMode, draftId]);
 
   // Solid Record history helper
   const recordHistoryState = useCallback((title: string, blocks: NoteBlock[]) => {
@@ -1543,7 +1545,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </div>
  
  {/* Center: Switch */}
- <div className="flex justify-center flex-[2]">
+ <div className="flex justify-center flex-[2] mt-0.5">
  {sectionControl === 'VISIBLE' && !showStats && (
  <div className="bg-black/60 backdrop-blur-xl p-1 rounded-full border border-white/10 flex relative shadow-md w-full max-w-[200px]">
  <div className={`absolute inset-y-1 w-[49%] bg-white/10 rounded-full transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] shadow-md ${
@@ -1949,12 +1951,12 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  </div>
  ) : (
  <>
- <div className="flex justify-between items-end px-6 mb-6 relative">
-  <div>
+ <div className="flex flex-wrap sm:flex-nowrap justify-between items-end px-6 mb-6 relative gap-3 min-w-0">
+  <div className="min-w-0 flex-1">
   <span className="text-xs font-bold text-white/40 uppercase tracking-widest mb-1 flex items-center gap-2">{streak > 0 && <span className="text-orange-500 flex items-center gap-1 animate-pulse"><Plus size={12} fill="currentColor"/> {streak} {t('notes.dayStreak', 'Day Streak')}</span>}{!streak && t('notes.yourStory', 'Your Story')}</span>
-  <h2 className="text-3xl font-black text-white tracking-tight leading-none">{currentMonth.toLocaleDateString(i18n.language, { month: 'long' })} <span className="text-white/20">{currentMonth.getFullYear()}</span></h2>
+  <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none truncate capitalize">{currentMonth.toLocaleDateString(i18n.language, { month: 'long' })} <span className="text-white/20">{currentMonth.getFullYear()}</span></h2>
   </div>
-  <div className="flex items-center gap-2">
+  <div className="flex items-center gap-2 shrink-0">
   <div className="flex bg-white/5 rounded-lg p-0.5 border border-white/5 mr-2">
   <button onClick={() => setJournalViewMode('CALENDAR')} className={`p-1.5 rounded-md transition-colors ${journalViewMode === 'CALENDAR' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title={t('notes.calendarView', 'Calendar View')}><Calendar size={14} /></button>
   <button onClick={() => setJournalViewMode('LIST')} className={`p-1.5 rounded-md transition-colors ${journalViewMode === 'LIST' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title={t('notes.notebookView', 'Notebook View')}><AlignLeft size={14} /></button>
@@ -1963,7 +1965,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-colors"><ChevronLeft size={18} /></button>
   <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))} className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-colors"><ChevronRight size={18} /></button>
   {journalViewMode === 'CALENDAR' && (
-  <button onClick={() => setShowCalendarSettings(!showCalendarSettings)} className={`p-2.5 rounded-full border transition-colors ${showCalendarSettings ? 'bg-white text-black border-white' : 'bg-white/5 hover:bg-white/10 border-white/5 text-white'}`} title={t('notes.calendarSettings', 'Calendar Settings')}><Settings size={18} /></button>
+  <button onClick={() => setShowCalendarSettings(!showCalendarSettings)} className={`p-2.5 rounded-full border transition-colors ${showCalendarSettings ? 'bg-white text-black border-white' : 'bg-white/5 hover:bg-white/10 border-white/5 text-white'}`} title={t('notes.calendarSettings', 'Calendar Settings')}><Settings size={15} /></button>
   )}
   </div>
   </div>
@@ -1998,7 +2000,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
         <span className="text-[10px] font-bold text-white/50 uppercase">{t('notes.showFutureDays', 'Show Future Days')}</span>
         <button 
           onClick={() => setCalendarShowFuture(!calendarShowFuture)}
-          className={`w-8 h-4 rounded-full relative transition-colors duration-200 border border-white/10 ${calendarShowFuture ? 'bg-emerald-500' : 'bg-white/5'}`}
+          className={`w-8 h-4 rounded-full relative transition-colors duration-200 border border-white/10 mt-[2px] ${calendarShowFuture ? 'bg-emerald-500' : 'bg-white/5'}`}
         >
           <span className={`block w-2.5 h-2.5 rounded-full bg-white absolute top-0.5 transition-transform duration-200 ${calendarShowFuture ? 'right-0.5' : 'left-0.5'}`} />
         </button>
@@ -2050,8 +2052,10 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  return (
  <button 
  key={day} 
- onClick={() => {
-   openJournal(date);
+ onClick={(e) => {
+   if (isToday || hasEntry) {
+     openJournal(date);
+   }
  }} 
  data-tour={isToday ? "journal-today-btn" : undefined}
  style={{ 
@@ -2065,16 +2069,20 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  {/* Mood color overlay */}
  {mood && <div className="absolute inset-0 opacity-10 bg-gradient-to-b from-transparent to-current transition-opacity pointer-events-none animate-in fade-in" style={{ color: mood.color }} />}
  
- {/* Mood emoji centered */}
- {mood ? (
-   <span className="text-2xl group-hover:scale-110 transition-transform duration-200 drop-shadow-md z-10">
-     {mood.icon}
-   </span>
- ) : isFuture ? (
-   <Lock size={14} className="text-white/20 z-10" />
- ) : (
-   <span className="text-lg opacity-10 group-hover:opacity-30 transition-opacity z-10">📝</span>
- )}
+ {/* Mood / Custom Emoji / Writing icon centered */}
+ {entry?.customEmoji ? (
+    <span className="text-2xl group-hover:scale-110 transition-transform duration-200 drop-shadow-md z-10">
+      {entry.customEmoji}
+    </span>
+  ) : mood ? (
+    <span className="text-2xl group-hover:scale-110 transition-transform duration-200 drop-shadow-md z-10">
+      {mood.icon}
+    </span>
+  ) : isFuture ? (
+    <Lock size={14} className="text-white/20 z-10" />
+  ) : (entry?.blocks && entry.blocks.some(b => b.content && b.content.trim().length > 0)) ? (
+    <span className="text-lg opacity-60 group-hover:opacity-100 transition-opacity z-10">📝</span>
+  ) : null}
  
  {/* Special Event in top-left */}
  {specialEvent && (
@@ -2431,16 +2439,38 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                 className="w-full bg-transparent text-2xl sm:text-3xl font-black text-white placeholder:text-white/20 outline-none leading-normal tracking-tight text-center border-b border-white/10 pb-3"
               />
 
-              <div className="inline-flex justify-center gap-1 bg-white/5 p-1.5 rounded-2xl border border-white/5">
+              <div className="inline-flex items-center gap-1.5 bg-white/5 p-1.5 rounded-2xl border border-white/5 flex-wrap justify-center">
                 {MOODS.map(m => (
                   <button 
                     key={m.id} 
-                    onClick={() => { setDraftMood(m.id); setMoodSplash(m.id); }} 
+                    onClick={() => { 
+                      if (draftMood === m.id) {
+                        setDraftMood(undefined);
+                        setDraftCustomEmoji(undefined);
+                      } else {
+                        setDraftMood(m.id); 
+                        setMoodSplash(m.id); 
+                      }
+                    }} 
                     className={`w-9 h-9 rounded-xl flex items-center justify-center text-xl transition-transform ${draftMood === m.id ? 'bg-white/10 scale-110 shadow-sm ring-1 ring-white/20' : 'opacity-40 hover:opacity-100 hover:bg-white/5'}`}
                   >
                     {m.icon}
                   </button>
                 ))}
+                {draftMood && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const emoji = window.prompt('Ingresa un emoji personalizado para este día:', draftCustomEmoji || '');
+                      if (emoji !== null) setDraftCustomEmoji(emoji.trim() || undefined);
+                    }}
+                    className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-white/80 transition-all border border-white/10 flex items-center gap-1 active:scale-95"
+                    title="Personalizar Emoji"
+                  >
+                    <span>{draftCustomEmoji || '✨'}</span>
+                    <span className="text-[9px] font-black uppercase tracking-wider opacity-70">Personalizar</span>
+                  </button>
+                )}
               </div>
 
               <BlockEditor blocks={draftBlocks} onChange={setDraftBlocks} />

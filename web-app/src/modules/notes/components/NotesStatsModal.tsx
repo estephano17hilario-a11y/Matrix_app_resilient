@@ -294,12 +294,12 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
  </div>
 
  {/* Simple Activity Chart */}
- <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+ <div className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5 max-w-full overflow-x-auto w-full min-w-0">
  <div className="flex items-center gap-2 mb-4">
  <Activity size={14} className="text-blue-400" />
  <span className="text-xs font-bold text-white tracking-wide">{t('notes.activityVolume', 'ACTIVITY VOLUME')}</span>
  </div>
- <div className="h-[120px] w-full">
+ <div className="h-[120px] w-full min-w-[260px]">
  <ResponsiveContainerAny width="100%" height="100%">
  <BarChartAny data={data}>
  <XAxisAny 
