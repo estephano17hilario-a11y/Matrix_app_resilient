@@ -2750,142 +2750,54 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
         </div>
       )}
 
-      <div className="flex-1 flex overflow-hidden min-h-0 relative">
-        {librarySidebarOpen && (
-           <div className="fixed inset-0 bg-black/60 z-[100] sm:hidden" onClick={() => setLibrarySidebarOpen(false)} />
-         )}
+      <div className="flex-1 flex flex-col bg-[#09090e] overflow-y-auto custom-scrollbar p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6 min-h-0">
+        {/* Top Main Spaces Filter Pill Buttons */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1.5 flex-nowrap w-full shrink-0">
+          <button
+            onClick={() => setSelectedFolderId('ALL')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all border shrink-0 ${
+              selectedFolderId === 'ALL'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-400/40 shadow-lg shadow-blue-500/20'
+                : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/15 hover:text-white'
+            }`}
+          >
+            <FolderOpen size={15} className="text-cyan-400" />
+            <span>Todas las Notas</span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/15 text-white">
+              {notes.length}
+            </span>
+          </button>
 
-        <div className={`${librarySidebarOpen ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0 fixed sm:relative inset-y-0 left-0 z-[101] sm:z-auto w-[280px] sm:w-72 md:w-80 bg-[#0c0c12] border-r border-white/10 flex flex-col shrink-0 overflow-y-auto custom-scrollbar p-4 sm:p-3 gap-4 transition-transform duration-300 ease-out shadow-2xl sm:shadow-none`}>
-          
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest px-3 mb-1 block">Espacios Principales</span>
-            
-            <button
-              onClick={() => { setSelectedFolderId('ALL'); setLibrarySidebarOpen(false); }}
-              className={`w-full flex items-center justify-between py-2.5 px-3 rounded-xl text-sm sm:text-xs font-bold transition-all border ${
-                selectedFolderId === 'ALL'
-                  ? 'bg-blue-600/20 border-blue-500 text-white shadow-md'
-                  : 'bg-transparent border-transparent hover:bg-white/5 text-white/70 hover:text-white'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <FolderOpen size={16} className="text-blue-400" />
-                <span>Todas las Notas</span>
-              </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-white/60">{notes.length}</span>
-            </button>
+          <button
+            onClick={() => setSelectedFolderId('FAVORITES')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all border shrink-0 ${
+              selectedFolderId === 'FAVORITES'
+                ? 'bg-gradient-to-r from-amber-600 to-yellow-600 text-white border-amber-400/40 shadow-lg shadow-amber-500/20'
+                : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/15 hover:text-white'
+            }`}
+          >
+            <Star size={15} className="text-amber-300" fill="currentColor" />
+            <span>Favoritos</span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/15 text-white">
+              {notes.filter(n => n.isFavorite).length}
+            </span>
+          </button>
 
-            <button
-              onClick={() => { setSelectedFolderId('FAVORITES'); setLibrarySidebarOpen(false); }}
-              className={`w-full flex items-center justify-between py-2.5 px-3 rounded-xl text-sm sm:text-xs font-bold transition-all border ${
-                selectedFolderId === 'FAVORITES'
-                  ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-md'
-                  : 'bg-transparent border-transparent hover:bg-white/5 text-white/70 hover:text-white'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Star size={16} className="text-amber-400" fill="currentColor" />
-                <span>Favoritos</span>
-              </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">{notes.filter(n => n.isFavorite).length}</span>
-            </button>
-
-            <button
-              onClick={() => { setSelectedFolderId('UNCATEGORIZED'); setLibrarySidebarOpen(false); }}
-              className={`w-full flex items-center justify-between py-2.5 px-3 rounded-xl text-sm sm:text-xs font-bold transition-all border ${
-                selectedFolderId === 'UNCATEGORIZED'
-                  ? 'bg-slate-600/20 border-white/30 text-white shadow-md'
-                  : 'bg-transparent border-transparent hover:bg-white/5 text-white/70 hover:text-white'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Folder size={16} className="text-slate-400" />
-                <span>Sin Carpeta</span>
-              </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-white/60">{notes.filter(n => !n.folderId).length}</span>
-            </button>
-          </div>
-
-          <div className="w-full h-[1px] bg-white/5" />
-
-          <div className="flex-1 space-y-1">
-            <div className="flex items-center justify-between px-3 mb-2">
-              <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Árbol de Carpetas</span>
-              <button
-                onClick={() => openCreateFolderModal()}
-                className="p-1 rounded bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-                title="Crear Carpeta Raíz"
-              >
-                <Plus size={14} />
-              </button>
-            </div>
-
-            {folders.filter(f => !f.parentId).length === 0 ? (
-              <p className="text-xs text-white/30 italic px-3 py-4 text-center">No hay carpetas creadas aún.</p>
-            ) : (
-              <div className="space-y-0.5">
-                {folders.filter(f => !f.parentId).map(rootFolder => {
-                  const renderTree = (folder: NoteFolder, depth = 0): React.ReactNode => {
-                    const children = folders.filter(f => f.parentId === folder.id);
-                    const hasChildren = children.length > 0;
-                    const isExpanded = expandedFolderIds.has(folder.id);
-                    const isSelected = selectedFolderId === folder.id;
-                    const totalCount = getFolderTotalNotesCount(folder.id);
-                    const color = folder.color || '#3b82f6';
-
-                    return (
-                      <div key={folder.id} className="flex flex-col">
-                        <div
-                          onClick={() => { setSelectedFolderId(folder.id); setLibrarySidebarOpen(false); }}
-                          className={`group/item flex items-center justify-between py-2.5 sm:py-1.5 px-2.5 rounded-xl transition-all cursor-pointer select-none border ${
-                            isSelected
-                              ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300 font-bold shadow-md'
-                              : 'bg-transparent border-transparent hover:bg-white/5 text-white/80 hover:text-white'
-                          }`}
-                          style={{ paddingLeft: `${Math.max(10, depth * 14 + 10)}px` }}
-                        >
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            {hasChildren ? (
-                              <button
-                                onClick={(e) => toggleFolderExpand(folder.id, e)}
-                                className="p-1 rounded-md hover:bg-white/10 text-white/50 hover:text-white transition-colors shrink-0"
-                              >
-                                {isExpanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                              </button>
-                            ) : (
-                              <span className="w-3.5 h-3.5 inline-block shrink-0" />
-                            )}
-                            <span className="text-sm shrink-0" style={{ color }}>{folder.icon || '📁'}</span>
-                            <span className="text-xs truncate">{folder.name}</span>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {folder.isPinned && (
-                              <span className="text-[10px] text-amber-300">📌</span>
-                            )}
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-white/60">
-                              {totalCount}
-                            </span>
-                          </div>
-                        </div>
-
-                        {hasChildren && isExpanded && (
-                          <div className="flex flex-col gap-0.5 border-l border-white/10 ml-3.5 pl-1 my-0.5">
-                            {children.map(child => renderTree(child, depth + 1))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  };
-
-                  return renderTree(rootFolder);
-                })}
-              </div>
-            )}
-          </div>
+          <button
+            onClick={() => setSelectedFolderId('UNCATEGORIZED')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all border shrink-0 ${
+              selectedFolderId === 'UNCATEGORIZED'
+                ? 'bg-gradient-to-r from-slate-700 to-slate-800 text-white border-slate-400/40 shadow-lg'
+                : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/15 hover:text-white'
+            }`}
+          >
+            <Folder size={15} className="text-slate-400" />
+            <span>Sin Carpeta</span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/15 text-white">
+              {notes.filter(n => !n.folderId).length}
+            </span>
+          </button>
         </div>
-
-        <div className="flex-1 flex flex-col bg-[#09090e] overflow-y-auto custom-scrollbar p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6 min-h-0">
           
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 border-b border-white/5 text-xs text-white/60 font-medium">
             <button onClick={() => setSelectedFolderId('ALL')} className="hover:text-white transition-colors flex items-center gap-1">
@@ -2908,6 +2820,203 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
               </React.Fragment>
             ))}
           </div>
+
+          {/* NETAMENTE DE ÁRBOLES - Interactive Tree View when in ALL view */}
+          {selectedFolderId === 'ALL' && (
+            <div className="space-y-4 pt-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FolderOpen size={18} className="text-cyan-400" />
+                  <h2 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider">
+                    Árbol de Carpetas ({folders.filter(f => !f.parentId).length})
+                  </h2>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => openCreateFolderModal()}
+                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black text-xs font-extrabold flex items-center gap-1.5 shadow-md hover:brightness-110 active:scale-95 transition-all"
+                >
+                  <Plus size={14} />
+                  <span>+ Crear Carpeta Raíz</span>
+                </button>
+              </div>
+
+              {folders.filter(f => !f.parentId).length === 0 ? (
+                <div className="p-8 rounded-3xl bg-white/[0.02] border border-white/10 text-center space-y-3">
+                  <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center text-3xl mx-auto">
+                    📁
+                  </div>
+                  <h3 className="text-sm font-bold text-white">No hay carpetas creadas aún</h3>
+                  <p className="text-xs text-white/50 max-w-sm mx-auto">
+                    Crea tu primera carpeta para estructurar tus estudios, proyectos o libros en árbol.
+                  </p>
+                  <button
+                    onClick={() => openCreateFolderModal()}
+                    className="px-4 py-2 rounded-xl bg-cyan-500 text-black text-xs font-bold shadow-md hover:brightness-110"
+                  >
+                    + Crear Primera Carpeta
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {folders.filter(f => !f.parentId).map(rootFolder => {
+                    const renderWorkspaceTree = (folder: NoteFolder, depth = 0): React.ReactNode => {
+                      const childFolders = folders.filter(f => f.parentId === folder.id);
+                      const childNotes = notes.filter(n => n.folderId === folder.id);
+                      const isExpanded = expandedFolderIds.has(folder.id);
+                      const totalNotes = getFolderTotalNotesCount(folder.id);
+                      const color = folder.color || '#3b82f6';
+                      const isSelected = selectedFolderId === folder.id;
+
+                      return (
+                        <div 
+                          key={folder.id} 
+                          className={`rounded-2xl border overflow-hidden transition-all shadow-md ${
+                            isSelected 
+                              ? 'bg-cyan-500/[0.08] border-cyan-500/40 ring-1 ring-cyan-500/20' 
+                              : 'bg-white/[0.03] border-white/10 hover:border-white/20'
+                          }`}
+                        >
+                          <div 
+                            className="p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer select-none transition-all hover:bg-white/5"
+                            onClick={() => setSelectedFolderId(folder.id)}
+                          >
+                            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                              <button
+                                type="button"
+                                onClick={(e) => toggleFolderExpand(folder.id, e)}
+                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/5 hover:bg-white/15 text-white/70 hover:text-white flex items-center justify-center transition-colors shrink-0 border border-white/10"
+                                title={isExpanded ? 'Colapsar subcarpetas' : 'Expandir subcarpetas'}
+                              >
+                                {isExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                              </button>
+
+                              <div 
+                                className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xl shrink-0 shadow-inner"
+                                style={{ color }}
+                              >
+                                {folder.icon || '📁'}
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h3 className="text-sm sm:text-base font-extrabold text-white truncate">{folder.name}</h3>
+                                  {folder.templateType && folder.templateType !== 'GENERAL' && (
+                                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 uppercase tracking-wider shrink-0">
+                                      {folder.templateType}
+                                    </span>
+                                  )}
+                                  {folder.isPinned && (
+                                    <span className="px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-bold border border-amber-500/30 shrink-0">📌</span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-white/50 font-mono mt-0.5">
+                                  {childFolders.length > 0 ? `${childFolders.length} subcarpetas • ` : ''}{totalNotes} {totalNotes === 1 ? 'nota' : 'notas'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={() => openCreateFolderModal(folder.id)}
+                                className="px-2.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-xs font-bold flex items-center gap-1 border border-cyan-500/30 transition-all active:scale-95"
+                                title="Crear Subcarpeta dentro de esta carpeta"
+                              >
+                                <FolderPlus size={13} className="text-cyan-400" />
+                                <span className="hidden sm:inline text-[11px]">+ Sub</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleToggleFolderPin(folder)}
+                                className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                                  folder.isPinned 
+                                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm' 
+                                    : 'bg-white/5 text-white/40 border-white/10 hover:text-white hover:bg-white/10'
+                                }`}
+                                title={folder.isPinned ? 'Desanclar carpeta' : 'Anclar a la barra de acceso rápido'}
+                              >
+                                📌
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => openEditFolderModal(folder)}
+                                className="p-1.5 sm:p-2 rounded-xl bg-white/5 hover:bg-white/15 text-white/60 hover:text-white transition-colors border border-white/10"
+                                title="Editar carpeta"
+                              >
+                                <Pencil size={13} />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteFolderConfirm(folder.id, e)}
+                                className="p-1.5 sm:p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors border border-red-500/20"
+                                title="Eliminar carpeta"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {isExpanded && (
+                            <div className="p-3.5 sm:p-4 bg-black/40 border-t border-white/10 space-y-4">
+                              {childFolders.length > 0 && (
+                                <div className="space-y-3 pl-3 sm:pl-5 border-l-2 border-cyan-500/30 my-1">
+                                  <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest block">
+                                    Subcarpetas ({childFolders.length})
+                                  </span>
+                                  {childFolders.map(child => renderWorkspaceTree(child, depth + 1))}
+                                </div>
+                              )}
+
+                              {childNotes.length > 0 && (
+                                <div className="space-y-2.5">
+                                  <span className="text-[10px] font-black text-white/50 uppercase tracking-widest block">
+                                    Notas en esta carpeta ({childNotes.length})
+                                  </span>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                                    {childNotes.map(note => (
+                                      <div
+                                        key={note.id}
+                                        onClick={() => openNote(note)}
+                                        className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition-all hover:border-cyan-500/40 group flex flex-col justify-between gap-2.5 shadow-sm"
+                                      >
+                                        <div className="flex items-start justify-between gap-2">
+                                          <h4 className="text-xs font-bold text-white group-hover:text-cyan-300 truncate">
+                                            {note.title || 'Nota sin título'}
+                                          </h4>
+                                          {note.isFavorite && <Star size={13} className="text-amber-400 shrink-0" fill="currentColor" />}
+                                        </div>
+                                        <div className="flex items-center justify-between text-[10px] text-white/40 font-mono pt-1 border-t border-white/5">
+                                          <span>{formatTimestampWithTime(note.updatedAt)}</span>
+                                          <span className="text-cyan-400/80 group-hover:translate-x-0.5 transition-transform">Abrir →</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {childFolders.length === 0 && childNotes.length === 0 && (
+                                <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 text-center text-xs text-white/40 italic">
+                                  Esta carpeta aún no contiene subcarpetas ni notas.
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    };
+
+                    return renderWorkspaceTree(rootFolder);
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Current Folder / View Header */}
           <div className="flex flex-col gap-3 sm:gap-4 bg-gradient-to-r from-white/[0.04] to-transparent border border-white/10 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xl">
@@ -3424,8 +3533,6 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
           )}
 
         </div>
-
-      </div>
     </div>,
     document.body
   )}
