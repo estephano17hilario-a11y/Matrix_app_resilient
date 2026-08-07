@@ -2052,7 +2052,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  return (
  <button 
  key={day} 
- onClick={(e) => {
+ onClick={() => {
    if (isToday || hasEntry) {
      openJournal(date);
    }

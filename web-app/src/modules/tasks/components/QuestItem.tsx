@@ -209,9 +209,9 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
                 {quest.subtasks && quest.subtasks.length > 0 && (
                   <span 
                     className="text-[9px] px-1.5 py-[2px] rounded-md font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-mono tracking-tight shrink-0"
-                    title={`${quest.subtasks.filter(s => s.completed).length} de ${quest.subtasks.length} subtareas completadas`}
+                    title={`${quest.subtasks.filter(s => s.isCompleted || (s as any).completed).length} de ${quest.subtasks.length} subtareas completadas`}
                   >
-                    {quest.subtasks.filter(s => s.completed).length}/{quest.subtasks.length}
+                    {quest.subtasks.filter(s => s.isCompleted || (s as any).completed).length}/{quest.subtasks.length}
                   </span>
                 )}
 
