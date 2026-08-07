@@ -25,10 +25,13 @@ export const DropdownThemePicker = ({ currentTheme, onSelect, projects, activePr
  const activeColor = NOTE_THEMES.find(t => t.id === currentTheme)?.color || '#fff';
  
  return (
- <div className="relative z-50">
- <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors active:scale-95">
- <div className="w-3 h-3 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: activeColor, color: activeColor }} />
- <ChevronDown size={12} className={`text-white/50 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+ <div className="relative z-50 shrink-0">
+ <button 
+   onClick={() => setIsOpen(!isOpen)} 
+   className="w-8 h-8 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 transition-all flex items-center justify-center shrink-0 active:scale-95"
+   title="Seleccionar Color de la Nota"
+ >
+   <div className="w-3.5 h-3.5 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: activeColor, color: activeColor }} />
  </button>
  
  {createPortal(

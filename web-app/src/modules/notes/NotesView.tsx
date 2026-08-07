@@ -109,6 +109,33 @@ const formatTimestampWithTime = (ts?: string | number) => {
   const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
   return `${dateStr} a las ${timeStr}`;
 };
+const getPlainTextFromContent = (content?: string): string => {
+  if (!content) return '';
+  return content
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>');
+};
+
+const getCleanCharacterCount = (blocks: NoteBlock[]): number => {
+  if (!blocks || blocks.length === 0) return 0;
+  return blocks.reduce((acc, b) => {
+    const plainText = getPlainTextFromContent(b.content);
+    const noSpaces = plainText.replace(/\s+/g, '');
+    return acc + noSpaces.length;
+  }, 0);
+};
+
+const getCleanWordCount = (blocks: NoteBlock[]): number => {
+  if (!blocks || blocks.length === 0) return 0;
+  return blocks.reduce((acc, b) => {
+    const plainText = getPlainTextFromContent(b.content);
+    const words = plainText.trim().split(/\s+/).filter(Boolean);
+    return acc + words.length;
+  }, 0);
+};
 
 export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, projects, quests, onShowPro, currentSubView, sectionControl = 'VISIBLE', onStatsOpenChange, onClose, isActive = true, isPro, defaultChartViews }: NotesViewProps) => {
  const { t, i18n } = useTranslation();
@@ -2244,12 +2271,12 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
   {/* Note / Journal Editor Portal Modal */}
   {editorMode !== 'NONE' && typeof document !== 'undefined' && createPortal(
-    <div className="fixed inset-0 z-[500] bg-[#07070b] flex items-start justify-center p-3 sm:p-6 pt-20 sm:pt-24 pb-6 overflow-y-auto animate-in fade-in duration-200">
-      <div className="w-full max-w-md sm:max-w-lg mx-auto flex flex-col rounded-[28px] sm:rounded-[32px] overflow-hidden border border-white/15 shadow-2xl relative bg-[#0e0e16] my-2 max-h-[82vh] transition-all">
+    <div className="fixed inset-0 z-[500] bg-black/35 flex items-start justify-center p-2 sm:p-5 pt-12 sm:pt-14 pb-4 overflow-y-auto animate-in fade-in duration-200 backdrop-blur-none">
+      <div className="w-full max-w-md sm:max-w-lg mx-auto flex flex-col rounded-[28px] sm:rounded-[32px] overflow-hidden border border-white/15 shadow-2xl relative bg-[#0e0e16]/95 my-1 max-h-[85vh] transition-all">
         <div className="absolute top-0 left-0 right-0 h-48 opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 75%)` }} />
 
         {/* Top Header Controls - Single Responsive Row */}
-        <div className="flex items-center justify-between p-2.5 sm:p-3 border-b border-white/10 relative z-20 bg-[#0d0d14]/95 gap-1.5 overflow-x-auto no-scrollbar w-full flex-nowrap">
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-white/10 relative z-20 bg-[#0d0d14]/95 gap-1.5 w-full overflow-x-auto no-scrollbar">
           {/* Left: BLUE Exit Button + Favorite Star */}
           <div className="flex items-center gap-1.5 shrink-0">
             <button 
@@ -2434,8 +2461,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
         {/* Editor Bottom Footer Stats Bar */}
         <div className="px-6 py-2 bg-[#0a0a10] border-t border-white/5 flex items-center justify-between text-[11px] text-white/40 font-mono">
           <div className="flex items-center gap-4">
-            <span>Palabras: <strong className="text-white/80">{draftBlocks.reduce((acc, b) => acc + (b.content ? b.content.trim().split(/\s+/).filter(Boolean).length : 0), 0)}</strong></span>
-            <span>Caracteres: <strong className="text-white/80">{draftBlocks.reduce((acc, b) => acc + (b.content ? b.content.length : 0), 0)}</strong></span>
+            <span>Palabras: <strong className="text-white/80">{getCleanWordCount(draftBlocks)}</strong></span>
+            <span>Caracteres: <strong className="text-white/80">{getCleanCharacterCount(draftBlocks)}</strong></span>
           </div>
         </div>
       </div>

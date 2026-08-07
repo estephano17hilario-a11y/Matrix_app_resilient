@@ -63,13 +63,22 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
         }).join('');
     };
 
-    // Initialize contentEditable DOM ONCE on mount
+    const lastBlocksRef = useRef<string>('');
+
+    // Initialize contentEditable DOM on mount and sync external blocks changes (Undo / Redo)
     useEffect(() => {
-        if (editorRef.current && !initializedRef.current) {
-            editorRef.current.innerHTML = getInitialHtml();
-            initializedRef.current = true;
+        const blocksStr = JSON.stringify(blocks);
+        if (editorRef.current) {
+            if (!initializedRef.current) {
+                editorRef.current.innerHTML = getInitialHtml();
+                initializedRef.current = true;
+                lastBlocksRef.current = blocksStr;
+            } else if (lastBlocksRef.current !== blocksStr) {
+                lastBlocksRef.current = blocksStr;
+                editorRef.current.innerHTML = getInitialHtml();
+            }
         }
-    }, []);
+    }, [blocks]);
 
     // Sync contentEditable edits back to blocks state without losing block types
     const handleContentChange = useCallback(() => {
@@ -115,7 +124,9 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
             };
         });
 
-        onChange(newBlocks.length > 0 ? newBlocks : [{ id: Date.now().toString(), type: 'text', content: '' }]);
+        const finalBlocks = newBlocks.length > 0 ? newBlocks : [{ id: Date.now().toString(), type: 'text' as const, content: '' }];
+        lastBlocksRef.current = JSON.stringify(finalBlocks);
+        onChange(finalBlocks);
     }, [onChange]);
 
     // Helper to keep cursor (caret) active and visible at the end of an element
