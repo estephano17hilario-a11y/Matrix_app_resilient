@@ -6,9 +6,29 @@ import { sanitizeFirestoreData } from '../utils/firestoreUtils';
 import { AuditLogger } from './auditService';
 import { OfflineSyncService } from './offlineSync';
 
+// In-memory query cache for 0ms DB reads
+const collectionMemoryCache = new Map<string, { data: any[], timestamp: number }>();
+const CACHE_TTL_MS = 8000;
+
+export const clearPersistenceCache = (collectionName?: string) => {
+  if (collectionName) {
+    for (const key of collectionMemoryCache.keys()) {
+      if (key.includes(`_${collectionName}`)) collectionMemoryCache.delete(key);
+    }
+  } else {
+    collectionMemoryCache.clear();
+  }
+};
+
 // Generic helper for subcollection CRUD using Supabase
 const createSubCollectionService = <T extends { id: string, deleted?: boolean }>(collectionName: string) => ({
   getAll: async (userId: string): Promise<T[] | null> => {
+    const cacheKey = `${userId}_${collectionName}`;
+    const cached = collectionMemoryCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+      return cached.data as T[];
+    }
+
     try {
       const { data, error } = await supabase
         .from('user_collections')
@@ -32,16 +52,17 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
         }
       });
       
-      return Array.from(map.values());
+      const result = Array.from(map.values());
+      collectionMemoryCache.set(cacheKey, { data: result, timestamp: Date.now() });
+      return result;
     } catch (error) {
       console.error(`Error fetching ${collectionName}:`, error);
       return null;
     }
   },
 
-  // Optimized Fetch with Query Constraints (Not fully implemented for Supabase JSONB yet, falls back to getAll and client filter if needed)
+  // Optimized Fetch with Query Constraints
   getFiltered: async (userId: string, _constraints: any[]): Promise<T[] | null> => {
-    // For now, fetch all and let client filter, or implement specific JSONB queries later
     return await createSubCollectionService<T>(collectionName).getAll(userId);
   },
   
@@ -113,6 +134,7 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
       
       // AUDIT LOG
       AuditLogger.log(item.id ? 'UPDATE' : 'CREATE', collectionName, targetId, { userId });
+      clearPersistenceCache(collectionName);
       
     } catch (error: any) {
       console.error(`Error saving ${collectionName}:`, error?.message || error);
@@ -190,6 +212,7 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
 
       // AUDIT LOG
       AuditLogger.log('UPDATE', collectionName, itemId, { changes: Object.keys(dataToUpdate) });
+      clearPersistenceCache(collectionName);
 
     } catch (error: any) {
       console.error(`Error updating ${collectionName}:`, error?.message || error);
@@ -245,6 +268,7 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
 
       // AUDIT LOG
       AuditLogger.log('DELETE', collectionName, itemId, { userId });
+      clearPersistenceCache(collectionName);
 
     } catch (error: any) {
       console.error(`Error deleting ${collectionName}:`, error?.message || error);

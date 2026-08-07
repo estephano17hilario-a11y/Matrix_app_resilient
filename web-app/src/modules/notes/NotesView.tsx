@@ -1053,12 +1053,35 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     return result;
   }, []);
 
-  const getFolderTotalNotesCount = useCallback((folderId: string): number => {
-    const directNotes = notes.filter(n => n.folderId === folderId).length;
-    const childFolders = folders.filter(f => f.parentId === folderId);
-    const childNotesCount = childFolders.reduce((acc, child) => acc + getFolderTotalNotesCount(child.id), 0);
-    return directNotes + childNotesCount;
+  const folderNoteCountsMap = useMemo(() => {
+    const map = new Map<string, number>();
+    const directCounts = new Map<string, number>();
+    notes.forEach(n => {
+      if (n.folderId) {
+        directCounts.set(n.folderId, (directCounts.get(n.folderId) || 0) + 1);
+      }
+    });
+
+    const computeTotal = (fId: string, visited = new Set<string>()): number => {
+      if (map.has(fId)) return map.get(fId)!;
+      if (visited.has(fId)) return 0;
+      visited.add(fId);
+      let total = directCounts.get(fId) || 0;
+      const children = folders.filter(f => f.parentId === fId);
+      for (const child of children) {
+        total += computeTotal(child.id, visited);
+      }
+      map.set(fId, total);
+      return total;
+    };
+
+    folders.forEach(f => computeTotal(f.id));
+    return map;
   }, [notes, folders]);
+
+  const getFolderTotalNotesCount = useCallback((folderId: string): number => {
+    return folderNoteCountsMap.get(folderId) || 0;
+  }, [folderNoteCountsMap]);
 
   const toggleFolderExpand = useCallback((folderId: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
