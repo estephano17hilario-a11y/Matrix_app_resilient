@@ -2271,8 +2271,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
   {/* Note / Journal Editor Portal Modal */}
   {editorMode !== 'NONE' && typeof document !== 'undefined' && createPortal(
-    <div className="fixed inset-0 z-[500] bg-black/95 flex items-start justify-center p-2 sm:p-5 pt-[100px] sm:pt-[116px] pb-6 overflow-y-auto animate-in fade-in duration-200 backdrop-blur-none">
-      <div className="w-full max-w-md sm:max-w-lg mx-auto flex flex-col rounded-[28px] sm:rounded-[32px] overflow-hidden border border-white/15 shadow-2xl relative bg-[#0e0e16]/95 my-2 mt-1 max-h-[82vh] transition-all">
+    <div className="fixed inset-0 z-[500] bg-black/12 flex items-start justify-center p-2 sm:p-5 pt-[115px] sm:pt-[130px] pb-6 overflow-y-auto animate-in fade-in duration-200 backdrop-blur-none">
+      <div className="w-full max-w-md sm:max-w-lg mx-auto flex flex-col rounded-[28px] sm:rounded-[32px] overflow-hidden border border-white/15 shadow-2xl relative bg-[#0e0e16]/95 my-2 mt-2 max-h-[80vh] transition-all">
         <div className="absolute top-0 left-0 right-0 h-48 opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 75%)` }} />
 
         {/* Top Header Controls - Single Responsive Row */}
@@ -2353,52 +2353,19 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
               onSelectProject={setDraftProjectId} 
             />
 
-            {/* Note Timestamps Info Popover (3 dots / Info) */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowNoteInfoPopover(prev => !prev)}
-                className={`w-8 h-8 rounded-full border transition-all flex items-center justify-center shrink-0 ${
-                  showNoteInfoPopover
-                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50 shadow-md'
-                    : 'bg-white/5 text-white/50 border-white/10 hover:text-white hover:bg-white/10'
-                }`}
-                title="Información y Fechas de la Nota"
-              >
-                <MoreVertical size={15} />
-              </button>
-
-              {showNoteInfoPopover && (
-                <div className="absolute right-0 top-full mt-2 w-64 bg-[#141420]/95 backdrop-blur-xl border border-white/20 rounded-2xl p-3.5 shadow-2xl z-[600] flex flex-col gap-2.5 text-xs text-white animate-in fade-in zoom-in-95 duration-150">
-                  <div className="text-[10px] font-extrabold text-cyan-400 uppercase tracking-widest border-b border-white/10 pb-1.5 flex items-center justify-between">
-                    <span>Detalles de la Nota</span>
-                    <button onClick={() => setShowNoteInfoPopover(false)} className="text-white/40 hover:text-white"><X size={12} /></button>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-start gap-2 bg-white/5 p-2 rounded-xl border border-white/5">
-                      <Calendar size={14} className="text-cyan-400 shrink-0 mt-0.5" />
-                      <div className="min-w-0">
-                        <span className="text-[10px] font-bold text-white/50 block">Creado:</span>
-                        <span className="font-mono text-[11px] text-white/90">
-                          {formatTimestampWithTime(draftCreatedAt)}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2 bg-white/5 p-2 rounded-xl border border-white/5">
-                      <Clock size={14} className="text-purple-400 shrink-0 mt-0.5" />
-                      <div className="min-w-0">
-                        <span className="text-[10px] font-bold text-white/50 block">Última Modificación:</span>
-                        <span className="font-mono text-[11px] text-white/90">
-                          {formatTimestampWithTime(draftUpdatedAt)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Note Timestamps Info Button (3 dots) */}
+            <button
+              type="button"
+              onClick={() => setShowNoteInfoPopover(prev => !prev)}
+              className={`w-8 h-8 rounded-full border transition-all flex items-center justify-center shrink-0 ${
+                showNoteInfoPopover
+                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50 shadow-md'
+                  : 'bg-white/5 text-white/50 border-white/10 hover:text-white hover:bg-white/10'
+              }`}
+              title="Información y Fechas de la Nota"
+            >
+              <MoreVertical size={15} />
+            </button>
           </div>
         </div>
 
@@ -2469,6 +2436,48 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     </div>,
     document.body
   )}
+
+  {/* Note Info Details Popover Portal (3 dots info - Overlays over everything) */}
+  {showNoteInfoPopover && typeof document !== 'undefined' && createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setShowNoteInfoPopover(false)} />
+      <div className="relative z-10 w-full max-w-xs bg-[#12121e] border border-white/20 rounded-3xl p-4 shadow-2xl flex flex-col gap-3 text-xs text-white animate-in zoom-in-95 duration-150">
+        <div className="text-[10px] font-extrabold text-cyan-400 uppercase tracking-widest border-b border-white/10 pb-2 flex items-center justify-between">
+          <span>Detalles de la Nota</span>
+          <button 
+            onClick={() => setShowNoteInfoPopover(false)} 
+            className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+          >
+            <X size={12} />
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-2.5">
+          <div className="flex items-start gap-2.5 bg-white/5 p-2.5 rounded-2xl border border-white/10">
+            <Calendar size={15} className="text-cyan-400 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold text-white/50 block uppercase tracking-wider">Creado</span>
+              <span className="font-mono text-[11px] text-white/90 font-medium">
+                {formatTimestampWithTime(draftCreatedAt)}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-2.5 bg-white/5 p-2.5 rounded-2xl border border-white/10">
+            <Clock size={15} className="text-purple-400 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold text-white/50 block uppercase tracking-wider">Última Modificación</span>
+              <span className="font-mono text-[11px] text-white/90 font-medium">
+                {formatTimestampWithTime(draftUpdatedAt)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )}
+
   <SaveBlueprintModal isOpen={showSaveBlueprintModal} onClose={() => setShowSaveBlueprintModal(false)} currentBlocks={draftBlocks} />
 
   {/* Deletion Confirmation Modal ("¿Estás seguro que quieres hacer eso?") */}
