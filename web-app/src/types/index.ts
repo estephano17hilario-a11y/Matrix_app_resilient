@@ -214,13 +214,15 @@ export interface Project {
 
 export interface Session {
   id: string;
-  type: 'POMO' | 'STOPWATCH';
+  type: 'POMO' | 'STOPWATCH' | 'MANUAL';
+  isManual?: boolean;
+  mode?: string;
   duration: number;
   date: string;
+  subTraitId?: string;
   xpEarned?: number;
   goldEarned?: number;
   traitPointsEarned?: number;
-  subTraitId?: string;
 }
 
 export interface NoteBlock {

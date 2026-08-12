@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Lock, Calendar, AlignLeft, Filter, X, Cake, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, Search, Menu, Eye, CheckSquare, Square, Book, GraduationCap, Layers, Sparkles, Undo2, Redo2, Check, DollarSign, Dumbbell, Code2, Clock, Palette, MoreVertical } from 'lucide-react';
+import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Lock, Calendar, AlignLeft, Filter, X, Cake, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, Search, Menu, Eye, EyeOff, LayoutGrid, CheckSquare, Square, Book, GraduationCap, Layers, Sparkles, Undo2, Redo2, Check, DollarSign, Dumbbell, Code2, Clock, Palette, MoreVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { Note, NoteFolder, JournalEntry, NoteBlock, Project, Quest } from '../../types';
@@ -709,24 +709,40 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     setDeleteConfirmTarget({ type: 'BATCH' });
   };
 
- // Pagination State
- const [visibleNotesCount, setVisibleNotesCount] = useState(12);
- const handleLoadMore = useCallback(() => {
- setVisibleNotesCount(prev => prev + 12);
- }, []);
+  // Layout Mode & Library States
+  const [notesLayoutMode, setNotesLayoutMode] = useState<'GRID' | 'LIST'>(() => 
+    typeof window !== 'undefined' && localStorage.getItem('notes_layout_mode') === 'LIST' ? 'LIST' : 'GRID'
+  );
+  const [showRootFoldersInLibrary, setShowRootFoldersInLibrary] = useState(true);
 
- useEffect(() => {
- onStatsOpenChange?.(showStats);
- }, [showStats, onStatsOpenChange]);
- const streak = useMemo(() => calculateStreak(journalEntries), [journalEntries]);
- const themeColorMap = useMemo(() => new Map(NOTE_THEMES.map(t => [t.id, t.color])), []);
- const projectMap = useMemo(() => new Map(projects.map(p => [p.id, p])), [projects]);
- const journalEntryMap = useMemo(() => {
- const map = new Map<string, JournalEntry>();
- journalEntries.forEach(entry => map.set(entry.date, entry));
- return map;
- }, [journalEntries]);
- const notesContainerRef = useRef<HTMLDivElement | null>(null);
+  // Pagination & Infinite Scroll State
+  const [visibleNotesCount, setVisibleNotesCount] = useState(100);
+
+  const notesContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const container = notesContainerRef.current;
+    if (!container) return;
+    const handleScroll = () => {
+      if (container.scrollHeight - container.scrollTop - container.clientHeight < 350) {
+        setVisibleNotesCount(prev => prev + 50);
+      }
+    };
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    onStatsOpenChange?.(showStats);
+  }, [showStats, onStatsOpenChange]);
+  const streak = useMemo(() => calculateStreak(journalEntries), [journalEntries]);
+  const themeColorMap = useMemo(() => new Map(NOTE_THEMES.map(t => [t.id, t.color])), []);
+  const projectMap = useMemo(() => new Map(projects.map(p => [p.id, p])), [projects]);
+  const journalEntryMap = useMemo(() => {
+    const map = new Map<string, JournalEntry>();
+    journalEntries.forEach(entry => map.set(entry.date, entry));
+    return map;
+  }, [journalEntries]);
 
    const openNote = useCallback((note: Note) => { 
      setEditorMode('NOTE'); 
@@ -1694,40 +1710,115 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
               </div>
             </div>
 
-            {/* Compact Sort Toggle */}
-            <button
-              onClick={handleToggleSortOrder}
-              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold border border-white/10 flex items-center gap-1 whitespace-nowrap shrink-0 shadow-sm"
-              title={sortOrder === 'NEWEST' ? 'Orden: Más recientes' : 'Orden: Más antiguas'}
-            >
-              <ArrowUpDown size={14} className="text-emerald-400" />
-              <span className="hidden sm:inline">{sortOrder === 'NEWEST' ? 'Recientes' : 'Antiguas'}</span>
-            </button>
+            {/* Action Toggles: View Mode + Sort Toggle */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => {
+                  const next = notesLayoutMode === 'GRID' ? 'LIST' : 'GRID';
+                  setNotesLayoutMode(next);
+                  localStorage.setItem('notes_layout_mode', next);
+                }}
+                className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold border border-white/10 flex items-center gap-1 whitespace-nowrap shrink-0 shadow-sm"
+                title={notesLayoutMode === 'GRID' ? 'Vista: Tarjetas (Cuadrado)' : 'Vista: Lista Compacta (Rectángulos)'}
+              >
+                {notesLayoutMode === 'GRID' ? <List size={14} className="text-cyan-400" /> : <LayoutGrid size={14} className="text-cyan-400" />}
+                <span className="hidden sm:inline">{notesLayoutMode === 'GRID' ? 'Lista' : 'Cuadrícula'}</span>
+              </button>
+
+              <button
+                onClick={handleToggleSortOrder}
+                className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold border border-white/10 flex items-center gap-1 whitespace-nowrap shrink-0 shadow-sm"
+                title={sortOrder === 'NEWEST' ? 'Orden: Más recientes' : 'Orden: Más antiguas'}
+              >
+                <ArrowUpDown size={14} className="text-emerald-400" />
+                <span className="hidden sm:inline">{sortOrder === 'NEWEST' ? 'Recientes' : 'Antiguas'}</span>
+              </button>
+            </div>
           </div>
 
-          {/* Exact 2-Column Grid (Left and Right quadrants) */}
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-8">
-            {/* + NUEVA NOTA Card */}
+          {/* Grid / List Layout Container */}
+          <div className={notesLayoutMode === 'GRID' ? "grid grid-cols-2 gap-3 sm:gap-4 mb-8" : "flex flex-col gap-2 mb-8"}>
+            {/* + NUEVA NOTA Button */}
             <button 
               onClick={createNote} 
               data-tour="notes-fab" 
-              className="w-full h-44 rounded-[28px] border border-dashed border-white/15 bg-[#121216]/80 hover:bg-white/[0.06] hover:border-cyan-500/40 transition-all flex flex-col items-center justify-center gap-3 p-4 cursor-pointer shadow-lg group relative overflow-hidden"
+              className={notesLayoutMode === 'GRID' 
+                ? "w-full h-44 rounded-[28px] border border-dashed border-white/15 bg-[#121216]/80 hover:bg-white/[0.06] hover:border-cyan-500/40 transition-all flex flex-col items-center justify-center gap-3 p-4 cursor-pointer shadow-lg group relative overflow-hidden"
+                : "w-full py-3.5 px-4 rounded-2xl border border-dashed border-white/15 bg-[#121216]/80 hover:bg-white/[0.06] hover:border-cyan-500/40 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md group"
+              }
             >
-              <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform shadow-md">
-                <Plus size={24} className="text-cyan-400" strokeWidth={2} />
+              <div className={notesLayoutMode === 'GRID' ? "w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform shadow-md" : "w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 transition-transform"}>
+                <Plus size={notesLayoutMode === 'GRID' ? 24 : 14} className="text-cyan-400" strokeWidth={2} />
               </div>
               <span className="text-xs font-bold text-white/50 tracking-widest uppercase group-hover:text-white/90 transition-colors">
                 NUEVA NOTA
               </span>
             </button>
 
-            {/* Note Cards */}
+            {/* Note Cards / Flat Rows */}
             {noteCards.map(({ note, themeColor, folder, previewText, updatedLabel }) => {
               const hasFolder = !!folder;
               const hasTags = note.tags && note.tags.length > 0;
               const hasHeaderBadges = hasFolder || hasTags;
               const isSelected = selectedNoteIds.includes(note.id);
               const isSelectionActive = selectedNoteIds.length > 0;
+
+              if (notesLayoutMode === 'LIST') {
+                return (
+                  <div 
+                    key={note.id}
+                    onMouseDown={() => handlePressStart(note.id)}
+                    onMouseUp={handlePressEnd}
+                    onMouseLeave={handlePressEnd}
+                    onTouchStart={() => handlePressStart(note.id)}
+                    onTouchEnd={handlePressEnd}
+                    onClick={() => {
+                      if (isSelectionActive) {
+                        toggleSelectNote(note.id);
+                      } else {
+                        openNote(note);
+                      }
+                    }}
+                    className={`w-full py-3 px-4 rounded-2xl flex items-center justify-between gap-3 hover:scale-[1.005] active:scale-[0.995] transition-all cursor-pointer border select-none ${
+                      isSelected 
+                        ? 'border-cyan-400 bg-cyan-950/40 ring-1 ring-cyan-500/30' 
+                        : 'border-white/10 bg-[#121216] hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <span className="text-lg shrink-0">📝</span>
+                      <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                        <h3 className={`text-sm font-bold text-white truncate ${!note.title ? 'text-white/30 italic' : ''}`}>
+                          {note.title || t('notes.untitled', 'Sin título')}
+                        </h3>
+                        
+                        {/* Subfolder tag display when in ALL notes view */}
+                        {selectedFolderId === 'ALL' && folder && (
+                          <span 
+                            className="text-[9px] font-bold px-2 py-0.5 rounded-md truncate max-w-[140px] border border-white/10 shrink-0 self-start sm:self-auto"
+                            style={{ backgroundColor: `${folder.color || '#3b82f6'}20`, color: folder.color || '#60a5fa' }}
+                          >
+                            {folder.icon || '📁'} {folder.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-[10px] font-mono text-white/40">{updatedLabel}</span>
+                      {isSelectionActive && (
+                        <button
+                          type="button"
+                          onClick={(e) => toggleSelectNote(note.id, e)}
+                          className={`p-1 rounded-lg ${isSelected ? 'text-cyan-400' : 'text-white/40'}`}
+                        >
+                          {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
 
               return (
                 <div 
@@ -2819,34 +2910,48 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                   </h2>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => openCreateFolderModal()}
-                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black text-xs font-extrabold flex items-center gap-1.5 shadow-md hover:brightness-110 active:scale-95 transition-all"
-                >
-                  <Plus size={14} />
-                  <span>+ Crear Carpeta Raíz</span>
-                </button>
-              </div>
-
-              {folders.filter(f => !f.parentId).length === 0 ? (
-                <div className="p-8 rounded-3xl bg-white/[0.02] border border-white/10 text-center space-y-3">
-                  <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center text-3xl mx-auto">
-                    📁
-                  </div>
-                  <h3 className="text-sm font-bold text-white">No hay carpetas creadas aún</h3>
-                  <p className="text-xs text-white/50 max-w-sm mx-auto">
-                    Crea tu primera carpeta para estructurar tus estudios, proyectos o libros en árbol.
-                  </p>
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={() => openCreateFolderModal()}
-                    className="px-4 py-2 rounded-xl bg-cyan-500 text-black text-xs font-bold shadow-md hover:brightness-110"
+                    type="button"
+                    onClick={() => setShowRootFoldersInLibrary(prev => !prev)}
+                    className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-white/5 hover:bg-white/15 text-white/70 hover:text-white border border-white/10 flex items-center gap-1.5 text-xs font-bold transition-colors"
+                    title={showRootFoldersInLibrary ? 'Ocultar carpetas raíz' : 'Mostrar carpetas raíz'}
                   >
-                    + Crear Primera Carpeta
+                    {showRootFoldersInLibrary ? <Eye size={14} className="text-cyan-400" /> : <EyeOff size={14} className="text-white/40" />}
+                    <span className="hidden sm:inline">{showRootFoldersInLibrary ? 'Ver Raíz' : 'Ocultar Raíz'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => openCreateFolderModal()}
+                    className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black text-xs font-extrabold flex items-center gap-1.5 shadow-md hover:brightness-110 active:scale-95 transition-all"
+                  >
+                    <Plus size={14} />
+                    <span>+ Crear Carpeta Raíz</span>
                   </button>
                 </div>
-              ) : (
-                <div className="space-y-3">
+              </div>
+
+              {showRootFoldersInLibrary && (
+                <>
+                  {folders.filter(f => !f.parentId).length === 0 ? (
+                    <div className="p-8 rounded-3xl bg-white/[0.02] border border-white/10 text-center space-y-3">
+                      <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center text-3xl mx-auto">
+                        📁
+                      </div>
+                      <h3 className="text-sm font-bold text-white">No hay carpetas creadas aún</h3>
+                      <p className="text-xs text-white/50 max-w-sm mx-auto">
+                        Crea tu primera carpeta para estructurar tus estudios, proyectos o libros en árbol.
+                      </p>
+                      <button
+                        onClick={() => openCreateFolderModal()}
+                        className="px-4 py-2 rounded-xl bg-cyan-500 text-black text-xs font-bold shadow-md hover:brightness-110"
+                      >
+                        + Crear Primera Carpeta
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
                   {folders.filter(f => !f.parentId).map(rootFolder => {
                     const renderWorkspaceTree = (folder: NoteFolder, depth = 0): React.ReactNode => {
                       const childFolders = folders.filter(f => f.parentId === folder.id);
@@ -2997,13 +3102,14 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                         </div>
                       );
                     };
-
                     return renderWorkspaceTree(rootFolder);
                   })}
                 </div>
               )}
-            </div>
+            </>
           )}
+        </div>
+      )}
 
           {/* Current Folder / View Header */}
           <div className="flex flex-col gap-3 sm:gap-4 bg-gradient-to-r from-white/[0.04] to-transparent border border-white/10 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-xl">

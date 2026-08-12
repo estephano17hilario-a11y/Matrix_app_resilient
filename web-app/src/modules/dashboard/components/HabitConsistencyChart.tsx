@@ -6,7 +6,6 @@ import { Habit } from '../../../types';
 import { cn } from '../../../utils/cn';
 import { toLocalISOString, startOfWeek } from '../../../utils/dateUtils';
 import { TrendingUp, TrendingDown, Flame, Calendar, Lock } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 import { DateSelectionModal, DateSelectionMode } from './DateSelectionModal';
 import { useLux } from '@/context/LuxContext';
 import { getAvatarConfig } from '@/config/avatars';
@@ -48,7 +47,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
     const [timeframe, setTimeframe] = useState<TimeFrame>(initialTimeframe);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
-    const [solidChartFill, setSolidChartFill] = useState(() => typeof window !== 'undefined' && localStorage.getItem('matrix_solid_chart_bg') === 'true');
+    const [solidChartFill] = useState(() => typeof window !== 'undefined' && localStorage.getItem('matrix_solid_chart_bg') === 'true');
 
     useEffect(() => {
         if (isActive) {
@@ -493,14 +492,14 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
 
                 {/* Row 2: Stats */}
                 <div className="relative">
-                    <div className="flex items-center gap-4 sm:gap-6 overflow-hidden pr-12">
+                    <div className="flex items-center justify-between overflow-hidden pr-8">
                         {/* Average Percent */}
-                        <div className="flex items-baseline gap-3 shrink-0 ml-2">
-                            <span className="text-4xl font-mono font-bold text-white tracking-tighter">
+                        <div className="flex items-baseline gap-2 sm:gap-3 shrink-0 ml-1">
+                            <span className="text-3xl sm:text-4xl font-mono font-bold text-white tracking-tighter">
                                 {stats.average}%
                             </span>
                             <div className={cn(
-                                "flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border",
+                                "flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold border",
                                 trend >= 0 
                                     ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
                                     : "bg-rose-500/10 text-rose-400 border-rose-500/20"
@@ -510,22 +509,22 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                             </div>
                         </div>
 
-                        {/* Current Streak - FLAME PATH RESTORED */}
+                        {/* Current Streak - FLAME PATH RESTORED (Positioned on the Right) */}
                         <button 
                             data-tour="habit-streak"
                             onClick={() => onOpenStreak?.()}
-                            className="cursor-pointer group/streak flex flex-col items-start text-left relative pl-2 shrink-0"
+                            className="cursor-pointer group/streak flex flex-col items-end text-right relative pr-1 shrink-0 ml-auto"
                         >
                             {/* Glow effect on hover - Optimized */}
                             <div className="absolute inset-0 bg-orange-500/0 group-hover/streak:bg-orange-500/10 rounded-lg transition-all duration-200" />
                             
-                            <div className="text-[10px] text-zinc-500 font-medium uppercase tracking-wide mb-0.5 group-hover/streak:text-orange-400 transition-colors relative z-10">
+                            <div className="text-[9px] sm:text-[10px] text-zinc-500 font-medium uppercase tracking-wide mb-0.5 group-hover/streak:text-orange-400 transition-colors relative z-10">
                                 {t('dashboard.streakPath')}
                             </div>
-                            <div className="flex items-center gap-2 relative z-10">
+                            <div className="flex items-center gap-1.5 relative z-10">
                                 <div className="relative">
                                     <Flame 
-                                        size={20} 
+                                        size={18} 
                                         className={cn(
                                             "transition-all duration-200 group-hover/streak:scale-110",
                                             todayStats.percent >= todayStats.requiredToday 
@@ -537,8 +536,8 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                                         <div className="absolute inset-0 bg-orange-500/20 rounded-full animate-pulse-slow opacity-0 group-hover/streak:opacity-100 transition-opacity" />
                                     )}
                                 </div>
-                                <span className="text-xl font-bold text-white group-hover/streak:text-orange-100 transition-colors">
-                                    {stats.streak} <span className="text-sm font-normal text-zinc-500">{t('dashboard.days')}</span>
+                                <span className="text-lg sm:text-xl font-bold text-white group-hover/streak:text-orange-100 transition-colors">
+                                    {stats.streak} <span className="text-xs font-normal text-zinc-500">{t('dashboard.days')}</span>
                                 </span>
                             </div>
                         </button>

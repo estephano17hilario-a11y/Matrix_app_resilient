@@ -54,6 +54,7 @@ const HeaderStat = ({ label, value, colorClass = "text-white" }: { label: string
 
 export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, onClose }) => {
     const { t } = useTranslation();
+    const [showRecordsModal, setShowRecordsModal] = useState(false);
 
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -284,10 +285,67 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
                             </div>
                         </div>
 
-                        <div className={cn("p-2.5 rounded-2xl border transition-all duration-200", isTodayCompleted ? "bg-amber-500/20 border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.3)]" : "bg-white/5 border-white/10")}>
-                            <Flame className={cn("w-6 h-6 transition-all duration-200", isTodayCompleted ? "text-amber-400 fill-amber-400/80 drop-shadow-[0_0_10px_rgba(245,158,11,0.8)] scale-110" : "text-white/20 fill-transparent scale-100")} />
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setShowRecordsModal(prev => !prev)}
+                                className={`p-2.5 rounded-2xl border transition-all duration-200 ${
+                                    showRecordsModal 
+                                        ? "bg-amber-500/30 border-amber-500/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.4)]" 
+                                        : "bg-white/5 border-white/10 text-amber-400 hover:bg-white/10"
+                                }`}
+                                title="Ver récords de racha"
+                            >
+                                <Trophy className="w-5 h-5 text-amber-400" />
+                            </button>
+
+                            <div className={cn("p-2.5 rounded-2xl border transition-all duration-200", isTodayCompleted ? "bg-amber-500/20 border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.3)]" : "bg-white/5 border-white/10")}>
+                                <Flame className={cn("w-6 h-6 transition-all duration-200", isTodayCompleted ? "text-amber-400 fill-amber-400/80 drop-shadow-[0_0_10px_rgba(245,158,11,0.8)] scale-110" : "text-white/20 fill-transparent scale-100")} />
+                            </div>
                         </div>
                     </div>
+
+                    {/* Records Modal Overlay inside El Camino de la Llama */}
+                    {showRecordsModal && (
+                        <div className="px-4 pb-3">
+                            <motion.div
+                                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                className="bg-[#0f0f18] border border-amber-500/30 rounded-2xl p-4 shadow-2xl space-y-3"
+                            >
+                                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                                    <div className="flex items-center gap-2 text-amber-400">
+                                        <Trophy size={16} />
+                                        <span className="text-xs font-black uppercase tracking-wider">Mis Récords de Racha</span>
+                                    </div>
+                                    <button onClick={() => setShowRecordsModal(false)} className="text-white/40 hover:text-white">
+                                        ✕
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="bg-white/5 border border-white/5 rounded-xl p-3 flex flex-col">
+                                        <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Racha Más Larga</span>
+                                        <span className="text-2xl font-black text-amber-400 font-mono mt-1">
+                                            {Math.max(currentStreak, (habits[0] as any)?.longestStreak || currentStreak)} <span className="text-xs font-bold text-white/50">días</span>
+                                        </span>
+                                    </div>
+
+                                    <div className="bg-white/5 border border-white/5 rounded-xl p-3 flex flex-col">
+                                        <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Última Racha</span>
+                                        <span className="text-2xl font-black text-orange-400 font-mono mt-1">
+                                            {currentStreak} <span className="text-xs font-bold text-white/50">días</span>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="text-[10px] text-white/50 font-mono pt-1 flex justify-between">
+                                    <span>📅 Fecha de Última Actividad:</span>
+                                    <span className="text-white font-bold">{new Date().toLocaleDateString('es-ES')}</span>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
 
                     {/* Stats Row (No more black boxes - Pure transparency) */}
                     <div className="relative grid grid-cols-2 divide-x divide-white/5 border-y border-white/5">

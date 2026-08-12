@@ -303,41 +303,6 @@ export const VisualsSection = () => {
           </div>
         </div>
 
-        {/* Bar Chart Style (Degradado vs Color Entero) */}
-        <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-4 hover:border-white/[0.08] transition-colors relative overflow-hidden group">
-          <div className="flex items-center justify-between relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
-                <Palette size={16} className="text-cyan-400" />
-              </div>
-              <div>
-                <div className="text-sm font-bold text-white tracking-tight">Estilo de Gráficos de Barra</div>
-                <div className="text-[11px] text-white/40 font-medium">Degradado con brillo o color entero sólido</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10">
-              <button
-                onClick={() => handleBarChartStyleToggle('gradient')}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg text-xs font-bold transition-all",
-                  barChartStyle === 'gradient' ? "bg-white text-black shadow-md" : "text-white/40 hover:text-white"
-                )}
-              >
-                Degradado
-              </button>
-              <button
-                onClick={() => handleBarChartStyleToggle('solid')}
-                className={cn(
-                  "px-2.5 py-1 rounded-lg text-xs font-bold transition-all",
-                  barChartStyle === 'solid' ? "bg-white text-black shadow-md" : "text-white/40 hover:text-white"
-                )}
-              >
-                Color Entero
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* ─── RADAR CHART CUSTOMIZATION SECTION (COMPACT & COLLAPSIBLE) ─── */}
         <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-4 transition-colors">
           <div className="flex items-center justify-between">
