@@ -72,6 +72,23 @@ export const FocusStats = React.memo(({
     const [viewMode, setViewMode] = useState<'TOTAL' | 'ATTRIBUTE' | 'PROJECT'>((defaultProjectView === 'PROJECT' && !isPro) ? 'ATTRIBUTE' : (defaultProjectView || 'TOTAL'));
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     const [solidChartBg, setSolidChartBg] = useState(() => typeof window !== 'undefined' && localStorage.getItem('matrix_solid_chart_bg') === 'true');
+    const [barChartStyle, setBarChartStyle] = useState<'gradient' | 'solid'>(() => (typeof window !== 'undefined' && localStorage.getItem('matrix_bar_chart_style') === 'solid') ? 'solid' : 'gradient');
+    
+    // Listen for custom event or local storage changes
+    useEffect(() => {
+        const handleStorage = () => {
+            const savedStyle = localStorage.getItem('matrix_bar_chart_style');
+            if (savedStyle === 'solid' || savedStyle === 'gradient') {
+                setBarChartStyle(savedStyle);
+            }
+        };
+        window.addEventListener('storage', handleStorage);
+        window.addEventListener('matrix_bar_style_change', handleStorage);
+        return () => {
+            window.removeEventListener('storage', handleStorage);
+            window.removeEventListener('matrix_bar_style_change', handleStorage);
+        };
+    }, []);
     
     // Sync defaultChartViews based on active viewMode
     useEffect(() => {
@@ -579,6 +596,34 @@ export const FocusStats = React.memo(({
                                             </div>
                                             {!isPro && <Lock size={10} className="text-yellow-400/80" />}
                                         </button>
+
+                                        <div className="h-px bg-white/10 my-0.5" />
+
+                                        <div className="text-[9px] font-bold text-white/40 uppercase px-2 pt-0.5">Estilo de Barras</div>
+                                        <button 
+                                            onClick={() => { 
+                                                setBarChartStyle('gradient'); 
+                                                localStorage.setItem('matrix_bar_chart_style', 'gradient');
+                                                window.dispatchEvent(new Event('matrix_bar_style_change'));
+                                                setActiveDropdown(null); 
+                                            }}
+                                            className={`w-full px-2 py-1.5 rounded-lg flex items-center justify-between gap-2 transition-all ${barChartStyle === 'gradient' ? 'bg-white text-black shadow-md' : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'}`}
+                                        >
+                                            <span className="text-[10px] font-bold">✨ Degradado</span>
+                                            {barChartStyle === 'gradient' && <Check size={10} className="text-black" />}
+                                        </button>
+                                        <button 
+                                            onClick={() => { 
+                                                setBarChartStyle('solid'); 
+                                                localStorage.setItem('matrix_bar_chart_style', 'solid');
+                                                window.dispatchEvent(new Event('matrix_bar_style_change'));
+                                                setActiveDropdown(null); 
+                                            }}
+                                            className={`w-full px-2 py-1.5 rounded-lg flex items-center justify-between gap-2 transition-all ${barChartStyle === 'solid' ? 'bg-white text-black shadow-md' : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'}`}
+                                        >
+                                            <span className="text-[10px] font-bold">⬛ Color Entero</span>
+                                            {barChartStyle === 'solid' && <Check size={10} className="text-black" />}
+                                        </button>
                                     </div>
                                 </motion.div>
                             )}
@@ -705,30 +750,8 @@ export const FocusStats = React.memo(({
                         </div>
                     )}
                     
-                    {/* DATE RANGE INDICATOR + PRO SOLID BG SWITCH */}
-                    <div className="flex justify-between items-center mt-1">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                if (!isPro) {
-                                    if (onOpenPro) onOpenPro();
-                                    toast.error(reactiveI18n.language === 'es' ? 'Fondo gráfico sólido es exclusivo de usuarios PRO 👑' : 'Solid chart background is a PRO feature 👑');
-                                    return;
-                                }
-                                const next = !solidChartBg;
-                                setSolidChartBg(next);
-                                localStorage.setItem('matrix_solid_chart_bg', String(next));
-                            }}
-                            className={cn(
-                                "flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold border transition-all cursor-pointer",
-                                solidChartBg ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-xs" : "bg-white/5 border-white/10 text-white/40 hover:text-white/70"
-                            )}
-                            title={!isPro ? "Exclusivo PRO" : "Alternar fondo sólido/degradado"}
-                        >
-                            <span>{solidChartBg ? "⬛ Fondo Sólido" : "✨ Fondo Degradado"}</span>
-                            {!isPro && <Lock size={10} className="text-amber-400" />}
-                        </button>
-
+                    {/* DATE RANGE INDICATOR */}
+                    <div className="flex justify-end items-center mt-1">
                         <span className="text-[9px] font-bold text-white/30 uppercase tracking-wide">
                             {dateRangeLabel}
                         </span>
@@ -744,6 +767,7 @@ export const FocusStats = React.memo(({
                     className="mt-0"
                     showBackground={true}
                     solidBackground={solidChartBg}
+                    barStyle={barChartStyle}
                     showGrid={true}
                     stacked={groupMode !== 'TOTAL'}
                     yTicks={yTicks}

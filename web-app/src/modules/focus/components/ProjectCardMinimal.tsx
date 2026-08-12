@@ -199,7 +199,7 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
                                             fill="none" 
                                             className={cn(
                                                 "transition-all duration-300 shrink-0", 
-                                                isDone ? "drop-shadow-[0_0_8px_rgba(244,63,94,0.9)] scale-110" : "opacity-40 hover:opacity-75"
+                                                isDone ? "drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)] scale-105" : "opacity-40 hover:opacity-75"
                                             )}
                                         >
                                             {/* Organic Green Tomato Leaves / Calyx */}

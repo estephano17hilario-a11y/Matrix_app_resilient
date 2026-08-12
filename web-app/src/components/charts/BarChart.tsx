@@ -17,7 +17,8 @@ export const BarChart = React.memo(({
     paddingTop = "top-6",
     tooltipValueFormatter,
     tooltipLabelFormatter,
-    solidBackground = false
+    solidBackground = false,
+    barStyle = 'gradient'
 }: { 
     datasets: { data: number[]; color: string; label?: string }[];
     labels: string[];
@@ -35,6 +36,7 @@ export const BarChart = React.memo(({
     tooltipValueFormatter?: (value: number) => string;
     tooltipLabelFormatter?: (label: string) => string;
     solidBackground?: boolean;
+    barStyle?: 'gradient' | 'solid';
 }) => {
     const maxValue = useMemo(() => {
         if (max) return max;
@@ -308,7 +310,8 @@ export const BarChart = React.memo(({
                                     const safeColor = ds.color || '#6366f1';
                                     const backgroundStyle = safeColor;
                                     const isHex = safeColor.startsWith('#');
-                                    const shadowStyle = solidBackground ? 'none' : (isHex
+                                    const isSolid = barStyle === 'solid';
+                                    const shadowStyle = isSolid ? 'none' : (isHex
                                         ? `inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 15px ${safeColor}45, 0 4px 15px ${safeColor}35`
                                         : `inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 15px rgba(0,0,0,0.3)`);
                                     
@@ -323,8 +326,8 @@ export const BarChart = React.memo(({
                                                 transformOrigin: 'bottom center',
                                             }}
                                         >
-                                             {/* Shine Effect */}
-                                             {!solidBackground && (
+                                             {/* Shine / Gradient Overlay */}
+                                             {!isSolid && (
                                                 <div className={`absolute inset-0 transition-opacity duration-200 pointer-events-none ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-30" />
                                                     <div className="absolute bottom-0 left-0 right-0 h-[30%] bg-gradient-to-t from-black/20 to-transparent" />

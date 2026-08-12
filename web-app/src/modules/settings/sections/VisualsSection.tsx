@@ -15,10 +15,11 @@ import { TraitRadarChart } from '../../dashboard/components/TraitRadarChart';
 import { Attribute } from '../../../types';
 import { supabase } from '@/services/supabase';
 
-type DisplayCategory = 'all' | 'orbs' | 'minimal' | 'gradients' | 'holo' | 'cosmic';
+type DisplayCategory = 'mine' | 'all' | 'orbs' | 'minimal' | 'gradients' | 'holo' | 'cosmic';
 
 const CATEGORIES: { id: DisplayCategory; label: string; icon: any }[] = [
-  { id: 'all', label: 'All', icon: Sparkles },
+  { id: 'mine', label: 'Tuyos', icon: Sparkles },
+  { id: 'all', label: 'Todos', icon: Layers },
   { id: 'cosmic', label: 'Cosmic', icon: Rocket },
   { id: 'holo', label: 'Holo', icon: Layers },
   { id: 'orbs', label: 'Orbs', icon: Zap },
@@ -66,7 +67,14 @@ export const VisualsSection = () => {
   const { purchase } = useEconomy();
   const { currentTheme, setTheme, vividMode, toggleVividMode, radarConfig, updateRadarConfig, isPro, showProModal } = useSettings();
   const { previewTheme, setPreviewTheme } = useTheme();
-  const [selectedCategory, setSelectedCategory] = useState<DisplayCategory>('all');
+  const [selectedCategory, setSelectedCategory] = useState<DisplayCategory>('mine');
+  const [barChartStyle, setBarChartStyle] = useState<'gradient' | 'solid'>(() => (typeof window !== 'undefined' && localStorage.getItem('matrix_bar_chart_style') === 'solid') ? 'solid' : 'gradient');
+
+  const handleBarChartStyleToggle = (style: 'gradient' | 'solid') => {
+    setBarChartStyle(style);
+    localStorage.setItem('matrix_bar_chart_style', style);
+    window.dispatchEvent(new Event('matrix_bar_style_change'));
+  };
   const [isRadarConfigOpen, setIsRadarConfigOpen] = useState(false);
   const [isColorDropdownOpen, setIsColorDropdownOpen] = useState(false);
   
@@ -184,6 +192,9 @@ export const VisualsSection = () => {
   };
 
   const filteredThemes = Object.values(THEMES).filter(theme => {
+    if (selectedCategory === 'mine') {
+      return DEFAULT_UNLOCKED_THEMES.includes(theme.id) || unlockedItems.includes(theme.id);
+    }
     if (selectedCategory === 'all') return true;
     if (selectedCategory === 'cosmic') return theme.category === 'cosmic';
     if (selectedCategory === 'holo') return theme.category === 'holo';
@@ -289,6 +300,41 @@ export const VisualsSection = () => {
                 )}
               />
             </button>
+          </div>
+        </div>
+
+        {/* Bar Chart Style (Degradado vs Color Entero) */}
+        <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-4 hover:border-white/[0.08] transition-colors relative overflow-hidden group">
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+                <Palette size={16} className="text-cyan-400" />
+              </div>
+              <div>
+                <div className="text-sm font-bold text-white tracking-tight">Estilo de Gráficos de Barra</div>
+                <div className="text-[11px] text-white/40 font-medium">Degradado con brillo o color entero sólido</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10">
+              <button
+                onClick={() => handleBarChartStyleToggle('gradient')}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-bold transition-all",
+                  barChartStyle === 'gradient' ? "bg-white text-black shadow-md" : "text-white/40 hover:text-white"
+                )}
+              >
+                Degradado
+              </button>
+              <button
+                onClick={() => handleBarChartStyleToggle('solid')}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-bold transition-all",
+                  barChartStyle === 'solid' ? "bg-white text-black shadow-md" : "text-white/40 hover:text-white"
+                )}
+              >
+                Color Entero
+              </button>
+            </div>
           </div>
         </div>
 
