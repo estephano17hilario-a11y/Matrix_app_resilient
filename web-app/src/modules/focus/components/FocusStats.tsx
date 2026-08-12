@@ -232,10 +232,10 @@ export const FocusStats = React.memo(({
         }
 
         switch (timeRange) {
-            case 'DAY': return dayTotal;
-            case 'WEEK': return weekTotal;
-            case '8_WEEKS': return eightWeeksTotal;
-            case 'MONTH': return monthTotal;
+            case 'DAY': return Math.round(dayTotal);
+            case 'WEEK': return Math.round(weekTotal);
+            case '8_WEEKS': return Math.round(eightWeeksTotal);
+            case 'MONTH': return Math.round(monthTotal);
             default: return 0;
         }
     }, [projects, timeRange, currentDate, weekStartDay]);
