@@ -19,6 +19,15 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
     const { t, i18n } = useTranslation();
     const themeColor = project.color || attribute?.color || '#f43f5e';
 
+    const showRoutinePomodoros = React.useMemo(() => {
+        try {
+            const stored = localStorage.getItem('matrix_particle_config') || localStorage.getItem('lux_particle_config');
+            return stored ? (JSON.parse(stored).showRoutinePomodorosOnProjects ?? true) : true;
+        } catch {
+            return true;
+        }
+    }, []);
+
     let goalMinutes = project.goalTarget || 0;
     let currentMinutesForProgress = Math.floor((project.totalTime || 0) / 60);
     const effectiveFrequency = project.uiFrequency || project.goalFrequency;
