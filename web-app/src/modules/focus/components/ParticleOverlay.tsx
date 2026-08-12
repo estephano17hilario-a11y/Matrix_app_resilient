@@ -38,9 +38,10 @@ export const ParticleOverlay: React.FC<ParticleOverlayProps> = React.memo(({
 }) => {
   const shouldRender = useMemo(() => {
     if (!config.enabled) return false;
+    if (!isActive) return false; // Only render when timer session is active!
     if (config.trigger === 'BREAK_ONLY') return isBreak;
-    if (config.trigger === 'FOCUS_ONLY') return !isBreak && isActive;
-    return true; // BOTH
+    if (config.trigger === 'FOCUS_ONLY') return !isBreak;
+    return true; // BOTH (active focus or active break)
   }, [config, isBreak, isActive]);
 
   const particles = useMemo(() => {

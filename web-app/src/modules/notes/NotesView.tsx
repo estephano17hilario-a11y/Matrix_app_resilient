@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Lock, Calendar, AlignLeft, Filter, X, Cake, Target, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, Search, Menu, Eye, Download, CheckSquare, Square, Book, GraduationCap, Layers, Sparkles, Undo2, Redo2, Check, DollarSign, Dumbbell, Code2, Award, CheckCircle2, Clock, ExternalLink, Palette, Info, MoreVertical } from 'lucide-react';
+import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Lock, Calendar, AlignLeft, Filter, X, Cake, Gift, Settings, ListTodo, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, Search, Menu, Eye, CheckSquare, Square, Book, GraduationCap, Layers, Sparkles, Undo2, Redo2, Check, DollarSign, Dumbbell, Code2, Clock, Palette, MoreVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { Note, NoteFolder, JournalEntry, NoteBlock, Project, Quest } from '../../types';
@@ -709,28 +709,6 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     setDeleteConfirmTarget({ type: 'BATCH' });
   };
 
-  const handleExportNoteMarkdown = (noteTitle: string, blocks: NoteBlock[]) => {
-    const text = `# ${noteTitle || 'Sin Título'}\n\n` + blocks.map(b => {
-      if (b.type === 'check') return `- [${b.checked ? 'x' : ' '}] ${b.content}`;
-      if (b.type === 'heading1') return `# ${b.content}`;
-      if (b.type === 'heading2') return `## ${b.content}`;
-      if (b.type === 'heading3') return `### ${b.content}`;
-      if (b.type === 'quote') return `> ${b.content}`;
-      if (b.type === 'code') return `\`\`\`\n${b.content}\n\`\`\``;
-      if (b.type === 'latex') return `$$ ${b.content} $$`;
-      return b.content;
-    }).join('\n\n');
-
-    const blob = new Blob([text], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${(noteTitle || 'nota').toLowerCase().replace(/\s+/g, '_')}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Nota exportada como .md');
-  };
-
  // Pagination State
  const [visibleNotesCount, setVisibleNotesCount] = useState(12);
  const handleLoadMore = useCallback(() => {
@@ -1040,7 +1018,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [editorMode, handleUndo, handleRedo]);
- const addBlock = (type: 'text' | 'check' | 'image') => { setDraftBlocks(prev => [...prev, { id: Date.now().toString(), type, content: '', checked: false }]); };
+  /* addBlock removed (unused) */
  
  const { days, firstDay } = useMemo(() => getDaysInMonth(currentMonth), [currentMonth]);
  const emptyDays = useMemo(() => Array(firstDay).fill(null), [firstDay]);
@@ -1366,7 +1344,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  });
  }, [currentMonth, monthDays, journalEntryMap, specialEvents, quests]);
 
- const activeSpecialEvent = useMemo(() => {
+  const activeSpecialEvent = useMemo(() => {
     if (editorMode !== 'JOURNAL') return null;
     const dateStr = toLocalISOString(draftDate);
     return specialEvents.find(e => {

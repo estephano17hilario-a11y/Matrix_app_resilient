@@ -183,38 +183,53 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
                                     return (
                                         <svg 
                                             key={idx} 
-                                            width="18" 
-                                            height="18" 
+                                            width="19" 
+                                            height="19" 
                                             viewBox="0 0 24 24" 
                                             fill="none" 
                                             className={cn(
                                                 "transition-all duration-300 shrink-0", 
-                                                isDone ? "drop-shadow-[0_0_8px_rgba(244,63,94,0.85)] scale-110" : "opacity-40 hover:opacity-70"
+                                                isDone ? "drop-shadow-[0_0_8px_rgba(244,63,94,0.9)] scale-110" : "opacity-40 hover:opacity-75"
                                             )}
                                         >
-                                            {/* Top Stem Knob */}
-                                            <rect x="10.5" y="1" width="3" height="2.5" rx="0.8" fill={isDone ? "#34d399" : "#9ca3af"} />
-                                            <path d="M10 3.5 C10 2.5 14 2.5 14 3.5" stroke={isDone ? "#10b981" : "#6b7280"} strokeWidth="1.2" strokeLinecap="round" />
+                                            {/* Organic Green Tomato Leaves / Calyx */}
+                                            <path 
+                                                d="M12 2C11 3.8 9.5 4.8 7 4.5c1.8 1 3.5 1.5 4.5 2.5C12.5 6 14 5.5 17 4.5c-2.5.3-4-1.2-5-2.5z" 
+                                                fill={isDone ? "#34d399" : "#6b7280"} 
+                                            />
+                                            <path 
+                                                d="M12 2v2.5" 
+                                                stroke={isDone ? "#059669" : "#4b5563"} 
+                                                strokeWidth="1.2" 
+                                                strokeLinecap="round" 
+                                            />
 
-                                            {/* Round Pomodoro Timer Body */}
-                                            <circle cx="12" cy="13.5" r="8.5" fill={isDone ? "url(#pomoRedGrad)" : "rgba(255,255,255,0.08)"} stroke={isDone ? "#fb7185" : "rgba(255,255,255,0.3)"} strokeWidth="1.5" />
+                                            {/* Plump Organic Tomato Body */}
+                                            <path 
+                                                d="M12 21.5c-4.6 0-8.2-3.2-8.2-7.5 0-4.2 3.2-7.5 8.2-7.5s8.2 3.3 8.2 7.5c0 4.3-3.6 7.5-8.2 7.5z" 
+                                                fill={isDone ? "url(#pomoRedGrad)" : "rgba(255,255,255,0.08)"} 
+                                                stroke={isDone ? "#fb7185" : "rgba(255,255,255,0.3)"} 
+                                                strokeWidth="1.4" 
+                                            />
 
-                                            {/* Timer Dial Notches */}
-                                            <line x1="12" y1="6.5" x2="12" y2="8" stroke={isDone ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.4)"} strokeWidth="1.2" strokeLinecap="round" />
-                                            <line x1="17.5" y1="12" x2="19" y2="12" stroke={isDone ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.3)"} strokeWidth="1.2" strokeLinecap="round" />
-                                            <line x1="12" y1="20.5" x2="12" y2="19" stroke={isDone ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.3)"} strokeWidth="1.2" strokeLinecap="round" />
-                                            <line x1="6.5" y1="12" x2="5" y2="12" stroke={isDone ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.3)"} strokeWidth="1.2" strokeLinecap="round" />
+                                            {/* Integrated Kitchen Timer Dial Notches */}
+                                            <line x1="12" y1="8" x2="12" y2="9.5" stroke={isDone ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.4)"} strokeWidth="1.2" strokeLinecap="round" />
+                                            <line x1="17.8" y1="14" x2="19.2" y2="14" stroke={isDone ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.3)"} strokeWidth="1.2" strokeLinecap="round" />
+                                            <line x1="12" y1="20" x2="12" y2="18.5" stroke={isDone ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.3)"} strokeWidth="1.2" strokeLinecap="round" />
+                                            <line x1="6.2" y1="14" x2="4.8" y2="14" stroke={isDone ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.3)"} strokeWidth="1.2" strokeLinecap="round" />
 
-                                            {/* Timer Hand */}
-                                            <line x1="12" y1="13.5" x2="14.5" y2="10" stroke={isDone ? "#ffffff" : "rgba(255,255,255,0.6)"} strokeWidth="1.5" strokeLinecap="round" />
+                                            {/* Timer Hand & Dial Center */}
+                                            <line x1="12" y1="14" x2="14.8" y2="10.5" stroke={isDone ? "#ffffff" : "rgba(255,255,255,0.7)"} strokeWidth="1.5" strokeLinecap="round" />
+                                            <circle cx="12" cy="14" r="1.3" fill={isDone ? "#ffffff" : "#e5e7eb"} />
 
-                                            {/* Center Pivot */}
-                                            <circle cx="12" cy="13.5" r="1.2" fill={isDone ? "#ffffff" : "#d1d5db"} />
+                                            {/* Glossy Organic Highlight */}
+                                            <ellipse cx="8.5" cy="10.5" rx="1.8" ry="1" fill={isDone ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.06)"} transform="rotate(-25 8.5 10.5)" />
 
                                             <defs>
-                                                <linearGradient id="pomoRedGrad" x1="4" y1="5" x2="20" y2="21" gradientUnits="userSpaceOnUse">
+                                                <linearGradient id="pomoRedGrad" x1="4" y1="6" x2="20" y2="22" gradientUnits="userSpaceOnUse">
                                                     <stop offset="0%" stopColor="#f43f5e" />
-                                                    <stop offset="100%" stopColor="#be123c" />
+                                                    <stop offset="60%" stopColor="#e11d48" />
+                                                    <stop offset="100%" stopColor="#9f1239" />
                                                 </linearGradient>
                                             </defs>
                                         </svg>

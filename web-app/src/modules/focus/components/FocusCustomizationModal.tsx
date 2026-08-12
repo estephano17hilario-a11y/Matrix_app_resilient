@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { X, Sparkles, Lock, ArrowDown, ArrowUp, Palette } from 'lucide-react';
+import { X, Sparkles, Lock, ArrowDown, ArrowUp, Plus } from 'lucide-react';
 import { ParticleConfig } from './ParticleOverlay';
 import { cn } from '../../../utils/cn';
 
@@ -17,11 +17,17 @@ const PRESET_COLORS = [
   { name: 'Proyecto / Defecto', value: '' },
   { name: 'Cian Neón', value: '#06b6d4' },
   { name: 'Azul Nieve', value: '#93c5fd' },
+  { name: 'Azul Eléctrico', value: '#3b82f6' },
   { name: 'Esmeralda', value: '#10b981' },
-  { name: 'Fucsia', value: '#ec4899' },
+  { name: 'Verde Menta', value: '#34d399' },
+  { name: 'Fucsia Neón', value: '#ec4899' },
+  { name: 'Rosa Coral', value: '#f43f5e' },
   { name: 'Fuego Naranja', value: '#f97316' },
   { name: 'Dorado LUX', value: '#eab308' },
-  { name: 'Violeta Místico', value: '#a855f7' }
+  { name: 'Violeta Místico', value: '#a855f7' },
+  { name: 'Púrpura Neón', value: '#8b5cf6' },
+  { name: 'Rojo Carmesí', value: '#ef4444' },
+  { name: 'Blanco Puro', value: '#ffffff' }
 ];
 
 export const FocusCustomizationModal: React.FC<FocusCustomizationModalProps> = React.memo(({
@@ -41,6 +47,9 @@ export const FocusCustomizationModal: React.FC<FocusCustomizationModalProps> = R
     }
     onChangeConfig(updater(config));
   };
+
+  const showFocus = config.trigger === 'FOCUS_ONLY' || config.trigger === 'BOTH';
+  const showBreak = config.trigger === 'BREAK_ONLY' || config.trigger === 'BOTH';
 
   return (
     <div className="fixed inset-0 z-[10003] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
@@ -128,117 +137,141 @@ export const FocusCustomizationModal: React.FC<FocusCustomizationModalProps> = R
                   </div>
                 </div>
 
-                {/* Focus Particles Section */}
-                <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-extrabold text-cyan-300 flex items-center gap-1">
-                      <span>🍅</span> Modo Enfoque
-                    </span>
-                    {!isPro && <Lock size={10} className="text-amber-400" />}
-                  </div>
+                {/* Focus Particles Section - Conditionally rendered */}
+                {showFocus && (
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-2 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-extrabold text-cyan-300 flex items-center gap-1">
+                        <span>🍅</span> Modo Enfoque
+                      </span>
+                      {!isPro && <Lock size={10} className="text-amber-400" />}
+                    </div>
 
-                  {/* Direction */}
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleProFeature(prev => ({ ...prev, focusDirection: 'FALLING' }))}
-                      className={cn(
-                        "py-1.5 px-2 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1 transition-all",
-                        (config.focusDirection || 'FALLING') === 'FALLING' ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40" : "bg-white/5 text-white/50 border-white/5"
-                      )}
-                    >
-                      <ArrowDown size={12} />
-                      <span>Cayendo ❄️</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleProFeature(prev => ({ ...prev, focusDirection: 'RISING' }))}
-                      className={cn(
-                        "py-1.5 px-2 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1 transition-all",
-                        config.focusDirection === 'RISING' ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40" : "bg-white/5 text-white/50 border-white/5"
-                      )}
-                    >
-                      <ArrowUp size={12} />
-                      <span>Subiendo ✨</span>
-                    </button>
-                  </div>
+                    {/* Direction */}
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleProFeature(prev => ({ ...prev, focusDirection: 'FALLING' }))}
+                        className={cn(
+                          "py-1.5 px-2 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1 transition-all",
+                          (config.focusDirection || 'FALLING') === 'FALLING' ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40" : "bg-white/5 text-white/50 border-white/5"
+                        )}
+                      >
+                        <ArrowDown size={12} />
+                        <span>Cayendo ❄️</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleProFeature(prev => ({ ...prev, focusDirection: 'RISING' }))}
+                        className={cn(
+                          "py-1.5 px-2 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1 transition-all",
+                          config.focusDirection === 'RISING' ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40" : "bg-white/5 text-white/50 border-white/5"
+                        )}
+                      >
+                        <ArrowUp size={12} />
+                        <span>Subiendo ✨</span>
+                      </button>
+                    </div>
 
-                  {/* Color presets */}
-                  <div className="space-y-1 pt-1">
-                    <label className="text-[9px] font-bold text-white/40 uppercase tracking-wider block">Color de Partículas</label>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {PRESET_COLORS.map(c => (
-                        <button
-                          key={c.name}
-                          type="button"
-                          onClick={() => handleToggleProFeature(prev => ({ ...prev, focusColor: c.value }))}
-                          className={cn(
-                            "w-5 h-5 rounded-full border transition-transform relative",
-                            (config.focusColor || '') === c.value ? "scale-125 border-white shadow-md" : "border-white/20 opacity-70 hover:opacity-100"
-                          )}
-                          style={{ backgroundColor: c.value || '#3b82f6' }}
-                          title={c.name}
-                        />
-                      ))}
+                    {/* Color presets & Custom Color Picker */}
+                    <div className="space-y-1 pt-1">
+                      <label className="text-[9px] font-bold text-white/40 uppercase tracking-wider block">Color de Partículas</label>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {PRESET_COLORS.map(c => (
+                          <button
+                            key={c.name}
+                            type="button"
+                            onClick={() => handleToggleProFeature(prev => ({ ...prev, focusColor: c.value }))}
+                            className={cn(
+                              "w-5 h-5 rounded-full border transition-transform relative shrink-0",
+                              (config.focusColor || '') === c.value ? "scale-125 border-white shadow-md" : "border-white/20 opacity-70 hover:opacity-100"
+                            )}
+                            style={{ backgroundColor: c.value || '#3b82f6' }}
+                            title={c.name}
+                          />
+                        ))}
+                        {/* Custom Color Input Button */}
+                        <label className="w-5 h-5 rounded-full border border-white/30 bg-gradient-to-tr from-red-500 via-green-500 via-blue-500 to-yellow-500 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform relative shrink-0" title="Personalizado">
+                          <input 
+                            type="color" 
+                            value={config.focusColor || '#3b82f6'} 
+                            onChange={(e) => handleToggleProFeature(prev => ({ ...prev, focusColor: e.target.value }))}
+                            className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                          />
+                          <Plus size={10} className="text-white drop-shadow-sm pointer-events-none" />
+                        </label>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* Break Particles Section */}
-                <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-extrabold text-blue-300 flex items-center gap-1">
-                      <span>☕</span> Modo Descanso
-                    </span>
-                    {!isPro && <Lock size={10} className="text-amber-400" />}
-                  </div>
+                {/* Break Particles Section - Conditionally rendered */}
+                {showBreak && (
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-2 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-extrabold text-blue-300 flex items-center gap-1">
+                        <span>☕</span> Modo Descanso
+                      </span>
+                      {!isPro && <Lock size={10} className="text-amber-400" />}
+                    </div>
 
-                  {/* Direction */}
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleProFeature(prev => ({ ...prev, breakDirection: 'FALLING' }))}
-                      className={cn(
-                        "py-1.5 px-2 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1 transition-all",
-                        (config.breakDirection || 'FALLING') === 'FALLING' ? "bg-blue-500/20 text-blue-300 border-blue-500/40" : "bg-white/5 text-white/50 border-white/5"
-                      )}
-                    >
-                      <ArrowDown size={12} />
-                      <span>Cayendo ❄️</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleProFeature(prev => ({ ...prev, breakDirection: 'RISING' }))}
-                      className={cn(
-                        "py-1.5 px-2 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1 transition-all",
-                        config.breakDirection === 'RISING' ? "bg-blue-500/20 text-blue-300 border-blue-500/40" : "bg-white/5 text-white/50 border-white/5"
-                      )}
-                    >
-                      <ArrowUp size={12} />
-                      <span>Subiendo ✨</span>
-                    </button>
-                  </div>
+                    {/* Direction */}
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleProFeature(prev => ({ ...prev, breakDirection: 'FALLING' }))}
+                        className={cn(
+                          "py-1.5 px-2 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1 transition-all",
+                          (config.breakDirection || 'FALLING') === 'FALLING' ? "bg-blue-500/20 text-blue-300 border-blue-500/40" : "bg-white/5 text-white/50 border-white/5"
+                        )}
+                      >
+                        <ArrowDown size={12} />
+                        <span>Cayendo ❄️</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleProFeature(prev => ({ ...prev, breakDirection: 'RISING' }))}
+                        className={cn(
+                          "py-1.5 px-2 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1 transition-all",
+                          config.breakDirection === 'RISING' ? "bg-blue-500/20 text-blue-300 border-blue-500/40" : "bg-white/5 text-white/50 border-white/5"
+                        )}
+                      >
+                        <ArrowUp size={12} />
+                        <span>Subiendo ✨</span>
+                      </button>
+                    </div>
 
-                  {/* Color presets */}
-                  <div className="space-y-1 pt-1">
-                    <label className="text-[9px] font-bold text-white/40 uppercase tracking-wider block">Color de Partículas</label>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {PRESET_COLORS.map(c => (
-                        <button
-                          key={c.name}
-                          type="button"
-                          onClick={() => handleToggleProFeature(prev => ({ ...prev, breakColor: c.value }))}
-                          className={cn(
-                            "w-5 h-5 rounded-full border transition-transform relative",
-                            (config.breakColor || '') === c.value ? "scale-125 border-white shadow-md" : "border-white/20 opacity-70 hover:opacity-100"
-                          )}
-                          style={{ backgroundColor: c.value || '#93c5fd' }}
-                          title={c.name}
-                        />
-                      ))}
+                    {/* Color presets & Custom Color Picker */}
+                    <div className="space-y-1 pt-1">
+                      <label className="text-[9px] font-bold text-white/40 uppercase tracking-wider block">Color de Partículas</label>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {PRESET_COLORS.map(c => (
+                          <button
+                            key={c.name}
+                            type="button"
+                            onClick={() => handleToggleProFeature(prev => ({ ...prev, breakColor: c.value }))}
+                            className={cn(
+                              "w-5 h-5 rounded-full border transition-transform relative shrink-0",
+                              (config.breakColor || '') === c.value ? "scale-125 border-white shadow-md" : "border-white/20 opacity-70 hover:opacity-100"
+                            )}
+                            style={{ backgroundColor: c.value || '#93c5fd' }}
+                            title={c.name}
+                          />
+                        ))}
+                        {/* Custom Color Input Button */}
+                        <label className="w-5 h-5 rounded-full border border-white/30 bg-gradient-to-tr from-red-500 via-green-500 via-blue-500 to-yellow-500 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform relative shrink-0" title="Personalizado">
+                          <input 
+                            type="color" 
+                            value={config.breakColor || '#93c5fd'} 
+                            onChange={(e) => handleToggleProFeature(prev => ({ ...prev, breakColor: e.target.value }))}
+                            className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                          />
+                          <Plus size={10} className="text-white drop-shadow-sm pointer-events-none" />
+                        </label>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>
