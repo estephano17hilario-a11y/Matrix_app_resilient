@@ -18,6 +18,7 @@ import { TourLightbulb } from '../../components/TourLightbulb';
 import { toLocalISOString, getDaysInMonth, calculateStreak, parseLocalDate, getWeekStartDay } from '../../utils/dateUtils';
 import { useNotesLogic } from './hooks/useNotesLogic';
 import { DynamicIcon } from '../../components/DynamicIcon';
+import { useAuth } from '@/context/AuthContext';
 import { persistenceService } from '@/services/persistenceService';
 import { IconPicker } from '../dashboard/components/IconPicker';
 

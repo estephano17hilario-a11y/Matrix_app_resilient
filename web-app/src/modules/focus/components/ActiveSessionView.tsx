@@ -580,6 +580,23 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
     changeStep
   } = useFocusSession(project, handleSessionEnd, getTraitEmoji(project.attribute));
 
+  const [isCustomDurationOverride, setIsCustomDurationOverride] = useState(false);
+
+  useEffect(() => {
+    setIsCustomDurationOverride(false);
+  }, [project.id, currentStepIdx]);
+
+  const handleReturnToRoutine = useCallback(() => {
+    setIsCustomDurationOverride(false);
+    const currentStep = routineSteps && routineSteps[currentStepIdx] ? routineSteps[currentStepIdx] : (routineSteps && routineSteps[0] ? routineSteps[0] : null);
+    if (currentStep) {
+      const stepSeconds = currentStep.duration * 60;
+      setTimeLeft(stepSeconds);
+      setTotalDuration(stepSeconds);
+      sessionRecordedRef.current = false;
+    }
+  }, [routineSteps, currentStepIdx, setTimeLeft, setTotalDuration]);
+
   // Re-check scroll indicator whenever routine steps change while in ROADMAP view
   useEffect(() => {
     if (activeCircleView === 'ROADMAP') {
@@ -603,16 +620,22 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  }
  }, [onAddManualSession, isActive, onExit]);
 
- const handleTimeSubmit = () => {
- const minutes = parseInt(editTimeValue);
- if (!isNaN(minutes) && minutes > 0) {
- const newSeconds = minutes * 60;
- setTimeLeft(newSeconds);
- setTotalDuration(newSeconds);
- sessionRecordedRef.current = false;
- }
- setIsEditingTime(false);
- };
+  const handleTimeSubmit = () => {
+    const minutes = parseInt(editTimeValue);
+    if (!isNaN(minutes) && minutes > 0) {
+      const newSeconds = minutes * 60;
+      setTimeLeft(newSeconds);
+      setTotalDuration(newSeconds);
+      sessionRecordedRef.current = false;
+      const expectedRoutineSeconds = routineSteps && routineSteps[currentStepIdx] ? routineSteps[currentStepIdx].duration * 60 : null;
+      if (expectedRoutineSeconds !== null && newSeconds !== expectedRoutineSeconds) {
+        setIsCustomDurationOverride(true);
+      } else {
+        setIsCustomDurationOverride(false);
+      }
+    }
+    setIsEditingTime(false);
+  };
 
  const handleTimeKeyDown = (e: React.KeyboardEvent) => {
  if (e.key === 'Enter') {
@@ -1005,9 +1028,20 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
         ) : (
           <>
             {routineSteps && routineSteps.length > 0 && (
+              !isCustomDurationOverride ? (
                 <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest leading-none mb-3">
                     {routineSteps[currentStepIdx]?.type === 'FOCUS' ? '🍅 Pomodoro' : '☕ Descanso'} ({currentStepIdx + 1}/{routineSteps.length})
                 </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleReturnToRoutine}
+                  className="px-3.5 py-1.5 rounded-full bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 text-xs font-extrabold flex items-center gap-1.5 transition-all shadow-md active:scale-95 mb-3 cursor-pointer"
+                >
+                  <span>🔄</span>
+                  <span>{i18n.language === 'es' ? 'Volver a la rutina' : 'Return to routine'}</span>
+                </button>
+              )
             )}
             {isEditingTime ? (
               <div className="flex items-center justify-center relative">
@@ -1054,7 +1088,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
   })()}
 
   {/* Cambiar Vista toggle button placed in the chord of the circle */}
-  {routineSteps && routineSteps.length > 0 && mode === 'POMO' && (
+  {routineSteps && routineSteps.length > 0 && mode === 'POMO' && !isCustomDurationOverride && (
     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
       <button
         type="button"

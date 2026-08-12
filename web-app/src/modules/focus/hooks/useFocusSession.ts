@@ -71,9 +71,11 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
             }
         }
 
-        // Priority 3: Fallback default project routine if current day matches default active days
-        if (proj.focusRoutineDays && proj.focusRoutineDays.includes(weekdayIndex)) {
-            return proj.focusRoutine || [];
+        // Priority 3: Fallback default project routine if current day matches default active days (or if routine exists)
+        if (proj.focusRoutine && proj.focusRoutine.length > 0) {
+            if (!proj.focusRoutineDays || proj.focusRoutineDays.length === 0 || proj.focusRoutineDays.includes(weekdayIndex)) {
+                return proj.focusRoutine;
+            }
         }
 
         return [];
