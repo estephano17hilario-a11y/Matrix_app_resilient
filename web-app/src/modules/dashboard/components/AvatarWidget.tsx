@@ -6,6 +6,7 @@ import { GoldCounter } from '@/modules/store/components/GoldCounter';
 import { getAvatarPath, getAvatarConfig } from '@/config/avatars';
 import { calculateXpForLevel } from '@/utils/leveling';
 import { StreakStatusModal } from './StreakStatusModal';
+import { HpInfoModal } from './HpInfoModal';
 import { useTranslation } from 'react-i18next';
 
 interface AvatarWidgetProps {
@@ -174,6 +175,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
     const [hasRivalsUnread, setHasRivalsUnread] = React.useState(() => {
         try { return localStorage.getItem('matrix_rivals_opened_date') !== todayDateStr; } catch (e) { return true; }
     });
+    const [showHpModal, setShowHpModal] = useState(false);
 
     React.useEffect(() => {
         const handleFeedRead = () => {
@@ -399,7 +401,14 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
             {/* BARS AND QUICK ACTIONS */}
             <div className="flex items-center justify-between gap-3 w-full">
                 <div className="flex flex-col gap-1.5 flex-1 min-w-0 pr-2">
-                     <div id="health-bar-container" className="w-full">
+                     <div 
+                        id="health-bar-container" 
+                        className="w-full cursor-pointer hover:opacity-90 active:scale-98 transition-all"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowHpModal(true);
+                        }}
+                     >
                         <MiniLiquidBar value={health} max={maxHealth || 100} color="health" icon={Heart} />
                      </div>
                      <div id="xp-bar-container" data-tour="xp-counter" className="w-full">
@@ -425,6 +434,12 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
             questsTotalToday={questsTotalToday}
         />
     )}
+    <HpInfoModal
+        isOpen={showHpModal}
+        onClose={() => setShowHpModal(false)}
+        currentHp={health}
+        maxHp={maxHealth || 100}
+    />
     </>
   );
 });

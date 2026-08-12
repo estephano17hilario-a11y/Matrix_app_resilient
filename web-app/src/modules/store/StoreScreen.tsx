@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useLux } from '@/context/LuxContext';
 import { useEconomy } from '@/context/EconomyContext';
 import { StoreCard } from './components/StoreCard';
+import { StreakRecoveryModal } from './components/StreakRecoveryModal';
 import { StoreItem, InventoryItem } from '../../services/economyService';
 import confetti from 'canvas-confetti';
 import { 
@@ -265,7 +266,7 @@ interface StoreScreenProps {
 }
 
 const StoreContent = ({ }: StoreScreenProps) => {
-  const { user } = useLux();
+  const { user, updateLuxLocally } = useLux();
   const { t } = useTranslation();
   const { purchase, storeItems, isTransactionPending, inventory, consume } = useEconomy();
   const [activeFilter, setActiveFilter] = useState<string>('all');
@@ -275,6 +276,7 @@ const StoreContent = ({ }: StoreScreenProps) => {
   const [successItem, setSuccessItem] = useState<StoreItem | null>(null);
   const [consumingItemId, setConsumingItemId] = useState<string | null>(null);
   const [isConsuming, setIsConsuming] = useState<boolean>(false);
+  const [isStreakModalOpen, setIsStreakModalOpen] = useState<boolean>(false);
   
   // Generate Filters based on items
   // We want: All, Power Ups, Themes
@@ -294,7 +296,73 @@ const StoreContent = ({ }: StoreScreenProps) => {
   }, [storeItems, activeFilter]);
 
   const initiatePurchase = (item: StoreItem) => {
+      if (item.id === 'redemption_token') {
+          setIsStreakModalOpen(true);
+          return;
+      }
       setItemToBuy(item);
+  };
+
+  const handleRestoreStreakAction = async (
+      category: 'HUD' | 'FLAME' | 'HABIT' | 'PROJECT',
+      targetId?: string,
+      cost: number = 1800,
+      streakValue: number = 1
+  ): Promise<boolean> => {
+      if (!user || (user.stats?.gold || 0) < cost) {
+          return false;
+      }
+
+      const currentGold = (user.stats?.gold || 0) - cost;
+
+      if (category === 'HUD') {
+          const restoredStreak = streakValue > 0 ? streakValue : ((user.stats as any)?.previousStreak || 1);
+          updateLuxLocally({
+              stats: {
+                  ...user.stats,
+                  gold: currentGold,
+                  streak: restoredStreak,
+                  previousStreak: 0
+              }
+          });
+      } else if (category === 'FLAME') {
+          const restoredStreak = streakValue > 0 ? streakValue : ((user.stats as any)?.previousFlameStreak || 1);
+          updateLuxLocally({
+              stats: {
+                  ...user.stats,
+                  gold: currentGold,
+                  flameStreak: restoredStreak,
+                  previousFlameStreak: 0
+              }
+          });
+      } else if (category === 'HABIT' && targetId) {
+          const updatedHabits = (user.habits || []).map(h => {
+              if (h.id === targetId) {
+                  const restored = (h as any).previousStreak || streakValue || 1;
+                  return { ...h, streak: restored, previousStreak: 0 };
+              }
+              return h;
+          });
+          updateLuxLocally({
+              stats: { ...user.stats, gold: currentGold },
+              habits: updatedHabits
+          });
+      } else if (category === 'PROJECT' && targetId) {
+          const updatedProjects = (user.projects || []).map(p => {
+              if (p.id === targetId) {
+                  const restored = (p as any).previousStreak || streakValue || 1;
+                  return { ...p, streak: restored, previousStreak: 0 };
+              }
+              return p;
+          });
+          updateLuxLocally({
+              stats: { ...user.stats, gold: currentGold },
+              projects: updatedProjects
+          });
+      }
+
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+      return true;
   };
 
   const confirmPurchase = async () => {
@@ -373,6 +441,17 @@ const StoreContent = ({ }: StoreScreenProps) => {
                 setActiveFilter('inventory');
                 setSuccessItem(null);
             }}
+       />
+
+       {/* Streak Recovery Interactive Modal */}
+       <StreakRecoveryModal
+            isOpen={isStreakModalOpen}
+            onClose={() => setIsStreakModalOpen(false)}
+            userGold={user?.stats?.gold || 0}
+            userStats={user?.stats || {}}
+            habits={user?.habits || []}
+            projects={user?.projects || []}
+            onRestore={handleRestoreStreakAction}
        />
 
       <div className="relative z-10 w-full max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto px-4 pt-6">

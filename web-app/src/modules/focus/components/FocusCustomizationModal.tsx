@@ -68,7 +68,7 @@ export const FocusCustomizationModal: React.FC<FocusCustomizationModalProps> = R
             <div>
               <h3 className="text-sm font-black text-white leading-none flex items-center gap-1.5">
                 Personalización LUX
-                <span className="text-[9px] font-extrabold bg-gradient-to-r from-amber-400 to-yellow-500 text-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">PRO</span>
+                <span className="text-[9px] font-extrabold bg-gradient-to-r from-amber-400 to-yellow-500 text-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">DELUX</span>
               </h3>
               <p className="text-[10px] text-white/50 mt-0.5">Atmósfera, partículas y temporizador</p>
             </div>

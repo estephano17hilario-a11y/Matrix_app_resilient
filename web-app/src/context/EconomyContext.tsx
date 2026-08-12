@@ -23,40 +23,20 @@ const STORE_ITEMS: StoreItem[] = [
     id: 'potion_hp_small',
     name: 'store.items.potion_hp_small.name',
     description: 'store.items.potion_hp_small.desc',
-    price: 500,
+    price: 1500,
     category: 'power_up',
     iconName: 'Zap',
-    effect: { type: 'heal', value: 10 }
-  },
-  {
-    id: 'potion_xp_restore',
-    name: 'store.items.potion_xp_restore.name',
-    description: 'store.items.potion_xp_restore.desc',
-    price: 400,
-    category: 'power_up',
-    iconName: 'Brain',
-    effect: { type: 'xp_boost', value: 100 }
+    effect: { type: 'heal', value: 5 }
   },
   {
     id: 'redemption_token',
     name: 'store.items.redemption_token.name',
     description: 'store.items.redemption_token.desc',
-    price: 5000,
+    price: 1800,
     category: 'power_up',
     iconName: 'ShieldAlert',
     effect: { type: 'restore_streak', value: 1 }
-  },
-  {
-    id: 'freeze_streak',
-    name: 'store.items.freeze_streak.name',
-    description: 'store.items.freeze_streak.desc',
-    price: 1000,
-    category: 'power_up',
-    iconName: 'Clock',
-    effect: { type: 'freeze_streak', value: 1, duration: 24 }
-  },
-
-  // --- THEMES (TEMAS) REMOVED ---
+  }
 ];
 
 export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {

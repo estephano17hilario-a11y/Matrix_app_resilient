@@ -42,7 +42,7 @@ const useCountdown = (targetDate: number) => {
 
 const CountdownBanner = () => {
  const { t } = useTranslation();
-  const targetDate = new Date('2026-08-31T23:59:59').getTime();
+  const targetDate = new Date('2026-10-14T23:59:59').getTime();
  const { days, hours, minutes, seconds } = useCountdown(targetDate);
 
  return (
@@ -53,7 +53,7 @@ const CountdownBanner = () => {
  className="mt-[20rem] sm:mt-[22rem] md:mt-[24rem] mb-4 md:mb-6 flex flex-col items-center justify-center gap-3 w-full "
  >
  <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(239,68,68,0.15)]">
-  <span className="animate-pulse">🔥</span> {t('pro.offerEnds', "LA OFERTA TERMINA EL 31 DE AGOSTO")}
+  <span className="animate-pulse">🔥</span> {t('pro.offerEnds', "LA OFERTA TERMINA EL 14 DE OCTUBRE")}
  </div>
  <div className="flex gap-2 sm:gap-3 text-center justify-center items-center">
  <div className="bg-[#0a0014]/80 border border-white/10 rounded-xl p-2 sm:p-3 min-w-[50px] sm:min-w-[60px] shadow-lg">

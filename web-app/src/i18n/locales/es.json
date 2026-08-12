@@ -526,20 +526,12 @@
     "emptyCategory": "No hay items en esta categoría",
     "items": {
       "potion_hp_small": {
-        "name": "Kit de Reparación Neural",
-        "desc": "Restaura 10 HP al instante. Esencial para el mantenimiento del sistema."
-      },
-      "potion_xp_restore": {
-        "name": "Recuperación de Memoria",
-        "desc": "Restaura XP perdida por inactividad o penalizaciones."
+        "name": "Restauración de Vida (+5 HP)",
+        "desc": "Restaura 5 HP al instante por 1,500 monedas de oro."
       },
       "redemption_token": {
         "name": "Restauración de Racha",
-        "desc": "Repara una racha rota. Una segunda oportunidad para la perfección."
-      },
-      "freeze_streak": {
-        "name": "Congelar Tiempo",
-        "desc": "Congela tu racha por 24 horas. Úsalo antes de un día ocupado."
+        "desc": "Reactiva tu última racha perdida (HUD: 5000g, Llama: 3000g, Hábito/Proyecto: 1800g). Válido dentro de los 3 días posteriores a perderla."
       },
       "theme_neon_purple": {
         "name": "Protocolo Nébula",
@@ -1357,7 +1349,7 @@
     "min": "Min",
     "sec": "Seg",
     "backToBenefits": "Volver a los beneficios",
-    "offerEnds": "LA OFERTA TERMINA EL 31 DE AGOSTO",
+    "offerEnds": "LA OFERTA TERMINA EL 14 DE OCTUBRE",
     "unleashYour": "Desata tu",
     "truePower": "Verdadero Poder",
     "elevateDesc": "Eleva tu existencia a un nivel cósmico. Sin límites, sin restricciones, solo rendimiento puro.",

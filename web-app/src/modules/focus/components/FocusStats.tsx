@@ -595,34 +595,6 @@ export const FocusStats = React.memo(({
                                             </div>
                                             {!isPro && <Lock size={10} className="text-yellow-400/80" />}
                                         </button>
-
-                                        <div className="h-px bg-white/10 my-0.5" />
-
-                                        <div className="text-[9px] font-bold text-white/40 uppercase px-2 pt-0.5">Estilo de Barras</div>
-                                        <button 
-                                            onClick={() => { 
-                                                setBarChartStyle('gradient'); 
-                                                localStorage.setItem('matrix_bar_chart_style', 'gradient');
-                                                window.dispatchEvent(new Event('matrix_bar_style_change'));
-                                                setActiveDropdown(null); 
-                                            }}
-                                            className={`w-full px-2 py-1.5 rounded-lg flex items-center justify-between gap-2 transition-all ${barChartStyle === 'gradient' ? 'bg-white text-black shadow-md' : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'}`}
-                                        >
-                                            <span className="text-[10px] font-bold">✨ Degradado</span>
-                                            {barChartStyle === 'gradient' && <Check size={10} className="text-black" />}
-                                        </button>
-                                        <button 
-                                            onClick={() => { 
-                                                setBarChartStyle('solid'); 
-                                                localStorage.setItem('matrix_bar_chart_style', 'solid');
-                                                window.dispatchEvent(new Event('matrix_bar_style_change'));
-                                                setActiveDropdown(null); 
-                                            }}
-                                            className={`w-full px-2 py-1.5 rounded-lg flex items-center justify-between gap-2 transition-all ${barChartStyle === 'solid' ? 'bg-white text-black shadow-md' : 'bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10'}`}
-                                        >
-                                            <span className="text-[10px] font-bold">⬛ Color Entero</span>
-                                            {barChartStyle === 'solid' && <Check size={10} className="text-black" />}
-                                        </button>
                                     </div>
                                 </motion.div>
                             )}
