@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { X, Target, Plus, Calendar, Clock, Zap, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
+import { X, Target, Plus, Calendar, Clock, Trash2, Zap, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isToday, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -30,6 +30,7 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, attri
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
     const [timeframe, setTimeframe] = useState<Timeframe>('MONTH');
     const [periodOffset, setPeriodOffset] = useState<number>(0);
+    const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
 
     // Compute active target date base on timeframe & offset
     const activePeriodRange = useMemo(() => {
@@ -102,19 +103,6 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, attri
         
         setMode('LIST');
         setSelectedSessionId(null);
-    };
-
-    const handleDelete = (sessionId: string) => {
-        const confirmMsg = i18n.language === 'es' ? '¿Eliminar esta sesión?' : 'Delete this session?';
-        if (confirm(confirmMsg)) {
-            if (onDeleteSession) {
-                onDeleteSession(project.id, sessionId);
-            }
-            if (mode === 'EDIT') {
-                setMode('LIST');
-                setSelectedSessionId(null);
-            }
-        }
     };
 
     return (
@@ -215,7 +203,6 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, attri
                                 attribute={attribute}
                                 onSave={handleSaveSession}
                                 onCancel={() => { setMode('LIST'); setSelectedSessionId(null); }}
-                                onDelete={mode === 'EDIT' && selectedSessionId ? () => handleDelete(selectedSessionId) : undefined}
                                 isEditing={mode === 'EDIT'}
                             />
                         ) : (
@@ -306,6 +293,19 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, attri
                                                         <div className="px-3 py-1.5 rounded-xl bg-white/5 text-xs font-mono font-bold text-white border border-white/10">
                                                             {Math.floor(session.duration / 60)}m
                                                         </div>
+                                                        {isEditable && onDeleteSession && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setDeletingSessionId(session.id);
+                                                                }}
+                                                                className="w-8 h-8 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 flex items-center justify-center transition-colors cursor-pointer"
+                                                                title="Eliminar registro"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </motion.div>
                                             );
@@ -341,6 +341,52 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, attri
                     </AnimatePresence>
                 </div>
             </motion.div>
+            {/* Deletion Warning Modal */}
+            <AnimatePresence>
+                {deletingSessionId && (
+                    <div className="fixed inset-0 z-[300] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="w-full max-w-sm bg-[#0f0f18] border border-rose-500/30 rounded-3xl p-6 shadow-2xl space-y-4 text-center text-white"
+                        >
+                            <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto border border-rose-500/40">
+                                <Trash2 size={22} />
+                            </div>
+                            <div className="space-y-1.5">
+                                <h3 className="text-base font-extrabold text-white">⚠️ ¿Eliminar Registro?</h3>
+                                <p className="text-xs text-white/70">
+                                    Eliminar este registro restará 1 pomodoro completado a tu rutina de hoy y actualizará tus estadísticas.
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setDeletingSessionId(null)}
+                                    className="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/10 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const sid = deletingSessionId;
+                                        setDeletingSessionId(null);
+                                        if (onDeleteSession) {
+                                            onDeleteSession(project.id, sid);
+                                            toast.success("Registro eliminado");
+                                        }
+                                    }}
+                                    className="flex-1 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-xs transition-colors shadow-lg shadow-rose-500/20"
+                                >
+                                    Sí, eliminar
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 });

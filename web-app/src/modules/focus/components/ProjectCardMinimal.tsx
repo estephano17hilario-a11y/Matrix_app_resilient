@@ -177,24 +177,18 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
                             </span>
                         )}
                         {focusStepsCount > 0 && (
-                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 shrink-0">
-                                <span className="text-[10px] font-black text-red-400 uppercase tracking-wider flex items-center gap-0.5">
-                                    <span>🍅</span>
-                                    <span className="font-mono text-white ml-0.5">{completedFocusCountToday}/{focusStepsCount}</span>
-                                </span>
-                                <div className="flex items-center gap-0.5">
-                                    {Array.from({ length: focusStepsCount }).map((_, idx) => {
-                                        const isDone = idx < completedFocusCountToday;
-                                        return (
-                                            <svg key={idx} width="11" height="11" viewBox="0 0 10 10" className={cn("transition-all duration-300", isDone ? "drop-shadow-[0_0_4px_rgba(239,68,68,0.7)] scale-110" : "opacity-30")}>
-                                                <path d="M5 2.5 C5 2.5 4.2 0.8 3 1 C3 1 4 2 5 2.5Z" fill={isDone ? "#4ade80" : "#6b7280"} />
-                                                <path d="M5 2.5 C5 2.5 5.8 0.8 7 1 C7 1 6 2 5 2.5Z" fill={isDone ? "#22c55e" : "#4b5563"} />
-                                                <ellipse cx="5" cy="6.5" rx="4" ry="4" fill={isDone ? "#ef4444" : "#4b5563"} />
-                                                <ellipse cx="3.5" cy="4.5" rx="1" ry="0.7" fill={isDone ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.05)"} transform="rotate(-20 3.5 4.5)" />
-                                            </svg>
-                                        );
-                                    })}
-                                </div>
+                            <div className="flex items-center gap-1 shrink-0 ml-1">
+                                {Array.from({ length: focusStepsCount }).map((_, idx) => {
+                                    const isDone = idx < completedFocusCountToday;
+                                    return (
+                                        <svg key={idx} width="15" height="15" viewBox="0 0 10 10" className={cn("transition-all duration-300", isDone ? "drop-shadow-[0_0_6px_rgba(239,68,68,0.8)] scale-110" : "opacity-30")}>
+                                            <path d="M5 2.5 C5 2.5 4.2 0.8 3 1 C3 1 4 2 5 2.5Z" fill={isDone ? "#4ade80" : "#6b7280"} />
+                                            <path d="M5 2.5 C5 2.5 5.8 0.8 7 1 C7 1 6 2 5 2.5Z" fill={isDone ? "#22c55e" : "#4b5563"} />
+                                            <ellipse cx="5" cy="6.5" rx="4" ry="4" fill={isDone ? "#ef4444" : "#4b5563"} />
+                                            <ellipse cx="3.5" cy="4.5" rx="1" ry="0.7" fill={isDone ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.05)"} transform="rotate(-20 3.5 4.5)" />
+                                        </svg>
+                                    );
+                                })}
                             </div>
                         )}
                     </h3>

@@ -1,6 +1,7 @@
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { Pause, Play, StopCircle, Volume2, ChevronDown, History, BellOff, Battery, Check, Coins, Zap, Clock } from 'lucide-react';
+import { Pause, Play, StopCircle, Volume2, ChevronDown, History, BellOff, Battery, Check, Coins, Zap, Clock, SlidersHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ParticleOverlay, ParticleConfig, DEFAULT_PARTICLE_CONFIG } from './ParticleOverlay';
+import { FocusCustomizationModal } from './FocusCustomizationModal';
 import { Project, Attribute, SubTrait, Quest } from '../../../types';
 import { useFocusSession } from '../hooks/useFocusSession';
 import { SessionHistoryModal } from './SessionHistoryModal';
@@ -499,6 +500,21 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
     subTraitId?: string;
   } | null>(null);
   const [editedFourHourMinutes, setEditedFourHourMinutes] = useState<number>(240);
+
+  const [particleConfig, setParticleConfig] = useState<ParticleConfig>(() => {
+    try {
+      const saved = localStorage.getItem('matrix_particle_config');
+      return saved ? JSON.parse(saved) : DEFAULT_PARTICLE_CONFIG;
+    } catch {
+      return DEFAULT_PARTICLE_CONFIG;
+    }
+  });
+  const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);
+
+  const handleUpdateParticleConfig = (newConfig: ParticleConfig) => {
+    setParticleConfig(newConfig);
+    localStorage.setItem('matrix_particle_config', JSON.stringify(newConfig));
+  };
 
   const finalizeSessionEnd = useCallback((duration: number, mode: 'POMO' | 'STOPWATCH', isManualStopOrSubTrait?: boolean | string, subTraitId?: string) => {
     const safeDuration = Number.isFinite(duration) ? Math.max(0, Math.floor(duration)) : 0;
@@ -1162,6 +1178,25 @@ toggleTimer();
 
  {/* Controls Bar */}
  <div className="w-full px-8 pt-8 pb-20 flex items-center justify-center gap-10 relative z-20 shrink-0">
+             {/* Header Left Actions */}
+             <div className="flex items-center gap-2">
+                 <button
+                     onClick={onExit}
+                     className="w-9 h-9 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 text-white/70 hover:text-white flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+                     title="Salir"
+                 >
+                     <ChevronDown size={20} />
+                 </button>
+
+                 <button
+                     type="button"
+                     onClick={() => setIsCustomizationOpen(true)}
+                     className="w-9 h-9 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 text-cyan-400 hover:text-cyan-300 flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
+                     title="Personalización LUX"
+                 >
+                     <SlidersHorizontal size={18} />
+                 </button>
+             </div>
  <motion.button 
  whileHover={{ scale: 1.1 }}
  whileTap={{ scale: 0.9 }}
@@ -1326,7 +1361,24 @@ toggleTimer();
   variant="warning"
   />
 
-  {/* 4-Hour Session Confirmation Prompt Modal */}
+  {/* Particle & Snow Overlay */}
+  <ParticleOverlay
+    config={particleConfig}
+    isBreak={routineSteps?.[currentStepIdx]?.type === 'BREAK'}
+    isActive={isActive}
+    color={themeColor}
+  />
+
+  {/* LUX Focus Customization Modal */}
+  <FocusCustomizationModal
+    isOpen={isCustomizationOpen}
+    onClose={() => setIsCustomizationOpen(false)}
+    config={particleConfig}
+    onChangeConfig={handleUpdateParticleConfig}
+    isPro={true}
+  />
+
+  {/* Deletion Warning / Confirmation Modals */}
   <AnimatePresence>
     {pendingFourHourSession && (
       <div className="fixed inset-0 z-[10005] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
