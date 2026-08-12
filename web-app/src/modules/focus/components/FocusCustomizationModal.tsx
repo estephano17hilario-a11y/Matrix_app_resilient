@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { X, Sparkles, Lock, ArrowDown, ArrowUp } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { X, Sparkles, Lock, ArrowDown, ArrowUp, Palette } from 'lucide-react';
 import { ParticleConfig } from './ParticleOverlay';
 import { cn } from '../../../utils/cn';
 
@@ -14,6 +13,17 @@ interface FocusCustomizationModalProps {
   onOpenPro?: () => void;
 }
 
+const PRESET_COLORS = [
+  { name: 'Proyecto / Defecto', value: '' },
+  { name: 'Cian Neón', value: '#06b6d4' },
+  { name: 'Azul Nieve', value: '#93c5fd' },
+  { name: 'Esmeralda', value: '#10b981' },
+  { name: 'Fucsia', value: '#ec4899' },
+  { name: 'Fuego Naranja', value: '#f97316' },
+  { name: 'Dorado LUX', value: '#eab308' },
+  { name: 'Violeta Místico', value: '#a855f7' }
+];
+
 export const FocusCustomizationModal: React.FC<FocusCustomizationModalProps> = React.memo(({
   isOpen,
   onClose,
@@ -22,8 +32,6 @@ export const FocusCustomizationModal: React.FC<FocusCustomizationModalProps> = R
   isPro = false,
   onOpenPro
 }) => {
-  const { t, i18n } = useTranslation();
-
   if (!isOpen) return null;
 
   const handleToggleProFeature = (updater: (prev: ParticleConfig) => ParticleConfig) => {
@@ -65,7 +73,7 @@ export const FocusCustomizationModal: React.FC<FocusCustomizationModalProps> = R
         </div>
 
         <div className="space-y-4 max-h-[65vh] overflow-y-auto custom-scrollbar pr-1">
-          {/* Particle Effects Switch */}
+          {/* Particle Effects Main Switch & Trigger */}
           <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 space-y-3">
             <div className="flex items-center justify-between">
               <div>
@@ -88,44 +96,15 @@ export const FocusCustomizationModal: React.FC<FocusCustomizationModalProps> = R
             </div>
 
             {config.enabled && (
-              <div className="space-y-2.5 pt-2 border-t border-white/5">
+              <div className="space-y-3 pt-2 border-t border-white/5">
+                {/* Cuándo Activar */}
                 <div>
-                  <label className="text-[9px] font-bold text-white/40 uppercase tracking-widest block mb-1">Dirección de Caída (LUX 👑)</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => onChangeConfig({ ...config, direction: 'FALLING' })}
-                      className={cn(
-                        "py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all",
-                        config.direction === 'FALLING' ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40" : "bg-white/5 text-white/60 border-white/5"
-                      )}
-                    >
-                      <ArrowDown size={14} />
-                      <span>Cayendo ❄️</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleToggleProFeature(prev => ({ ...prev, direction: 'RISING' }))}
-                      className={cn(
-                        "py-2 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all relative",
-                        config.direction === 'RISING' ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40" : "bg-white/5 text-white/60 border-white/5"
-                      )}
-                    >
-                      <ArrowUp size={14} />
-                      <span>Subiendo ✨</span>
-                      {!isPro && <Lock size={10} className="text-amber-400 absolute top-1 right-1" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[9px] font-bold text-white/40 uppercase tracking-widest block mb-1">Cuándo Activar (LUX 👑)</label>
+                  <label className="text-[9px] font-bold text-white/40 uppercase tracking-widest block mb-1.5">Cuándo Activar (LUX 👑)</label>
                   <div className="grid grid-cols-3 gap-1.5">
                     {[
                       { id: 'BREAK_ONLY', label: 'Solo Descanso' },
                       { id: 'FOCUS_ONLY', label: 'Solo Enfoque' },
-                      { id: 'ALWAYS', label: 'Siempre' }
+                      { id: 'BOTH', label: 'Ambos' }
                     ].map(item => (
                       <button
                         key={item.id}
@@ -146,6 +125,118 @@ export const FocusCustomizationModal: React.FC<FocusCustomizationModalProps> = R
                         {item.id !== 'BREAK_ONLY' && !isPro && <Lock size={9} className="text-amber-400 absolute top-0.5 right-0.5" />}
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                {/* Focus Particles Section */}
+                <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-extrabold text-cyan-300 flex items-center gap-1">
+                      <span>🍅</span> Modo Enfoque
+                    </span>
+                    {!isPro && <Lock size={10} className="text-amber-400" />}
+                  </div>
+
+                  {/* Direction */}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleProFeature(prev => ({ ...prev, focusDirection: 'FALLING' }))}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1 transition-all",
+                        (config.focusDirection || 'FALLING') === 'FALLING' ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40" : "bg-white/5 text-white/50 border-white/5"
+                      )}
+                    >
+                      <ArrowDown size={12} />
+                      <span>Cayendo ❄️</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleProFeature(prev => ({ ...prev, focusDirection: 'RISING' }))}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1 transition-all",
+                        config.focusDirection === 'RISING' ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40" : "bg-white/5 text-white/50 border-white/5"
+                      )}
+                    >
+                      <ArrowUp size={12} />
+                      <span>Subiendo ✨</span>
+                    </button>
+                  </div>
+
+                  {/* Color presets */}
+                  <div className="space-y-1 pt-1">
+                    <label className="text-[9px] font-bold text-white/40 uppercase tracking-wider block">Color de Partículas</label>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {PRESET_COLORS.map(c => (
+                        <button
+                          key={c.name}
+                          type="button"
+                          onClick={() => handleToggleProFeature(prev => ({ ...prev, focusColor: c.value }))}
+                          className={cn(
+                            "w-5 h-5 rounded-full border transition-transform relative",
+                            (config.focusColor || '') === c.value ? "scale-125 border-white shadow-md" : "border-white/20 opacity-70 hover:opacity-100"
+                          )}
+                          style={{ backgroundColor: c.value || '#3b82f6' }}
+                          title={c.name}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Break Particles Section */}
+                <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-extrabold text-blue-300 flex items-center gap-1">
+                      <span>☕</span> Modo Descanso
+                    </span>
+                    {!isPro && <Lock size={10} className="text-amber-400" />}
+                  </div>
+
+                  {/* Direction */}
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleProFeature(prev => ({ ...prev, breakDirection: 'FALLING' }))}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1 transition-all",
+                        (config.breakDirection || 'FALLING') === 'FALLING' ? "bg-blue-500/20 text-blue-300 border-blue-500/40" : "bg-white/5 text-white/50 border-white/5"
+                      )}
+                    >
+                      <ArrowDown size={12} />
+                      <span>Cayendo ❄️</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleProFeature(prev => ({ ...prev, breakDirection: 'RISING' }))}
+                      className={cn(
+                        "py-1.5 px-2 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1 transition-all",
+                        config.breakDirection === 'RISING' ? "bg-blue-500/20 text-blue-300 border-blue-500/40" : "bg-white/5 text-white/50 border-white/5"
+                      )}
+                    >
+                      <ArrowUp size={12} />
+                      <span>Subiendo ✨</span>
+                    </button>
+                  </div>
+
+                  {/* Color presets */}
+                  <div className="space-y-1 pt-1">
+                    <label className="text-[9px] font-bold text-white/40 uppercase tracking-wider block">Color de Partículas</label>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {PRESET_COLORS.map(c => (
+                        <button
+                          key={c.name}
+                          type="button"
+                          onClick={() => handleToggleProFeature(prev => ({ ...prev, breakColor: c.value }))}
+                          className={cn(
+                            "w-5 h-5 rounded-full border transition-transform relative",
+                            (config.breakColor || '') === c.value ? "scale-125 border-white shadow-md" : "border-white/20 opacity-70 hover:opacity-100"
+                          )}
+                          style={{ backgroundColor: c.value || '#93c5fd' }}
+                          title={c.name}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>

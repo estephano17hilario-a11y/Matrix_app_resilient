@@ -361,15 +361,15 @@ export const FocusStats = React.memo(({
 
     return (
         <div data-tour="focus-header" className="relative transition-all duration-200 ease-in-out flex-shrink-0">
-            <div data-tour="focus-stats" className="bg-gray-900/70 bg-gradient-to-b from-white/5 to-transparent rounded-[32px] py-3 px-4 flex flex-col gap-2 relative overflow-visible border border-white/10 shadow-md group ring-1 ring-white/5">
+            <div data-tour="focus-stats" className="bg-gray-900/70 bg-gradient-to-b from-white/5 to-transparent rounded-[24px] py-2 px-3 flex flex-col gap-1 relative overflow-visible border border-white/10 shadow-md group ring-1 ring-white/5">
                  <div className="absolute top-0 right-0 w-64 h-64 -z-10 pointer-events-none opacity-60 bg-[radial-gradient(circle,_rgba(99,102,241,0.18)_0%,_transparent_60%)]" />
                  <div className="absolute bottom-0 left-0 w-64 h-64 -z-10 pointer-events-none opacity-60 bg-[radial-gradient(circle,_rgba(16,185,129,0.12)_0%,_transparent_60%)]" />
                  
                 {/* NEW COMPACT HEADER: Time Range + Date Nav + Global */}
-                <div className="flex flex-col gap-1.5 z-50 relative">
+                <div className="flex flex-col gap-1 z-50 relative">
                     <div className="flex items-center justify-between gap-2">
                         {/* LEFT: Time Range Tabs (Reduced Size) */}
-                        <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10 shadow-md relative z-20 flex-shrink min-w-0">
+                        <div className="flex items-center gap-0.5 bg-black/40 p-0.5 rounded-lg border border-white/10 shadow-md relative z-20 flex-shrink min-w-0">
                             <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
                                 <AnimatePresence>
                                     {['DAY', 'WEEK', thirdSlot].map((range, index) => {
@@ -397,8 +397,8 @@ export const FocusStats = React.memo(({
                                                     }}
                                                     transition={{ duration: 0.15, ease: "easeOut" }}
                                                     className={cn(
-                                                        "py-1.5 rounded-lg font-bold transition-all relative whitespace-nowrap overflow-visible",
-                                                        label.length > 5 ? "px-1.5 text-[9px]" : "px-3 text-[11px]",
+                                                        "py-1 rounded-md font-bold transition-all relative whitespace-nowrap overflow-visible",
+                                                        label.length > 5 ? "px-1.5 text-[9px]" : "px-2.5 text-[10px]",
                                                         isActive 
                                                             ? "bg-white text-black shadow-sm z-10" 
                                                             : "text-zinc-400 hover:text-white hover:bg-white/5"

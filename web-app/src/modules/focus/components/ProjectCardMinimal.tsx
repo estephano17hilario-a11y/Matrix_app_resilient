@@ -177,15 +177,46 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
                             </span>
                         )}
                         {focusStepsCount > 0 && (
-                            <div className="flex items-center gap-1 shrink-0 ml-1">
+                            <div className="flex items-center gap-1.5 shrink-0 ml-1">
                                 {Array.from({ length: focusStepsCount }).map((_, idx) => {
                                     const isDone = idx < completedFocusCountToday;
                                     return (
-                                        <svg key={idx} width="15" height="15" viewBox="0 0 10 10" className={cn("transition-all duration-300", isDone ? "drop-shadow-[0_0_6px_rgba(239,68,68,0.8)] scale-110" : "opacity-30")}>
-                                            <path d="M5 2.5 C5 2.5 4.2 0.8 3 1 C3 1 4 2 5 2.5Z" fill={isDone ? "#4ade80" : "#6b7280"} />
-                                            <path d="M5 2.5 C5 2.5 5.8 0.8 7 1 C7 1 6 2 5 2.5Z" fill={isDone ? "#22c55e" : "#4b5563"} />
-                                            <ellipse cx="5" cy="6.5" rx="4" ry="4" fill={isDone ? "#ef4444" : "#4b5563"} />
-                                            <ellipse cx="3.5" cy="4.5" rx="1" ry="0.7" fill={isDone ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.05)"} transform="rotate(-20 3.5 4.5)" />
+                                        <svg 
+                                            key={idx} 
+                                            width="18" 
+                                            height="18" 
+                                            viewBox="0 0 24 24" 
+                                            fill="none" 
+                                            className={cn(
+                                                "transition-all duration-300 shrink-0", 
+                                                isDone ? "drop-shadow-[0_0_8px_rgba(244,63,94,0.85)] scale-110" : "opacity-40 hover:opacity-70"
+                                            )}
+                                        >
+                                            {/* Top Stem Knob */}
+                                            <rect x="10.5" y="1" width="3" height="2.5" rx="0.8" fill={isDone ? "#34d399" : "#9ca3af"} />
+                                            <path d="M10 3.5 C10 2.5 14 2.5 14 3.5" stroke={isDone ? "#10b981" : "#6b7280"} strokeWidth="1.2" strokeLinecap="round" />
+
+                                            {/* Round Pomodoro Timer Body */}
+                                            <circle cx="12" cy="13.5" r="8.5" fill={isDone ? "url(#pomoRedGrad)" : "rgba(255,255,255,0.08)"} stroke={isDone ? "#fb7185" : "rgba(255,255,255,0.3)"} strokeWidth="1.5" />
+
+                                            {/* Timer Dial Notches */}
+                                            <line x1="12" y1="6.5" x2="12" y2="8" stroke={isDone ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.4)"} strokeWidth="1.2" strokeLinecap="round" />
+                                            <line x1="17.5" y1="12" x2="19" y2="12" stroke={isDone ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.3)"} strokeWidth="1.2" strokeLinecap="round" />
+                                            <line x1="12" y1="20.5" x2="12" y2="19" stroke={isDone ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.3)"} strokeWidth="1.2" strokeLinecap="round" />
+                                            <line x1="6.5" y1="12" x2="5" y2="12" stroke={isDone ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.3)"} strokeWidth="1.2" strokeLinecap="round" />
+
+                                            {/* Timer Hand */}
+                                            <line x1="12" y1="13.5" x2="14.5" y2="10" stroke={isDone ? "#ffffff" : "rgba(255,255,255,0.6)"} strokeWidth="1.5" strokeLinecap="round" />
+
+                                            {/* Center Pivot */}
+                                            <circle cx="12" cy="13.5" r="1.2" fill={isDone ? "#ffffff" : "#d1d5db"} />
+
+                                            <defs>
+                                                <linearGradient id="pomoRedGrad" x1="4" y1="5" x2="20" y2="21" gradientUnits="userSpaceOnUse">
+                                                    <stop offset="0%" stopColor="#f43f5e" />
+                                                    <stop offset="100%" stopColor="#be123c" />
+                                                </linearGradient>
+                                            </defs>
                                         </svg>
                                     );
                                 })}

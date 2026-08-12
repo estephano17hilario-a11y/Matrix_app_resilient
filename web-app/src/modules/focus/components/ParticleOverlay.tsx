@@ -3,16 +3,22 @@ import { motion } from 'framer-motion';
 
 export interface ParticleConfig {
   enabled: boolean;
-  direction: 'FALLING' | 'RISING';
-  trigger: 'BREAK_ONLY' | 'FOCUS_ONLY' | 'ALWAYS';
+  trigger: 'BREAK_ONLY' | 'FOCUS_ONLY' | 'BOTH';
+  focusDirection: 'FALLING' | 'RISING';
+  focusColor: string;
+  breakDirection: 'FALLING' | 'RISING';
+  breakColor: string;
   auraEnabled: boolean;
   ringMode: 'DRAIN' | 'FILL';
 }
 
 export const DEFAULT_PARTICLE_CONFIG: ParticleConfig = {
   enabled: true,
-  direction: 'FALLING',
   trigger: 'BREAK_ONLY',
+  focusDirection: 'FALLING',
+  focusColor: '',
+  breakDirection: 'FALLING',
+  breakColor: '',
   auraEnabled: true,
   ringMode: 'DRAIN'
 };
@@ -34,7 +40,7 @@ export const ParticleOverlay: React.FC<ParticleOverlayProps> = React.memo(({
     if (!config.enabled) return false;
     if (config.trigger === 'BREAK_ONLY') return isBreak;
     if (config.trigger === 'FOCUS_ONLY') return !isBreak && isActive;
-    return true; // ALWAYS
+    return true; // BOTH
   }, [config, isBreak, isActive]);
 
   const particles = useMemo(() => {
@@ -50,7 +56,15 @@ export const ParticleOverlay: React.FC<ParticleOverlayProps> = React.memo(({
 
   if (!shouldRender) return null;
 
-  const isFalling = config.direction === 'FALLING';
+  const currentDirection = isBreak
+    ? (config.breakDirection || 'FALLING')
+    : (config.focusDirection || 'FALLING');
+  
+  const particleColor = isBreak
+    ? (config.breakColor || '#93c5fd')
+    : (config.focusColor || color);
+
+  const isFalling = currentDirection === 'FALLING';
 
   return (
     <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden">
@@ -76,8 +90,8 @@ export const ParticleOverlay: React.FC<ParticleOverlayProps> = React.memo(({
           style={{
             width: `${p.size}px`,
             height: `${p.size}px`,
-            backgroundColor: isBreak ? '#93c5fd' : color,
-            boxShadow: `0 0 8px ${isBreak ? '#93c5fd' : color}`
+            backgroundColor: particleColor,
+            boxShadow: `0 0 8px ${particleColor}`
           }}
         />
       ))}
