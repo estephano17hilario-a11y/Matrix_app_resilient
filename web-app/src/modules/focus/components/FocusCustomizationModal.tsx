@@ -191,7 +191,7 @@ export const FocusCustomizationModal: React.FC<FocusCustomizationModalProps> = R
                           />
                         ))}
                         {/* Custom Color Input Button */}
-                        <label className="w-5 h-5 rounded-full border border-white/30 bg-gradient-to-tr from-red-500 via-amber-400 via-emerald-400 to-blue-500 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform relative shrink-0" title="Personalizado">
+                        <label className="w-5 h-5 rounded-full border border-white/30 bg-gradient-to-tr from-red-500 via-emerald-400 to-blue-500 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform relative shrink-0" title="Personalizado">
                           <input 
                             type="color" 
                             value={config.focusColor || '#3b82f6'} 
@@ -259,7 +259,7 @@ export const FocusCustomizationModal: React.FC<FocusCustomizationModalProps> = R
                           />
                         ))}
                         {/* Custom Color Input Button */}
-                        <label className="w-5 h-5 rounded-full border border-white/30 bg-gradient-to-tr from-red-500 via-amber-400 via-emerald-400 to-blue-500 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform relative shrink-0" title="Personalizado">
+                        <label className="w-5 h-5 rounded-full border border-white/30 bg-gradient-to-tr from-red-500 via-emerald-400 to-blue-500 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform relative shrink-0" title="Personalizado">
                           <input 
                             type="color" 
                             value={config.breakColor || '#93c5fd'} 

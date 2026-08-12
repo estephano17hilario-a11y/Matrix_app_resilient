@@ -8,6 +8,7 @@ import { useFocusSession } from '../hooks/useFocusSession';
 import { SessionHistoryModal } from './SessionHistoryModal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { cn } from '../../../utils/cn';
+import { useTranslation } from 'react-i18next';
 import { triggerFlyingIcon } from '../../dashboard/components/FlyingIcon';
 import { useLux } from '../../../context/LuxContext';
 // import { LocalNotifications } from '@capacitor/local-notifications';
@@ -510,6 +511,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
       return DEFAULT_PARTICLE_CONFIG;
     }
   });
+  const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);
   const { user, updateLuxLocally } = useLux();
   const [showEarlyPomodoroStopModal, setShowEarlyPomodoroStopModal] = useState(false);
 
@@ -853,7 +855,7 @@ toggleTimer();
             duration: updatedSteps[idx].duration + Math.max(1, Math.round(extraSecsPerStep / 60))
           };
         });
-        onUpdateProject({ ...project, routineSteps: updatedSteps });
+        onUpdateProject({ ...project, focusRoutine: updatedSteps });
       }
     }
 
@@ -1473,7 +1475,9 @@ toggleTimer();
               type="button"
               onClick={() => {
                 setShowEarlyPomodoroStopModal(false);
-                setIsPaused(false);
+                if (isPaused) {
+                  toggleTimer();
+                }
               }}
               className="w-full p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-left transition-all group flex items-center justify-between"
             >
