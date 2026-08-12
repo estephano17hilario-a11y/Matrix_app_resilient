@@ -459,7 +459,6 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
     const isCompleted = node.status === 'completed';
     const isMilestone = [7, 14, 30, 50, 80].includes(node.day);
     const targetPercentage = getTargetPercentage(node.day);
-    const _nextLevelPercentage = getNextLevelPercentage(node.day);
 
     const variants: Variants = {
         hidden: { scale: 0.8, opacity: 0 },

@@ -333,12 +333,12 @@ const StoreContent = ({ }: StoreScreenProps) => {
                   gold: currentGold,
                   flameStreak: restoredStreak,
                   previousFlameStreak: 0
-              }
+              } as any
           });
       } else if (category === 'HABIT' && targetId) {
-          const updatedHabits = (user.habits || []).map(h => {
+          const updatedHabits = ((user as any).habits || []).map((h: any) => {
               if (h.id === targetId) {
-                  const restored = (h as any).previousStreak || streakValue || 1;
+                  const restored = h.previousStreak || streakValue || 1;
                   return { ...h, streak: restored, previousStreak: 0 };
               }
               return h;
@@ -346,11 +346,11 @@ const StoreContent = ({ }: StoreScreenProps) => {
           updateLuxLocally({
               stats: { ...user.stats, gold: currentGold },
               habits: updatedHabits
-          });
+          } as any);
       } else if (category === 'PROJECT' && targetId) {
-          const updatedProjects = (user.projects || []).map(p => {
+          const updatedProjects = ((user as any).projects || []).map((p: any) => {
               if (p.id === targetId) {
-                  const restored = (p as any).previousStreak || streakValue || 1;
+                  const restored = p.previousStreak || streakValue || 1;
                   return { ...p, streak: restored, previousStreak: 0 };
               }
               return p;
@@ -358,7 +358,7 @@ const StoreContent = ({ }: StoreScreenProps) => {
           updateLuxLocally({
               stats: { ...user.stats, gold: currentGold },
               projects: updatedProjects
-          });
+          } as any);
       }
 
       confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
@@ -449,8 +449,8 @@ const StoreContent = ({ }: StoreScreenProps) => {
             onClose={() => setIsStreakModalOpen(false)}
             userGold={user?.stats?.gold || 0}
             userStats={user?.stats || {}}
-            habits={user?.habits || []}
-            projects={user?.projects || []}
+            habits={(user as any)?.habits || []}
+            projects={(user as any)?.projects || []}
             onRestore={handleRestoreStreakAction}
        />
 

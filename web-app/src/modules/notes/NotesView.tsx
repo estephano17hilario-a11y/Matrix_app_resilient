@@ -1951,7 +1951,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
           {filteredNotes.length > visibleNotesCount && !isLocked && (
             <div className="flex justify-center pb-8 pt-4">
               <button 
-                onClick={handleLoadMore}
+                onClick={() => setVisibleNotesCount(prev => prev + 50)}
                 className="px-6 py-2 rounded-full bg-white/5 hover:bg-white/10 text-white/60 text-xs font-bold uppercase tracking-widest border border-white/5 transition-colors"
               >
                 {t('notes.loadMore', 'Cargar más')}

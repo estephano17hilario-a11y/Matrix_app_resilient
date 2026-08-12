@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../utils/cn';
 
 export const BarChart = React.memo(({ 
@@ -115,7 +116,7 @@ export const BarChart = React.memo(({
         hideTimerRef.current = setTimeout(() => {
             setActiveBar(null);
             setTooltipPos(null);
-        }, 2000);
+        }, 2500);
     }, [clearTimer]);
 
     // Immediate hide
@@ -198,32 +199,32 @@ export const BarChart = React.memo(({
       >
              {showBackground && (
                 solidBackground ? (
-                  <div className="absolute inset-0 bg-[#0d0d14] border border-white/10 rounded-3xl pointer-events-none" />
+                  <div className="absolute inset-0 bg-[#0d0d14]/90 border border-white/10 rounded-3xl pointer-events-none shadow-2xl backdrop-blur-md" />
                 ) : (
-                  <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 via-purple-500/5 to-pink-500/5 opacity-20 rounded-3xl pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/10 via-purple-500/5 to-cyan-500/10 border border-white/10 rounded-3xl pointer-events-none shadow-2xl backdrop-blur-xl" />
                 )
              )}
 
-            {/* Grid lines */}
+            {/* Futuristic Grid Lines */}
             {showGrid && !yTicks && (
-                <div className={`absolute inset-x-0 ${paddingTop} bottom-5 flex flex-col justify-between pointer-events-none`}>
-                    <div className="w-full h-px bg-white/[0.04]" />
-                    <div className="w-full h-px bg-white/[0.03]" />
-                    <div className="w-full h-px bg-white/[0.03]" />
-                    <div className="w-full h-px bg-white/[0.06]" />
+                <div className={`absolute inset-x-0 ${paddingTop} bottom-6 flex flex-col justify-between pointer-events-none z-0`}>
+                    <div className="w-full h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+                    <div className="w-full h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
+                    <div className="w-full h-px bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" />
+                    <div className="w-full h-px bg-gradient-to-r from-transparent via-white/[0.1] to-transparent" />
                 </div>
              )}
 
             {showGrid && yTicks && (
-                <div className={`absolute inset-x-0 ${paddingTop} bottom-6 pointer-events-none`}>
+                <div className={`absolute inset-x-0 ${paddingTop} bottom-6 pointer-events-none z-0`}>
                     {yTicks.map((val) => (
                         <div
                             key={val}
-                            className="absolute left-6 right-0 h-px bg-white/[0.05]"
+                            className="absolute left-6 right-0 h-px bg-gradient-to-r from-white/[0.06] via-white/[0.03] to-transparent"
                             style={{ top: `${100 - (val / maxValue) * 100}%` }}
                         >
                             <span className={cn(
-                                "absolute -left-6 w-6 text-right pr-1.5 text-[9px] text-slate-300 font-mono",
+                                "absolute -left-6 w-6 text-right pr-1.5 text-[9px] font-bold text-white/40 font-mono tracking-tight",
                                 val === maxValue ? "top-0" : (val === 0 ? "bottom-0" : "top-1/2 -translate-y-1/2")
                             )}>
                                 {yTickFormatter ? yTickFormatter(val) : val}
@@ -233,42 +234,46 @@ export const BarChart = React.memo(({
                 </div>
             )}
 
-            {/* ─── FLOATING TOOLTIP (rendered at container level) ─── */}
-            {tooltipContent && tooltipPos && (
-                <div 
-                    className="absolute pointer-events-none"
-                    style={{
-                        left: tooltipPos.x,
-                        top: tooltipPos.y - 8,
-                        transform: 'translate(-50%, -100%)',
-                        zIndex: 999,
-                    }}
-                >
-                    <div 
-                        className="px-2.5 py-1.5 rounded-xl shadow-2xl border border-white/20 backdrop-blur-xl whitespace-nowrap"
+            {/* ─── FLOATING GLASS TOOLTIP ─── */}
+            <AnimatePresence>
+                {tooltipContent && tooltipPos && (
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.8, y: 6 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.8, y: 6 }}
+                        transition={{ type: "spring", stiffness: 450, damping: 25 }}
+                        className="absolute pointer-events-none z-[100]"
                         style={{
-                            background: 'linear-gradient(145deg, rgba(10,10,20,0.95) 0%, rgba(25,25,45,0.95) 100%)',
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)',
+                            left: tooltipPos.x,
+                            top: tooltipPos.y - 12,
+                            transform: 'translate(-50%, -100%)',
                         }}
                     >
-                        <div className="text-[11px] font-extrabold text-white text-center leading-tight tracking-tight">
-                            {tooltipContent.value}
-                        </div>
-                        <div className="text-[8px] font-semibold text-white/40 text-center leading-tight mt-0.5 uppercase tracking-wider">
-                            {tooltipContent.label}
-                        </div>
-                    </div>
-                    {/* Arrow pointing down */}
-                    <div className="flex justify-center">
                         <div 
-                            className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-l-transparent border-r-transparent"
-                            style={{ borderTopColor: 'rgba(25,25,45,0.95)' }}
-                        />
-                    </div>
-                </div>
-            )}
+                            className="px-3.5 py-2 rounded-2xl shadow-2xl border border-white/20 backdrop-blur-xl whitespace-nowrap bg-gradient-to-b from-[#181826]/95 via-[#12121c]/95 to-[#0b0b12]/95"
+                            style={{
+                                boxShadow: '0 12px 35px rgba(0,0,0,0.8), 0 0 20px rgba(99,102,241,0.25), inset 0 1px 0 rgba(255,255,255,0.2)',
+                            }}
+                        >
+                            <div className="text-xs font-black text-white text-center leading-tight tracking-tight drop-shadow-md">
+                                {tooltipContent.value}
+                            </div>
+                            <div className="text-[9px] font-extrabold text-cyan-300/90 text-center leading-tight mt-0.5 uppercase tracking-wider font-mono">
+                                {tooltipContent.label}
+                            </div>
+                        </div>
+                        {/* Downward indicator arrow */}
+                        <div className="flex justify-center -mt-0.5">
+                            <div 
+                                className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent"
+                                style={{ borderTopColor: 'rgba(11,11,18,0.95)' }}
+                            />
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-            {/* ─── Bar columns ─── */}
+            {/* ─── BAR COLUMNS ─── */}
             <div 
                 ref={barsAreaRef}
                 className={`absolute inset-0 flex items-end ${labels.length > 30 ? 'gap-0' : labels.length > 15 ? 'gap-0.5' : 'gap-1'} ${yTicks ? 'pl-6' : ''}`}
@@ -284,68 +289,103 @@ export const BarChart = React.memo(({
                         onMouseEnter={() => onBarMouseEnter(i)}
                         onMouseLeave={onBarMouseLeave}
                     >
-                        {/* Highlight line when active */}
+                        {/* Ambient Light Pillar behind active/hovered bar */}
+                        <AnimatePresence>
+                            {isActive && (
+                                <motion.div 
+                                    initial={{ opacity: 0, scaleY: 0 }}
+                                    animate={{ opacity: 1, scaleY: 1 }}
+                                    exit={{ opacity: 0, scaleY: 0 }}
+                                    transition={{ duration: 0.18 }}
+                                    className={`absolute ${paddingTop} bottom-6 left-0 right-0 rounded-2xl bg-gradient-to-t from-white/[0.08] via-white/[0.03] to-transparent pointer-events-none border-x border-white/[0.08] z-0`}
+                                    style={{ transformOrigin: 'bottom center' }}
+                                />
+                            )}
+                        </AnimatePresence>
+
+                        {/* Top Indicator Highlight Line */}
                         {isActive && (
                             <div 
-                                className={`absolute ${paddingTop} bottom-6 left-1/2 -translate-x-1/2 w-px pointer-events-none`}
-                                style={{ background: 'linear-gradient(to top, transparent, rgba(255,255,255,0.25), transparent)' }}
+                                className={`absolute ${paddingTop} bottom-6 left-1/2 -translate-x-1/2 w-px pointer-events-none z-0`}
+                                style={{ background: 'linear-gradient(to top, transparent, rgba(255,255,255,0.4), transparent)' }}
                             />
                         )}
 
                         {/* Bars Container */}
-                        <div className={`absolute ${paddingTop} bottom-6 left-0 right-0 ${labels.length > 20 ? 'px-0' : barSpacing} flex items-end justify-center`}>
+                        <div className={`absolute ${paddingTop} bottom-6 left-0 right-0 ${labels.length > 20 ? 'px-0' : barSpacing} flex items-end justify-center z-10`}>
                             <div className={`w-full h-full flex ${stacked ? 'flex-col-reverse justify-start' : 'items-end justify-center'} ${stacked ? 'gap-0' : (labels.length > 20 ? 'gap-0.5' : 'gap-1.5')}`}>
                                 {datasets.map((ds, idx) => {
                                     const val = ds.data[i];
-                                    const h = Math.min(val / maxValue, 1);
+                                    const hFraction = Math.min(Math.max(val / maxValue, 0), 1);
+                                    const heightPercent = hFraction * 100;
                                     
                                     const isTopVisible = stacked 
                                         ? idx === datasets.reduce((last, d, currIdx) => (d.data[i] > 0 ? currIdx : last), -1)
                                         : true;
 
                                     const roundingClass = stacked
-                                        ? (isTopVisible ? 'rounded-t-sm' : 'rounded-none')
-                                        : 'rounded-t-sm';
+                                        ? (isTopVisible ? 'rounded-t-xl' : 'rounded-none')
+                                        : 'rounded-t-xl';
 
                                     const safeColor = ds.color || '#6366f1';
-                                    const backgroundStyle = safeColor;
-                                    const isHex = safeColor.startsWith('#');
                                     const isSolid = barStyle === 'solid';
+                                    const isHex = safeColor.startsWith('#');
+
+                                    // Dynamic neon capsule style calculation
+                                    const backgroundStyle = isSolid
+                                        ? safeColor
+                                        : `linear-gradient(180deg, ${safeColor} 0%, ${safeColor}dd 50%, ${safeColor}44 100%)`;
+
                                     const shadowStyle = isSolid ? 'none' : (isHex
-                                        ? `inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 15px ${safeColor}45, 0 4px 15px ${safeColor}35`
-                                        : `inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 15px rgba(0,0,0,0.3)`);
-                                    
+                                        ? `0 0 16px ${safeColor}60, inset 0 1.5px 0 rgba(255,255,255,0.7), inset 0 -4px 10px ${safeColor}40`
+                                        : `0 0 14px rgba(99,102,241,0.5), inset 0 1.5px 0 rgba(255,255,255,0.5)`);
+
                                     return (
-                                        <div 
-                                            key={idx} 
-                                            className={`w-full ${roundingClass} relative overflow-hidden transition-all duration-150 ${isActive ? 'brightness-125 scale-[1.03]' : 'group-hover:brightness-110'}`}
+                                        <motion.div 
+                                            key={idx}
+                                            initial={{ height: 0 }}
+                                            animate={{ height: `${heightPercent}%` }}
+                                            transition={{ type: "spring", stiffness: 320, damping: 26 }}
+                                            className={cn(
+                                                `w-full ${roundingClass} relative overflow-hidden transition-all duration-200`,
+                                                isActive ? 'brightness-125 scale-x-[1.06] shadow-2xl' : 'group-hover:brightness-110'
+                                            )}
                                             style={{ 
-                                                height: `${h * 100}%`,
-                                                backgroundColor: backgroundStyle,
+                                                background: backgroundStyle,
                                                 boxShadow: shadowStyle,
                                                 transformOrigin: 'bottom center',
+                                                willChange: 'transform, height'
                                             }}
                                         >
-                                             {/* Shine / Gradient Overlay */}
+                                             {/* Neon LED Cap Line at top of bar */}
+                                             {val > 0 && !isSolid && (
+                                                <div 
+                                                    className="absolute top-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-white/30 via-white/95 to-white/30 rounded-t-full shadow-[0_0_8px_rgba(255,255,255,0.9)]"
+                                                />
+                                             )}
+
+                                             {/* Shimmer Light Reflection Overlay */}
                                              {!isSolid && (
-                                                <div className={`absolute inset-0 transition-opacity duration-200 pointer-events-none ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-30" />
-                                                    <div className="absolute bottom-0 left-0 right-0 h-[30%] bg-gradient-to-t from-black/20 to-transparent" />
+                                                <div className={`absolute inset-0 transition-opacity duration-300 pointer-events-none ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-[shimmer_2s_infinite]" />
+                                                    <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />
                                                 </div>
                                              )}
-                                        </div>
+                                        </motion.div>
                                     );
                                 })}
                             </div>
                         </div>
 
-                        {/* Label */}
+                        {/* X-Axis Label */}
                         <div className="absolute bottom-0 left-0 right-0 flex justify-center">
                             {(i % xTickInterval === 0) && (
                                 <span className={cn(
-                                    "text-[9px] font-bold text-center leading-none transition-colors duration-200",
-                                    isActive ? "text-white" : "text-slate-500 group-hover:text-white"
-                                )}>{label}</span>
+                                    "text-[9px] font-extrabold text-center leading-none transition-colors duration-200 font-mono tracking-tight",
+                                    isActive ? "text-cyan-300 drop-shadow-[0_0_6px_rgba(34,211,238,0.8)]" : "text-slate-400/90 group-hover:text-white"
+                                )}>
+                                    {label}
+                                </span>
                             )}
                         </div>
                     </div>

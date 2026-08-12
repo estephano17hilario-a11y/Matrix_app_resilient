@@ -100,7 +100,7 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, onOpenCustomiz
                     isManual: true
                 } : s);
                 const newTotal = newSessions.reduce((acc, s) => acc + s.duration, 0);
-                onUpdateProject({ ...project, sessions: newSessions as Session[], totalTime: newTotal });
+                onUpdateProject({ ...project, sessions: newSessions as any[], totalTime: newTotal });
             }
         }
         
