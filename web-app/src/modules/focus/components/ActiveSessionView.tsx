@@ -1139,11 +1139,6 @@ toggleTimer();
                 <div className="text-[5rem] font-mono font-bold text-white leading-none tracking-tighter tabular-nums drop-shadow-md scale-y-110">
                   {formatTime(timeLeft)}
                 </div>
-                {!isActive && mode === 'POMO' && (
-                  <span className="text-[9px] font-extrabold text-cyan-400/80 uppercase tracking-widest mt-3 flex items-center gap-1 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
-                    <span>↕️</span> <span>{i18n.language === 'es' ? 'Desliza verticalmente o toca para editar' : 'Slide up/down or tap to edit'}</span>
-                  </span>
-                )}
               </div>
             )}
             <div className="mt-4 text-xs font-bold text-white/30 uppercase tracking-[0.3em] animate-pulse">
@@ -1179,25 +1174,6 @@ toggleTimer();
 
  {/* Controls Bar */}
  <div className="w-full px-8 pt-8 pb-20 flex items-center justify-center gap-10 relative z-20 shrink-0">
-             {/* Header Left Actions */}
-             <div className="flex items-center gap-2">
-                 <button
-                     onClick={onExit}
-                     className="w-9 h-9 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 text-white/70 hover:text-white flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
-                     title="Salir"
-                 >
-                     <ChevronDown size={20} />
-                 </button>
-
-                 <button
-                     type="button"
-                     onClick={() => setIsCustomizationOpen(true)}
-                     className="w-9 h-9 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 text-cyan-400 hover:text-cyan-300 flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95"
-                     title="Personalización LUX"
-                 >
-                     <SlidersHorizontal size={18} />
-                 </button>
-             </div>
  <motion.button 
  whileHover={{ scale: 1.1 }}
  whileTap={{ scale: 0.9 }}
@@ -1337,6 +1313,7 @@ toggleTimer();
  <SessionHistoryModal 
  isOpen={showHistory} 
  onClose={() => setShowHistory(false)} 
+ onOpenCustomization={() => setIsCustomizationOpen(true)}
  project={project} 
  attribute={attribute}
  onUpdateProject={onUpdateProject} 

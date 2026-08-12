@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { X, Target, Plus, Calendar, Clock, Trash2, Zap, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
+import { X, Target, Plus, Calendar, Clock, Trash2, Zap, ChevronLeft, ChevronRight, Lock, SlidersHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, isToday, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -13,9 +13,10 @@ import { ManualSessionCreator } from './ManualSessionCreator';
 
 type Timeframe = 'DAY' | 'WEEK' | 'MONTH';
 
-export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, attribute, onUpdateProject, onDeleteSession, onAddSession, onEditSession, isActive, onShowWarning }: { 
+export const SessionHistoryModal = React.memo(({ isOpen, onClose, onOpenCustomization, project, attribute, onUpdateProject, onDeleteSession, onAddSession, onEditSession, isActive, onShowWarning }: { 
     isOpen: boolean, 
     onClose: () => void, 
+    onOpenCustomization?: () => void,
     project: Project, 
     attribute?: Attribute,
     onUpdateProject: (p: Project) => void,
@@ -137,13 +138,25 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, project, attri
                                 </p>
                             </div>
                             
-                            <button 
-                                type="button" 
-                                onClick={onClose} 
-                                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white flex items-center justify-center transition-colors"
-                            >
-                                <X size={16} />
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                                {onOpenCustomization && (
+                                    <button 
+                                        type="button" 
+                                        onClick={onOpenCustomization} 
+                                        className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-cyan-400 hover:text-cyan-300 flex items-center justify-center transition-all cursor-pointer border border-white/5 shadow-xs"
+                                        title="Personalización LUX"
+                                    >
+                                        <SlidersHorizontal size={15} />
+                                    </button>
+                                )}
+                                <button 
+                                    type="button" 
+                                    onClick={onClose} 
+                                    className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white flex items-center justify-center transition-colors"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Timeframe Switcher Tabs */}
