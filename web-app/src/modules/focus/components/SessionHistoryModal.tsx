@@ -96,11 +96,11 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, onOpenCustomiz
                     duration: Math.round(durationMinutes * 60),
                     date: date.toISOString(),
                     subTraitId: subTraitId,
-                    type: 'MANUAL',
+                    type: 'MANUAL' as const,
                     isManual: true
                 } : s);
                 const newTotal = newSessions.reduce((acc, s) => acc + s.duration, 0);
-                onUpdateProject({ ...project, sessions: newSessions, totalTime: newTotal });
+                onUpdateProject({ ...project, sessions: newSessions as Session[], totalTime: newTotal });
             }
         }
         

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { motion, Variants } from 'framer-motion';
 import { 
     ArrowLeft, 
@@ -287,7 +287,7 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
 
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => setShowRecordsModal(prev => !prev)}
+                                onClick={() => setShowRecordsModal((prev: boolean) => !prev)}
                                 className={`p-2.5 rounded-2xl border transition-all duration-200 ${
                                     showRecordsModal 
                                         ? "bg-amber-500/30 border-amber-500/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.4)]" 
@@ -459,7 +459,7 @@ const RoadmapNode = ({ node, progress }: { node: any, progress: number }) => {
     const isCompleted = node.status === 'completed';
     const isMilestone = [7, 14, 30, 50, 80].includes(node.day);
     const targetPercentage = getTargetPercentage(node.day);
-    const nextLevelPercentage = getNextLevelPercentage(node.day);
+    const _nextLevelPercentage = getNextLevelPercentage(node.day);
 
     const variants: Variants = {
         hidden: { scale: 0.8, opacity: 0 },

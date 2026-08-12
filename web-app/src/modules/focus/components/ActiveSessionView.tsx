@@ -1407,9 +1407,9 @@ toggleTimer();
  attribute={attribute}
  onUpdateProject={onUpdateProject} 
  onDeleteSession={onDeleteSession}
- onAddSession={(durationMinutes, type, sessionId, sessionDate, subTraitId) => {
- handleAddManualSessionWrapper(project.id, durationMinutes, type, sessionId, sessionDate, subTraitId);
- }}
+  onAddSession={(durationMinutes, type, sessionId, sessionDate, subTraitId) => {
+  handleAddManualSessionWrapper(project.id, durationMinutes, type as any, sessionId, sessionDate, subTraitId);
+  }}
  onEditSession={onEditSession}
  isActive={isActive}
  onShowWarning={() => setShowFocusProtectionModal(true)}

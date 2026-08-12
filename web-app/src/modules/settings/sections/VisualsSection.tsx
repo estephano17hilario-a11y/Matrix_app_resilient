@@ -68,13 +68,6 @@ export const VisualsSection = () => {
   const { currentTheme, setTheme, vividMode, toggleVividMode, radarConfig, updateRadarConfig, isPro, showProModal } = useSettings();
   const { previewTheme, setPreviewTheme } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState<DisplayCategory>('mine');
-  const [barChartStyle, setBarChartStyle] = useState<'gradient' | 'solid'>(() => (typeof window !== 'undefined' && localStorage.getItem('matrix_bar_chart_style') === 'solid') ? 'solid' : 'gradient');
-
-  const handleBarChartStyleToggle = (style: 'gradient' | 'solid') => {
-    setBarChartStyle(style);
-    localStorage.setItem('matrix_bar_chart_style', style);
-    window.dispatchEvent(new Event('matrix_bar_style_change'));
-  };
   const [isRadarConfigOpen, setIsRadarConfigOpen] = useState(false);
   const [isColorDropdownOpen, setIsColorDropdownOpen] = useState(false);
   

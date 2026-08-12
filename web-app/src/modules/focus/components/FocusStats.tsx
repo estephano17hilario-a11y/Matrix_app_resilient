@@ -18,7 +18,6 @@ import { getAvatarConfig } from '@/config/avatars';
 import { getDynamicDailyTarget, getWeeklyGoalMinutes, getMonthlyGoalMinutes } from '../../../utils/projectUtils';
 import { useTranslation } from 'react-i18next';
 import { DateSelectionModal } from '../../dashboard/components/DateSelectionModal';
-import { toast } from 'react-hot-toast';
 
 type TimeRange = 'DAY' | 'WEEK' | '8_WEEKS' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
 
@@ -71,7 +70,7 @@ export const FocusStats = React.memo(({
     
     const [viewMode, setViewMode] = useState<'TOTAL' | 'ATTRIBUTE' | 'PROJECT'>((defaultProjectView === 'PROJECT' && !isPro) ? 'ATTRIBUTE' : (defaultProjectView || 'TOTAL'));
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
-    const [solidChartBg, setSolidChartBg] = useState(() => typeof window !== 'undefined' && localStorage.getItem('matrix_solid_chart_bg') === 'true');
+    const [solidChartBg] = useState(() => typeof window !== 'undefined' && localStorage.getItem('matrix_solid_chart_bg') === 'true');
     const [barChartStyle, setBarChartStyle] = useState<'gradient' | 'solid'>(() => (typeof window !== 'undefined' && localStorage.getItem('matrix_bar_chart_style') === 'solid') ? 'solid' : 'gradient');
     
     // Listen for custom event or local storage changes
