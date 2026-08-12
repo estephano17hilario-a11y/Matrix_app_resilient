@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { Pause, Play, StopCircle, Volume2, ChevronDown, History, BellOff, Battery, Check, Coins, Zap, Clock, SlidersHorizontal } from 'lucide-react';
+import { Pause, Play, StopCircle, Volume2, ChevronDown, History, BellOff, Battery, Check, Coins, Zap, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ParticleOverlay, ParticleConfig, DEFAULT_PARTICLE_CONFIG } from './ParticleOverlay';
 import { FocusCustomizationModal } from './FocusCustomizationModal';
@@ -805,7 +805,9 @@ toggleTimer();
     const elapsed = getElapsedSeconds(currentMode);
 
     if (currentMode === 'POMO' && elapsed < totalDuration && elapsed >= 5) {
-      setIsPaused(true);
+      if (!isPaused) {
+        toggleTimer();
+      }
       setShowEarlyPomodoroStopModal(true);
       return;
     }
