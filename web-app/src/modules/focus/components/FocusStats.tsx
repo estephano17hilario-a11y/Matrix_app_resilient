@@ -662,13 +662,13 @@ export const FocusStats = React.memo(({
                         <div className="flex items-baseline gap-1.5">
                             {/* Increased from text-[10px] to text-sm (14px) or text-xs (12px) */}
                             <span className="text-sm font-bold text-white tracking-tight">
-                                {Math.floor(currentMinutes / 60)}h {currentMinutes % 60}m
+                                {Math.floor(currentMinutes / 60)}h {Math.round(currentMinutes % 60)}m
                             </span>
                             
                             {showGoal && (
                                 <>
                                     <span className="text-xs font-medium text-white/30">
-                                        / {Math.floor(dailyGoalMinutes / 60)}h{dailyGoalMinutes % 60 > 0 ? ` ${dailyGoalMinutes % 60}m` : ''}
+                                        / {Math.floor(dailyGoalMinutes / 60)}h{Math.round(dailyGoalMinutes % 60) > 0 ? ` ${Math.round(dailyGoalMinutes % 60)}m` : ''}
                                     </span>
                                     <span className="text-xs font-bold ml-0.5" style={{ color: activeFilterColor }}>
                                         {Math.round(progressPercentage)}%

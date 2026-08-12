@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { X, Sparkles, Lock, ArrowDown, ArrowUp, Zap, Circle, Check } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { X, Sparkles, Lock, ArrowDown, ArrowUp } from 'lucide-react';
 import { ParticleConfig } from './ParticleOverlay';
 import { cn } from '../../../utils/cn';
 

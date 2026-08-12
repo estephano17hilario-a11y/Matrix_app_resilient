@@ -52,11 +52,11 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
     const displayPercentage = Math.round(Math.max(0, rawProgress));
 
     const displayH = Math.floor(currentMinutesForProgress / 60);
-    const displayM = currentMinutesForProgress % 60;
+    const displayM = Math.round(currentMinutesForProgress % 60);
     const timeString = `${displayH}h ${displayM.toString().padStart(2, '0')}m`;
 
     const goalH = Math.floor(goalMinutes / 60);
-    const goalM = goalMinutes % 60;
+    const goalM = Math.round(goalMinutes % 60);
     const goalString = `${goalH}h ${goalM.toString().padStart(2, '0')}m`;
 
     // Fallback if no theme color is provided
@@ -85,7 +85,7 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
         return [];
     }, [project]);
 
-    const focusStepsCount = todayRoutineSteps.filter(s => s.type === 'FOCUS').length;
+    const focusStepsCount = todayRoutineSteps.filter((s: any) => s.type === 'FOCUS').length;
     const completedFocusCountToday = React.useMemo(() => {
         if (!focusStepsCount) return 0;
         const todayStr = new Date().toDateString();
