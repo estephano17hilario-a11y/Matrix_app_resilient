@@ -314,7 +314,7 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.25, ease: "easeOut", delay: 0.1 }}
                         style={{ originX: "50%", originY: "50%" }}
-                        fill="url(#polyFillGradient)"
+                        fill={activeConfig.fillStyleMode === 'solid' ? `rgba(${fillRgb.r}, ${fillRgb.g}, ${fillRgb.b}, ${fillAlpha})` : "url(#polyFillGradient)"}
                         stroke={`rgba(${fillRgb.r}, ${fillRgb.g}, ${fillRgb.b}, ${fillAlpha * 0.6})`}
                         strokeWidth="1"
                     />

@@ -534,7 +534,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                     <div className="relative w-full max-w-[320px] mx-auto flex items-center justify-center mt-1 -mb-1.5 h-10">
                                         {/* Left Controls */}
                                         <div className="absolute left-0 flex items-center gap-1.5">
-                                            {/* Yesterday Navigation Button */}
+                                            {/* Yesterday Navigation Button (Only shown when viewing today) */}
                                             {isSameDay(currentDate, new Date()) && (
                                                 <button
                                                     onClick={() => {
@@ -617,8 +617,9 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                             >
                                                 {hideCompleted ? <LucideIcons.EyeOff size={16} /> : <LucideIcons.Eye size={16} />}
                                             </button>
-                                            {/* Today Navigation Button */}
-                                            {!isSameDay(currentDate, new Date()) && (
+                                            
+                                            {/* When viewing a past day, ChevronRight replaces the ArrowUpDown reorder button */}
+                                            {!isSameDay(currentDate, new Date()) ? (
                                                 <button
                                                     onClick={() => setCurrentDate(new Date())}
                                                     className="p-2 rounded-xl border transition-all duration-200 flex items-center justify-center shrink-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-400 animate-pulse"
@@ -626,16 +627,16 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                 >
                                                     <LucideIcons.ChevronRight size={16} className="text-emerald-400" />
                                                 </button>
-                                            )}
-
-                                            {!showArchived && onReorder && viewPreference === 'DEFAULT' && (
-                                                <button
-                                                    onClick={() => setIsReorderModalOpen(true)}
-                                                    className="p-2 rounded-xl border bg-[#111112] border-white/5 text-white/40 hover:text-white/60 transition-all flex items-center justify-center shrink-0 active:scale-95"
-                                                    title={t('habits.organizeOrder', 'Organizar Orden')}
-                                                >
-                                                    <ArrowUpDown size={16} />
-                                                </button>
+                                            ) : (
+                                                !showArchived && onReorder && viewPreference === 'DEFAULT' && (
+                                                    <button
+                                                        onClick={() => setIsReorderModalOpen(true)}
+                                                        className="p-2 rounded-xl border bg-[#111112] border-white/5 text-white/40 hover:text-white/60 transition-all flex items-center justify-center shrink-0 active:scale-95"
+                                                        title={t('habits.organizeOrder', 'Organizar Orden')}
+                                                    >
+                                                        <ArrowUpDown size={16} />
+                                                    </button>
+                                                )
                                             )}
                                         </div>
                                     </div>

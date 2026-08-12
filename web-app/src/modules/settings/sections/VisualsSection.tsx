@@ -525,6 +525,33 @@ export const VisualsSection = () => {
                   />
                 </div>
 
+                {/* 1.5 FILL STYLE MODE (DEGRADADO VS COLOR ENTERO) */}
+                <div className="flex items-center justify-between gap-2 p-2 rounded-xl border border-white/5 bg-white/[0.02]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-white/80">Relleno Interior Radar</span>
+                  </div>
+                  <div className="flex gap-1 bg-black/40 p-0.5 rounded-lg border border-white/10">
+                    <button
+                      onClick={() => updateRadarConfig({ fillStyleMode: 'gradient' })}
+                      className={cn(
+                        "px-2.5 py-1 rounded-md text-[10px] font-bold transition-all",
+                        (radarConfig.fillStyleMode ?? 'gradient') === 'gradient' ? "bg-white text-black shadow-sm" : "text-white/50 hover:text-white"
+                      )}
+                    >
+                      Degradado
+                    </button>
+                    <button
+                      onClick={() => updateRadarConfig({ fillStyleMode: 'solid' })}
+                      className={cn(
+                        "px-2.5 py-1 rounded-md text-[10px] font-bold transition-all",
+                        radarConfig.fillStyleMode === 'solid' ? "bg-white text-black shadow-sm" : "text-white/50 hover:text-white"
+                      )}
+                    >
+                      Color Entero
+                    </button>
+                  </div>
+                </div>
+
                 {/* 4. LINE COLOR MODE (DELUXE) */}
                 <div 
                   onClick={() => { if (!isPro) showProModal(); }}

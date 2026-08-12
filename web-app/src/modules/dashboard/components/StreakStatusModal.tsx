@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Flame, CheckCircle2, Circle, Target, Activity, Clock, Info, ArrowRight } from 'lucide-react';
+import { X, Flame, CheckCircle2, Circle, Target, Activity, Clock, Info, ArrowRight, Trophy, Calendar, Sparkles } from 'lucide-react';
 import { DailyLimits } from '@/types/User';
 import { useTranslation } from 'react-i18next';
 
@@ -23,6 +23,19 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
     const { t, i18n } = useTranslation();
     const isSpanish = i18n.language?.startsWith('es');
     const tasksTarget = questsTotalToday !== undefined ? questsTotalToday : 2;
+    const [showStatsDetails, setShowStatsDetails] = useState(false);
+
+    // Validate streak continuity: if lastStreakDate is older than yesterday, current streak is 0
+    const effectiveStreak = React.useMemo(() => {
+        if (!lastStreakDate || streak <= 0) return 0;
+        const today = new Date();
+        const todayStr = format(today, 'yyyy-MM-dd');
+        const yesterdayStr = format(subDays(today, 1), 'yyyy-MM-dd');
+        if (lastStreakDate < yesterdayStr && lastStreakDate !== todayStr) {
+            return 0;
+        }
+        return streak;
+    }, [streak, lastStreakDate]);
 
     // 1. Define Requirements
     const REQUIREMENTS = [
@@ -81,10 +94,10 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
         
         // Generate array of active dates based on streak and lastStreakDate
         const activeDates: string[] = [];
-        if (lastStreakDate && streak > 0) {
+        if (lastStreakDate && effectiveStreak > 0) {
             const lastDate = parseLocalDate(lastStreakDate);
-            // Add the lastDate and (streak - 1) days before it
-            for (let i = 0; i < streak; i++) {
+            // Add the lastDate and (effectiveStreak - 1) days before it
+            for (let i = 0; i < effectiveStreak; i++) {
                 activeDates.push(format(subDays(lastDate, i), 'yyyy-MM-dd'));
             }
         }
@@ -111,7 +124,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                 isFuture
             };
         });
-    }, [streak, lastStreakDate, allCompleted]);
+    }, [effectiveStreak, lastStreakDate, allCompleted]);
 
     const handleNavigate = (view: string) => {
         if (onNavigate) {
@@ -151,15 +164,80 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                                     style={{ background: 'radial-gradient(circle at top, rgba(249,115,22,0.15) 0%, transparent 70%)' }}
                                 />
 
-                                {/* Close Button */}
-                                <button 
-                                    onClick={onClose}
-                                    className="absolute top-3 right-3 text-white/40 hover:text-white transition-colors bg-white/5 hover:bg-white/10 p-1.5 rounded-full z-20 border border-white/5"
-                                >
-                                    <X size={16} />
-                                </button>
+                                {/* Header Action Buttons */}
+                                <div className="absolute top-3 left-3 right-3 flex justify-between items-center z-20">
+                                    <button 
+                                        onClick={() => setShowStatsDetails(prev => !prev)}
+                                        className={`flex items-center gap-1 text-xs font-bold transition-all p-1.5 px-2.5 rounded-full border ${
+                                            showStatsDetails 
+                                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-xs' 
+                                                : 'bg-white/5 hover:bg-white/10 text-amber-400/80 border-white/5'
+                                        }`}
+                                        title="Ver récords de racha"
+                                    >
+                                        <Trophy size={14} className="text-amber-400" />
+                                        <span className="text-[10px] uppercase tracking-wider font-mono">Récords</span>
+                                    </button>
 
-                                <div className="p-5 flex flex-col items-center relative z-10">
+                                    <button 
+                                        onClick={onClose}
+                                        className="text-white/40 hover:text-white transition-colors bg-white/5 hover:bg-white/10 p-1.5 rounded-full border border-white/5"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </div>
+
+                                <div className="p-5 pt-12 flex flex-col items-center relative z-10">
+
+                                    {/* STATS RECORD MODAL / OVERLAY SECTION */}
+                                    <AnimatePresence>
+                                        {showStatsDetails && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                                animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
+                                                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                                                className="w-full bg-gradient-to-b from-amber-500/10 to-orange-500/5 border border-amber-500/20 rounded-2xl p-3.5 space-y-3 overflow-hidden"
+                                            >
+                                                <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
+                                                    <span className="text-xs font-black uppercase tracking-widest text-amber-300 flex items-center gap-1.5">
+                                                        <Sparkles size={13} /> Mis Récords de Racha
+                                                    </span>
+                                                    <span className="text-[9px] font-mono text-amber-400/60 font-bold">ESTADÍSTICAS</span>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div className="bg-black/40 border border-white/5 rounded-xl p-2.5 flex flex-col">
+                                                        <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider">Racha Más Larga</span>
+                                                        <div className="flex items-baseline gap-1 mt-1">
+                                                            <span className="text-xl font-black text-amber-400 font-mono">
+                                                                {Math.max(effectiveStreak, (dailyLimits as any).longestStreak || effectiveStreak)}
+                                                            </span>
+                                                            <span className="text-[10px] font-bold text-white/50">días</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-black/40 border border-white/5 rounded-xl p-2.5 flex flex-col">
+                                                        <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider">Última Racha</span>
+                                                        <div className="flex items-baseline gap-1 mt-1">
+                                                            <span className="text-xl font-black text-orange-400 font-mono">
+                                                                {effectiveStreak > 0 ? effectiveStreak : ((dailyLimits as any).previousStreak || effectiveStreak)}
+                                                            </span>
+                                                            <span className="text-[10px] font-bold text-white/50">días</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center justify-between text-[10px] text-white/50 pt-1 font-mono">
+                                                    <span className="flex items-center gap-1">
+                                                        <Calendar size={11} className="text-amber-400/70" /> Última Actividad:
+                                                    </span>
+                                                    <span className="font-bold text-white/80">
+                                                        {lastStreakDate ? format(parseLocalDate(lastStreakDate), 'dd/MM/yyyy') : 'Sin registro'}
+                                                    </span>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                     
                                     {/* SUPER DUOLINGO ANIMATION FOR COMPLETED STREAK */}
                                     {allCompleted ? (
@@ -213,7 +291,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                                             >
                                                 <div className="flex items-baseline justify-center gap-1">
                                                     <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-orange-300 to-red-500 drop-shadow-lg tracking-tighter">
-                                                        {streak}
+                                                        {effectiveStreak}
                                                     </span>
                                                     <span className="text-lg font-bold text-orange-400">{t('common.daysUpper', 'DÍAS')}</span>
                                                 </div>

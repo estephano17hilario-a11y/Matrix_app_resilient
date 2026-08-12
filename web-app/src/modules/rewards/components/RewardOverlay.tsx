@@ -187,7 +187,20 @@ export const RewardOverlay: React.FC = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: -10 }}
             transition={{ type: 'spring', stiffness: 380, damping: 26, mass: 0.9 }}
-            style={{ pointerEvents: 'auto', width: 320 }}
+            drag={true}
+            dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+            dragElastic={0.8}
+            onDragEnd={(_, info) => {
+              const { offset, velocity } = info;
+              if (
+                offset.y < -40 || velocity.y < -250 ||
+                Math.abs(offset.x) > 50 || Math.abs(velocity.x) > 250
+              ) {
+                finish();
+              }
+            }}
+            whileDrag={{ cursor: 'grabbing', scale: 0.96 }}
+            style={{ pointerEvents: 'auto', width: 320, cursor: 'grab', touchAction: 'none' }}
           >
             {/* Card */}
             <div

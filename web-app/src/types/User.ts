@@ -45,6 +45,7 @@ export interface RadarConfig {
   dotSize: number; // 2..8
   dotColorMode: 'trait' | 'fill';
   lineColorMode?: 'gradient' | 'fill';
+  fillStyleMode?: 'gradient' | 'solid';
 }
 
 export const DEFAULT_RADAR_CONFIG: RadarConfig = {
@@ -53,7 +54,8 @@ export const DEFAULT_RADAR_CONFIG: RadarConfig = {
   dotOpacity: 80,
   dotSize: 4.5,
   dotColorMode: 'trait',
-  lineColorMode: 'gradient'
+  lineColorMode: 'gradient',
+  fillStyleMode: 'gradient'
 };
 
 export interface UserProfile {

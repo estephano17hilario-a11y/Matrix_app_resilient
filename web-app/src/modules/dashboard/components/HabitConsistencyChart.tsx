@@ -508,29 +508,6 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                                 {trend >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                                 {Math.abs(trend)}%
                             </div>
-
-                            {/* Solid vs Gradient Fill PRO Switch */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    if (!isPro) {
-                                        if (onOpenPro) onOpenPro();
-                                        toast.error(i18n.language === 'es' ? 'El gráfico sólido es una función exclusiva PRO 👑' : 'Solid chart is a PRO feature 👑');
-                                        return;
-                                    }
-                                    const next = !solidChartFill;
-                                    setSolidChartFill(next);
-                                    localStorage.setItem('matrix_solid_chart_bg', String(next));
-                                }}
-                                className={cn(
-                                    "flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border transition-all cursor-pointer ml-2",
-                                    solidChartFill ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-xs" : "bg-white/5 border-white/10 text-zinc-400 hover:text-white"
-                                )}
-                                title={!isPro ? "Exclusivo PRO" : "Alternar fondo gráfico sólido/degradado"}
-                            >
-                                <span>{solidChartFill ? "⬛ Modo Sólido" : "✨ Modo Degradado"}</span>
-                                {!isPro && <Lock size={10} className="text-amber-400" />}
-                            </button>
                         </div>
 
                         {/* Current Streak - FLAME PATH RESTORED */}

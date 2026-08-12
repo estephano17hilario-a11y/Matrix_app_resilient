@@ -21,7 +21,7 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, onOpenCustomiz
     attribute?: Attribute,
     onUpdateProject: (p: Project) => void,
     onDeleteSession?: (projectId: string, sessionId: string) => void,
-    onAddSession?: (durationMinutes: number, type: 'POMO' | 'STOPWATCH', sessionId?: string, sessionDate?: string, subTraitId?: string) => void,
+    onAddSession?: (durationMinutes: number, type: 'POMO' | 'STOPWATCH' | 'MANUAL', sessionId?: string, sessionDate?: string, subTraitId?: string) => void,
     onEditSession?: (projectId: string, sessionId: string, newDurationMinutes: number, newDateStr: string, newSubTraitId?: string) => void,
     isActive?: boolean,
     onShowWarning?: () => void
@@ -85,7 +85,7 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, onOpenCustomiz
         if (mode === 'ADD') {
             if (onAddSession) {
                 const newSessionId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString();
-                onAddSession(durationMinutes, 'POMO', newSessionId, date.toISOString(), subTraitId);
+                onAddSession(durationMinutes, 'MANUAL', newSessionId, date.toISOString(), subTraitId);
             }
         } else if (mode === 'EDIT' && selectedSessionId) {
             if (onEditSession) {
@@ -95,7 +95,9 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, onOpenCustomiz
                     ...s, 
                     duration: Math.round(durationMinutes * 60),
                     date: date.toISOString(),
-                    subTraitId: subTraitId
+                    subTraitId: subTraitId,
+                    type: 'MANUAL',
+                    isManual: true
                 } : s);
                 const newTotal = newSessions.reduce((acc, s) => acc + s.duration, 0);
                 onUpdateProject({ ...project, sessions: newSessions, totalTime: newTotal });
@@ -244,6 +246,16 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, onOpenCustomiz
                                             const daysDiff = Math.abs(differenceInDays(new Date(), sessionDate));
                                             const isEditable = daysDiff <= 7;
                                             const sessionIsToday = isToday(sessionDate);
+                                            
+                                            const isManual = session.type === 'MANUAL' || (session as any).mode === 'MANUAL' || (session as any).isManual;
+                                            const isStopwatch = session.type === 'STOPWATCH' || (session as any).mode === 'STOPWATCH' || (session as any).mode === 'FLOW';
+                                            const badgeLabel = isManual ? 'MANUAL' : isStopwatch ? 'MODO FLUJO' : 'POMODORO';
+                                            const badgeColorClass = isManual ? 'text-amber-300' : isStopwatch ? 'text-emerald-300' : 'text-indigo-300';
+                                            const iconBoxClass = isManual 
+                                                ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' 
+                                                : isStopwatch 
+                                                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                                                    : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400';
 
                                             return (
                                                 <motion.div 
@@ -271,19 +283,17 @@ export const SessionHistoryModal = React.memo(({ isOpen, onClose, onOpenCustomiz
                                                     <div className="flex items-center gap-3.5 relative z-10 min-w-0">
                                                         <div className={cn(
                                                             "w-10 h-10 rounded-xl flex items-center justify-center border transition-colors shadow-sm shrink-0",
-                                                            session.type === 'POMO' 
-                                                                ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400" 
-                                                                : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                                            iconBoxClass
                                                         )}>
-                                                            {session.type === 'POMO' ? <Target size={18} /> : <Zap size={18} />}
+                                                            {isManual ? <Clock size={18} /> : isStopwatch ? <Zap size={18} /> : <Target size={18} />}
                                                         </div>
                                                         <div className="min-w-0">
                                                             <div className="flex items-center gap-2">
                                                                 <span className={cn(
                                                                     "text-[9px] font-black uppercase tracking-widest",
-                                                                    session.type === 'POMO' ? "text-indigo-300" : "text-emerald-300"
+                                                                    badgeColorClass
                                                                 )}>
-                                                                    {session.type === 'POMO' ? 'FOCUS' : 'FLOW'}
+                                                                    {badgeLabel}
                                                                 </span>
                                                                 {!isEditable && (
                                                                     <span className="text-[8px] font-bold text-white/40 bg-white/5 px-1.5 py-0.5 rounded border border-white/10 flex items-center gap-1">

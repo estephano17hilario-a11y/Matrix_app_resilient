@@ -99,7 +99,7 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
         if (!focusStepsCount) return 0;
         const todayStr = new Date().toDateString();
         const count = (project.sessions || [])
-            .filter(s => new Date(s.date).toDateString() === todayStr && s.type === 'POMO').length;
+            .filter(s => new Date(s.date).toDateString() === todayStr && s.type === 'POMO' && !s.isManual && s.type !== 'MANUAL' && (s as any).mode !== 'MANUAL').length;
         return Math.min(focusStepsCount, count);
     }, [project.sessions, focusStepsCount]);
 
