@@ -17,7 +17,7 @@ import { SecurityGate } from '../../components/ui/SecurityGate';
 import { TourLightbulb } from '../../components/TourLightbulb';
 import { toLocalISOString, getDaysInMonth, calculateStreak, parseLocalDate, getWeekStartDay } from '../../utils/dateUtils';
 import { useNotesLogic } from './hooks/useNotesLogic';
-import { useAuth } from '@/context/AuthContext';
+import { DynamicIcon } from '../../components/DynamicIcon';
 import { persistenceService } from '@/services/persistenceService';
 import { IconPicker } from '../dashboard/components/IconPicker';
 
@@ -232,6 +232,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
   // Custom Folder Picker Modal State
   const [isFolderPickerOpen, setIsFolderPickerOpen] = useState(false);
+  const [isParentFolderPickerOpen, setIsParentFolderPickerOpen] = useState(false);
   const [folderPickerSearch, setFolderPickerSearch] = useState('');
   const [expandedFolderPickerIds, setExpandedFolderPickerIds] = useState<Set<string>>(new Set());
 
@@ -1952,11 +1953,16 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  ) : (
  <>
  <div className="flex flex-wrap sm:flex-nowrap justify-between items-end px-6 mb-6 relative gap-3 min-w-0">
-  <div className="min-w-0 flex-1">
-  <span className="text-xs font-bold text-white/40 uppercase tracking-widest mb-1 flex items-center gap-2">{streak > 0 && <span className="text-orange-500 flex items-center gap-1 animate-pulse"><Plus size={12} fill="currentColor"/> {streak} {t('notes.dayStreak', 'Day Streak')}</span>}{!streak && t('notes.yourStory', 'Your Story')}</span>
-  <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none truncate capitalize">{currentMonth.toLocaleDateString(i18n.language, { month: 'long' })} <span className="text-white/20">{currentMonth.getFullYear()}</span></h2>
-  </div>
-  <div className="flex items-center gap-2 shrink-0">
+   <div className="min-w-0 flex-1">
+   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+     <span className="text-xs font-bold text-white/40 uppercase tracking-widest flex items-center gap-2">{streak > 0 && <span className="text-orange-500 flex items-center gap-1 animate-pulse"><Plus size={12} fill="currentColor"/> {streak} {t('notes.dayStreak', 'Day Streak')}</span>}{!streak && t('notes.yourStory', 'Your Story')}</span>
+     <span className="text-[11px] font-mono font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-md border border-cyan-500/20 shadow-xs">
+       {currentMonth.getFullYear()}
+     </span>
+   </div>
+   <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-none capitalize">{currentMonth.toLocaleDateString(i18n.language, { month: 'long' })}</h2>
+   </div>
+   <div className="flex items-center gap-2 shrink-0">
   <div className="flex bg-white/5 rounded-lg p-0.5 border border-white/5 mr-2">
   <button onClick={() => setJournalViewMode('CALENDAR')} className={`p-1.5 rounded-md transition-colors ${journalViewMode === 'CALENDAR' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title={t('notes.calendarView', 'Calendar View')}><Calendar size={14} /></button>
   <button onClick={() => setJournalViewMode('LIST')} className={`p-1.5 rounded-md transition-colors ${journalViewMode === 'LIST' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/80'}`} title={t('notes.notebookView', 'Notebook View')}><AlignLeft size={14} /></button>
@@ -3825,8 +3831,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                   <label className="text-[9px] font-bold text-amber-200/70 uppercase block mb-1">Página Actual</label>
                   <input
                     type="number"
-                    value={bookCurrentPage}
-                    onChange={(e) => setBookCurrentPage(Number(e.target.value))}
+                    value={bookCurrentPage === 0 ? '' : bookCurrentPage}
+                    onChange={(e) => setBookCurrentPage(e.target.value === '' ? 0 : Number(e.target.value))}
                     min={0}
                     className="w-full px-3 py-2 rounded-xl bg-black/40 border border-amber-500/30 text-xs text-white font-mono"
                   />
@@ -3835,8 +3841,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                   <label className="text-[9px] font-bold text-amber-200/70 uppercase block mb-1">Páginas Totales</label>
                   <input
                     type="number"
-                    value={bookTotalPages}
-                    onChange={(e) => setBookTotalPages(Number(e.target.value))}
+                    value={bookTotalPages === 0 ? '' : bookTotalPages}
+                    onChange={(e) => setBookTotalPages(e.target.value === '' ? 0 : Number(e.target.value))}
                     min={1}
                     className="w-full px-3 py-2 rounded-xl bg-black/40 border border-amber-500/30 text-xs text-white font-mono"
                   />
@@ -3878,8 +3884,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                   <label className="text-[9px] font-bold text-purple-200/70 uppercase block mb-1">Lecciones Hechas</label>
                   <input
                     type="number"
-                    value={studyCompletedLessons}
-                    onChange={(e) => setStudyCompletedLessons(Number(e.target.value))}
+                    value={studyCompletedLessons === 0 ? '' : studyCompletedLessons}
+                    onChange={(e) => setStudyCompletedLessons(e.target.value === '' ? 0 : Number(e.target.value))}
                     min={0}
                     className="w-full px-3 py-2 rounded-xl bg-black/40 border border-purple-500/30 text-xs text-white font-mono"
                   />
@@ -3888,8 +3894,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                   <label className="text-[9px] font-bold text-purple-200/70 uppercase block mb-1">Lecciones Totales</label>
                   <input
                     type="number"
-                    value={studyTotalLessons}
-                    onChange={(e) => setStudyTotalLessons(Number(e.target.value))}
+                    value={studyTotalLessons === 0 ? '' : studyTotalLessons}
+                    onChange={(e) => setStudyTotalLessons(e.target.value === '' ? 0 : Number(e.target.value))}
                     min={1}
                     className="w-full px-3 py-2 rounded-xl bg-black/40 border border-purple-500/30 text-xs text-white font-mono"
                   />
@@ -3931,8 +3937,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                   <label className="text-[9px] font-bold text-emerald-200/70 uppercase block mb-1">Entregables Hechos</label>
                   <input
                     type="number"
-                    value={projectCompletedDeliverables}
-                    onChange={(e) => setProjectCompletedDeliverables(Number(e.target.value))}
+                    value={projectCompletedDeliverables === 0 ? '' : projectCompletedDeliverables}
+                    onChange={(e) => setProjectCompletedDeliverables(e.target.value === '' ? 0 : Number(e.target.value))}
                     min={0}
                     className="w-full px-3 py-2 rounded-xl bg-black/40 border border-emerald-500/30 text-xs text-white font-mono"
                   />
@@ -3941,8 +3947,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                   <label className="text-[9px] font-bold text-emerald-200/70 uppercase block mb-1">Entregables Totales</label>
                   <input
                     type="number"
-                    value={projectTotalDeliverables}
-                    onChange={(e) => setProjectTotalDeliverables(Number(e.target.value))}
+                    value={projectTotalDeliverables === 0 ? '' : projectTotalDeliverables}
+                    onChange={(e) => setProjectTotalDeliverables(e.target.value === '' ? 0 : Number(e.target.value))}
                     min={1}
                     className="w-full px-3 py-2 rounded-xl bg-black/40 border border-emerald-500/30 text-xs text-white font-mono"
                   />
@@ -3973,8 +3979,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                   <label className="text-[9px] font-bold text-cyan-200/70 uppercase block mb-1">Actual</label>
                   <input
                     type="number"
-                    value={financeCurrent}
-                    onChange={(e) => setFinanceCurrent(Number(e.target.value))}
+                    value={financeCurrent === 0 ? '' : financeCurrent}
+                    onChange={(e) => setFinanceCurrent(e.target.value === '' ? 0 : Number(e.target.value))}
                     className="w-full px-3 py-2 rounded-xl bg-black/40 border border-cyan-500/30 text-xs text-white font-mono"
                   />
                 </div>
@@ -3982,8 +3988,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                   <label className="text-[9px] font-bold text-cyan-200/70 uppercase block mb-1">Presupuesto</label>
                   <input
                     type="number"
-                    value={financeBudget}
-                    onChange={(e) => setFinanceBudget(Number(e.target.value))}
+                    value={financeBudget === 0 ? '' : financeBudget}
+                    onChange={(e) => setFinanceBudget(e.target.value === '' ? 0 : Number(e.target.value))}
                     className="w-full px-3 py-2 rounded-xl bg-black/40 border border-cyan-500/30 text-xs text-white font-mono"
                   />
                 </div>
@@ -4013,8 +4019,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                   <label className="text-[9px] font-bold text-red-200/70 uppercase block mb-1">Sesiones Hechas</label>
                   <input
                     type="number"
-                    value={fitnessCompletedSessions}
-                    onChange={(e) => setFitnessCompletedSessions(Number(e.target.value))}
+                    value={fitnessCompletedSessions === 0 ? '' : fitnessCompletedSessions}
+                    onChange={(e) => setFitnessCompletedSessions(e.target.value === '' ? 0 : Number(e.target.value))}
                     min={0}
                     className="w-full px-3 py-2 rounded-xl bg-black/40 border border-red-500/30 text-xs text-white font-mono"
                   />
@@ -4023,8 +4029,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                   <label className="text-[9px] font-bold text-red-200/70 uppercase block mb-1">Sesiones Objetivo</label>
                   <input
                     type="number"
-                    value={fitnessTargetSessions}
-                    onChange={(e) => setFitnessTargetSessions(Number(e.target.value))}
+                    value={fitnessTargetSessions === 0 ? '' : fitnessTargetSessions}
+                    onChange={(e) => setFitnessTargetSessions(e.target.value === '' ? 0 : Number(e.target.value))}
                     min={1}
                     className="w-full px-3 py-2 rounded-xl bg-black/40 border border-red-500/30 text-xs text-white font-mono"
                   />
@@ -4033,21 +4039,25 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             </div>
           )}
 
-          {/* Parent Folder Selector (Subfolder nesting) */}
+          {/* Parent Folder Selector (Interactive Notion Tree Picker Button) */}
           <div>
             <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-1.5">Carpeta Padre (Opcional)</label>
-            <select
-              value={folderParentId || ''}
-              onChange={(e) => setFolderParentId(e.target.value || undefined)}
-              className="w-full px-3 py-2.5 rounded-xl bg-[#1a1a22] border border-white/10 text-xs text-white outline-none cursor-pointer"
-            >
-              <option value="">📁 Ninguna (Carpeta Raíz)</option>
-              {folders
-                .filter(f => f.id !== editingFolder?.id)
-                .map(f => (
-                  <option key={f.id} value={f.id}>{f.icon || '📁'} {f.name}</option>
-                ))}
-            </select>
+            {(() => {
+              const activeParentFolderObj = folderParentId ? folderMap.get(folderParentId) : undefined;
+              return (
+                <button
+                  type="button"
+                  onClick={() => setIsParentFolderPickerOpen(true)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#1a1a22] hover:bg-[#22222e] border border-white/10 text-xs text-white flex items-center justify-between transition-all cursor-pointer shadow-sm group"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <DynamicIcon icon={activeParentFolderObj ? activeParentFolderObj.icon : '📁'} size={16} className="text-cyan-400 shrink-0" />
+                    <span className="truncate font-bold text-white/90">{activeParentFolderObj ? activeParentFolderObj.name : 'Ninguna (Carpeta Raíz)'}</span>
+                  </div>
+                  <ChevronDown size={14} className="text-white/40 group-hover:text-white transition-colors shrink-0" />
+                </button>
+              );
+            })()}
           </div>
 
           {/* Icon & Color Pickers */}
@@ -4055,7 +4065,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block">Icono de la Carpeta</label>
             <div className="flex items-center gap-2">
               <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/15 flex items-center justify-center text-xl shrink-0 shadow-inner">
-                {folderIcon || '📁'}
+                <DynamicIcon icon={folderIcon} size={22} className="text-cyan-400" />
               </div>
               <button
                 type="button"
@@ -4274,6 +4284,94 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
           <button
             onClick={() => setIsFolderPickerOpen(false)}
             className="px-4 py-1.5 rounded-xl bg-cyan-500 text-black text-xs font-extrabold hover:brightness-110 active:scale-95 transition-all shadow-md"
+          >
+            Listo
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )}
+
+  {/* Notion-style Parent Folder Selection Modal */}
+  {isParentFolderPickerOpen && typeof document !== 'undefined' && createPortal(
+    <div className="fixed inset-0 z-[10002] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150">
+      <div className="w-full max-w-md bg-[#0f0f18] border border-white/15 rounded-3xl p-5 shadow-2xl flex flex-col gap-3.5 max-h-[85vh] relative overflow-hidden text-white">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center">
+              <FolderOpen size={16} />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-white leading-none">Seleccionar Carpeta Padre</h3>
+              <p className="text-[10px] text-white/50 mt-1">Vincula esta carpeta dentro de otra o como Raíz</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsParentFolderPickerOpen(false)}
+            className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/15 text-white/60 hover:text-white flex items-center justify-center transition-colors border border-white/10"
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Options List */}
+        <div className="space-y-1.5 flex-1 overflow-y-auto custom-scrollbar pr-1 max-h-[360px]">
+          <button
+            onClick={() => {
+              setFolderParentId(undefined);
+              setIsParentFolderPickerOpen(false);
+            }}
+            className={`w-full p-3 rounded-2xl border flex items-center justify-between text-xs transition-all ${
+              !folderParentId
+                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 font-bold shadow-sm'
+                : 'bg-white/5 text-white/80 border-white/5 hover:bg-white/10'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="text-base">📁</span>
+              <div className="text-left">
+                <div className="font-bold">Ninguna (Carpeta Raíz)</div>
+                <div className="text-[10px] text-white/40 font-medium">Crear en el nivel principal</div>
+              </div>
+            </div>
+            {!folderParentId && <Check size={16} className="text-cyan-400" />}
+          </button>
+
+          <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest pt-2 pb-1 px-1">Carpetas Disponibles</div>
+
+          {folders
+            .filter(f => f.id !== editingFolder?.id)
+            .map(f => {
+              const isSelected = folderParentId === f.id;
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => {
+                    setFolderParentId(f.id);
+                    setIsParentFolderPickerOpen(false);
+                  }}
+                  className={`w-full p-3 rounded-2xl border flex items-center justify-between text-xs transition-all ${
+                    isSelected
+                      ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 font-bold shadow-sm'
+                      : 'bg-white/5 text-white/80 border-white/5 hover:bg-white/10'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <DynamicIcon icon={f.icon} size={18} className="text-cyan-400 shrink-0" />
+                    <span className="truncate font-semibold">{f.name}</span>
+                  </div>
+                  {isSelected && <Check size={16} className="text-cyan-400 shrink-0" />}
+                </button>
+              );
+            })}
+        </div>
+
+        <div className="border-t border-white/10 pt-3 flex justify-end">
+          <button
+            onClick={() => setIsParentFolderPickerOpen(false)}
+            className="px-5 py-2 rounded-xl bg-cyan-500 text-black text-xs font-extrabold hover:brightness-110 active:scale-95 transition-all shadow-md"
           >
             Listo
           </button>
