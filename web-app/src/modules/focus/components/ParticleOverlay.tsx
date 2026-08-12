@@ -10,6 +10,7 @@ export interface ParticleConfig {
   breakColor: string;
   auraEnabled: boolean;
   ringMode: 'DRAIN' | 'FILL';
+  showRoutinePomodorosOnProjects?: boolean;
 }
 
 export const DEFAULT_PARTICLE_CONFIG: ParticleConfig = {
@@ -20,7 +21,8 @@ export const DEFAULT_PARTICLE_CONFIG: ParticleConfig = {
   breakDirection: 'FALLING',
   breakColor: '',
   auraEnabled: true,
-  ringMode: 'DRAIN'
+  ringMode: 'DRAIN',
+  showRoutinePomodorosOnProjects: true
 };
 
 interface ParticleOverlayProps {

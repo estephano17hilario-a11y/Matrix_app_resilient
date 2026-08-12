@@ -1344,58 +1344,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  });
  }, [currentMonth, monthDays, journalEntryMap, specialEvents, quests]);
 
-  const activeSpecialEvent = useMemo(() => {
-    if (editorMode !== 'JOURNAL') return null;
-    const dateStr = toLocalISOString(draftDate);
-    return specialEvents.find(e => {
-      if (e.showInCalendar === false) return false;
-      const eDate = parseLocalDate(e.date);
-      if (e.type === 'BIRTHDAY' || e.type === 'ANNIVERSARY') {
-        return eDate.getDate() === draftDate.getDate() && eDate.getMonth() === draftDate.getMonth();
-      }
-      return toLocalISOString(eDate) === dateStr;
-    });
-  }, [editorMode, draftDate, specialEvents]);
-
-  const activeDayQuests = useMemo(() => {
-    if (editorMode !== 'JOURNAL') return [];
-    const dateStr = toLocalISOString(draftDate);
-    const checkDate = new Date(draftDate);
-    checkDate.setHours(0, 0, 0, 0);
-
-    return quests?.filter(q => {
-      if (!q.showInJournaling) return false;
-      
-      if (q.deadline === dateStr) return true;
-
-      if (q.recurrence && q.recurrence.type !== 'NONE') {
-        const questStartDate = q.createdAt ? new Date(q.createdAt as string | number) : new Date(q.deadline || 0);
-        questStartDate.setHours(0, 0, 0, 0);
-        if (checkDate < questStartDate) return false;
-
-        if (q.recurrence.type === 'INTERVAL' && q.recurrence.interval) {
-          const diffTime = Math.abs(checkDate.getTime() - questStartDate.getTime());
-          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-          return diffDays % q.recurrence.interval === 0;
-        }
-        
-        if (q.recurrence.type === 'WEEKLY' && q.recurrence.days) {
-          return q.recurrence.days.includes(checkDate.getDay());
-        }
-
-        if (q.recurrence.type === 'MONTHLY') {
-          const isSelectedDay = q.recurrence.days?.includes(checkDate.getDate());
-          const isLastDay = q.recurrence.monthlyType === 'LAST_DAY' && 
-            checkDate.getDate() === new Date(checkDate.getFullYear(), checkDate.getMonth() + 1, 0).getDate();
-          
-          const validMonth = !q.recurrence.months || q.recurrence.months.length === 0 || q.recurrence.months.includes(checkDate.getMonth());
-          
-          return validMonth && (isSelectedDay || isLastDay);
-        }
-      }
-      return false;
-    }) || [];
-  }, [editorMode, draftDate, quests]);
+  /* Unused activeSpecialEvent & activeDayQuests removed */
 
  return (
  <div className="h-full flex flex-col relative">

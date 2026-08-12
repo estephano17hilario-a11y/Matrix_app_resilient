@@ -176,10 +176,11 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
                                 {project.streak}
                             </span>
                         )}
-                        {focusStepsCount > 0 && (
+                        {showRoutinePomodoros && focusStepsCount > 0 && (
                             <div className="flex items-center gap-1.5 shrink-0 ml-1">
                                 {Array.from({ length: focusStepsCount }).map((_, idx) => {
                                     const isDone = idx < completedFocusCountToday;
+                                    const gradId = `pomoRedGrad_${idx}_${project.id.replace(/[^a-zA-Z0-9]/g, '')}`;
                                     return (
                                         <svg 
                                             key={idx} 
@@ -207,7 +208,7 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
                                             {/* Plump Organic Tomato Body */}
                                             <path 
                                                 d="M12 21.5c-4.6 0-8.2-3.2-8.2-7.5 0-4.2 3.2-7.5 8.2-7.5s8.2 3.3 8.2 7.5c0 4.3-3.6 7.5-8.2 7.5z" 
-                                                fill={isDone ? "url(#pomoRedGrad)" : "rgba(255,255,255,0.08)"} 
+                                                fill={isDone ? `url(#${gradId})` : "rgba(255,255,255,0.08)"} 
                                                 stroke={isDone ? "#fb7185" : "rgba(255,255,255,0.3)"} 
                                                 strokeWidth="1.4" 
                                             />
@@ -226,7 +227,7 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
                                             <ellipse cx="8.5" cy="10.5" rx="1.8" ry="1" fill={isDone ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.06)"} transform="rotate(-25 8.5 10.5)" />
 
                                             <defs>
-                                                <linearGradient id="pomoRedGrad" x1="4" y1="6" x2="20" y2="22" gradientUnits="userSpaceOnUse">
+                                                <linearGradient id={gradId} x1="4" y1="6" x2="20" y2="22" gradientUnits="userSpaceOnUse">
                                                     <stop offset="0%" stopColor="#f43f5e" />
                                                     <stop offset="60%" stopColor="#e11d48" />
                                                     <stop offset="100%" stopColor="#9f1239" />

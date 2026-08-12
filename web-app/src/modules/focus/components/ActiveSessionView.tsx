@@ -8,8 +8,8 @@ import { useFocusSession } from '../hooks/useFocusSession';
 import { SessionHistoryModal } from './SessionHistoryModal';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { cn } from '../../../utils/cn';
-import { useTranslation } from 'react-i18next';
 import { triggerFlyingIcon } from '../../dashboard/components/FlyingIcon';
+import { useLux } from '../../../context/LuxContext';
 // import { LocalNotifications } from '@capacitor/local-notifications';
 
 interface ActiveSessionViewProps {
@@ -510,7 +510,8 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
       return DEFAULT_PARTICLE_CONFIG;
     }
   });
-  const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);
+  const { user, updateLuxLocally } = useLux();
+  const [showEarlyPomodoroStopModal, setShowEarlyPomodoroStopModal] = useState(false);
 
   const handleUpdateParticleConfig = (newConfig: ParticleConfig) => {
     setParticleConfig(newConfig);
@@ -786,6 +787,12 @@ toggleTimer();
     };
   }, [isActive, onExit]);
 
+  const isLastPomodoroOfRoutine = useMemo(() => {
+    if (!routineSteps || routineSteps.length === 0) return true;
+    const remainingFocusSteps = routineSteps.filter((s, idx) => idx > currentStepIdx && s.type === 'FOCUS');
+    return remainingFocusSteps.length === 0;
+  }, [routineSteps, currentStepIdx]);
+
   const handleStop = () => {
     if (!isActive) {
       stopSession();
@@ -795,11 +802,89 @@ toggleTimer();
     const currentMode = mode;
     const elapsed = getElapsedSeconds(currentMode);
 
+    if (currentMode === 'POMO' && elapsed < totalDuration && elapsed >= 5) {
+      setIsPaused(true);
+      setShowEarlyPomodoroStopModal(true);
+      return;
+    }
+
     if (elapsed >= 5) {
       handleSessionEnd(elapsed, currentMode, true);
     }
     
     stopSession();
+  };
+
+  const handleCancelAsFlow = () => {
+    setShowEarlyPomodoroStopModal(false);
+    const elapsed = getElapsedSeconds(mode);
+    if (elapsed >= 5) {
+      onCompleteSession(elapsed, 'STOPWATCH', undefined, false);
+      toast.success('Sesión guardada como Enfoque Libre');
+    }
+    stopSession();
+  };
+
+  const handleRedistributeTime = () => {
+    const currentGold = user?.stats?.gold || 0;
+    if (currentGold < 50) {
+      toast.error('Requiere 50 monedas');
+      return;
+    }
+
+    updateLuxLocally({
+      stats: { ...user?.stats, gold: Math.max(0, currentGold - 50) } as any
+    });
+
+    const elapsed = getElapsedSeconds(mode);
+    const remainingSecs = Math.max(0, totalDuration - elapsed);
+
+    if (routineSteps && routineSteps.length > 0) {
+      const remainingFocusStepIndices = routineSteps
+        .map((s, idx) => ({ step: s, idx }))
+        .filter(({ step, idx }) => idx > currentStepIdx && step.type === 'FOCUS');
+
+      if (remainingFocusStepIndices.length > 0) {
+        const extraSecsPerStep = Math.floor(remainingSecs / remainingFocusStepIndices.length);
+        const updatedSteps = [...routineSteps];
+        remainingFocusStepIndices.forEach(({ idx }) => {
+          updatedSteps[idx] = {
+            ...updatedSteps[idx],
+            duration: updatedSteps[idx].duration + Math.max(1, Math.round(extraSecsPerStep / 60))
+          };
+        });
+        onUpdateProject({ ...project, routineSteps: updatedSteps });
+      }
+    }
+
+    setShowEarlyPomodoroStopModal(false);
+    if (elapsed >= 5) {
+      onCompleteSession(elapsed, 'STOPWATCH', undefined, false);
+    }
+    stopSession();
+    toast.success('50 monedas pagadas. Tiempo restante distribuido en la rutina.');
+  };
+
+  const handleCompleteLastPomodoro = () => {
+    const elapsed = getElapsedSeconds(mode);
+    const remainingSecs = Math.max(0, totalDuration - elapsed);
+    const remainingMins = Math.max(1, Math.ceil(remainingSecs / 60));
+    const cost = remainingMins * 3;
+
+    const currentGold = user?.stats?.gold || 0;
+    if (currentGold < cost) {
+      toast.error(`Requiere ${cost} monedas (tienes ${currentGold})`);
+      return;
+    }
+
+    updateLuxLocally({
+      stats: { ...user?.stats, gold: Math.max(0, currentGold - cost) } as any
+    });
+
+    setShowEarlyPomodoroStopModal(false);
+    onCompleteSession(elapsed, 'POMO', undefined, true);
+    stopSession();
+    toast.success(`${cost} monedas pagadas. ¡Pomodoro de rutina completado!`);
   };
 
  return (
@@ -1355,6 +1440,114 @@ toggleTimer();
     onChangeConfig={handleUpdateParticleConfig}
     isPro={true}
   />
+
+  {/* Early Uncompleted Pomodoro Cancellation Modal */}
+  <AnimatePresence>
+    {showEarlyPomodoroStopModal && (
+      <div className="fixed inset-0 z-[10005] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+        <motion.div 
+          initial={{ scale: 0.95, opacity: 0, y: 15 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.95, opacity: 0, y: 15 }}
+          className="w-full max-w-sm bg-[#12121c] border border-amber-500/30 rounded-3xl p-5 shadow-2xl space-y-4 text-white relative overflow-hidden"
+        >
+          {/* Header Alert */}
+          <div className="flex items-start gap-3 border-b border-white/10 pb-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
+              <Coins size={20} />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-amber-300 leading-tight">
+                ⚠️ El pomodoro aún no se ha completado
+              </h3>
+              <p className="text-[11px] text-white/60 mt-0.5">
+                Has avanzado <strong className="text-white">{Math.floor(getElapsedSeconds(mode) / 60)}m</strong> de <strong className="text-white">{Math.floor(totalDuration / 60)}m</strong>. Elige qué deseas hacer:
+              </p>
+            </div>
+          </div>
+
+          {/* 3 Options */}
+          <div className="space-y-2">
+            {/* Option 1: Volver al Temporizador */}
+            <button
+              type="button"
+              onClick={() => {
+                setShowEarlyPomodoroStopModal(false);
+                setIsPaused(false);
+              }}
+              className="w-full p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-left transition-all group flex items-center justify-between"
+            >
+              <div>
+                <span className="text-xs font-extrabold text-white flex items-center gap-1.5">
+                  <span>🔄</span> Volver al Temporizador
+                </span>
+                <span className="text-[10px] text-white/40 block mt-0.5">
+                  Reanudar la sesión y completar el tiempo restante
+                </span>
+              </div>
+              <span className="text-[10px] font-extrabold text-cyan-400 group-hover:translate-x-1 transition-transform">➔</span>
+            </button>
+
+            {/* Option 2: Cancelar Pomodoro y Guardar como Flujo Libre */}
+            <button
+              type="button"
+              onClick={handleCancelAsFlow}
+              className="w-full p-3 rounded-2xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-left transition-all group flex items-center justify-between"
+            >
+              <div>
+                <span className="text-xs font-extrabold text-cyan-300 flex items-center gap-1.5">
+                  <span>🌊</span> Guardar como Tiempo Libre (Flujo)
+                </span>
+                <span className="text-[10px] text-cyan-200/50 block mt-0.5">
+                  Guarda tus {Math.floor(getElapsedSeconds(mode) / 60)}m. No cuenta para la rutina.
+                </span>
+              </div>
+              <span className="text-[10px] font-extrabold text-cyan-400 group-hover:translate-x-1 transition-transform">➔</span>
+            </button>
+
+            {/* Option 3: Dynamic based on isLastPomodoroOfRoutine */}
+            {!isLastPomodoroOfRoutine ? (
+              <button
+                type="button"
+                onClick={handleRedistributeTime}
+                className="w-full p-3 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-left transition-all group flex items-center justify-between"
+              >
+                <div>
+                  <span className="text-xs font-extrabold text-amber-300 flex items-center gap-1.5">
+                    <span>🪙</span> Pagar 50 Monedas (Repartir tiempo)
+                  </span>
+                  <span className="text-[10px] text-amber-200/60 block mt-0.5">
+                    Reparte el tiempo faltante equitativamente en la rutina de hoy. Sin oro.
+                  </span>
+                </div>
+                <span className="text-[11px] font-extrabold text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full shrink-0 ml-1">
+                  50 🪙
+                </span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleCompleteLastPomodoro}
+                className="w-full p-3 rounded-2xl bg-gradient-to-r from-emerald-500/20 to-teal-500/20 hover:brightness-110 border border-emerald-500/40 text-left transition-all group flex items-center justify-between"
+              >
+                <div>
+                  <span className="text-xs font-extrabold text-emerald-300 flex items-center gap-1.5">
+                    <span>✨</span> Pagar {Math.max(1, Math.ceil((totalDuration - getElapsedSeconds(mode)) / 60)) * 3} Monedas (Completar)
+                  </span>
+                  <span className="text-[10px] text-emerald-200/60 block mt-0.5">
+                    Completa este último pomodoro de rutina (3 oro/min faltante sin recompensa oro).
+                  </span>
+                </div>
+                <span className="text-[11px] font-extrabold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full shrink-0 ml-1">
+                  {Math.max(1, Math.ceil((totalDuration - getElapsedSeconds(mode)) / 60)) * 3} 🪙
+                </span>
+              </button>
+            )}
+          </div>
+        </motion.div>
+      </div>
+    )}
+  </AnimatePresence>
 
   {/* Deletion Warning / Confirmation Modals */}
   <AnimatePresence>

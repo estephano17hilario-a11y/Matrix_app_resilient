@@ -191,7 +191,7 @@ export const FocusCustomizationModal: React.FC<FocusCustomizationModalProps> = R
                           />
                         ))}
                         {/* Custom Color Input Button */}
-                        <label className="w-5 h-5 rounded-full border border-white/30 bg-gradient-to-tr from-red-500 via-green-500 via-blue-500 to-yellow-500 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform relative shrink-0" title="Personalizado">
+                        <label className="w-5 h-5 rounded-full border border-white/30 bg-gradient-to-tr from-red-500 via-amber-400 via-emerald-400 to-blue-500 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform relative shrink-0" title="Personalizado">
                           <input 
                             type="color" 
                             value={config.focusColor || '#3b82f6'} 
@@ -259,7 +259,7 @@ export const FocusCustomizationModal: React.FC<FocusCustomizationModalProps> = R
                           />
                         ))}
                         {/* Custom Color Input Button */}
-                        <label className="w-5 h-5 rounded-full border border-white/30 bg-gradient-to-tr from-red-500 via-green-500 via-blue-500 to-yellow-500 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform relative shrink-0" title="Personalizado">
+                        <label className="w-5 h-5 rounded-full border border-white/30 bg-gradient-to-tr from-red-500 via-amber-400 via-emerald-400 to-blue-500 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform relative shrink-0" title="Personalizado">
                           <input 
                             type="color" 
                             value={config.breakColor || '#93c5fd'} 
@@ -335,6 +335,35 @@ export const FocusCustomizationModal: React.FC<FocusCustomizationModalProps> = R
               <span className={cn(
                 "block w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-transform",
                 config.auraEnabled ? "right-0.5" : "left-0.5"
+              )} />
+            </button>
+          </div>
+
+          {/* Show Routine Pomodoros on Projects (FREE) */}
+          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
+            <div>
+              <span className="text-xs font-extrabold text-white block">
+                Ver Pomodoros de Rutina en Tarjetas de Proyecto
+              </span>
+              <span className="text-[10px] text-white/40 font-medium block">
+                Muestra los iconos de pomodoros completados en la cabecera de las tarjetas
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onChangeConfig({
+                ...config,
+                showRoutinePomodorosOnProjects: !(config.showRoutinePomodorosOnProjects ?? true)
+              })}
+              className={cn(
+                "w-9 h-5 rounded-full relative transition-colors border border-white/10 shrink-0 ml-2",
+                (config.showRoutinePomodorosOnProjects ?? true) ? "bg-cyan-500" : "bg-white/10"
+              )}
+            >
+              <span className={cn(
+                "block w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-transform",
+                (config.showRoutinePomodorosOnProjects ?? true) ? "right-0.5" : "left-0.5"
               )} />
             </button>
           </div>
