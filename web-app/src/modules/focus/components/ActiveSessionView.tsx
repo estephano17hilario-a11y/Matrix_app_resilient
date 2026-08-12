@@ -1,3 +1,4 @@
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Pause, Play, StopCircle, Volume2, ChevronDown, History, BellOff, Battery, Check, Coins, Zap, Clock, SlidersHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ParticleOverlay, ParticleConfig, DEFAULT_PARTICLE_CONFIG } from './ParticleOverlay';
@@ -258,7 +259,7 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
       clearInterval(cricketsIntervalRef.current);
       cricketsIntervalRef.current = null;
     }
-    activeSoundNodesRef.current.forEach(node => {
+    activeSoundNodesRef.current.forEach((node: any) => {
       try {
         if (node.stop) {
           node.stop();
@@ -1165,7 +1166,7 @@ toggleTimer();
     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
       <button
         type="button"
-        onClick={() => setActiveCircleView(prev => prev === 'TIMER' ? 'ROADMAP' : 'TIMER')}
+        onClick={() => setActiveCircleView((prev: string) => prev === 'TIMER' ? 'ROADMAP' : 'TIMER')}
         className="px-2.5 py-1 rounded-full bg-black/85 hover:bg-black/95 border border-white/10 text-[7px] font-black text-cyan-400 uppercase tracking-widest transition-all active:scale-95 shadow-md flex items-center gap-1"
       >
         <span>🔄</span>
