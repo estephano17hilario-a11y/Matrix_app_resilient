@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { Pause, Play, StopCircle, Volume2, ChevronDown, History, BellOff, Battery, Check, Coins, Zap } from 'lucide-react';
+import { Pause, Play, StopCircle, Volume2, ChevronDown, History, BellOff, Battery, Check, Coins, Zap, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Project, Attribute, SubTrait, Quest } from '../../../types';
 import { useFocusSession } from '../hooks/useFocusSession';
@@ -492,56 +492,74 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
     }
   }, [attribute, project.color]);
 
+  const [pendingFourHourSession, setPendingFourHourSession] = useState<{
+    duration: number;
+    mode: 'POMO' | 'STOPWATCH';
+    isManualStopOrSubTrait?: boolean | string;
+    subTraitId?: string;
+  } | null>(null);
+  const [editedFourHourMinutes, setEditedFourHourMinutes] = useState<number>(240);
+
+  const finalizeSessionEnd = useCallback((duration: number, mode: 'POMO' | 'STOPWATCH', isManualStopOrSubTrait?: boolean | string, subTraitId?: string) => {
+    const safeDuration = Number.isFinite(duration) ? Math.max(0, Math.floor(duration)) : 0;
+    if (safeDuration < 5) return;
+    
+    let isManualStop = false;
+    let finalSubTraitId = subTraitId;
+    if (typeof isManualStopOrSubTrait === 'boolean') {
+      isManualStop = isManualStopOrSubTrait;
+    } else if (typeof isManualStopOrSubTrait === 'string') {
+      finalSubTraitId = isManualStopOrSubTrait;
+    }
+
+    const isCompletedNaturally = !isManualStop;
+
+    if (!finalSubTraitId && sessionRecordedRef.current) return;
+    if (!finalSubTraitId) sessionRecordedRef.current = true;
+    
+    // Only play alarm and show external notification if it finished naturally
+    if (!isManualStop) {
+      playAlarm();
+      if (typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        try {
+          const notifTitle = i18n.language === 'es' ? '¡Enfoque Completado!' : 'Focus Complete!';
+          const notifBody = i18n.language === 'es' 
+            ? `Terminaste tu sesión para ${project.title}. ¡Reclama tu victoria!`
+            : `You finished your session for ${project.title}. Claim victory!`;
+          new Notification(notifTitle, {
+            body: notifBody,
+            icon: '/favicon.ico',
+            tag: 'focus-complete'
+          });
+        } catch (e) {
+          console.error("Failed to show web notification", e);
+        }
+      }
+    }
+   
+    if (finalSubTraitId) {
+      runFocusFlyingIcons();
+      onCompleteSession(safeDuration, mode, finalSubTraitId, isCompletedNaturally);
+    } else if (hasSubTraits) {
+      setPendingSessionData({ duration: safeDuration, mode, isCompletedNaturally });
+    } else {
+      runFocusFlyingIcons();
+      onCompleteSession(safeDuration, mode, undefined, isCompletedNaturally);
+    }
+  }, [onCompleteSession, playAlarm, project.title, hasSubTraits, runFocusFlyingIcons, i18n.language]);
+
   const handleSessionEnd = useCallback((duration: number, mode: 'POMO' | 'STOPWATCH', isManualStopOrSubTrait?: boolean | string, subTraitId?: string) => {
-  const safeDuration = Number.isFinite(duration) ? Math.max(0, Math.floor(duration)) : 0;
-  if (safeDuration < 5) return;
-  
-  let isManualStop = false;
-  let finalSubTraitId = subTraitId;
-  if (typeof isManualStopOrSubTrait === 'boolean') {
-    isManualStop = isManualStopOrSubTrait;
-  } else if (typeof isManualStopOrSubTrait === 'string') {
-    finalSubTraitId = isManualStopOrSubTrait;
-  }
+    const safeDuration = Number.isFinite(duration) ? Math.max(0, Math.floor(duration)) : 0;
+    if (safeDuration < 5) return;
 
-  const isCompletedNaturally = !isManualStop;
+    if (safeDuration >= 14400) { // 4 hours or more
+      setEditedFourHourMinutes(Math.floor(safeDuration / 60));
+      setPendingFourHourSession({ duration: safeDuration, mode, isManualStopOrSubTrait, subTraitId });
+      return;
+    }
 
-  if (!finalSubTraitId && sessionRecordedRef.current) return;
-  if (!finalSubTraitId) sessionRecordedRef.current = true;
-  
-  // Only play alarm and show external notification if it finished naturally
-  if (!isManualStop) {
-  playAlarm(); // Call the custom beautiful alarm sound
- 
-  // Show a web notification if permitted, so they know if they are in another tab
-  if (typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-  try {
-  const notifTitle = i18n.language === 'es' ? '¡Enfoque Completado!' : 'Focus Complete!';
-  const notifBody = i18n.language === 'es' 
-    ? `Terminaste tu sesión para ${project.title}. ¡Reclama tu victoria!`
-    : `You finished your session for ${project.title}. Claim victory!`;
-  new Notification(notifTitle, {
-  body: notifBody,
-  icon: '/favicon.ico',
-  tag: 'focus-complete'
-  });
-  } catch (e) {
-  console.error("Failed to show web notification", e);
-  }
-  }
-  }
- 
-  // If a specific sub-trait was pre-assigned to this routine step, use it directly!
-  if (finalSubTraitId) {
-    runFocusFlyingIcons();
-    onCompleteSession(safeDuration, mode, finalSubTraitId, isCompletedNaturally);
-  } else if (hasSubTraits) {
-    setPendingSessionData({ duration: safeDuration, mode, isCompletedNaturally });
-  } else {
-    runFocusFlyingIcons();
-    onCompleteSession(safeDuration, mode, undefined, isCompletedNaturally);
-  }
-  }, [onCompleteSession, playAlarm, project.title, hasSubTraits, runFocusFlyingIcons]);
+    finalizeSessionEnd(duration, mode, isManualStopOrSubTrait, subTraitId);
+  }, [finalizeSessionEnd]);
 
  // Helper to get emoji for attribute
  const getTraitEmoji = (id: string) => {
@@ -649,14 +667,40 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
  useEffect(() => {
  if (autoStart && !hasAutoStarted.current && !isActive) {
  hasAutoStarted.current = true;
- toggleTimer();
+toggleTimer();
  onAutoStartConsumed?.();
  }
  }, [autoStart, isActive, toggleTimer, onAutoStartConsumed]);
 
- useEffect(() => {
- sessionRecordedRef.current = false;
- }, [project.id]);
+  const touchStartYRef = useRef<number | null>(null);
+  const initialDurationRef = useRef<number>(25);
+
+  const handleTouchStartTimer = (e: React.TouchEvent | React.MouseEvent) => {
+    if (isActive || mode !== 'POMO') return;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    touchStartYRef.current = clientY;
+    initialDurationRef.current = Math.floor(timeLeft / 60);
+  };
+
+  const handleTouchMoveTimer = (e: React.TouchEvent | React.MouseEvent) => {
+    if (isActive || mode !== 'POMO' || touchStartYRef.current === null) return;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    const deltaY = touchStartYRef.current - clientY;
+    const diffMinutes = Math.round(deltaY / 12);
+    const newMinutes = Math.max(1, Math.min(240, initialDurationRef.current + diffMinutes));
+    const newSeconds = newMinutes * 60;
+    setTimeLeft(newSeconds);
+    setTotalDuration(newSeconds);
+    
+    const expectedRoutineSeconds = routineSteps && routineSteps[currentStepIdx] ? routineSteps[currentStepIdx].duration * 60 : null;
+    if (expectedRoutineSeconds !== null && newSeconds !== expectedRoutineSeconds) {
+      setIsCustomDurationOverride(true);
+    }
+  };
+
+  const handleTouchEndTimer = () => {
+    touchStartYRef.current = null;
+  };
 
  useEffect(() => {
  if (!isActive && !isPaused) {
@@ -1058,6 +1102,12 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
               </div>
             ) : (
               <div 
+                onTouchStart={handleTouchStartTimer}
+                onTouchMove={handleTouchMoveTimer}
+                onTouchEnd={handleTouchEndTimer}
+                onMouseDown={handleTouchStartTimer}
+                onMouseMove={handleTouchMoveTimer}
+                onMouseUp={handleTouchEndTimer}
                 onClick={() => {
                   if (!isActive && mode === 'POMO') {
                     setEditTimeValue(Math.floor(timeLeft / 60).toString());
@@ -1065,11 +1115,18 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
                   }
                 }}
                 className={cn(
-                  "text-[5rem] font-mono font-bold text-white leading-none tracking-tighter tabular-nums drop-shadow-md select-none scale-y-110 transition-all relative",
-                  !isActive && mode === 'POMO' && "cursor-pointer hover:scale-110 hover:text-indigo-200"
+                  "w-full max-w-xs mx-auto py-6 px-4 rounded-3xl flex flex-col items-center justify-center transition-all relative select-none touch-none",
+                  !isActive && mode === 'POMO' && "cursor-ns-resize hover:bg-white/5 active:scale-98"
                 )}
               >
-                {formatTime(timeLeft)}
+                <div className="text-[5rem] font-mono font-bold text-white leading-none tracking-tighter tabular-nums drop-shadow-md scale-y-110">
+                  {formatTime(timeLeft)}
+                </div>
+                {!isActive && mode === 'POMO' && (
+                  <span className="text-[9px] font-extrabold text-cyan-400/80 uppercase tracking-widest mt-3 flex items-center gap-1 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
+                    <span>↕️</span> <span>{i18n.language === 'es' ? 'Desliza verticalmente o toca para editar' : 'Slide up/down or tap to edit'}</span>
+                  </span>
+                )}
               </div>
             )}
             <div className="mt-4 text-xs font-bold text-white/30 uppercase tracking-[0.3em] animate-pulse">
@@ -1268,6 +1325,66 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
   cancelText={isActive ? t('common.cancel') : null}
   variant="warning"
   />
- </motion.div>
+
+  {/* 4-Hour Session Confirmation Prompt Modal */}
+  <AnimatePresence>
+    {pendingFourHourSession && (
+      <div className="fixed inset-0 z-[10005] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="w-full max-w-sm bg-[#0f0f18] border border-amber-500/30 rounded-3xl p-6 shadow-2xl space-y-4 text-center text-white"
+        >
+          <div className="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto border border-amber-500/40">
+            <Clock size={24} />
+          </div>
+          <div className="space-y-1.5">
+            <h3 className="text-base font-extrabold text-white">⚠️ ¿Confirmar Duración?</h3>
+            <p className="text-xs text-white/70">
+              Registraste <span className="font-mono font-bold text-amber-300">{Math.floor(pendingFourHourSession.duration / 3600)}h {Math.floor((pendingFourHourSession.duration % 3600) / 60)}m</span> de enfoque. ¿Es correcto este tiempo?
+            </p>
+          </div>
+
+          <div className="bg-white/5 p-3 rounded-2xl border border-white/10 space-y-1.5 text-left">
+            <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block">Ajustar Minutos si no es correcto:</label>
+            <input
+              type="number"
+              value={editedFourHourMinutes}
+              onChange={(e) => setEditedFourHourMinutes(Number(e.target.value))}
+              min={1}
+              className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-xs text-white font-mono outline-none"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 pt-2">
+            <button
+              onClick={() => {
+                const finalDur = Math.max(1, editedFourHourMinutes) * 60;
+                const p = pendingFourHourSession;
+                setPendingFourHourSession(null);
+                finalizeSessionEnd(finalDur, p.mode, p.isManualStopOrSubTrait, p.subTraitId);
+              }}
+              className="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/10 transition-colors"
+            >
+              Guardar {editedFourHourMinutes}m
+            </button>
+            <button
+              onClick={() => {
+                const p = pendingFourHourSession;
+                setPendingFourHourSession(null);
+                finalizeSessionEnd(p.duration, p.mode, p.isManualStopOrSubTrait, p.subTraitId);
+              }}
+              className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-xs transition-colors shadow-lg shadow-amber-500/20"
+            >
+              Sí, es correcto
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    )}
+  </AnimatePresence>
+
+  </motion.div>
  );
 };

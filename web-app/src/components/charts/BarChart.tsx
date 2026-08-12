@@ -16,7 +16,8 @@ export const BarChart = React.memo(({
     barSpacing = "px-2",
     paddingTop = "top-6",
     tooltipValueFormatter,
-    tooltipLabelFormatter
+    tooltipLabelFormatter,
+    solidBackground = false
 }: { 
     datasets: { data: number[]; color: string; label?: string }[];
     labels: string[];
@@ -33,6 +34,7 @@ export const BarChart = React.memo(({
     paddingTop?: string;
     tooltipValueFormatter?: (value: number) => string;
     tooltipLabelFormatter?: (label: string) => string;
+    solidBackground?: boolean;
 }) => {
     const maxValue = useMemo(() => {
         if (max) return max;
@@ -193,7 +195,11 @@ export const BarChart = React.memo(({
           onTouchCancel={hideNow}
       >
              {showBackground && (
-                <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 via-purple-500/5 to-pink-500/5 opacity-20 rounded-3xl pointer-events-none" />
+                solidBackground ? (
+                  <div className="absolute inset-0 bg-[#0d0d14] border border-white/10 rounded-3xl pointer-events-none" />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/5 via-purple-500/5 to-pink-500/5 opacity-20 rounded-3xl pointer-events-none" />
+                )
              )}
 
             {/* Grid lines */}
@@ -302,9 +308,9 @@ export const BarChart = React.memo(({
                                     const safeColor = ds.color || '#6366f1';
                                     const backgroundStyle = safeColor;
                                     const isHex = safeColor.startsWith('#');
-                                    const shadowStyle = isHex
+                                    const shadowStyle = solidBackground ? 'none' : (isHex
                                         ? `inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 15px ${safeColor}45, 0 4px 15px ${safeColor}35`
-                                        : `inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 15px rgba(0,0,0,0.3)`;
+                                        : `inset 0 1px 0 rgba(255,255,255,0.4), 0 4px 15px rgba(0,0,0,0.3)`);
                                     
                                     return (
                                         <div 
@@ -318,10 +324,12 @@ export const BarChart = React.memo(({
                                             }}
                                         >
                                              {/* Shine Effect */}
-                                             <div className={`absolute inset-0 transition-opacity duration-200 pointer-events-none ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-30" />
-                                                <div className="absolute bottom-0 left-0 right-0 h-[30%] bg-gradient-to-t from-black/20 to-transparent" />
-                                             </div>
+                                             {!solidBackground && (
+                                                <div className={`absolute inset-0 transition-opacity duration-200 pointer-events-none ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-30" />
+                                                    <div className="absolute bottom-0 left-0 right-0 h-[30%] bg-gradient-to-t from-black/20 to-transparent" />
+                                                </div>
+                                             )}
                                         </div>
                                     );
                                 })}

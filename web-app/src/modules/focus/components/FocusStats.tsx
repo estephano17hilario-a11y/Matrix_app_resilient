@@ -18,6 +18,7 @@ import { getAvatarConfig } from '@/config/avatars';
 import { getDynamicDailyTarget, getWeeklyGoalMinutes, getMonthlyGoalMinutes } from '../../../utils/projectUtils';
 import { useTranslation } from 'react-i18next';
 import { DateSelectionModal } from '../../dashboard/components/DateSelectionModal';
+import { toast } from 'react-hot-toast';
 
 type TimeRange = 'DAY' | 'WEEK' | '8_WEEKS' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
 
@@ -70,6 +71,7 @@ export const FocusStats = React.memo(({
     
     const [viewMode, setViewMode] = useState<'TOTAL' | 'ATTRIBUTE' | 'PROJECT'>((defaultProjectView === 'PROJECT' && !isPro) ? 'ATTRIBUTE' : (defaultProjectView || 'TOTAL'));
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+    const [solidChartBg, setSolidChartBg] = useState(() => typeof window !== 'undefined' && localStorage.getItem('matrix_solid_chart_bg') === 'true');
     
     // Sync defaultChartViews based on active viewMode
     useEffect(() => {
@@ -703,8 +705,30 @@ export const FocusStats = React.memo(({
                         </div>
                     )}
                     
-                    {/* DATE RANGE INDICATOR (Replaces BIO-LIMIT) */}
-                    <div className="flex justify-end mt-1">
+                    {/* DATE RANGE INDICATOR + PRO SOLID BG SWITCH */}
+                    <div className="flex justify-between items-center mt-1">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (!isPro) {
+                                    if (onOpenPro) onOpenPro();
+                                    toast.error(reactiveI18n.language === 'es' ? 'Fondo gráfico sólido es exclusivo de usuarios PRO 👑' : 'Solid chart background is a PRO feature 👑');
+                                    return;
+                                }
+                                const next = !solidChartBg;
+                                setSolidChartBg(next);
+                                localStorage.setItem('matrix_solid_chart_bg', String(next));
+                            }}
+                            className={cn(
+                                "flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold border transition-all cursor-pointer",
+                                solidChartBg ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-xs" : "bg-white/5 border-white/10 text-white/40 hover:text-white/70"
+                            )}
+                            title={!isPro ? "Exclusivo PRO" : "Alternar fondo sólido/degradado"}
+                        >
+                            <span>{solidChartBg ? "⬛ Fondo Sólido" : "✨ Fondo Degradado"}</span>
+                            {!isPro && <Lock size={10} className="text-amber-400" />}
+                        </button>
+
                         <span className="text-[9px] font-bold text-white/30 uppercase tracking-wide">
                             {dateRangeLabel}
                         </span>
@@ -718,7 +742,8 @@ export const FocusStats = React.memo(({
                     height={260}
                     max={chartMax}
                     className="mt-0"
-                    showBackground={false}
+                    showBackground={true}
+                    solidBackground={solidChartBg}
                     showGrid={true}
                     stacked={groupMode !== 'TOTAL'}
                     yTicks={yTicks}
