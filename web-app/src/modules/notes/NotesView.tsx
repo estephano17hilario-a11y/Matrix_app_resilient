@@ -2372,7 +2372,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
         {/* Top Header Controls - Single Responsive Row */}
         <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-white/10 relative z-20 bg-[#0d0d14]/95 gap-1.5 w-full overflow-x-auto no-scrollbar">
-          {/* Left: BLUE Exit Button */}
+          {/* Left: BLUE Exit Button + Categorize Button */}
           <div className="flex items-center gap-1.5 shrink-0">
             <button 
               onClick={closeEditor} 
@@ -2381,10 +2381,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             >
               <ArrowLeft size={14} />
             </button>
-          </div>
 
-          {/* Right: Folder Tree Selector + Undo + Redo + Blueprint + Theme Picker */}
-          <div className="flex items-center gap-1.5 shrink-0">
             {editorMode === 'NOTE' && (
               <button
                 onClick={() => setIsFolderPickerOpen(true)}
@@ -2396,6 +2393,10 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                 <ChevronDown size={11} className="text-white/40 shrink-0" />
               </button>
             )}
+          </div>
+
+          {/* Right: Undo + Redo + Blueprint + Theme Picker */}
+          <div className="flex items-center gap-1.5 shrink-0">
 
             <button
               onClick={handleUndo}

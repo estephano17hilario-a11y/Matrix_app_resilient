@@ -40,6 +40,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [activeStyle, setActiveStyle] = useState<{ id: string, label: string }>({ id: 'text', label: 'Texto Normal' });
     const [customColor, setCustomColor] = useState('#06b6d4');
+    const [toolbarPosition, setToolbarPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
     const initializedRef = useRef(false);
 
     // Convert initial blocks to HTML string with clean markup & larger checkboxes
@@ -168,8 +169,23 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
     // Detect user text selection to trigger floating format bar
     const checkTextSelection = useCallback(() => {
         const selection = window.getSelection();
-        if (selection && selection.toString().trim().length > 0) {
-            setShowSelectionToolbar(true);
+        if (selection && selection.toString().trim().length > 0 && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            
+            if (editorRef.current) {
+                const editorRect = editorRef.current.getBoundingClientRect();
+                
+                // Position below the text selection (local coordinates relative to the absolute editor container)
+                const top = rect.bottom - editorRect.top + 8;
+                const left = rect.left - editorRect.left + (rect.width / 2) - 150;
+                
+                // Keep toolbar contained horizontally
+                const clampedLeft = Math.max(8, Math.min(left, editorRect.width - 320));
+                
+                setToolbarPosition({ top, left: clampedLeft });
+                setShowSelectionToolbar(true);
+            }
         } else {
             setShowSelectionToolbar(false);
         }
@@ -340,9 +356,16 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                 style={{ wordBreak: 'break-word' }}
             />
 
-            {/* FLOATING TEXT SELECTION FORMATTING TOOLBAR - Now positioned below selected text */}
+            {/* FLOATING TEXT SELECTION FORMATTING TOOLBAR - Positioned absolutely below selection */}
             {showSelectionToolbar && !readOnly && (
-                <div className="sticky bottom-2 z-[90] self-center my-2 bg-[#12121e]/95 backdrop-blur-xl border border-cyan-500/40 rounded-2xl p-2 shadow-2xl flex items-center gap-2 flex-wrap animate-in slide-in-from-bottom-2 duration-150 text-white max-w-full overflow-visible">
+                <div 
+                    className="absolute z-[90] bg-[#12121e]/95 backdrop-blur-xl border border-cyan-500/40 rounded-2xl p-2 shadow-2xl flex items-center gap-2 flex-wrap animate-in zoom-in-95 duration-150 text-white max-w-full overflow-visible"
+                    style={{
+                        top: `${toolbarPosition.top}px`,
+                        left: `${toolbarPosition.left}px`,
+                        transform: 'translateZ(0)'
+                    }}
+                >
                     
                     {/* ACTIVE STYLE SWITCHER DROPDOWN */}
                     <div className="relative">
@@ -357,7 +380,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                         </button>
 
                         {showStyleMenu && (
-                            <div className="absolute left-0 bottom-full mb-1.5 w-52 bg-[#161626]/95 backdrop-blur-xl border border-white/20 rounded-2xl p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-[100] flex flex-col gap-1">
+                            <div className="absolute left-0 top-full mt-1.5 w-52 bg-[#161626]/95 backdrop-blur-xl border border-white/20 rounded-2xl p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-[100] flex flex-col gap-1">
                                 <button 
                                   type="button"
                                   onMouseDown={(e) => { e.preventDefault(); applyBlockStyle('text'); }}
@@ -478,7 +501,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                         </button>
 
                         {showColorPicker && (
-                            <div className="absolute right-0 left-auto bottom-full mb-1.5 w-60 bg-[#161626]/95 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-[100] flex flex-col gap-2.5">
+                            <div className="absolute right-0 left-auto top-full mt-1.5 w-60 bg-[#161626]/95 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-[100] flex flex-col gap-2.5">
                                 <div className="text-[10px] uppercase tracking-wider font-extrabold text-white/40">Gama de Colores</div>
                                 <div className="grid grid-cols-4 gap-1.5">
                                     {EXPANDED_TEXT_COLORS.map(tc => (
