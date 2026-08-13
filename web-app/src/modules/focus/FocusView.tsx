@@ -24,6 +24,7 @@ export const FocusView = React.memo(({
     onOpenPro,
     weekStartDay = 1,
     defaultChartViews,
+    defaultChartVisibility,
     defaultProjectView
 }: {  
     projects: Project[], 
@@ -51,6 +52,7 @@ export const FocusView = React.memo(({
     onOpenPro?: () => void;
     weekStartDay?: 0 | 1;
     defaultChartViews?: any;
+    defaultChartVisibility?: { tasks?: boolean; habits?: boolean; focus?: boolean; };
     defaultProjectView?: 'PROJECT' | 'TRAIT' | 'NONE';
 }) => {
     const { t } = useTranslation();
@@ -116,7 +118,9 @@ export const FocusView = React.memo(({
                     onReorder={() => setIsReorderModalOpen(true)}
                     isPro={isPro}
                     onOpenPro={onOpenPro}
+                    weekStartDay={weekStartDay}
                     defaultChartViews={defaultChartViews}
+                    defaultChartVisibility={defaultChartVisibility}
                     defaultProjectView={defaultProjectView === 'NONE' ? 'TOTAL' : defaultProjectView as any}
                 />
             </div>

@@ -85,6 +85,7 @@ export interface UserProfile {
     unlockedRadarColors?: string[];
     showProfile?: boolean;
     defaultChartViews?: any;
+    defaultChartVisibility?: { tasks?: boolean; habits?: boolean; focus?: boolean; };
     defaultProjectView?: any;
     defaultTaskFilters?: any;
     notesDefaultTab?: 'OVERVIEW' | 'EMOTIONS';
@@ -122,6 +123,7 @@ export interface UserProfile {
     projects?: 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
     notes?: 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
   };
+  defaultChartVisibility?: { tasks?: boolean; habits?: boolean; focus?: boolean; };
   defaultProjectView?: 'PROJECT' | 'TRAIT' | 'NONE';
   defaultTaskFilters?: {
     timeframe?: 'ALL' | 'DAY' | 'WEEK' | 'MONTH' | '3_MONTHS';

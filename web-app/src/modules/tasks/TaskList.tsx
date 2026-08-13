@@ -47,7 +47,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  const [typeFilter, setTypeFilter] = useState<'all' | 'normal' | 'smart'>(defaultTaskFilters.typeFilter || 'all');
  const [difficultyFilter, setDifficultyFilter] = useState<'all' | 'S' | 'A' | 'B' | 'C'>(defaultTaskFilters.difficultyFilter || 'all');
  const [hideCompleted, setHideCompleted] = useState<boolean>(defaultTaskFilters.hideCompleted ?? true);
- const [isDailyCapsOpen, setIsDailyCapsOpen] = useState(false);
+ const [isDailyCapsOpen, setIsDailyCapsOpen] = useState(profile?.defaultChartVisibility?.tasks !== false);
 
  // Optimization: Memoize maps only when inputs change
  const attributeMap = useMemo(() => new Map(attributes.map(attr => [attr.id, attr])), [attributes]);

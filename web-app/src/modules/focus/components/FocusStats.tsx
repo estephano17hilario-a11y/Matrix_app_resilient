@@ -43,6 +43,7 @@ export const FocusStats = React.memo(({
     onOpenPro?: () => void,
     weekStartDay?: 0 | 1,
     defaultChartViews?: any,
+    defaultChartVisibility?: { tasks?: boolean; habits?: boolean; focus?: boolean; },
     defaultProjectView?: 'TOTAL' | 'ATTRIBUTE' | 'PROJECT'
 }) => {
     const { t, i18n: reactiveI18n } = useTranslation();
@@ -72,6 +73,7 @@ export const FocusStats = React.memo(({
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     const [solidChartBg] = useState(() => typeof window !== 'undefined' && localStorage.getItem('matrix_solid_chart_bg') === 'true');
     const [barChartStyle, setBarChartStyle] = useState<'gradient' | 'solid'>(() => (typeof window !== 'undefined' && localStorage.getItem('matrix_bar_chart_style') === 'solid') ? 'solid' : 'gradient');
+    const [isChartMaximized, setIsChartMaximized] = useState(defaultChartVisibility?.focus !== false);
     
     // Listen for custom event or local storage changes
     useEffect(() => {
@@ -721,34 +723,52 @@ export const FocusStats = React.memo(({
                         </div>
                     )}
                     
-                    {/* DATE RANGE INDICATOR */}
-                    <div className="flex justify-end items-center mt-1">
+                    {/* DATE RANGE INDICATOR & TOGGLE */}
+                    <div className="flex justify-between items-center mt-1">
+                        <button 
+                            onClick={() => setIsChartMaximized(!isChartMaximized)}
+                            className="text-white/40 hover:text-white/70 transition-colors p-1 rounded-full hover:bg-white/5"
+                        >
+                            <motion.div animate={{ rotate: isChartMaximized ? 0 : 180 }}>
+                                <ChevronDown size={14} />
+                            </motion.div>
+                        </button>
                         <span className="text-[9px] font-bold text-white/30 uppercase tracking-wide">
                             {dateRangeLabel}
                         </span>
                     </div>
                 </div>
-
                 {/* CHART AREA */}
-                <BarChart 
-                    datasets={stats.datasets.map(d => d.label === 'Total' ? { ...d, color: viewMode === 'TOTAL' ? avatarColor : activeFilterColor } : d)}
-                    labels={stats.labels}
-                    height={260}
-                    max={chartMax}
-                    className="mt-0"
-                    showBackground={false}
-                    solidBackground={solidChartBg}
-                    barStyle={barChartStyle}
-                    showGrid={true}
-                    stacked={groupMode !== 'TOTAL'}
-                    yTicks={yTicks}
-                    yTickFormatter={formatYTick}
-                    xTickInterval={xTickInterval}
-                    barSpacing={barSpacing}
-                    paddingTop="top-4"
-                    tooltipValueFormatter={formatMinutes}
-                    tooltipLabelFormatter={(label) => label}
-                />
+                <AnimatePresence>
+                    {isChartMaximized && (
+                        <motion.div 
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                        >
+                            <BarChart 
+                                datasets={stats.datasets.map(d => d.label === 'Total' ? { ...d, color: viewMode === 'TOTAL' ? avatarColor : activeFilterColor } : d)}
+                                labels={stats.labels}
+                                height={260}
+                                max={chartMax}
+                                className="mt-0"
+                                showBackground={false}
+                                solidBackground={solidChartBg}
+                                barStyle={barChartStyle}
+                                showGrid={true}
+                                stacked={groupMode !== 'TOTAL'}
+                                yTicks={yTicks}
+                                yTickFormatter={formatYTick}
+                                xTickInterval={xTickInterval}
+                                barSpacing={barSpacing}
+                                paddingTop="top-4"
+                                tooltipValueFormatter={formatMinutes}
+                                tooltipLabelFormatter={(label) => label}
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
             
             <DateSelectionModal 

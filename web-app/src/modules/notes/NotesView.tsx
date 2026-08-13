@@ -1624,7 +1624,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                 title="Abrir Biblioteca completa"
               >
                 <BookOpen size={15} />
-                <span className="hidden sm:inline">Biblio</span>
+                <span className="hidden sm:inline">{t('notes.biblio', 'Biblio')}</span>
               </button>
 
               {/* Interactive Folder Tree Breadcrumb Trail */}
@@ -1693,7 +1693,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                     <ChevronRight size={11} className="text-white/30 shrink-0 mx-0.5" />
                     <button className="px-2.5 py-1 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5 shrink-0">
                       <Star size={13} fill="currentColor" />
-                      <span>Favoritos</span>
+                      <span>{t('notes.favorites', 'Favorites')}</span>
                     </button>
                   </>
                 )}
@@ -1703,7 +1703,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                     <ChevronRight size={11} className="text-white/30 shrink-0 mx-0.5" />
                     <button className="px-2.5 py-1 rounded-xl text-xs font-bold bg-slate-600/20 text-slate-200 border border-white/20 flex items-center gap-1.5 shrink-0">
                       <Folder size={13} />
-                      <span>Sin Carpeta</span>
+                      <span>{t('notes.uncategorized', 'Uncategorized')}</span>
                     </button>
                   </>
                 )}
@@ -1722,7 +1722,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                 title={notesLayoutMode === 'GRID' ? 'Vista: Tarjetas (Cuadrado)' : 'Vista: Lista Compacta (Rectángulos)'}
               >
                 {notesLayoutMode === 'GRID' ? <List size={14} className="text-cyan-400" /> : <LayoutGrid size={14} className="text-cyan-400" />}
-                <span className="hidden sm:inline">{notesLayoutMode === 'GRID' ? 'Lista' : 'Cuadrícula'}</span>
+                <span className="hidden sm:inline">{notesLayoutMode === 'GRID' ? t('notes.list', 'List') : t('notes.grid', 'Grid')}</span>
               </button>
 
               <button
@@ -1731,7 +1731,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                 title={sortOrder === 'NEWEST' ? 'Orden: Más recientes' : 'Orden: Más antiguas'}
               >
                 <ArrowUpDown size={14} className="text-emerald-400" />
-                <span className="hidden sm:inline">{sortOrder === 'NEWEST' ? 'Recientes' : 'Antiguas'}</span>
+                <span className="hidden sm:inline">{sortOrder === 'NEWEST' ? t('notes.newest', 'Newest') : t('notes.oldest', 'Oldest')}</span>
               </button>
             </div>
           </div>
@@ -1913,7 +1913,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
             <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[300] bg-[#12121c]/95 border border-cyan-500/40 rounded-full px-5 py-3 shadow-2xl backdrop-blur-xl flex items-center gap-3 animate-in slide-in-from-top-5 text-white">
               <button onClick={handleSelectAllNotes} className="flex items-center gap-1.5 text-xs font-bold text-cyan-300 hover:text-white transition-colors">
                 <CheckSquare size={16} />
-                <span>{selectedNoteIds.length === filteredNotes.length ? 'Deseleccionar' : 'Todas'} ({selectedNoteIds.length})</span>
+                <span>{selectedNoteIds.length === filteredNotes.length ? t('notes.deselect', 'Deselect') : t('notes.all', 'All')} ({selectedNoteIds.length})</span>
               </button>
 
               <div className="w-[1px] h-5 bg-white/20" />
@@ -1931,7 +1931,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                 className="px-4 py-1.5 rounded-full bg-cyan-500 text-black font-bold text-xs flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow-md"
               >
                 <Folder size={14} />
-                <span>Mover ({selectedNoteIds.length})</span>
+                <span>{t('notes.move', 'Move')} ({selectedNoteIds.length})</span>
               </button>
 
               <button 
@@ -2240,7 +2240,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
           <div className="flex justify-between items-center pb-3 border-b border-white/10">
             <h3 className="text-base font-black text-white flex items-center gap-2">
               <Folder size={18} className="text-cyan-400" />
-              <span>{editingFolder ? 'Editar Carpeta' : 'Nueva Carpeta'}</span>
+              <span>{editingFolder ? t('notes.editFolder', 'Edit Folder') : t('notes.newFolder', 'New Folder')}</span>
             </h3>
             <button onClick={() => setIsFolderModalOpen(false)} className="text-white/40 hover:text-white transition-colors">
               <X size={18} />
@@ -2341,7 +2341,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
               title="Salir del editor"
             >
               <ArrowLeft size={14} />
-              <span>Salir</span>
+              <span>{t('common.exit', 'Exit')}</span>
             </button>
 
             {editorMode === 'NOTE' && (
@@ -2368,7 +2368,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                 title="Cambiar carpeta de destino"
               >
                 <span className="shrink-0">{activeFolderObj ? (activeFolderObj.icon || '📁') : '📁'}</span>
-                <span className="truncate max-w-[80px] sm:max-w-[110px]">{activeFolderObj ? activeFolderObj.name : 'Sin Carpeta'}</span>
+                <span className="truncate max-w-[80px] sm:max-w-[110px]">{activeFolderObj ? activeFolderObj.name : t('notes.uncategorized', 'Uncategorized')}</span>
                 <ChevronDown size={11} className="text-white/40 shrink-0" />
               </button>
             )}

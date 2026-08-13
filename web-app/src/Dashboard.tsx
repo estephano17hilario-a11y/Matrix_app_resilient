@@ -1965,6 +1965,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  defaultViewPreference={defaultHabitView}
  weekStartDay={weekStartDay}
  defaultChartViews={user?.defaultChartViews}
+ defaultChartVisibility={user?.defaultChartVisibility}
  />
  </Suspense>
  </ViewContainer>
@@ -1999,6 +2000,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  weekStartDay={weekStartDay}
  defaultChartViews={user?.defaultChartViews}
  defaultProjectView={user?.defaultProjectView}
+ defaultChartVisibility={user?.defaultChartVisibility}
  />
  </Suspense>
  </ViewContainer>
@@ -2477,6 +2479,14 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  if (user?.id) {
  const newPrefs = { ...(user.preferences || {}), defaultChartViews: views };
  updateProfileLocally({ defaultChartViews: views, preferences: newPrefs });
+ await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
+ }
+ }}
+ defaultChartVisibility={user?.defaultChartVisibility}
+ onUpdateDefaultChartVisibility={async (visibility) => {
+ if (user?.id) {
+ const newPrefs = { ...(user.preferences || {}), defaultChartVisibility: visibility };
+ updateProfileLocally({ defaultChartVisibility: visibility, preferences: newPrefs });
  await supabase.from('users').update({ preferences: newPrefs }).eq('id', user.id);
  }
  }}

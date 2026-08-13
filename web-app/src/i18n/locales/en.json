@@ -1,5 +1,14 @@
 {
   "rivals": {
+    "levelMap": "Level Map",
+    "level": "Level",
+    "you": "You",
+    "rival": "Rival",
+    "completed": "completed",
+    "focused": "focused",
+    "habit_suffix": "of habits",
+    "levelCompleted": "Level Completed",
+    "levelLocked": "Level Locked (Beat Level {{level}})",
     "title": "Productivity Duels",
     "subtitle": "Battle Map & Challenge the Legends",
     "levelsCount": "30 Levels",
@@ -787,6 +796,18 @@
     "noActiveTasksForMission": "No active tasks for this mission."
   },
   "notes": {
+    "biblio": "Biblio",
+    "favorites": "Favorites",
+    "uncategorized": "Uncategorized",
+    "list": "List",
+    "grid": "Grid",
+    "newest": "Newest",
+    "oldest": "Oldest",
+    "deselect": "Deselect",
+    "all": "All",
+    "move": "Move",
+    "editFolder": "Edit Folder",
+    "newFolder": "New Folder",
     "calendarSettings": "Calendar Settings",
     "cellOpacity": "Cell Opacity",
     "showFutureDays": "Show Future Days",

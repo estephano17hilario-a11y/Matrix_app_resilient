@@ -1,5 +1,14 @@
 {
   "rivals": {
+    "levelMap": "Mapa de Niveles",
+    "level": "Nivel",
+    "you": "Tú",
+    "rival": "Rival",
+    "completed": "completadas",
+    "focused": "enfocado",
+    "habit_suffix": "de hábitos",
+    "levelCompleted": "Nivel Completado",
+    "levelLocked": "Nivel Bloqueado (Supera el Nivel {{level}})",
     "title": "Duelos de Productividad",
     "subtitle": "Mapa de Batallas & Enfréntate a las Leyendas",
     "levelsCount": "30 Niveles",
@@ -779,6 +788,18 @@
     "noActiveTasksForMission": "No hay tareas activas para esta misión."
   },
   "notes": {
+    "biblio": "Biblio",
+    "favorites": "Favoritos",
+    "uncategorized": "Sin Carpeta",
+    "list": "Lista",
+    "grid": "Cuadrícula",
+    "newest": "Recientes",
+    "oldest": "Antiguas",
+    "deselect": "Deseleccionar",
+    "all": "Todas",
+    "move": "Mover",
+    "editFolder": "Editar Carpeta",
+    "newFolder": "Nueva Carpeta",
     "calendarSettings": "Ajustes del Calendario",
     "cellOpacity": "Opacidad de Celdas",
     "showFutureDays": "Mostrar Días Futuros",

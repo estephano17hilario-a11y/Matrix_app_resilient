@@ -56,6 +56,8 @@ interface SettingsContextType {
     notes?: 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
   };
   updateDefaultChartViews: (views: any) => void;
+  defaultChartVisibility: { tasks?: boolean; habits?: boolean; focus?: boolean; };
+  updateDefaultChartVisibility: (visibility: any) => void;
   defaultProjectView: 'PROJECT' | 'TRAIT' | 'NONE';
   updateDefaultProjectView: (view: 'PROJECT' | 'TRAIT' | 'NONE') => void;
   notesDefaultTab: 'OVERVIEW' | 'EMOTIONS';
@@ -120,6 +122,8 @@ interface SettingsProviderProps {
   
   defaultChartViews?: any;
   onUpdateDefaultChartViews?: (views: any) => void;
+  defaultChartVisibility?: { tasks?: boolean; habits?: boolean; focus?: boolean; };
+  onUpdateDefaultChartVisibility?: (visibility: any) => void;
   defaultProjectView?: 'PROJECT' | 'TRAIT' | 'NONE';
   onUpdateDefaultProjectView?: (view: 'PROJECT' | 'TRAIT' | 'NONE') => void;
   notesDefaultTab?: 'OVERVIEW' | 'EMOTIONS';
@@ -197,6 +201,8 @@ export const SettingsProvider = ({ children, ...props }: SettingsProviderProps) 
 
     defaultChartViews: props.defaultChartViews || {},
     updateDefaultChartViews: props.onUpdateDefaultChartViews || (() => {}),
+    defaultChartVisibility: props.defaultChartVisibility || { tasks: true, habits: true, focus: true },
+    updateDefaultChartVisibility: props.onUpdateDefaultChartVisibility || (() => {}),
     defaultProjectView: props.defaultProjectView || 'PROJECT',
     updateDefaultProjectView: props.onUpdateDefaultProjectView || (() => {}),
     notesDefaultTab: props.notesDefaultTab || 'OVERVIEW',

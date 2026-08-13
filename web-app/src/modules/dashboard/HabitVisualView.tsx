@@ -46,6 +46,7 @@ interface HabitVisualViewProps {
     defaultViewPreference?: 'DEFAULT' | 'CHRONOLOGICAL';
     weekStartDay?: 0 | 1;
     defaultChartViews?: any;
+    defaultChartVisibility?: { tasks?: boolean; habits?: boolean; focus?: boolean; };
     currentDate?: Date;
     setCurrentDate?: (date: Date) => void;
 }
@@ -130,6 +131,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     defaultViewPreference = 'DEFAULT',
     weekStartDay = 1,
     defaultChartViews,
+    defaultChartVisibility,
     currentDate: propsCurrentDate,
     setCurrentDate: propsSetCurrentDate
 }) => {
@@ -142,6 +144,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     const [selectedDetailBadHabit, setSelectedDetailBadHabit] = useState<BadHabit | null>(null);
     const [quantityModalHabit, setQuantityModalHabit] = useState<Habit | null>(null);
     const [masteryHabit, setMasteryHabit] = useState<Habit | null>(null);
+    const [isChartMaximized, setIsChartMaximized] = useState(defaultChartVisibility?.habits !== false);
     
     // Header State
     const [viewMode] = useState<ViewMode>('DAY');
@@ -503,15 +506,36 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                             {/* Habit Consistency Chart (Moved inside to prevent layout shifts during exit animation) */}
                             {!showArchived && (
                                 <div className="w-full max-w-[440px] pt-0">
-                                    <HabitConsistencyChart 
-                                        habits={habits} 
-                                        onOpenStreak={onOpenStreak} 
-                                        isActive={isActive} 
-                                        isPro={isPro}
-                                        onOpenPro={onOpenPro}
-                                        weekStartDay={weekStartDay}
-                                        initialTimeframe={defaultChartViews?.habits}
-                                    />
+                                    <div className="flex justify-end mb-2">
+                                        <button 
+                                            onClick={() => setIsChartMaximized(!isChartMaximized)}
+                                            className="text-white/40 hover:text-white/70 transition-colors p-1 rounded-full hover:bg-white/5"
+                                        >
+                                            <motion.div animate={{ rotate: isChartMaximized ? 0 : 180 }}>
+                                                <LucideIcons.ChevronDown size={14} />
+                                            </motion.div>
+                                        </button>
+                                    </div>
+                                    <AnimatePresence>
+                                        {isChartMaximized && (
+                                            <motion.div 
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                className="overflow-hidden"
+                                            >
+                                                <HabitConsistencyChart 
+                                                    habits={habits} 
+                                                    onOpenStreak={onOpenStreak} 
+                                                    isActive={isActive} 
+                                                    isPro={isPro}
+                                                    onOpenPro={onOpenPro}
+                                                    weekStartDay={weekStartDay}
+                                                    initialTimeframe={defaultChartViews?.habits}
+                                                />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                     
                                     {/* Date Navigation Banner */}
                                     {!isSameDay(currentDate, new Date()) && (

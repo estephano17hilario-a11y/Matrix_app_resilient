@@ -101,7 +101,7 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-white/70 uppercase tracking-widest flex items-center gap-2">
                   <Compass size={15} className="text-amber-400 animate-spin-slow" />
-                  Mapa de Niveles: <span className="text-white font-mono font-black">Nivel {progress.unlockedLevel} / 30</span>
+                  {t('rivals.levelMap', 'Level Map')}: <span className="text-white font-mono font-black">{t('rivals.level', 'Level')} {progress.unlockedLevel} / 30</span>
                 </span>
                 <span className="text-xs font-mono text-amber-400/90 font-bold bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
                   Derrotados: {progress.completedLevels.length} / 30
@@ -366,12 +366,12 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
 
                   <div className="my-3 flex flex-col gap-1 text-left">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Tú:</span>
+                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">{t('rivals.you', 'You')}:</span>
                       <span className="text-2xl font-black text-white">{userTasksCompleted}</span>
-                      <span className="text-white/40 text-xs font-medium">completadas</span>
+                      <span className="text-white/40 text-xs font-medium">{t('rivals.completed', 'completed')}</span>
                     </div>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Rival:</span>
+                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">{t('rivals.rival', 'Rival')}:</span>
                       <span className="text-sm font-black text-orange-400">
                         {!isSelectedUnlocked ? '?' : (rivalLiveState.status === 'WAITING' ? 0 : rivalLiveState.simulatedTasks)}
                       </span>
@@ -418,12 +418,12 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
 
                   <div className="my-3 flex flex-col gap-1 text-left">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Tú:</span>
+                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">{t('rivals.you', 'You')}:</span>
                       <span className="text-2xl font-black text-white">{Math.round(userFocusMinutes / 60 * 10) / 10}h</span>
-                      <span className="text-white/40 text-xs font-medium">enfocado</span>
+                      <span className="text-white/40 text-xs font-medium">{t('rivals.focused', 'focused')}</span>
                     </div>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Rival:</span>
+                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">{t('rivals.rival', 'Rival')}:</span>
                       <span className="text-sm font-black text-purple-400">
                         {!isSelectedUnlocked ? '?' : (rivalLiveState.status === 'WAITING' ? '0h' : `${Math.round(rivalLiveState.simulatedFocusMinutes / 60 * 10) / 10}h`)}
                       </span>
@@ -470,12 +470,12 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
 
                   <div className="my-3 flex flex-col gap-1 text-left">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Tú:</span>
+                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">{t('rivals.you', 'You')}:</span>
                       <span className="text-2xl font-black text-white">{Math.round(userHabitPct)}%</span>
-                      <span className="text-white/40 text-xs font-medium">de hábitos</span>
+                      <span className="text-white/40 text-xs font-medium">{t('rivals.habit_suffix', 'of habits')}</span>
                     </div>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">Rival:</span>
+                      <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider">{t('rivals.rival', 'Rival')}:</span>
                       <span className="text-sm font-black text-orange-400">
                         {!isSelectedUnlocked ? '?' : (rivalLiveState.status === 'WAITING' ? '0%' : `${Math.round(rivalLiveState.simulatedHabitPct)}%`)}
                       </span>
@@ -519,7 +519,7 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                     className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-bold text-sm flex items-center justify-center gap-2 cursor-default"
                   >
                     <CheckCircle size={18} />
-                    <span>Nivel Completado</span>
+                    <span>{t('rivals.levelCompleted', 'Level Completed')}</span>
                   </button>
                 ) : isSelectedUnlocked ? (
                   <button
@@ -544,7 +544,7 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                     className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-zinc-900 border border-white/10 text-white/30 font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed"
                   >
                     <Lock size={18} />
-                    <span>Nivel Bloqueado (Supera el Nivel {selectedLevel - 1})</span>
+                    <span>{t('rivals.levelLocked', 'Level Locked (Beat Level {{level}})', { level: selectedLevel - 1 })}</span>
                   </button>
                 )}
               </div>

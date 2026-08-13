@@ -22,6 +22,7 @@ export const SystemSection = () => {
  defaultChartMode, setDefaultChartMode, 
  weekStartDay, updateWeekStartDay,
  defaultChartViews, updateDefaultChartViews,
+ defaultChartVisibility, updateDefaultChartVisibility,
  defaultProjectView, updateDefaultProjectView,
  defaultTaskFilters, updateDefaultTaskFilters,
  notesDefaultTab, updateNotesDefaultTab,
