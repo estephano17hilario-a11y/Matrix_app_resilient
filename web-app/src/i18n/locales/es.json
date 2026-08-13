@@ -1,4 +1,43 @@
 {
+  "rivals": {
+    "title": "Duelos de Productividad",
+    "subtitle": "Mapa de Batallas & Enfréntate a las Leyendas",
+    "levelsCount": "30 Niveles",
+    "levelMap": "Mapa de Niveles",
+    "level": "Nivel",
+    "defeated": "Derrotados",
+    "nextEnemy": "PRÓXIMO ENEMIGO",
+    "currentOpponent": "RIVAL ACTUAL",
+    "claimVictory": "¡DERROTAR RIVAL & RECLAMAR RECOMPENSA!",
+    "hours": "Horario de Trabajo",
+    "targetTasks": "Tareas Requeridas",
+    "targetFocus": "Minutos de Enfoque",
+    "targetHabits": "Porcentaje de Hábitos",
+    "reward": "Recompensa",
+    "quote": "Frase de la Leyenda",
+    "difficulty": {
+      "easy": "FÁCIL",
+      "medium": "MEDIO",
+      "hard": "DIFÍCIL",
+      "epic": "ÉPICO",
+      "legendary": "LEGENDARIO",
+      "titan": "TITÁN"
+    }
+  },
+  "traits": {
+    "FISICO": "Físico",
+    "MENTAL": "Mental",
+    "CREATIVIDAD": "Creatividad",
+    "SOCIAL": "Social",
+    "ESPIRITU": "Espíritu",
+    "FINANZAS": "Finanzas",
+    "ORDEN": "Orden",
+    "VITALIDAD": "Vitalidad",
+    "LIDERAZGO": "Liderazgo",
+    "RESILIENCIA": "Resiliencia",
+    "ESTILO": "Estilo",
+    "DISCIPLINA": "Disciplina"
+  },
   "onboarding": {
     "intro": {
       "title": "Sistema En Línea",

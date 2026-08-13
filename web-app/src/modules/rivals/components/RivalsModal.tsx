@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trophy, Lock, CheckCircle, Swords, Target, Zap, Flame, Star, Award, Sparkles, Crown, Compass, Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { RIVAL_LEVELS } from '../config/rivalsConfig';
 import { useRivalsLogic } from '../hooks/useRivalsLogic';
 
@@ -20,6 +21,7 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
   userFocusMinutes = 0,
   userHabitPct = 0
 }) => {
+  const { t } = useTranslation();
   const {
     progress,
     selectedLevel,

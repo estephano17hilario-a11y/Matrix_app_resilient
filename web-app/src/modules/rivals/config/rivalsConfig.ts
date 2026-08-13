@@ -20,19 +20,19 @@ export interface RivalLevel {
 export const RIVAL_LEVELS: RivalLevel[] = [
   {
     level: 1,
-    name: 'Bruce Lee',
-    title: 'El Dragón Invicto',
-    avatar: '🥋',
+    name: 'Cristiano Ronaldo',
+    title: 'La Máquina de Rendimiento',
+    avatar: '⚽',
     color: '#EF4444',
     targetTasks: 1,
     targetFocusMinutes: 60,
     targetHabitPct: 25,
     rewardGold: 25,
     rewardXp: 35,
-    quote: 'No temo al hombre que ha practicado 10,000 patadas una vez, sino al que ha practicado una patada 10,000 veces.',
+    quote: 'El talento sin trabajo duro no es nada. La disciplina de cada día marca la diferencia.',
     difficulty: 'FÁCIL',
-    workStartHour: 8,
-    workEndHour: 17
+    workStartHour: 6,
+    workEndHour: 19
   },
   {
     level: 2,

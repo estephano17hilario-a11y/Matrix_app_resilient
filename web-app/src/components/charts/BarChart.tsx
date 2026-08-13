@@ -345,7 +345,7 @@ export const BarChart = React.memo(({
                                             key={idx}
                                             initial={{ height: 0 }}
                                             animate={{ height: `${heightPercent}%` }}
-                                            transition={{ type: "spring", stiffness: 320, damping: 26 }}
+                                            transition={{ type: "spring", stiffness: 480, damping: 28, mass: 0.8 }}
                                             className={cn(
                                                 `w-full ${roundingClass} relative overflow-hidden transition-all duration-200`,
                                                 isActive ? 'brightness-125 scale-x-[1.06] shadow-2xl' : 'group-hover:brightness-110'

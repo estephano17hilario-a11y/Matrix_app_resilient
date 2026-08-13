@@ -10,7 +10,8 @@ import { App } from '@capacitor/app';
 import toast from 'react-hot-toast';
 import { useLux } from '@/context/LuxContext';
 import { NotificationTone, TONE_DEFINITIONS } from '../../../services/notificationTonesService';
-
+import { PersistenceService } from '../../../services/persistence';
+import { supabase } from '../../../services/supabase';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
 export const SystemSection = () => {
@@ -53,54 +54,101 @@ export const SystemSection = () => {
     } catch (e) { return 'Sin Excusas'; }
   });
 
-  const handleChangeTone = (newTone: NotificationTone) => {
-    if (newTone === currentTone) return;
+  const [pendingTone, setPendingTone] = useState<NotificationTone | null>(null);
+  const [pendingPhraseType, setPendingPhraseType] = useState<'ANTI' | 'SPLASH' | null>(null);
+
+  const persistGoldAndStats = async (cost: number): Promise<boolean> => {
     const userGold = user?.stats?.gold || 0;
-    if (userGold < 2000) {
-      toast.error(`🚫 Oro insuficiente. Requieres 2,000 Oro (Tienes: ${userGold})`);
-      return;
+    if (userGold < cost) {
+      toast.error(`🚫 Oro insuficiente. Requieres ${cost.toLocaleString()} Oro (Tienes: ${userGold.toLocaleString()})`);
+      return false;
     }
-    const updatedGold = userGold - 2000;
-    updateLuxLocally({ stats: { ...user?.stats, gold: updatedGold } as any });
-    localStorage.setItem('matrix_notification_tone', newTone);
-    setCurrentTone(newTone);
-    toast.success('⚡ Tono de notificación actualizado (-2,000 Oro)');
+    const updatedGold = userGold - cost;
+    const updatedStats = { ...user?.stats, gold: updatedGold };
+
+    // 1. Local State Update
+    updateLuxLocally({ stats: updatedStats as any });
+
+    // 2. Local Storage & Persistence Service Update
+    const userId = user?.id || (user as any)?.uid;
+    if (userId) {
+      const mergedProfile = { ...user, stats: updatedStats };
+      PersistenceService.saveProfile(mergedProfile as any);
+
+      // 3. Supabase Database Update (Permanent cross-reload persistence)
+      try {
+        const { error } = await supabase
+          .from('users')
+          .update({ 
+            stats: updatedStats, 
+            updated_at: new Date().toISOString() 
+          })
+          .eq('id', userId);
+
+        if (error) console.error('[Settings] Supabase gold update error:', error);
+        else console.log('[Settings] Supabase gold updated successfully!');
+      } catch (err) {
+        console.error('[Settings] Error saving gold to Supabase:', err);
+      }
+    }
+    return true;
   };
 
-  const handleSaveAntiPhrase = () => {
+  const handleRequestChangeTone = (newTone: NotificationTone) => {
+    if (newTone === currentTone) return;
+    setPendingTone(newTone);
+  };
+
+  const handleConfirmToneChange = async () => {
+    if (!pendingTone) return;
+    const targetTone = pendingTone;
+    setPendingTone(null);
+    const success = await persistGoldAndStats(2000);
+    if (success) {
+      localStorage.setItem('matrix_notification_tone', targetTone);
+      setCurrentTone(targetTone);
+      toast.success('⚡ Tono de notificación actualizado (-2,000 Oro)');
+    }
+  };
+
+  const handleRequestSaveAntiPhrase = () => {
     const clean = antiPhrase.trim().slice(0, 50);
     const saved = localStorage.getItem('matrix_anti_procrastination_phrase') || '';
     if (clean === saved) {
       toast('Sin cambios que guardar');
       return;
     }
-    const userGold = user?.stats?.gold || 0;
-    if (userGold < 500) {
-      toast.error(`🚫 Oro insuficiente. Requieres 500 Oro (Tienes: ${userGold})`);
-      return;
-    }
-    const updatedGold = userGold - 500;
-    updateLuxLocally({ stats: { ...user?.stats, gold: updatedGold } as any });
-    localStorage.setItem('matrix_anti_procrastination_phrase', clean);
-    toast.success('💬 Frase anti-procrastinación guardada (-500 Oro)');
+    setPendingPhraseType('ANTI');
   };
 
-  const handleSaveSplashPhrase = () => {
+  const handleConfirmAntiPhraseSave = async () => {
+    setPendingPhraseType(null);
+    const clean = antiPhrase.trim().slice(0, 50);
+    const success = await persistGoldAndStats(500);
+    if (success) {
+      localStorage.setItem('matrix_anti_procrastination_phrase', clean);
+      toast.success('💬 Frase anti-procrastinación guardada (-500 Oro)');
+    }
+  };
+
+  const handleRequestSaveSplashPhrase = () => {
     const clean = (splashPhrase || 'Sin Excusas').trim().slice(0, 20);
     const saved = localStorage.getItem('matrix_splash_phrase') || 'Sin Excusas';
     if (clean === saved) {
       toast('Sin cambios que guardar');
       return;
     }
-    const userGold = user?.stats?.gold || 0;
-    if (userGold < 500) {
-      toast.error(`🚫 Oro insuficiente. Requieres 500 Oro (Tienes: ${userGold})`);
-      return;
+    setPendingPhraseType('SPLASH');
+  };
+
+  const handleConfirmSplashPhraseSave = async () => {
+    setPendingPhraseType(null);
+    const clean = (splashPhrase || 'Sin Excusas').trim().slice(0, 20);
+    const success = await persistGoldAndStats(500);
+    if (success) {
+      localStorage.setItem('matrix_splash_phrase', clean);
+      toast.success('✨ Frase de pantalla de carga guardada (-500 Oro)');
     }
-    const updatedGold = userGold - 500;
-    updateLuxLocally({ stats: { ...user?.stats, gold: updatedGold } as any });
-    localStorage.setItem('matrix_splash_phrase', clean);
-    toast.success('✨ Frase de pantalla de carga guardada (-500 Oro)');
   };
 
  const [topQuickActions, setTopQuickActions] = useState<string[]>(() => {
@@ -351,7 +399,7 @@ export const SystemSection = () => {
           return (
             <button
               key={toneKey}
-              onClick={() => handleChangeTone(toneKey)}
+              onClick={() => handleRequestChangeTone(toneKey)}
               className={cn(
                 "p-3 rounded-xl border text-left transition-all flex flex-col justify-between gap-2 active:scale-95",
                 isSelected
@@ -397,7 +445,7 @@ export const SystemSection = () => {
             className="flex-1 bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-amber-400"
           />
           <button
-            onClick={handleSaveAntiPhrase}
+            onClick={handleRequestSaveAntiPhrase}
             className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs rounded-xl transition-all shadow-md active:scale-95 whitespace-nowrap"
           >
             Guardar (500g)
@@ -426,7 +474,7 @@ export const SystemSection = () => {
             className="flex-1 bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-cyan-400 font-semibold"
           />
           <button
-            onClick={handleSaveSplashPhrase}
+            onClick={handleRequestSaveSplashPhrase}
             className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs rounded-xl transition-all shadow-md active:scale-95 whitespace-nowrap"
           >
             Guardar (500g)
@@ -1055,6 +1103,113 @@ export const SystemSection = () => {
  </div>
  </div>
  </div>
+
+ {/* Tone Change Confirmation Modal with 10 Preview Messages */}
+  <AnimatePresence>
+    {pendingTone && (
+      <div className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="bg-zinc-950 border border-amber-500/40 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 max-h-[90vh] flex flex-col"
+        >
+          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <div className="flex items-center gap-2 text-amber-400 font-black text-lg">
+              <Bell size={20} />
+              ¿Confirmar Cambio de Tono?
+            </div>
+            <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/30">
+              Costo: 2,000 Oro 🪙
+            </span>
+          </div>
+
+          <p className="text-xs text-white/70">
+            Estás a punto de cambiar el tono de tus notificaciones a <strong className="text-white">{TONE_DEFINITIONS[pendingTone].name}</strong>. Se descontarán <strong>2,000 Monedas de Oro</strong> de tu cuenta.
+          </p>
+
+          <div className="bg-zinc-900 border border-white/10 rounded-2xl p-3 flex-1 overflow-y-auto space-y-2 max-h-[220px]">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1">
+              💬 Muestra de las 10 frases del tono seleccionado:
+            </span>
+            <div className="space-y-1.5">
+              {TONE_DEFINITIONS[pendingTone].sampleMessages.map((sample, idx) => (
+                <div key={idx} className="bg-white/5 border border-white/5 rounded-xl p-2 text-xs text-white/80">
+                  <span className="text-amber-400 font-mono text-[10px] font-bold mr-1.5">#{idx + 1}</span>
+                  {sample}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              onClick={() => setPendingTone(null)}
+              className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 font-bold text-xs"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleConfirmToneChange}
+              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs shadow-lg shadow-amber-500/20 active:scale-95"
+            >
+              Confirmar Cambio (2,000 Oro)
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    )}
+  </AnimatePresence>
+
+  {/* Phrase Change Confirmation Modal */}
+  <AnimatePresence>
+    {pendingPhraseType && (
+      <div className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="bg-zinc-950 border border-cyan-500/40 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4"
+        >
+          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <div className="flex items-center gap-2 text-cyan-400 font-black text-lg">
+              <Quote size={20} />
+              ¿Confirmar Cambio de Frase?
+            </div>
+            <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/30">
+              Costo: 500 Oro 🪙
+            </span>
+          </div>
+
+          <p className="text-xs text-white/70">
+            {pendingPhraseType === 'ANTI' 
+              ? 'Estás a punto de actualizar tu Frase Anti-Procrastinación.' 
+              : 'Estás a punto de actualizar tu Frase de Pantalla de Carga LUX.'
+            } Se descontarán <strong>500 Monedas de Oro</strong> de tu cuenta.
+          </p>
+
+          <div className="bg-black/60 border border-white/10 rounded-2xl p-4 text-xs font-semibold text-cyan-300 font-mono text-center">
+            "{pendingPhraseType === 'ANTI' ? antiPhrase.trim().slice(0, 50) : (splashPhrase || 'Sin Excusas').trim().slice(0, 20)}"
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              onClick={() => setPendingPhraseType(null)}
+              className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 font-bold text-xs"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={pendingPhraseType === 'ANTI' ? handleConfirmAntiPhraseSave : handleConfirmSplashPhraseSave}
+              className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs shadow-lg shadow-cyan-500/20 active:scale-95"
+            >
+              Confirmar Cambio (500 Oro)
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    )}
+  </AnimatePresence>
 
  </div>
  </div>

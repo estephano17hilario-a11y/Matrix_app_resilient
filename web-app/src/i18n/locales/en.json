@@ -1,4 +1,43 @@
 {
+  "rivals": {
+    "title": "Productivity Duels",
+    "subtitle": "Battle Map & Challenge the Legends",
+    "levelsCount": "30 Levels",
+    "levelMap": "Level Map",
+    "level": "Level",
+    "defeated": "Defeated",
+    "nextEnemy": "NEXT ENEMY",
+    "currentOpponent": "CURRENT RIVAL",
+    "claimVictory": "DEFEAT RIVAL & CLAIM REWARD!",
+    "hours": "Active Hours",
+    "targetTasks": "Required Tasks",
+    "targetFocus": "Focus Minutes",
+    "targetHabits": "Habit Completion %",
+    "reward": "Reward",
+    "quote": "Legend Quote",
+    "difficulty": {
+      "easy": "EASY",
+      "medium": "MEDIUM",
+      "hard": "HARD",
+      "epic": "EPIC",
+      "legendary": "LEGENDARY",
+      "titan": "TITAN"
+    }
+  },
+  "traits": {
+    "FISICO": "Physical",
+    "MENTAL": "Mental",
+    "CREATIVIDAD": "Creativity",
+    "SOCIAL": "Social",
+    "ESPIRITU": "Spirit",
+    "FINANZAS": "Finance",
+    "ORDEN": "Order",
+    "VITALIDAD": "Vitality",
+    "LIDERAZGO": "Leadership",
+    "RESILIENCIA": "Resilience",
+    "ESTILO": "Style",
+    "DISCIPLINA": "Discipline"
+  },
   "onboarding": {
     "intro": {
       "title": "System Online",
