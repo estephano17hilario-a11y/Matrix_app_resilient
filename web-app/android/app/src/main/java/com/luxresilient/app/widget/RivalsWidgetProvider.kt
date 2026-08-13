@@ -386,15 +386,25 @@ class RivalsWidgetProvider : AppWidgetProvider() {
 
             val isTodayDate = { dStr: String? ->
                 if (dStr == null) false
-                else if (dStr.startsWith(todayStr)) true
-                else if (dStr.length >= 10 && dStr.substring(0, 10) == todayStr) true
                 else try {
-                    val sdfIso = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
-                    val parsedDate = sdfIso.parse(dStr)
-                    if (parsedDate != null) {
-                        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(parsedDate) == todayStr
-                    } else false
-                } catch (e: Exception) { false }
+                    if (dStr.contains("T")) {
+                        val cleanStr = dStr.substring(0, 19)
+                        val sdfIso = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).apply {
+                            timeZone = java.util.TimeZone.getTimeZone("UTC")
+                        }
+                        val parsedDate = sdfIso.parse(cleanStr)
+                        if (parsedDate != null) {
+                            val sdfLocal = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).apply {
+                                timeZone = java.util.TimeZone.getDefault()
+                            }
+                            sdfLocal.format(parsedDate) == todayStr
+                        } else false
+                    } else {
+                        if (dStr.length >= 10) dStr.substring(0, 10) == todayStr else false
+                    }
+                } catch (e: Exception) {
+                    if (dStr.length >= 10) dStr.substring(0, 10) == todayStr else false
+                }
             }
 
             // User tasks completed today

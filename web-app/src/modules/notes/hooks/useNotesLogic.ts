@@ -13,7 +13,8 @@ export const useNotesLogic = () => {
         createFolder,
         updateFolder,
         deleteFolder,
-        updateJournal, 
+        updateJournal,
+        deleteJournal,
         canCreateNote 
     } = useNotesContext();
 
@@ -24,6 +25,10 @@ export const useNotesLogic = () => {
     const handleUpdateJournal = useCallback(async (entry: JournalEntry) => {
         await updateJournal(entry);
     }, [updateJournal]);
+
+    const handleDeleteJournal = useCallback(async (journalId: string) => {
+        await deleteJournal(journalId);
+    }, [deleteJournal]);
 
     const handleDeleteNote = useCallback(async (noteId: string) => {
         await deleteNote(noteId);
@@ -52,6 +57,7 @@ export const useNotesLogic = () => {
         handleUpdateFolder,
         handleDeleteFolder,
         handleUpdateJournal,
+        handleDeleteJournal,
         canCreateNote
     };
 };

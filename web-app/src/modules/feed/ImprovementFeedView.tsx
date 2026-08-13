@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Calendar, Sparkles, CheckCircle2, Clock, Flame, ListChecks, TrendingUp, Coins, Star, Info, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useDailyFeed } from '../../hooks/useDailyFeed';
 import { FeedDayCard } from './components/FeedDayCard';
 import { FeedWeekSummary } from './components/FeedWeekSummary';
@@ -33,6 +34,27 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
   const { feedEntries, todayEntry, isLoading, saveFeedEntry } = useDailyFeed({
     userId, quests, habits, projects, dailyLimits, player, streak
   });
+
+  const [customCircleColor, setCustomCircleColor] = useState<string>(() => {
+    return (typeof window !== 'undefined' && localStorage.getItem('feed_circle_color')) || '';
+  });
+  const [customNumberColor, setCustomNumberColor] = useState<string>(() => {
+    return (typeof window !== 'undefined' && localStorage.getItem('feed_number_color')) || '#ffffff';
+  });
+  const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const startLongPress = () => {
+    longPressTimer.current = setTimeout(() => {
+      setIsColorPickerOpen(true);
+    }, 700);
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+    }
+  };
 
   const [feedViewMode, setFeedViewMode] = useState<'daily' | 'weekly'>('daily');
   const [showFormulaModal, setShowFormulaModal] = useState(false);
@@ -478,7 +500,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
             {/* PRODUCTIVITY SCORE (Today live score) */}
             {/* ═══════════════════════════════════════ */}
             <motion.div
-              className={`relative overflow-hidden rounded-2xl border mb-6 ${liveCardStyle.bgClass}`}
+              className={`relative overflow-hidden rounded-2xl border border-transparent mb-6 ${liveCardStyle.bgClass}`}
               style={{ willChange: 'transform, opacity', transform: 'translateZ(0)' }}
               initial={{ opacity: 0, y: 18, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -506,8 +528,16 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
               <div className="relative p-4 flex flex-col gap-3">
                 <div className="flex items-center gap-4">
                   {/* Enhanced Score circle with double ring */}
-                  <div className="relative shrink-0">
-                    <svg width="80" height="80" className="transform -rotate-90" style={{ filter: 'drop-shadow(0 0 16px rgba(99,102,241,0.25))' }}>
+                  <div 
+                    className="relative shrink-0 cursor-pointer select-none"
+                    onMouseDown={startLongPress}
+                    onMouseUp={cancelLongPress}
+                    onMouseLeave={cancelLongPress}
+                    onTouchStart={startLongPress}
+                    onTouchEnd={cancelLongPress}
+                    title="Mantén presionado para cambiar colores"
+                  >
+                    <svg width="80" height="80" className="transform -rotate-90 overflow-visible" style={{ filter: `drop-shadow(0 0 16px ${customCircleColor || '#6366f1'}35)` }}>
                       <defs>
                         <linearGradient id="score-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
                           <stop offset="0%" stopColor="#6366f1" />
@@ -520,14 +550,14 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                         </linearGradient>
                       </defs>
                       {/* Outer glow ring */}
-                      <circle cx="40" cy="40" r="36" fill="none" stroke="url(#score-glow)" strokeWidth="2" />
+                      <circle cx="40" cy="40" r="36" fill="none" stroke={customCircleColor ? `${customCircleColor}20` : "url(#score-glow)"} strokeWidth="2" />
                       {/* Background track */}
                       <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="5" />
                       {/* Progress arc */}
                       <motion.circle
                         cx="40" cy="40" r="32"
                         fill="none"
-                        stroke="url(#score-gradient)"
+                        stroke={customCircleColor || "url(#score-gradient)"}
                         strokeWidth="5"
                         strokeLinecap="round"
                         strokeDasharray={2 * Math.PI * 32}
@@ -536,9 +566,10 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                         transition={{ duration: 1.4, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
                       />
                     </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                       <motion.span 
-                        className="text-xl font-black text-white leading-none tabular-nums"
+                        className="text-xl font-black leading-none tabular-nums"
+                        style={{ color: customNumberColor }}
                         initial={{ scale: 0.5, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ delay: 0.5, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
@@ -1191,6 +1222,67 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
         feedEntries={feedEntries}
         onSelectDate={handleSelectDate}
       />
+
+      {isColorPickerOpen && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150" onClick={() => setIsColorPickerOpen(false)}>
+          <div className="w-full max-w-xs bg-zinc-950 border border-white/15 rounded-3xl p-5 shadow-2xl flex flex-col gap-4 text-white animate-in zoom-in-95 duration-150" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <h3 className="text-xs font-extrabold text-white uppercase tracking-wider">Personalizar Widget de Feed</h3>
+              <button onClick={() => setIsColorPickerOpen(false)} className="text-white/60 hover:text-white transition-colors"><X size={16} /></button>
+            </div>
+            
+            <div className="flex flex-col gap-3.5">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-bold text-white/80">Color del Círculo</span>
+                <input 
+                  type="color" 
+                  value={customCircleColor || '#6366f1'} 
+                  onChange={e => {
+                    setCustomCircleColor(e.target.value);
+                    localStorage.setItem('feed_circle_color', e.target.value);
+                  }}
+                  className="w-8 h-8 rounded-lg cursor-pointer border border-white/10 bg-transparent overflow-hidden"
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-bold text-white/80">Color del Número</span>
+                <input 
+                  type="color" 
+                  value={customNumberColor} 
+                  onChange={e => {
+                    setCustomNumberColor(e.target.value);
+                    localStorage.setItem('feed_number_color', e.target.value);
+                  }}
+                  className="w-8 h-8 rounded-lg cursor-pointer border border-white/10 bg-transparent overflow-hidden"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-2">
+              <button 
+                onClick={() => {
+                  setCustomCircleColor('');
+                  setCustomNumberColor('#ffffff');
+                  localStorage.removeItem('feed_circle_color');
+                  localStorage.removeItem('feed_number_color');
+                  setIsColorPickerOpen(false);
+                  toast.success('Colores de widget restablecidos');
+                }}
+                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-bold text-white active:scale-95 transition-all"
+              >
+                Restablecer
+              </button>
+              <button 
+                onClick={() => setIsColorPickerOpen(false)}
+                className="px-4 py-1.5 rounded-xl bg-cyan-500 text-black text-[10px] font-extrabold shadow-md active:scale-95 transition-all"
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

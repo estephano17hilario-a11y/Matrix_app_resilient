@@ -57,6 +57,20 @@ export const SystemSection = () => {
     } catch (e) { return 'Sin Excusas'; }
   });
 
+  const [notesLayoutMode, setNotesLayoutMode] = useState<'GRID' | 'LIST'>(() => {
+    try {
+      return localStorage.getItem('notes_layout_mode') === 'LIST' ? 'LIST' : 'GRID';
+    } catch (e) {
+      return 'GRID';
+    }
+  });
+
+  const updateNotesLayoutMode = (mode: 'GRID' | 'LIST') => {
+    setNotesLayoutMode(mode);
+    localStorage.setItem('notes_layout_mode', mode);
+    toast.success('Preferencia de vista de notas actualizada');
+  };
+
   const [pendingTone, setPendingTone] = useState<NotificationTone | null>(null);
   const [pendingPhraseType, setPendingPhraseType] = useState<'ANTI' | 'SPLASH' | null>(null);
 
@@ -1014,7 +1028,43 @@ export const SystemSection = () => {
  </div>
  </div>
 
- {/* Default Task Filters */}
+  {/* Notes Default Layout */}
+  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors relative overflow-hidden">
+  <div className="absolute inset-0 bg-white/[0.05] z-0 pointer-events-none" />
+  
+  <div className="flex items-center gap-3 relative z-10">
+  <div className="w-10 h-10 rounded-xl bg-teal-500/10 flex items-center justify-center border border-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.15)]">
+  <LayoutGrid size={18} className="text-teal-400" />
+  </div>
+  <div>
+  <div className="text-base font-bold text-white tracking-tight">Vista Predeterminada de Notas</div>
+  <div className="text-xs text-white/40 font-medium">Elige el tipo de cuadrícula predeterminado para tus notas</div>
+  </div>
+  </div>
+
+  <div className="grid grid-cols-2 gap-2 relative z-10">
+  {[
+  { val: 'GRID', label: 'Cuadrado (Tarjetas)' },
+  { val: 'LIST', label: 'Rectángulo (Listas)' }
+  ].map(opt => {
+  const isActive = notesLayoutMode === opt.val;
+  return (
+  <button
+  key={opt.val}
+  onClick={() => updateNotesLayoutMode(opt.val as any)}
+  className={cn(
+  "p-3 rounded-xl transition-all duration-150 flex items-center justify-center gap-1.5 text-xs font-bold relative active:scale-95",
+  isActive ? "bg-teal-500/20 text-teal-400 border border-teal-500/30 shadow-[0_0_10px_rgba(20,184,166,0.1)]" : "bg-white/5 text-white/60 border border-white/5 hover:bg-white/10"
+  )}
+  >
+  {opt.label}
+  </button>
+  );
+  })}
+  </div>
+  </div>
+
+  {/* Default Task Filters */}
  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-5 transition-colors relative overflow-hidden">
  <div className="absolute inset-0 bg-white/[0.05] z-0 pointer-events-none" />
  

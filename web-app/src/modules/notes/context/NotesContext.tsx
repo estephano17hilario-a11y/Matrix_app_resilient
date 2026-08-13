@@ -16,6 +16,7 @@ interface NotesContextType {
     updateFolder: (folder: NoteFolder) => Promise<void>;
     deleteFolder: (folderId: string) => Promise<void>;
     updateJournal: (entry: JournalEntry) => Promise<{ isNew: boolean }>;
+    deleteJournal: (journalId: string) => Promise<void>;
     canCreateNote: () => boolean;
 }
 
@@ -281,6 +282,17 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return { isNew };
     }, [user?.id]);
 
+    const deleteJournal = useCallback(async (id: string) => {
+        if (!user?.id) return;
+        setJournalEntries(prev => {
+            const updated = prev.filter(j => j.id !== id);
+            PersistenceService.saveCollection(user.id, 'journal', updated);
+            PersistenceService.saveCollectionSafe(user.id, 'journal', updated);
+            return updated;
+        });
+        await persistenceService.journal.delete(user.id, id).catch(err => console.error("Error deleting journal:", err));
+    }, [user?.id]);
+
     const canCreateNote = useCallback(() => {
         if (profile?.plan === 'PRO') return true;
         return notes.length < FREE_LIMITS.NOTES;
@@ -298,6 +310,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             updateFolder,
             deleteFolder,
             updateJournal,
+            deleteJournal,
             canCreateNote
         }}>
             {children}

@@ -528,7 +528,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                     >
                         {/* Row 2: Stats */}
                         <div className="relative">
-                    <div className="flex items-center justify-between overflow-hidden pr-8">
+                    <div className="flex items-center justify-between overflow-hidden pr-11">
                         {/* Average Percent */}
                         <div className="flex items-baseline gap-2 sm:gap-3 shrink-0 ml-1">
                             <span className="text-3xl sm:text-4xl font-mono font-bold text-white tracking-tighter">
@@ -580,7 +580,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                     </div>
 
                     {/* Fixed position lightbulb, independent of scroll */}
-                    <div className="absolute -right-2 top-1/2 -translate-y-[40%] z-20">
+                    <div className="absolute right-0 top-1/2 -translate-y-[40%] z-20">
                         <TourLightbulb tourId="habits" />
                     </div>
                 </div>

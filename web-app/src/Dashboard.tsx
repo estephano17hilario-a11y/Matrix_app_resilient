@@ -418,7 +418,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
     const todayStr = toLocalISOString(new Date());
     const fromQuests = quests.filter(q => {
       if (!q.completed && q.status !== 'completed') return false;
-      if (!q.completedAt) return true;
+      if (!q.completedAt) return false;
       const dateKey = getHistoryDateKey(q.completedAt);
       return dateKey === todayStr;
     }).length;
@@ -428,15 +428,9 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
   }, [quests, dailyLimits]);
 
   const todayFocusMinutes = useMemo(() => {
-    // Exact synchronization with Focus Charts dataEngine
-    const focusData = generateFocusData(projects, [], new Date(), 'DAY', 'GLOBAL', 'TOTAL');
-    const focusMinutesFromSessions = Math.round(parseFloat(focusData.totalHours || '0') * 60);
-
     const todayStr = toLocalISOString(new Date());
-    const limitsFocusMinutes = dailyLimits?.date === todayStr ? Math.round(Number(dailyLimits?.focusSeconds || 0) / 60) : 0;
-
-    return Math.max(limitsFocusMinutes, focusMinutesFromSessions);
-  }, [projects, dailyLimits]);
+    return dailyLimits?.date === todayStr ? Math.round(Number(dailyLimits?.focusSeconds || 0) / 60) : 0;
+  }, [dailyLimits]);
 
   const todayHabitPct = useMemo(() => {
     const activeHabits = habits.filter(h => !h.archived);

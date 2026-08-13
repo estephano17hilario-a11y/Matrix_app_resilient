@@ -140,7 +140,7 @@ const getCleanWordCount = (blocks: NoteBlock[]): number => {
 
 export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, projects, quests, onShowPro, currentSubView, sectionControl = 'VISIBLE', onStatsOpenChange, onClose, isActive = true, isPro, defaultChartViews }: NotesViewProps) => {
  const { t, i18n } = useTranslation();
- const { notes, folders, journalEntries, handleUpdateNote, handleDeleteNote, handleCreateFolder, handleUpdateFolder, handleDeleteFolder, handleUpdateJournal, canCreateNote } = useNotesLogic();
+ const { notes, folders, journalEntries, handleUpdateNote, handleDeleteNote, handleCreateFolder, handleUpdateFolder, handleDeleteFolder, handleUpdateJournal, handleDeleteJournal, canCreateNote } = useNotesLogic();
 
  const [subView, setSubView] = useState<'NOTES' | 'JOURNAL'>('NOTES');
 
@@ -213,7 +213,32 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  const [editorMode, setEditorMode] = useState<'NONE' | 'NOTE' | 'JOURNAL'>('NONE');
  const [draftId, setDraftId] = useState<string | null>(null);
  const [draftTitle, setDraftTitle] = useState('');
- const [draftBlocks, setDraftBlocks] = useState<NoteBlock[]>([]);
+  const [draftBlocks, setDraftBlocks] = useState<NoteBlock[]>([]);
+  const draftBlocksRef = useRef<NoteBlock[]>([]);
+  const debouncedSetDraftBlocksRef = useRef<NodeJS.Timeout | null>(null);
+
+  const setDraftBlocksDebounced = useCallback((blocks: NoteBlock[]) => {
+    if (debouncedSetDraftBlocksRef.current) {
+      clearTimeout(debouncedSetDraftBlocksRef.current);
+    }
+    debouncedSetDraftBlocksRef.current = setTimeout(() => {
+      setDraftBlocks(blocks);
+    }, 1500);
+  }, []);
+
+  const syncDraftBlocks = useCallback((blocks: NoteBlock[]) => {
+    if (debouncedSetDraftBlocksRef.current) {
+      clearTimeout(debouncedSetDraftBlocksRef.current);
+      debouncedSetDraftBlocksRef.current = null;
+    }
+    draftBlocksRef.current = blocks;
+    setDraftBlocks(blocks);
+  }, []);
+
+  const handleBlockEditorChange = useCallback((newBlocks: NoteBlock[]) => {
+    draftBlocksRef.current = newBlocks;
+    setDraftBlocksDebounced(newBlocks);
+  }, [setDraftBlocksDebounced]);
  const [draftTheme, setDraftTheme] = useState('slate');
  const [draftMood, setDraftMood] = useState<string | undefined>(undefined);
  const [draftCustomEmoji, setDraftCustomEmoji] = useState<string | undefined>(undefined);
@@ -577,7 +602,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
       setEditorMode('NOTE');
       setDraftId(Date.now().toString());
       setDraftTitle('');
-      setDraftBlocks([{ id: 'init-1', type: 'text', content: '' }]);
+      syncDraftBlocks([{ id: 'init-1', type: 'text', content: '' }]);
       setDraftTheme('slate');
       setDraftProjectId(undefined);
       onInteractionStart();
@@ -600,7 +625,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
       window.removeEventListener('open-note-editor', handleOpenNoteEditor);
       window.removeEventListener('close-note-editor', handleCloseNoteEditor);
     };
-  }, [user?.id, onInteractionEnd]);
+  }, [user?.id, onInteractionStart, onInteractionEnd, syncDraftBlocks]);
  
  const openEventsHub = useCallback(() => {
  if (config.security.protectedAreas.memories) {
@@ -750,7 +775,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
      const initTitle = note.title || '';
      const initBlocks = note.blocks || [{ id: 'init-1', type: 'text', content: '' }];
      setDraftTitle(initTitle); 
-     setDraftBlocks(initBlocks); 
+     syncDraftBlocks(initBlocks); 
      setDraftTheme(note.theme || 'slate'); 
      setDraftProjectId(note.projectId); 
      setDraftFolderId(note.folderId);
@@ -762,7 +787,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
      historyIndexRef.current = 0;
      setHistoryVersion(v => v + 1);
      onInteractionStart(); 
-   }, [onInteractionStart]);
+   }, [onInteractionStart, syncDraftBlocks]);
   
    const createNote = useCallback(() => { 
      if (!canCreateNote()) {
@@ -776,7 +801,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
      setDraftId(newId); 
      setDraftTitle(''); 
      const initBlocks = [{ id: 'init-1', type: 'text' as const, content: '' }];
-     setDraftBlocks(initBlocks); 
+     syncDraftBlocks(initBlocks); 
      setDraftTheme('slate'); 
      setDraftProjectId(undefined); 
      setDraftFolderId(selectedFolderId !== 'ALL' && selectedFolderId !== 'FAVORITES' && selectedFolderId !== 'UNCATEGORIZED' ? selectedFolderId : undefined);
@@ -788,7 +813,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
      historyIndexRef.current = 0;
      setHistoryVersion(v => v + 1);
      onInteractionStart(); 
-   }, [onInteractionStart, canCreateNote, onShowPro, selectedFolderId]);
+   }, [onInteractionStart, canCreateNote, onShowPro, selectedFolderId, syncDraftBlocks]);
 
    const createNoteInFolder = useCallback((folderId?: string) => {
      if (!canCreateNote()) {
@@ -802,7 +827,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
      setDraftId(newId);
      setDraftTitle('');
      const initBlocks = [{ id: 'init-1', type: 'text' as const, content: '' }];
-     setDraftBlocks(initBlocks);
+     syncDraftBlocks(initBlocks);
      setDraftTheme('slate');
      setDraftProjectId(undefined);
      setDraftFolderId(folderId === 'UNCATEGORIZED' ? undefined : (folderId === 'FAVORITES' ? undefined : folderId));
@@ -814,7 +839,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
      historyIndexRef.current = 0;
      setHistoryVersion(v => v + 1);
      onInteractionStart();
-   }, [canCreateNote, onShowPro, onInteractionStart]);
+   }, [canCreateNote, onShowPro, onInteractionStart, syncDraftBlocks]);
 
   const handleToggleNoteFavorite = useCallback((note: Note, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -844,7 +869,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
      }
      
       const finalInitBlocks = initialBlocks.length > 0 ? initialBlocks : [{ id: 'init-1', type: 'text' as const, content: '' }];
-      setDraftBlocks(finalInitBlocks);
+      syncDraftBlocks(finalInitBlocks);
       setDraftTitle(extractedTitle);
       setDraftMood(entry?.mood); 
       setDraftCustomEmoji(entry?.customEmoji);
@@ -853,7 +878,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
       historyIndexRef.current = 0;
       setHistoryVersion(v => v + 1);
       onInteractionStart(); 
-   }, [journalEntryMap, onInteractionStart]);
+   }, [journalEntryMap, onInteractionStart, syncDraftBlocks]);
 
    useEffect(() => {
      const handleOpenDate = (e: Event) => {
@@ -907,9 +932,13 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   }, [journalEntries, openJournal]);
 
   const handleSave = useCallback(() => { 
+    if (editorMode === 'NONE' || !draftId) return;
+
+    const currentBlocks = draftBlocksRef.current;
+
     if (editorMode === 'NOTE' && draftId) { 
       const hasTitle = draftTitle.trim().length > 0;
-      const hasContent = draftBlocks.some(b => b.content && b.content.trim().length > 0);
+      const hasContent = currentBlocks.some(b => b.content && b.content.trim().length > 0);
       if (!hasTitle && !hasContent) {
         // DO NOT SAVE empty notes (no title AND no content)
         handleDeleteNote(draftId);
@@ -918,7 +947,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
       handleUpdateNote({ 
         id: draftId, 
         title: draftTitle, 
-        blocks: draftBlocks, 
+        blocks: currentBlocks, 
         theme: draftTheme, 
         projectId: draftProjectId, 
         folderId: draftFolderId,
@@ -927,13 +956,23 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
         updatedAt: new Date().toISOString() 
       }); 
     } else if (editorMode === 'JOURNAL' && draftId) { 
-      let finalBlocks = [...draftBlocks];
+      let finalBlocks = [...currentBlocks];
+      const hasContent = finalBlocks.some(b => b.content && b.content.trim().length > 0) || draftTitle.trim().length > 0;
+      const hasMood = !!draftMood;
+      const hasEmoji = !!draftCustomEmoji;
+
+      if (!hasContent && !hasMood && !hasEmoji) {
+        // Delete empty journal entry drafts from IndexedDB and local collections
+        handleDeleteJournal(draftId);
+        return;
+      }
+
       if (draftTitle.trim() && (!finalBlocks[0] || !finalBlocks[0].id.startsWith('title-'))) {
         finalBlocks.unshift({ id: 'title-' + Date.now(), type: 'text', content: draftTitle });
       }
       handleUpdateJournal({ id: draftId, date: toLocalISOString(draftDate), blocks: finalBlocks, mood: draftMood, customEmoji: draftCustomEmoji, theme: draftTheme, tags: [] }); 
     } 
-  }, [editorMode, draftId, draftTitle, draftBlocks, draftTheme, draftProjectId, draftFolderId, draftIsFavorite, draftCreatedAt, draftDate, draftMood, draftCustomEmoji, handleUpdateNote, handleUpdateJournal, handleDeleteNote]);
+  }, [editorMode, draftId, draftTitle, draftTheme, draftProjectId, draftFolderId, draftIsFavorite, draftCreatedAt, draftDate, draftMood, draftCustomEmoji, handleUpdateNote, handleUpdateJournal, handleDeleteNote, handleDeleteJournal]);
  
   const handleDelete = () => { if (editorMode === 'NOTE' && draftId) { handleDeleteNote(draftId); } closeEditor(); };
   const closeEditor = useCallback(() => { 
@@ -949,9 +988,9 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     if (editorMode === 'NONE' || !draftId) return;
     const timer = setTimeout(() => {
       handleSave();
-    }, 250);
+    }, 5000);
     return () => clearTimeout(timer);
-  }, [draftTitle, draftBlocks, draftTheme, draftProjectId, draftFolderId, draftIsFavorite, draftMood, draftCustomEmoji, handleSave, editorMode, draftId]);
+  }, [draftTitle, draftTheme, draftProjectId, draftFolderId, draftIsFavorite, draftMood, draftCustomEmoji, handleSave, editorMode, draftId]);
 
   // Solid Record history helper
   const recordHistoryState = useCallback((title: string, blocks: NoteBlock[]) => {
@@ -980,12 +1019,12 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
       const targetState = historyRef.current[historyIndexRef.current];
       if (targetState) {
         setDraftTitle(targetState.title);
-        setDraftBlocks(JSON.parse(JSON.stringify(targetState.blocks)));
+        syncDraftBlocks(JSON.parse(JSON.stringify(targetState.blocks)));
       }
       setHistoryVersion(v => v + 1);
       setTimeout(() => { isUndoRedoRef.current = false; }, 60);
     }
-  }, []);
+  }, [syncDraftBlocks]);
 
   const handleRedo = useCallback(() => {
     if (historyIndexRef.current < historyRef.current.length - 1) {
@@ -994,12 +1033,12 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
       const targetState = historyRef.current[historyIndexRef.current];
       if (targetState) {
         setDraftTitle(targetState.title);
-        setDraftBlocks(JSON.parse(JSON.stringify(targetState.blocks)));
+        syncDraftBlocks(JSON.parse(JSON.stringify(targetState.blocks)));
       }
       setHistoryVersion(v => v + 1);
       setTimeout(() => { isUndoRedoRef.current = false; }, 60);
     }
-  }, []);
+  }, [syncDraftBlocks]);
 
   const canUndo = historyIndexRef.current > 0;
   const canRedo = historyIndexRef.current < historyRef.current.length - 1;
@@ -2333,30 +2372,15 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
         {/* Top Header Controls - Single Responsive Row */}
         <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-white/10 relative z-20 bg-[#0d0d14]/95 gap-1.5 w-full overflow-x-auto no-scrollbar">
-          {/* Left: BLUE Exit Button + Favorite Star */}
+          {/* Left: BLUE Exit Button */}
           <div className="flex items-center gap-1.5 shrink-0">
             <button 
               onClick={closeEditor} 
-              className="h-8 px-3 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-1 shadow-md active:scale-95 transition-all shrink-0 border border-blue-400/30"
+              className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white flex items-center justify-center shadow-md active:scale-95 transition-all shrink-0 border border-blue-400/30"
               title="Salir del editor"
             >
               <ArrowLeft size={14} />
-              <span>{t('common.exit', 'Exit')}</span>
             </button>
-
-            {editorMode === 'NOTE' && (
-              <button 
-                onClick={() => setDraftIsFavorite(!draftIsFavorite)} 
-                className={`w-8 h-8 rounded-full border transition-all flex items-center justify-center shrink-0 ${
-                  draftIsFavorite 
-                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.3)]' 
-                    : 'bg-white/5 text-white/40 border-white/10 hover:text-white'
-                }`} 
-                title={draftIsFavorite ? 'Quitar de favoritos' : 'Marcar como favorito'}
-              >
-                <Star size={14} fill={draftIsFavorite ? 'currentColor' : 'none'} />
-              </button>
-            )}
           </div>
 
           {/* Right: Folder Tree Selector + Undo + Redo + Blueprint + Theme Picker */}
@@ -2399,7 +2423,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
               <Redo2 size={14} />
             </button>
 
-            <BlueprintSelector onSelect={(newBlocks) => setDraftBlocks(prev => [...prev, ...newBlocks])} />
+            <BlueprintSelector onSelect={(newBlocks) => syncDraftBlocks([...draftBlocksRef.current, ...newBlocks])} />
 
             <DropdownThemePicker 
               currentTheme={draftTheme} 
@@ -2448,7 +2472,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
               />
 
               {/* Word + Notion Clone Rich Block Editor */}
-              <BlockEditor blocks={draftBlocks} onChange={setDraftBlocks} />
+              <BlockEditor blocks={draftBlocks} onChange={handleBlockEditorChange} />
             </div>
           ) : (
             <div className="max-w-2xl mx-auto text-center space-y-6">
@@ -2498,7 +2522,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                 )}
               </div>
 
-              <BlockEditor blocks={draftBlocks} onChange={setDraftBlocks} />
+              <BlockEditor blocks={draftBlocks} onChange={handleBlockEditorChange} />
             </div>
           )}
         </div>
@@ -2747,7 +2771,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
   {isLibraryOpen && typeof document !== 'undefined' && createPortal(
     <div className="fixed inset-0 z-[9999] bg-[#07070a] text-white flex flex-col overflow-hidden animate-in fade-in duration-200">
-      <div className="bg-[#0f0f16] border-b border-white/10 px-3 sm:px-6 pt-7 sm:pt-8 pb-3 flex items-center justify-between gap-2 sm:gap-4 shrink-0 shadow-lg">
+      <div className="bg-[#0f0f16] border-b border-white/10 px-3 sm:px-6 pt-11 sm:pt-12 pb-3 flex items-center justify-between gap-2 sm:gap-4 shrink-0 shadow-lg">
          <button
            onClick={() => setLibrarySidebarOpen(!librarySidebarOpen)}
            className="sm:hidden p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors border border-white/10 shrink-0"
@@ -4303,21 +4327,38 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
         </div>
 
         {/* Footer Actions */}
-        <div className="border-t border-white/10 pt-3 flex items-center justify-between gap-2">
-          <button
-            onClick={() => {
-              setIsFolderPickerOpen(false);
-              openCreateFolderModal(draftFolderId);
-            }}
-            className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 border border-white/10 transition-all"
-          >
-            <FolderPlus size={14} className="text-cyan-400" />
-            <span>+ Crear Carpeta</span>
-          </button>
+        <div className="border-t border-white/10 pt-3 flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setIsFolderPickerOpen(false);
+                openCreateFolderModal(draftFolderId);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 border border-white/10 transition-all shrink-0"
+            >
+              <FolderPlus size={14} className="text-cyan-400" />
+              <span>+ Crear Carpeta</span>
+            </button>
+
+            {editorMode === 'NOTE' && (
+              <button
+                onClick={() => setDraftIsFavorite(!draftIsFavorite)}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 shrink-0 ${
+                  draftIsFavorite
+                    ? 'bg-amber-500/25 text-amber-300 border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.25)]'
+                    : 'bg-white/10 hover:bg-white/20 text-white/70 border-white/10'
+                }`}
+                title={draftIsFavorite ? 'Quitar de favoritos' : 'Marcar como favorito'}
+              >
+                <Star size={14} fill={draftIsFavorite ? 'currentColor' : 'none'} className={draftIsFavorite ? 'text-amber-400' : 'text-white/40'} />
+                <span>{draftIsFavorite ? 'Favorito ⭐' : 'Favorito'}</span>
+              </button>
+            )}
+          </div>
 
           <button
             onClick={() => setIsFolderPickerOpen(false)}
-            className="px-4 py-1.5 rounded-xl bg-cyan-500 text-black text-xs font-extrabold hover:brightness-110 active:scale-95 transition-all shadow-md"
+            className="px-4 py-1.5 rounded-xl bg-cyan-500 text-black text-xs font-extrabold hover:brightness-110 active:scale-95 transition-all shadow-md shrink-0"
           >
             Listo
           </button>

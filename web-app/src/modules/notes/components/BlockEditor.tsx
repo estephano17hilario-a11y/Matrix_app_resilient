@@ -326,10 +326,23 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
 
     return (
         <div className="relative flex flex-col gap-2 w-full min-h-[220px]">
-            
-            {/* FLOATING TEXT SELECTION FORMATTING TOOLBAR */}
+            {/* CONTINUOUS WRITING CANVAS */}
+            <div
+                ref={editorRef}
+                contentEditable={!readOnly}
+                onInput={handleContentChange}
+                onClick={handleEditorClick}
+                onKeyDown={handleKeyDown}
+                onMouseUp={checkTextSelection}
+                onKeyUp={checkTextSelection}
+                onTouchEnd={checkTextSelection}
+                className="w-full min-h-[220px] bg-transparent text-slate-100 placeholder:text-slate-600 outline-none leading-relaxed text-base sm:text-lg custom-scrollbar selection:bg-cyan-500/30 selection:text-white [&_h1]:text-3xl [&_h1]:font-black [&_h1]:text-cyan-300 [&_h1]:my-3 [&_h1]:tracking-tight [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-cyan-200 [&_h2]:my-2.5 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-cyan-100 [&_h3]:my-2 [&_blockquote]:border-l-4 [&_blockquote]:border-cyan-400 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-3 [&_blockquote]:text-cyan-200/90 [&_pre]:bg-black/60 [&_pre]:p-3.5 [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-white/10 [&_pre]:font-mono [&_pre]:text-emerald-400 [&_pre]:text-sm [&_pre]:my-3"
+                style={{ wordBreak: 'break-word' }}
+            />
+
+            {/* FLOATING TEXT SELECTION FORMATTING TOOLBAR - Now positioned below selected text */}
             {showSelectionToolbar && !readOnly && (
-                <div className="sticky top-2 z-[90] self-center my-2 bg-[#12121e]/95 backdrop-blur-xl border border-cyan-500/40 rounded-2xl p-2 shadow-2xl flex items-center gap-2 flex-wrap animate-in zoom-in-95 duration-150 text-white max-w-full overflow-visible">
+                <div className="sticky bottom-2 z-[90] self-center my-2 bg-[#12121e]/95 backdrop-blur-xl border border-cyan-500/40 rounded-2xl p-2 shadow-2xl flex items-center gap-2 flex-wrap animate-in slide-in-from-bottom-2 duration-150 text-white max-w-full overflow-visible">
                     
                     {/* ACTIVE STYLE SWITCHER DROPDOWN */}
                     <div className="relative">
@@ -344,7 +357,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                         </button>
 
                         {showStyleMenu && (
-                            <div className="absolute left-0 top-full mt-1.5 w-52 bg-[#161626]/95 backdrop-blur-xl border border-white/20 rounded-2xl p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-[100] flex flex-col gap-1">
+                            <div className="absolute left-0 bottom-full mb-1.5 w-52 bg-[#161626]/95 backdrop-blur-xl border border-white/20 rounded-2xl p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-[100] flex flex-col gap-1">
                                 <button 
                                   type="button"
                                   onMouseDown={(e) => { e.preventDefault(); applyBlockStyle('text'); }}
@@ -465,7 +478,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                         </button>
 
                         {showColorPicker && (
-                            <div className="absolute right-0 left-auto top-full mt-1.5 w-60 bg-[#161626]/95 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-[100] flex flex-col gap-2.5">
+                            <div className="absolute right-0 left-auto bottom-full mb-1.5 w-60 bg-[#161626]/95 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-[100] flex flex-col gap-2.5">
                                 <div className="text-[10px] uppercase tracking-wider font-extrabold text-white/40">Gama de Colores</div>
                                 <div className="grid grid-cols-4 gap-1.5">
                                     {EXPANDED_TEXT_COLORS.map(tc => (
@@ -532,20 +545,6 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
                     </button>
                 </div>
             )}
-
-            {/* CONTINUOUS WRITING CANVAS */}
-            <div
-                ref={editorRef}
-                contentEditable={!readOnly}
-                onInput={handleContentChange}
-                onClick={handleEditorClick}
-                onKeyDown={handleKeyDown}
-                onMouseUp={checkTextSelection}
-                onKeyUp={checkTextSelection}
-                onTouchEnd={checkTextSelection}
-                className="w-full min-h-[220px] bg-transparent text-slate-100 placeholder:text-slate-600 outline-none leading-relaxed text-base sm:text-lg custom-scrollbar selection:bg-cyan-500/30 selection:text-white [&_h1]:text-3xl [&_h1]:font-black [&_h1]:text-cyan-300 [&_h1]:my-3 [&_h1]:tracking-tight [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-cyan-200 [&_h2]:my-2.5 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:text-cyan-100 [&_h3]:my-2 [&_blockquote]:border-l-4 [&_blockquote]:border-cyan-400 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-3 [&_blockquote]:text-cyan-200/90 [&_pre]:bg-black/60 [&_pre]:p-3.5 [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-white/10 [&_pre]:font-mono [&_pre]:text-emerald-400 [&_pre]:text-sm [&_pre]:my-3"
-                style={{ wordBreak: 'break-word' }}
-            />
         </div>
     );
 });
