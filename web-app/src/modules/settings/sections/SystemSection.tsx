@@ -747,6 +747,64 @@ export const SystemSection = () => {
  </div>
  </div>
 
+  {/* Default Chart Visibility */}
+  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
+        <LineChart size={18} className="text-purple-400" />
+      </div>
+      <div>
+        <div className="text-base font-bold text-white tracking-tight">{t('settings.defaultChartVisibility', 'Default Chart States')}</div>
+        <div className="text-xs text-white/40 font-medium">{t('settings.defaultChartVisibilityDesc', 'Initial state (maximized or minimized) for analytics')}</div>
+      </div>
+    </div>
+
+    <div className="space-y-3">
+      {[
+        { key: 'tasks', label: t('settings.charts.tasks', 'Daily Caps / XP Limits') },
+        { key: 'habits', label: t('settings.charts.habits', 'Habits Consistency') },
+        { key: 'focus', label: t('settings.charts.focus', 'Focus Sessions') }
+      ].map((item) => {
+        const isMaximized = (defaultChartVisibility?.[item.key as 'tasks'|'habits'|'focus'] !== false);
+        return (
+          <div key={item.key} className="flex items-center justify-between py-1 border-b border-white/5 last:border-0 last:pb-0">
+            <span className="text-xs font-bold text-white/70">{item.label}</span>
+            <div className="flex p-0.5 rounded-lg bg-zinc-900 border border-white/5 scale-95 origin-right">
+              <button
+                onClick={() => updateDefaultChartVisibility({
+                  ...(defaultChartVisibility || { tasks: true, habits: true, focus: true }),
+                  [item.key]: true
+                })}
+                className={cn(
+                  "px-3 py-1 rounded-md text-[10px] font-bold transition-all duration-150 active:scale-95",
+                  isMaximized 
+                    ? "bg-purple-500/20 text-purple-300 border border-purple-500/30" 
+                    : "text-zinc-500 hover:text-zinc-300"
+                )}
+              >
+                {t('settings.charts.maximized', 'Maximized')}
+              </button>
+              <button
+                onClick={() => updateDefaultChartVisibility({
+                  ...(defaultChartVisibility || { tasks: true, habits: true, focus: true }),
+                  [item.key]: false
+                })}
+                className={cn(
+                  "px-3 py-1 rounded-md text-[10px] font-bold transition-all duration-150 active:scale-95",
+                  !isMaximized 
+                    ? "bg-purple-500/20 text-purple-300 border border-purple-500/30" 
+                    : "text-zinc-500 hover:text-zinc-300"
+                )}
+              >
+                {t('settings.charts.minimized', 'Minimized')}
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+
  {/* Week Starts On */}
  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
  <div className="flex items-center gap-3">

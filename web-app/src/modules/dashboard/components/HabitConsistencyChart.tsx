@@ -705,6 +705,9 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                     </div>
                 ))}
             </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* --- NEW FOOTER: DAILY GOAL & PROGRESS --- */}
             <div className="pt-1.5 border-t border-white/5 mt-0.5">
@@ -747,9 +750,6 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                     </div>
                 )}
             </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
 
             <DateSelectionModal 
                 isOpen={isDateModalOpen}

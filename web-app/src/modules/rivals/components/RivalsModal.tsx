@@ -14,6 +14,15 @@ interface RivalsModalProps {
   userHabitPct?: number;
 }
 
+const difficultyKeyMap: Record<string, string> = {
+  'FÁCIL': 'easy',
+  'MEDIO': 'medium',
+  'DIFÍCIL': 'hard',
+  'ÉPICO': 'epic',
+  'LEGENDARIO': 'legendary',
+  'TITÁN': 'titan'
+};
+
 export const RivalsModal: React.FC<RivalsModalProps> = ({
   isOpen,
   onClose,
@@ -40,10 +49,10 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
   // Mask locked rival details (Punto 4)
   const displayRival = isSelectedUnlocked ? currentLevelData : {
     ...currentLevelData,
-    name: 'Rival Misterioso',
-    title: `Supera el Nivel ${currentLevelData.level - 1} para revelar`,
+    name: t('rivals.mysteryRival', 'Rival Misterioso'),
+    title: t('rivals.unlockInstruction', 'Supera el Nivel {{level}} para revelar', { level: currentLevelData.level - 1 }),
     avatar: '🔒',
-    quote: 'La identidad y virtudes de esta leyenda se revelarán al alcanzar este nivel.'
+    quote: t('rivals.lockedQuote', 'La identidad y virtudes de esta leyenda se revelarán al alcanzar este nivel.')
   };
 
   const modalJSX = (
@@ -73,14 +82,14 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-white font-black text-lg tracking-wider uppercase flex items-center gap-2">
-                    Duelos de Productividad
+                    {t('rivals.title', 'Duelos de Productividad')}
                   </h2>
                   <span className="text-[10px] bg-orange-500/20 text-orange-400 border border-orange-500/30 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                    30 Niveles
+                    {t('rivals.levelsCount', '30 Niveles')}
                   </span>
                 </div>
                 <p className="text-white/40 text-xs font-mono">
-                  Mapa de Batallas & Enfréntate a las Leyendas
+                  {t('rivals.subtitle', 'Mapa de Batallas & Enfréntate a las Leyendas')}
                 </p>
               </div>
             </div>
@@ -104,7 +113,7 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                   {t('rivals.levelMap', 'Level Map')}: <span className="text-white font-mono font-black">{t('rivals.level', 'Level')} {progress.unlockedLevel} / 30</span>
                 </span>
                 <span className="text-xs font-mono text-amber-400/90 font-bold bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
-                  Derrotados: {progress.completedLevels.length} / 30
+                  {t('rivals.defeatedCount', 'Derrotados: {{count}} / 30', { count: progress.completedLevels.length })}
                 </span>
               </div>
 
@@ -135,7 +144,7 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                             className="absolute -top-6 z-20 flex flex-col items-center pointer-events-none"
                           >
                             <span className="text-[8px] font-black text-black bg-amber-400 px-2 py-0.5 rounded-full shadow-[0_0_12px_rgba(245,158,11,0.8)] uppercase tracking-wider whitespace-nowrap">
-                              TÚ ESTÁS AQUÍ
+                              {t('rivals.youAreHere', 'TÚ ESTÁS AQUÍ')}
                             </span>
                             <div className="w-0 h-0 border-l-[4px] border-r-[4px] border-t-[5px] border-l-transparent border-r-transparent border-t-amber-400 -mt-0.5" />
                           </motion.div>
@@ -200,29 +209,29 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                           {/* Level Name */}
                           <span className="text-[10px] font-bold text-white truncate w-full px-1 mt-0.5">
                             {isUnlocked 
-                              ? rival.name 
+                              ? t(`rivals.names.${rival.name}`, rival.name)
                               : rival.level === progress.unlockedLevel + 1 
-                                ? `🔥 Próximo Enemigo` 
-                                : `Enemigo Nvl ${rival.level}`
+                                ? t('rivals.nextEnemyTag', '🔥 Próximo Enemigo') 
+                                : t('rivals.enemyLevelTag', 'Enemigo Nvl {{level}}', { level: rival.level })
                             }
                           </span>
 
                           {/* Boss Badge or Level Status */}
                           {isFinalBoss ? (
                             <span className="text-[7px] font-black tracking-widest uppercase bg-gradient-to-r from-red-600 to-purple-600 text-white px-2 py-0.5 rounded-full shadow-md">
-                              BOSS FINAL 💎
+                              {t('rivals.finalBoss', 'BOSS FINAL 💎')}
                             </span>
                           ) : isBossLevel ? (
                             <span className="text-[7px] font-black tracking-widest uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded-full">
-                              BOSS ARENA 👑
+                              {t('rivals.arenaBoss', 'BOSS ARENA 👑')}
                             </span>
                           ) : isCurrentActive ? (
                             <span className="text-[7px] font-black tracking-widest uppercase bg-amber-500 text-black px-1.5 py-0.5 rounded-full shadow-sm">
-                              ENFRENTAR
+                              {t('rivals.fight', 'ENFRENTAR')}
                             </span>
                           ) : rival.level === progress.unlockedLevel + 1 ? (
                             <span className="text-[7px] font-black tracking-widest uppercase bg-red-500/20 text-red-400 border border-red-500/40 px-1.5 py-0.5 rounded-full animate-pulse">
-                              SIGUIENTE RIVAL
+                              {t('rivals.nextRival', 'SIGUIENTE RIVAL')}
                             </span>
                           ) : isUnlocked ? (
                             <span
@@ -233,11 +242,11 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                                 color: rival.color
                               }}
                             >
-                              {rival.difficulty}
+                              {t(`rivals.difficulty.${difficultyKeyMap[rival.difficulty] || 'easy'}`)}
                             </span>
                           ) : (
                             <span className="text-[8px] font-mono uppercase text-zinc-500">
-                              Bloqueado
+                              {t('rivals.locked', 'Bloqueado')}
                             </span>
                           )}
                         </button>
@@ -283,7 +292,7 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-white font-black text-lg sm:text-xl tracking-tight">
-                        {displayRival.name}
+                        {isSelectedUnlocked ? t(`rivals.names.${displayRival.name}`, displayRival.name) : displayRival.name}
                       </h3>
                       {isSelectedUnlocked && (
                         <span
@@ -294,15 +303,15 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                             color: displayRival.color
                           }}
                         >
-                          {displayRival.difficulty}
+                          {t(`rivals.difficulty.${difficultyKeyMap[displayRival.difficulty] || 'easy'}`)}
                         </span>
                       )}
                     </div>
                     <p className="text-white/60 text-xs font-medium">
-                      {displayRival.title}
+                      {isSelectedUnlocked ? t(`rivals.titles.${displayRival.title}`, displayRival.title) : displayRival.title}
                     </p>
                     <p className="text-white/40 italic text-xs mt-1">
-                      "{displayRival.quote}"
+                      "{isSelectedUnlocked ? t(`rivals.quotes.quote_${displayRival.level}`, displayRival.quote) : displayRival.quote}"
                     </p>
                   </div>
                 </div>
@@ -313,7 +322,7 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-white/50 font-bold uppercase tracking-wider text-[9px] flex items-center gap-1.5">
                         <Clock size={12} className="text-orange-400" />
-                        Jornada Rival
+                        {t('rivals.rivalWorkday', 'Jornada Rival')}
                       </span>
                       <span className="text-white font-mono font-bold text-xs">
                         {currentLevelData.workStartHour ?? 9}:00 - {currentLevelData.workEndHour ?? 18}:00
@@ -347,19 +356,19 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-white/50 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
                       <Target size={14} className="text-blue-400" />
-                      Tareas Hoy
+                      {t('rivals.tasksToday', 'Tareas Hoy')}
                     </span>
                     {!isSelectedUnlocked ? (
                       <span className="text-zinc-500 font-bold text-xs bg-zinc-800 border border-zinc-700 px-2 py-0.5 rounded-full">
-                        🔒 Bloqueado
+                        {t('rivals.lockedStatus', '🔒 Bloqueado')}
                       </span>
                     ) : duelEvaluation.isTaskWon ? (
                       <span className="text-emerald-400 font-bold text-xs bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                        ✓ Superado
+                        {t('rivals.completedStatus', '✓ Superado')}
                       </span>
                     ) : (
                       <span className="text-amber-400 font-bold text-xs bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
-                        En progreso
+                        {t('rivals.inProgressStatus', 'En progreso')}
                       </span>
                     )}
                   </div>
@@ -399,19 +408,19 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-white/50 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
                       <Zap size={14} className="text-purple-400" />
-                      Enfoque Hoy
+                      {t('rivals.focusToday', 'Enfoque Hoy')}
                     </span>
                     {!isSelectedUnlocked ? (
                       <span className="text-zinc-500 font-bold text-xs bg-zinc-800 border border-zinc-700 px-2 py-0.5 rounded-full">
-                        🔒 Bloqueado
+                        {t('rivals.lockedStatus', '🔒 Bloqueado')}
                       </span>
                     ) : duelEvaluation.isFocusWon ? (
                       <span className="text-emerald-400 font-bold text-xs bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                        ✓ Superado
+                        {t('rivals.completedStatus', '✓ Superado')}
                       </span>
                     ) : (
                       <span className="text-amber-400 font-bold text-xs bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
-                        En progreso
+                        {t('rivals.inProgressStatus', 'En progreso')}
                       </span>
                     )}
                   </div>
@@ -451,19 +460,19 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-white/50 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
                       <Flame size={14} className="text-orange-400" />
-                      Hábitos Hoy
+                      {t('rivals.habitsToday', 'Hábitos Hoy')}
                     </span>
                     {!isSelectedUnlocked ? (
                       <span className="text-zinc-500 font-bold text-xs bg-zinc-800 border border-zinc-700 px-2 py-0.5 rounded-full">
-                        🔒 Bloqueado
+                        {t('rivals.lockedStatus', '🔒 Bloqueado')}
                       </span>
                     ) : duelEvaluation.isHabitWon ? (
                       <span className="text-emerald-400 font-bold text-xs bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                        ✓ Superado
+                        {t('rivals.completedStatus', '✓ Superado')}
                       </span>
                     ) : (
                       <span className="text-amber-400 font-bold text-xs bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
-                        En progreso
+                        {t('rivals.inProgressStatus', 'En progreso')}
                       </span>
                     )}
                   </div>
@@ -505,7 +514,7 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1.5 text-amber-400 font-bold text-sm">
                     <Award size={16} />
-                    Recompensa: +{currentLevelData.rewardGold} Oro
+                    {t('rivals.goldReward', 'Recompensa: +{{gold}} Oro', { gold: currentLevelData.rewardGold })}
                   </div>
                   <div className="flex items-center gap-1.5 text-indigo-400 font-bold text-sm">
                     <Star size={16} />
@@ -535,7 +544,7 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                   >
                     <Trophy size={18} />
                     <span>
-                      {duelEvaluation.isVictor ? 'Reclamar Victoria y Avanzar' : 'Alcanza los objetivos para Vencer'}
+                      {duelEvaluation.isVictor ? t('rivals.claimVictory', 'Reclamar Victoria y Avanzar') : t('rivals.defeatObjectives', 'Alcanza los objetivos para Vencer')}
                     </span>
                   </button>
                 ) : (

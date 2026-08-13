@@ -11,6 +11,7 @@ import { startOfWeek, endOfWeek, parseLocalDate, toLocalISOString } from '../../
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../utils/cn';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../services/supabase';
 import { DateSelectionModal } from '../dashboard/components/DateSelectionModal';
 import { es } from 'date-fns/locale';
 import { TourLightbulb } from '../../components/TourLightbulb';
@@ -37,7 +38,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
 
  // Filters
  const [showFilters, setShowFilters] = useState(false);
- const { profile } = useAuth();
+ const { profile, updateProfileLocally } = useAuth();
  const defaultTaskFilters = profile?.defaultTaskFilters || {};
  const [timeframe, setTimeframe] = useState<'ALL' | 'DAY' | 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR'>(defaultTaskFilters.timeframe || defaultChartViews?.tasks || 'ALL');
  const [currentDate, setCurrentDate] = useState(new Date());
@@ -47,7 +48,12 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  const [typeFilter, setTypeFilter] = useState<'all' | 'normal' | 'smart'>(defaultTaskFilters.typeFilter || 'all');
  const [difficultyFilter, setDifficultyFilter] = useState<'all' | 'S' | 'A' | 'B' | 'C'>(defaultTaskFilters.difficultyFilter || 'all');
  const [hideCompleted, setHideCompleted] = useState<boolean>(defaultTaskFilters.hideCompleted ?? true);
- const [isDailyCapsOpen, setIsDailyCapsOpen] = useState(profile?.defaultChartVisibility?.tasks !== false);
+ const [isDailyCapsOpen, setIsDailyCapsOpen] = useState(profile?.defaultChartVisibility?.tasks === true);
+
+ const defaultTasksVisible = profile?.defaultChartVisibility?.tasks === true;
+ useEffect(() => {
+   setIsDailyCapsOpen(defaultTasksVisible);
+ }, [defaultTasksVisible]);
 
  // Optimization: Memoize maps only when inputs change
  const attributeMap = useMemo(() => new Map(attributes.map(attr => [attr.id, attr])), [attributes]);
@@ -291,7 +297,21 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">{t('common.dailyCaps')}</span>
  </div>
  <button
- onClick={() => setIsDailyCapsOpen(prev => !prev)}
+ onClick={async () => {
+    const nextState = !isDailyCapsOpen;
+    setIsDailyCapsOpen(nextState);
+    if (profile?.id) {
+      const currentVisibility = profile.defaultChartVisibility || { tasks: true, habits: true, focus: true };
+      const newVisibility = { ...currentVisibility, tasks: nextState };
+      const newPrefs = { ...(profile.preferences || {}), defaultChartVisibility: newVisibility };
+      updateProfileLocally({ defaultChartVisibility: newVisibility, preferences: newPrefs });
+      try {
+        await supabase.from('users').update({ preferences: newPrefs }).eq('id', profile.id);
+      } catch (err) {
+        console.error("Failed to save tasks visibility:", err);
+      }
+    }
+  }}
  className="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors"
  >
  <ChevronDown size={12} className={cn("transition-transform duration-200", isDailyCapsOpen ? "rotate-180" : "rotate-0")} />
