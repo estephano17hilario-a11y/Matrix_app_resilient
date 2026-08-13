@@ -384,11 +384,24 @@ class RivalsWidgetProvider : AppWidgetProvider() {
             val tasks = client.fetchTasks(includeCompleted = true)
             val projects = client.fetchProjects()
 
+            val isTodayDate = { dStr: String? ->
+                if (dStr == null) false
+                else if (dStr.startsWith(todayStr)) true
+                else if (dStr.length >= 10 && dStr.substring(0, 10) == todayStr) true
+                else try {
+                    val sdfIso = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
+                    val parsedDate = sdfIso.parse(dStr)
+                    if (parsedDate != null) {
+                        java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(parsedDate) == todayStr
+                    } else false
+                } catch (e: Exception) { false }
+            }
+
             // User tasks completed today
             var userTasksCount = 0
             for (t in tasks) {
                 if (t.archived == true) continue
-                if (t.completed && (t.completedAt?.startsWith(todayStr) == true || (t.completedAt != null && t.completedAt.length >= 10 && t.completedAt.substring(0, 10) == todayStr))) {
+                if (t.completed && isTodayDate(t.completedAt)) {
                     userTasksCount++
                 }
             }
@@ -409,7 +422,7 @@ class RivalsWidgetProvider : AppWidgetProvider() {
                 if (p.archived == true || p.deleted == true) continue
                 val sessions = p.sessions ?: continue
                 for (s in sessions) {
-                    if (s.date != null && (s.date.startsWith(todayStr) || (s.date.length >= 10 && s.date.substring(0, 10) == todayStr))) {
+                    if (isTodayDate(s.date)) {
                         focusSecondsToday += s.duration
                     }
                 }

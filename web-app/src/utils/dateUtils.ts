@@ -186,19 +186,27 @@ export const toLocalISOString = (date: Date): string => {
     return `${year}-${month}-${day}`;
 };
 
-export const parseLocalDate = (dateString: string): Date => {
-    if (!dateString) return new Date();
-    if (dateString.includes('T')) return new Date(dateString);
-    const [year, month, day] = dateString.split('-').map(Number);
-    return new Date(year, month - 1, day);
+export const parseLocalDate = (dateValue: string | Date | number): Date => {
+    if (!dateValue) return new Date();
+    if (dateValue instanceof Date) return dateValue;
+    if (typeof dateValue === 'number') return new Date(dateValue);
+    const str = String(dateValue).trim();
+    if (str.includes('T')) return new Date(str);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+        const [year, month, day] = str.split('-').map(Number);
+        return new Date(year, month - 1, day);
+    }
+    return new Date(str);
 };
 
-export const getHistoryDateKey = (value: string | Date): string => {
-    if (value instanceof Date) return toLocalISOString(value);
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
-    const parsed = new Date(value);
-    if (!Number.isNaN(parsed.getTime())) return toLocalISOString(parsed);
-    return value.split('T')[0];
+export const getHistoryDateKey = (value: string | Date | number): string => {
+    if (!value) return toLocalISOString(new Date());
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())) {
+        return value.trim();
+    }
+    const d = parseLocalDate(value);
+    if (!Number.isNaN(d.getTime())) return toLocalISOString(d);
+    return String(value).split('T')[0];
 };
 
 export const calculateStreak = (entries: { date: string }[]): number => {

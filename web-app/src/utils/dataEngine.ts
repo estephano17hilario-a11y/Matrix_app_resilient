@@ -6,7 +6,7 @@ import {
     startOfQuarter, endOfQuarter
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { startOfWeek, endOfWeek, eachWeekOfInterval } from './dateUtils';
+import { startOfWeek, endOfWeek, eachWeekOfInterval, parseLocalDate } from './dateUtils';
 import { Project, Attribute } from '../types';
 
 export const generateFocusData = (
@@ -87,7 +87,7 @@ export const generateFocusData = (
           projects.forEach(p => {
               if (p.sessions) {
                   p.sessions.forEach(s => {
-                      const d = new Date(s.date);
+                      const d = parseLocalDate(s.date);
                       if (d < minDate) minDate = d;
                   });
               }
@@ -147,7 +147,7 @@ export const generateFocusData = (
      if (contextId === 'GLOBAL' || p.id === contextId || p.attribute === contextId) {
          if (p.sessions) {
              p.sessions.forEach(s => {
-                const sDate = new Date(s.date);
+                const sDate = parseLocalDate(s.date);
                 
                 // Find matching bucket
                 const bucketIndex = buckets.findIndex(b => sDate >= b.start && sDate <= b.end);

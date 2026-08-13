@@ -6,7 +6,8 @@ import { ArrowUp, AlertTriangle, Plus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isWithinInterval } from 'date-fns';
 import { useTranslation } from 'react-i18next';
-import { toLocalISOString, startOfWeek, endOfWeek } from './utils/dateUtils';
+import { toLocalISOString, startOfWeek, endOfWeek, getHistoryDateKey } from './utils/dateUtils';
+import { generateFocusData } from './utils/dataEngine';
 import { PlayerHUD } from './modules/dashboard/PlayerHUD';
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
 
@@ -414,31 +415,27 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
 
   // ⚔️ Global Rivals Sync Effect (Background Sync)
   const todayTasksCompleted = useMemo(() => {
-    return quests.filter(q => {
-      if (!q.completed || !q.completedAt) return false;
-      const completedStr = toLocalISOString(new Date(q.completedAt)).slice(0, 10);
-      const todayStr = toLocalISOString(new Date()).slice(0, 10);
-      return completedStr === todayStr;
+    const todayStr = toLocalISOString(new Date());
+    const fromQuests = quests.filter(q => {
+      if (!q.completed && q.status !== 'completed') return false;
+      if (!q.completedAt) return true;
+      const dateKey = getHistoryDateKey(q.completedAt);
+      return dateKey === todayStr;
     }).length;
-  }, [quests]);
+
+    const fromLimits = dailyLimits?.date === todayStr ? Number(dailyLimits?.tasksCompleted || 0) : 0;
+    return Math.max(fromLimits, fromQuests);
+  }, [quests, dailyLimits]);
 
   const todayFocusMinutes = useMemo(() => {
-    let focusSecondsFromSessions = 0;
-    const today = toLocalISOString(new Date());
-    projects.forEach(p => {
-      if (p.sessions) {
-        const todaySessions = p.sessions.filter(s => {
-          if (!s.date) return false;
-          try {
-            return toLocalISOString(new Date(s.date)) === today;
-          } catch (e) {
-            return false;
-          }
-        });
-        focusSecondsFromSessions += todaySessions.reduce((acc, s) => acc + (s.duration || 0), 0);
-      }
-    });
-    return Math.round(Math.max(Number(dailyLimits?.focusSeconds || 0), focusSecondsFromSessions) / 60);
+    // Exact synchronization with Focus Charts dataEngine
+    const focusData = generateFocusData(projects, [], new Date(), 'DAY', 'GLOBAL', 'TOTAL');
+    const focusMinutesFromSessions = Math.round(parseFloat(focusData.totalHours || '0') * 60);
+
+    const todayStr = toLocalISOString(new Date());
+    const limitsFocusMinutes = dailyLimits?.date === todayStr ? Math.round(Number(dailyLimits?.focusSeconds || 0) / 60) : 0;
+
+    return Math.max(limitsFocusMinutes, focusMinutesFromSessions);
   }, [projects, dailyLimits]);
 
   const todayHabitPct = useMemo(() => {
