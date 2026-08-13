@@ -504,38 +504,19 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                         className="w-full flex flex-col items-center gap-3 relative px-4 sm:px-6 animate-fade-in-fast"
                     >
                             {/* Habit Consistency Chart (Moved inside to prevent layout shifts during exit animation) */}
-                            {!showArchived && (
+                             {!showArchived && (
                                 <div className="w-full max-w-[440px] pt-0">
-                                    <div className="flex justify-end mb-2">
-                                        <button 
-                                            onClick={() => setIsChartMaximized(!isChartMaximized)}
-                                            className="text-white/40 hover:text-white/70 transition-colors p-1 rounded-full hover:bg-white/5"
-                                        >
-                                            <motion.div animate={{ rotate: isChartMaximized ? 0 : 180 }}>
-                                                <LucideIcons.ChevronDown size={14} />
-                                            </motion.div>
-                                        </button>
-                                    </div>
-                                    <AnimatePresence>
-                                        {isChartMaximized && (
-                                            <motion.div 
-                                                initial={{ height: 0, opacity: 0 }}
-                                                animate={{ height: 'auto', opacity: 1 }}
-                                                exit={{ height: 0, opacity: 0 }}
-                                                className="overflow-hidden"
-                                            >
-                                                <HabitConsistencyChart 
-                                                    habits={habits} 
-                                                    onOpenStreak={onOpenStreak} 
-                                                    isActive={isActive} 
-                                                    isPro={isPro}
-                                                    onOpenPro={onOpenPro}
-                                                    weekStartDay={weekStartDay}
-                                                    initialTimeframe={defaultChartViews?.habits}
-                                                />
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
+                                    <HabitConsistencyChart 
+                                        habits={habits} 
+                                        onOpenStreak={onOpenStreak} 
+                                        isActive={isActive} 
+                                        isPro={isPro}
+                                        onOpenPro={onOpenPro}
+                                        weekStartDay={weekStartDay}
+                                        initialTimeframe={defaultChartViews?.habits}
+                                        isMinimized={!isChartMaximized}
+                                        onToggleMinimize={() => setIsChartMaximized(!isChartMaximized)}
+                                    />
                                     
                                     {/* Date Navigation Banner */}
                                     {!isSameDay(currentDate, new Date()) && (

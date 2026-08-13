@@ -5,7 +5,7 @@ import { enUS, es } from 'date-fns/locale';
 import { Habit } from '../../../types';
 import { cn } from '../../../utils/cn';
 import { toLocalISOString, startOfWeek } from '../../../utils/dateUtils';
-import { TrendingUp, TrendingDown, Flame, Calendar, Lock } from 'lucide-react';
+import { TrendingUp, TrendingDown, Flame, Calendar, Lock, ChevronDown } from 'lucide-react';
 import { DateSelectionModal, DateSelectionMode } from './DateSelectionModal';
 import { useLux } from '@/context/LuxContext';
 import { getAvatarConfig } from '@/config/avatars';
@@ -20,6 +20,8 @@ interface HabitConsistencyChartProps {
     onOpenPro?: () => void;
     weekStartDay?: 0 | 1;
     initialTimeframe?: TimeFrame;
+    isMinimized?: boolean;
+    onToggleMinimize?: () => void;
 }
 
 type TimeFrame = 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
@@ -33,7 +35,17 @@ const getRequiredPercentForDay = (day: number) => {
     return 85;
 };
 
-export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React.memo(({ habits, onOpenStreak, isActive = true, isPro, onOpenPro, weekStartDay = 1, initialTimeframe = 'WEEK' }) => {
+export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React.memo(({ 
+    habits, 
+    onOpenStreak, 
+    isActive = true, 
+    isPro, 
+    onOpenPro, 
+    weekStartDay = 1, 
+    initialTimeframe = 'WEEK',
+    isMinimized = false,
+    onToggleMinimize
+}) => {
     const { t, i18n } = useTranslation();
     const { user } = useLux();
     const avatarConfig = getAvatarConfig(user?.avatarId);
@@ -465,33 +477,57 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                         </button>
                     </motion.div>
 
-                    {/* Controls - Compact */}
-                    <div className="flex p-0.5 rounded-full bg-zinc-900/80 border border-white/10 relative scale-95 origin-right">
-                         {(['WEEK', 'MONTH', 'YEAR'] as TimeFrame[]).map((tf) => (
+                    {/* Controls & Integrated Minimize Button */}
+                    <div className="flex items-center gap-1.5 scale-95 origin-right">
+                        <div className="flex p-0.5 rounded-full bg-zinc-900/80 border border-white/10 relative">
+                             {(['WEEK', 'MONTH', 'YEAR'] as TimeFrame[]).map((tf) => (
+                                <button
+                                    key={tf}
+                                    onClick={() => handleTabClick(tf)}
+                                    className={cn(
+                                        "relative px-3 py-1 rounded-full text-[9px] font-bold transition-all duration-200 z-10 flex items-center gap-1",
+                                        timeframe === tf ? "text-white" : "text-zinc-500 hover:text-zinc-300"
+                                    )}
+                                >
+                                    {timeframe === tf && (
+                                        <motion.div
+                                            layoutId="consistencyChartActiveTab"
+                                            className="absolute inset-0 bg-white/10 rounded-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] border border-white/5"
+                                            transition={{ type: "spring", bounce: 0.2, duration: 0.2 }}
+                                        />
+                                    )}
+                                    <span>{tf === 'WEEK' ? t('dashboard.week') : tf === 'MONTH' ? t('dashboard.month') : t('dashboard.year')}</span>
+                                    {!isPro && tf === 'YEAR' && <Lock size={10} className="text-yellow-400/80" />}
+                                </button>
+                            ))}
+                        </div>
+
+                        {onToggleMinimize && (
                             <button
-                                key={tf}
-                                onClick={() => handleTabClick(tf)}
-                                className={cn(
-                                    "relative px-3 py-1 rounded-full text-[9px] font-bold transition-all duration-200 z-10 flex items-center gap-1",
-                                    timeframe === tf ? "text-white" : "text-zinc-500 hover:text-zinc-300"
-                                )}
+                                onClick={(e) => { e.stopPropagation(); onToggleMinimize(); }}
+                                className="w-6 h-6 rounded-lg flex items-center justify-center bg-white/5 border border-white/10 text-zinc-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all"
+                                title={isMinimized ? t('common.maximize', 'Maximizar') : t('common.minimize', 'Minimizar')}
                             >
-                                {timeframe === tf && (
-                                    <motion.div
-                                        layoutId="consistencyChartActiveTab"
-                                        className="absolute inset-0 bg-white/10 rounded-full shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)] border border-white/5"
-                                        transition={{ type: "spring", bounce: 0.2, duration: 0.2 }}
-                                    />
-                                )}
-                                <span>{tf === 'WEEK' ? t('dashboard.week') : tf === 'MONTH' ? t('dashboard.month') : t('dashboard.year')}</span>
-                                {!isPro && tf === 'YEAR' && <Lock size={10} className="text-yellow-400/80" />}
+                                <motion.div animate={{ rotate: isMinimized ? 180 : 0 }}>
+                                    <ChevronDown size={12} className="text-white/40" />
+                                </motion.div>
                             </button>
-                        ))}
+                        )}
                     </div>
                 </div>
+            </div>
 
-                {/* Row 2: Stats */}
-                <div className="relative">
+            <AnimatePresence>
+                {!isMinimized && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                        className="overflow-hidden space-y-2 relative"
+                    >
+                        {/* Row 2: Stats */}
+                        <div className="relative">
                     <div className="flex items-center justify-between overflow-hidden pr-8">
                         {/* Average Percent */}
                         <div className="flex items-baseline gap-2 sm:gap-3 shrink-0 ml-1">
@@ -548,7 +584,6 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                         <TourLightbulb tourId="habits" />
                     </div>
                 </div>
-            </div>
 
             {/* --- COMPACT CHART AREA --- */}
             <div className="h-32 flex items-end justify-between gap-1 relative mb-0 pt-3 pl-4 pr-1">
@@ -712,6 +747,9 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                     </div>
                 )}
             </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <DateSelectionModal 
                 isOpen={isDateModalOpen}

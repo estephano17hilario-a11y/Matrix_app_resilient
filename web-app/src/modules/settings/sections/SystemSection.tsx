@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 
 import { Globe, BarChart3, Hexagon, Bell, BatteryMedium, Smartphone, Settings2, Calendar, Layers, Lock, LineChart, LayoutGrid, Zap, Brain, Swords, CheckCircle2, LayoutTemplate, ShoppingBag, Activity, PenLine, Coins, Quote, ShieldAlert, Volume2 } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
@@ -58,6 +59,17 @@ export const SystemSection = () => {
 
   const [pendingTone, setPendingTone] = useState<NotificationTone | null>(null);
   const [pendingPhraseType, setPendingPhraseType] = useState<'ANTI' | 'SPLASH' | null>(null);
+
+  useEffect(() => {
+    if (pendingTone || pendingPhraseType) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [pendingTone, pendingPhraseType]);
 
   const persistGoldAndStats = async (cost: number): Promise<boolean> => {
     const userGold = user?.stats?.gold || 0;
@@ -1108,7 +1120,7 @@ export const SystemSection = () => {
 
  {/* Tone Change Confirmation Modal with 10 Preview Messages */}
   <AnimatePresence>
-    {pendingTone && (
+    {pendingTone && typeof document !== 'undefined' && createPortal(
       <div className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
@@ -1159,13 +1171,14 @@ export const SystemSection = () => {
             </button>
           </div>
         </motion.div>
-      </div>
+      </div>,
+      document.body
     )}
   </AnimatePresence>
 
   {/* Phrase Change Confirmation Modal */}
   <AnimatePresence>
-    {pendingPhraseType && (
+    {pendingPhraseType && typeof document !== 'undefined' && createPortal(
       <div className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
@@ -1209,7 +1222,8 @@ export const SystemSection = () => {
             </button>
           </div>
         </motion.div>
-      </div>
+      </div>,
+      document.body
     )}
   </AnimatePresence>
 

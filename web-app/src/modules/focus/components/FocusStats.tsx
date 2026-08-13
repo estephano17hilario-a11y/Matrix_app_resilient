@@ -551,6 +551,22 @@ export const FocusStats = React.memo(({
                                     <ArrowUpDown size={12} />
                                 </button>
                             )}
+
+                            {/* Minimize/Maximize Button */}
+                            <button
+                                onClick={() => setIsChartMaximized(!isChartMaximized)}
+                                className={cn(
+                                    "w-6 h-6 rounded-lg flex items-center justify-center transition-all",
+                                    isChartMaximized 
+                                        ? "bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10" 
+                                        : "bg-white/15 text-white border border-white/10 shadow-md"
+                                )}
+                                title={isChartMaximized ? "Minimizar Gráfico" : "Maximizar Gráfico"}
+                            >
+                                <motion.div animate={{ rotate: isChartMaximized ? 0 : 180 }}>
+                                    <ChevronDown size={12} />
+                                </motion.div>
+                            </button>
                         </div>
 
                         {/* Global Dropdown (Absolute) */}
@@ -724,16 +740,8 @@ export const FocusStats = React.memo(({
                         </div>
                     )}
                     
-                    {/* DATE RANGE INDICATOR & TOGGLE */}
-                    <div className="flex justify-between items-center mt-1">
-                        <button 
-                            onClick={() => setIsChartMaximized(!isChartMaximized)}
-                            className="text-white/40 hover:text-white/70 transition-colors p-1 rounded-full hover:bg-white/5"
-                        >
-                            <motion.div animate={{ rotate: isChartMaximized ? 0 : 180 }}>
-                                <ChevronDown size={14} />
-                            </motion.div>
-                        </button>
+                    {/* DATE RANGE INDICATOR */}
+                    <div className="flex justify-end items-center mt-1">
                         <span className="text-[9px] font-bold text-white/30 uppercase tracking-wide">
                             {dateRangeLabel}
                         </span>
