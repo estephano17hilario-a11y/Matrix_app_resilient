@@ -31,6 +31,7 @@ export const FocusStats = React.memo(({
     onOpenPro,
     weekStartDay = 1,
     defaultChartViews,
+    defaultChartVisibility,
     defaultProjectView
 }: { 
     projects: Project[], 
