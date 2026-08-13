@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Skull, Archive, ChevronLeft, ArrowUpDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { isSameDay, isLastDayOfMonth, format } from 'date-fns';
