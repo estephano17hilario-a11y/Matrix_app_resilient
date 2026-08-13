@@ -1,4 +1,16 @@
+import React, { useMemo } from 'react';
+
 export const LoadingScreen = () => {
+  const splashPhrase = useMemo(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('matrix_splash_phrase');
+        if (saved && saved.trim().length > 0) return saved.trim().slice(0, 20);
+      } catch (e) {}
+    }
+    return 'Sin Excusas';
+  }, []);
+
   return (
     <div
       className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden z-[9999] pointer-events-auto select-none"
@@ -39,6 +51,24 @@ export const LoadingScreen = () => {
           borderRadius: '9999px',
         }}
       />
+
+      {/* Custom Subtitle Phrase (Max 20 chars) */}
+      <p 
+        style={{
+          marginTop: '14px',
+          fontSize: '0.8rem',
+          fontWeight: 600,
+          letterSpacing: '0.15em',
+          color: 'rgba(34, 211, 238, 0.85)',
+          fontFamily: 'monospace',
+          textTransform: 'uppercase',
+          textAlign: 'center',
+          paddingLeft: '1rem',
+          paddingRight: '1rem'
+        }}
+      >
+        {splashPhrase}
+      </p>
     </div>
   );
 };

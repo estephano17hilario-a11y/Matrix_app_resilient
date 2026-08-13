@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-import { Globe, BarChart3, Hexagon, Bell, BatteryMedium, Smartphone, Settings2, Calendar, Layers, Lock, LineChart, LayoutGrid, Zap, Brain, Swords, CheckCircle2, LayoutTemplate, ShoppingBag, Activity, PenLine } from 'lucide-react';
+import { Globe, BarChart3, Hexagon, Bell, BatteryMedium, Smartphone, Settings2, Calendar, Layers, Lock, LineChart, LayoutGrid, Zap, Brain, Swords, CheckCircle2, LayoutTemplate, ShoppingBag, Activity, PenLine, Coins, Quote, ShieldAlert, Volume2 } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
@@ -8,6 +8,8 @@ import FocusSession from '@/plugins/FocusPlugin';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import toast from 'react-hot-toast';
+import { useLux } from '@/context/LuxContext';
+import { NotificationTone, TONE_DEFINITIONS } from '../../../services/notificationTonesService';
 
 import { LocalNotifications } from '@capacitor/local-notifications';
 
@@ -27,8 +29,79 @@ export const SystemSection = () => {
  isPro
  } = useSettings();
 
- const [permissions, setPermissions] = useState({ notifications: false, battery: false, overlay: false });
- const [isNative, setIsNative] = useState(false);
+  const { user, updateLuxLocally } = useLux();
+  const [permissions, setPermissions] = useState({ notifications: false, battery: false, overlay: false });
+  const [isNative, setIsNative] = useState(false);
+
+  const [currentTone, setCurrentTone] = useState<NotificationTone>(() => {
+    try {
+      const saved = localStorage.getItem('matrix_notification_tone');
+      if (saved) return saved as NotificationTone;
+    } catch (e) {}
+    return 'NEUTRAL';
+  });
+
+  const [antiPhrase, setAntiPhrase] = useState<string>(() => {
+    try {
+      return localStorage.getItem('matrix_anti_procrastination_phrase') || '';
+    } catch (e) { return ''; }
+  });
+
+  const [splashPhrase, setSplashPhrase] = useState<string>(() => {
+    try {
+      return localStorage.getItem('matrix_splash_phrase') || 'Sin Excusas';
+    } catch (e) { return 'Sin Excusas'; }
+  });
+
+  const handleChangeTone = (newTone: NotificationTone) => {
+    if (newTone === currentTone) return;
+    const userGold = user?.stats?.gold || 0;
+    if (userGold < 2000) {
+      toast.error(`🚫 Oro insuficiente. Requieres 2,000 Oro (Tienes: ${userGold})`);
+      return;
+    }
+    const updatedGold = userGold - 2000;
+    updateLuxLocally({ stats: { ...user?.stats, gold: updatedGold } as any });
+    localStorage.setItem('matrix_notification_tone', newTone);
+    setCurrentTone(newTone);
+    toast.success('⚡ Tono de notificación actualizado (-2,000 Oro)');
+  };
+
+  const handleSaveAntiPhrase = () => {
+    const clean = antiPhrase.trim().slice(0, 50);
+    const saved = localStorage.getItem('matrix_anti_procrastination_phrase') || '';
+    if (clean === saved) {
+      toast('Sin cambios que guardar');
+      return;
+    }
+    const userGold = user?.stats?.gold || 0;
+    if (userGold < 500) {
+      toast.error(`🚫 Oro insuficiente. Requieres 500 Oro (Tienes: ${userGold})`);
+      return;
+    }
+    const updatedGold = userGold - 500;
+    updateLuxLocally({ stats: { ...user?.stats, gold: updatedGold } as any });
+    localStorage.setItem('matrix_anti_procrastination_phrase', clean);
+    toast.success('💬 Frase anti-procrastinación guardada (-500 Oro)');
+  };
+
+  const handleSaveSplashPhrase = () => {
+    const clean = (splashPhrase || 'Sin Excusas').trim().slice(0, 20);
+    const saved = localStorage.getItem('matrix_splash_phrase') || 'Sin Excusas';
+    if (clean === saved) {
+      toast('Sin cambios que guardar');
+      return;
+    }
+    const userGold = user?.stats?.gold || 0;
+    if (userGold < 500) {
+      toast.error(`🚫 Oro insuficiente. Requieres 500 Oro (Tienes: ${userGold})`);
+      return;
+    }
+    const updatedGold = userGold - 500;
+    updateLuxLocally({ stats: { ...user?.stats, gold: updatedGold } as any });
+    localStorage.setItem('matrix_splash_phrase', clean);
+    toast.success('✨ Frase de pantalla de carga guardada (-500 Oro)');
+  };
 
  const [topQuickActions, setTopQuickActions] = useState<string[]>(() => {
     try {
@@ -239,6 +312,129 @@ export const SystemSection = () => {
  </div>
  </div>
  )}
+
+  {/* NOTIFICATION TONES & CUSTOM PHRASES (GOLD ECONOMY) */}
+  <div className="bg-[#111] border border-white/10 rounded-2xl p-5 space-y-5 transition-colors">
+    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 text-amber-400">
+          <Bell size={20} />
+        </div>
+        <div>
+          <div className="text-base font-black text-white tracking-tight flex items-center gap-2">
+            Tono de Notificaciones & Frases de Poder
+          </div>
+          <div className="text-xs text-white/50">Personaliza la voz de tu coach y tus alertas</div>
+        </div>
+      </div>
+      <div className="flex items-center gap-1 text-amber-400 font-bold font-mono text-xs bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+        <Coins size={14} /> {(user?.stats?.gold || 0).toLocaleString()} Oro
+      </div>
+    </div>
+
+    {/* Tone Selector */}
+    <div className="space-y-3">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-bold text-white/80 uppercase tracking-wider flex items-center gap-1.5">
+          Tono de Notificación Actual
+        </span>
+        <span className="text-amber-400 font-bold text-[11px] bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+          Cambiar cuesta 2,000 Oro 🪙
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        {(Object.keys(TONE_DEFINITIONS) as NotificationTone[]).map((toneKey) => {
+          const tone = TONE_DEFINITIONS[toneKey];
+          const isSelected = currentTone === toneKey;
+
+          return (
+            <button
+              key={toneKey}
+              onClick={() => handleChangeTone(toneKey)}
+              className={cn(
+                "p-3 rounded-xl border text-left transition-all flex flex-col justify-between gap-2 active:scale-95",
+                isSelected
+                  ? "bg-amber-500/15 border-amber-400 text-white shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+                  : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
+              )}
+            >
+              <div>
+                <span className="text-[9px] font-black uppercase tracking-wider text-amber-300">
+                  {tone.badge}
+                </span>
+                <div className="text-xs font-bold text-white mt-1">{tone.name}</div>
+              </div>
+              <span className="text-[9px] font-bold text-white/40 uppercase">
+                {isSelected ? '✓ Seleccionado' : '2,000 Oro'}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+
+    {/* Phrase Editors */}
+    <div className="pt-2 border-t border-white/10 space-y-4">
+      {/* Anti-Procrastination Phrase */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-xs">
+          <label className="font-bold text-white/90 flex items-center gap-1.5">
+            <ShieldAlert size={14} className="text-rose-400" />
+            Frase Anti-Procrastinación (Máx 50 caracteres)
+          </label>
+          <span className="text-[10px] font-bold text-amber-400 font-mono">
+            500 Oro 🪙
+          </span>
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            maxLength={50}
+            value={antiPhrase}
+            onChange={(e) => setAntiPhrase(e.target.value)}
+            placeholder="Ej: ¿Vas a dejar que te ganen hoy?"
+            className="flex-1 bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-amber-400"
+          />
+          <button
+            onClick={handleSaveAntiPhrase}
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs rounded-xl transition-all shadow-md active:scale-95 whitespace-nowrap"
+          >
+            Guardar (500g)
+          </button>
+        </div>
+      </div>
+
+      {/* Splash Screen Subtitle Phrase */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-xs">
+          <label className="font-bold text-white/90 flex items-center gap-1.5">
+            <Volume2 size={14} className="text-cyan-400" />
+            Frase de Pantalla de Carga LUX (Máx 20 caracteres)
+          </label>
+          <span className="text-[10px] font-bold text-amber-400 font-mono">
+            500 Oro 🪙
+          </span>
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            maxLength={20}
+            value={splashPhrase}
+            onChange={(e) => setSplashPhrase(e.target.value)}
+            placeholder="Ej: Sin Excusas"
+            className="flex-1 bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-cyan-400 font-semibold"
+          />
+          <button
+            onClick={handleSaveSplashPhrase}
+            className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs rounded-xl transition-all shadow-md active:scale-95 whitespace-nowrap"
+          >
+            Guardar (500g)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
  {/* Chart Style */}
  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 transition-colors">

@@ -182,13 +182,27 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                           </div>
 
                           {/* Node Avatar Icon */}
-                          <div className="text-2xl mt-3">
-                            {isUnlocked ? rival.avatar : '🔒'}
+                          <div className="text-2xl mt-3 relative">
+                            {isUnlocked ? (
+                              rival.avatar
+                            ) : rival.level === progress.unlockedLevel + 1 ? (
+                              <div className="relative">
+                                <span className="opacity-40 filter blur-[1px]">⚡</span>
+                                <span className="absolute inset-0 flex items-center justify-center text-xs">🔒</span>
+                              </div>
+                            ) : (
+                              '🔒'
+                            )}
                           </div>
 
                           {/* Level Name */}
                           <span className="text-[10px] font-bold text-white truncate w-full px-1 mt-0.5">
-                            {isUnlocked ? rival.name : 'Rival Misterioso'}
+                            {isUnlocked 
+                              ? rival.name 
+                              : rival.level === progress.unlockedLevel + 1 
+                                ? `🔥 Próximo Enemigo` 
+                                : `Enemigo Nvl ${rival.level}`
+                            }
                           </span>
 
                           {/* Boss Badge or Level Status */}
@@ -203,6 +217,10 @@ export const RivalsModal: React.FC<RivalsModalProps> = ({
                           ) : isCurrentActive ? (
                             <span className="text-[7px] font-black tracking-widest uppercase bg-amber-500 text-black px-1.5 py-0.5 rounded-full shadow-sm">
                               ENFRENTAR
+                            </span>
+                          ) : rival.level === progress.unlockedLevel + 1 ? (
+                            <span className="text-[7px] font-black tracking-widest uppercase bg-red-500/20 text-red-400 border border-red-500/40 px-1.5 py-0.5 rounded-full animate-pulse">
+                              SIGUIENTE RIVAL
                             </span>
                           ) : isUnlocked ? (
                             <span
