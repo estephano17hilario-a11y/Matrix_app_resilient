@@ -175,7 +175,7 @@ export default function App() {
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
       GoogleAuth.initialize({
-        clientId: '797112490087-eiupmiitso6du7mos9cif0n407mq2qfl.apps.googleusercontent.com',
+        clientId: '797112490087-7bp66hii56d6b17sgtcpmm3dhf93pqek.apps.googleusercontent.com',
         scopes: ['profile', 'email'],
         grantOfflineAccess: true,
       });
