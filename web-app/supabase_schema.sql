@@ -168,3 +168,165 @@ CREATE OR REPLACE TRIGGER tr_user_plan_expiry_reset
   BEFORE INSERT OR UPDATE ON public.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_user_plan_expiry_reset();
 
+-- Table: public.user_collections (Resilient client-side sync repository)
+CREATE TABLE IF NOT EXISTS public.user_collections (
+    id TEXT PRIMARY KEY,
+    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
+    collection_name TEXT NOT NULL,
+    data JSONB DEFAULT '{}'::jsonb NOT NULL,
+    deleted BOOLEAN DEFAULT FALSE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_collections_lookup ON public.user_collections(user_id, collection_name);
+CREATE INDEX IF NOT EXISTS idx_user_collections_active ON public.user_collections(user_id, collection_name) WHERE deleted = false;
+CREATE INDEX IF NOT EXISTS idx_user_collections_updated ON public.user_collections(user_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_collections_gin_data ON public.user_collections USING gin (data);
+
+-- Unique constraints to eliminate duplicate items
+CREATE UNIQUE INDEX IF NOT EXISTS uq_user_collections_item 
+ON public.user_collections (user_id, collection_name, (data->>'id')) 
+WHERE (data->>'id') IS NOT NULL AND deleted = false;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_user_collections_settings 
+ON public.user_collections (user_id) 
+WHERE collection_name = 'settings' AND deleted = false;
+
+-- Trigger for user_collections updated_at
+DROP TRIGGER IF EXISTS tr_set_updated_at_user_collections ON public.user_collections;
+CREATE TRIGGER tr_set_updated_at_user_collections
+    BEFORE UPDATE ON public.user_collections
+    FOR EACH ROW
+    EXECUTE FUNCTION public.update_modified_column();
+
+-- User Collections Policy
+ALTER TABLE public.user_collections ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage own collections" ON public.user_collections;
+CREATE POLICY "Users can manage own collections" ON public.user_collections
+    FOR ALL
+    TO authenticated
+    USING (user_id = auth.uid())
+    WITH CHECK (user_id = auth.uid());
+
+-- 6. 👁️ OPTIMIZED VIEWS (WITH security_invoker = true)
+
+-- A. Vista de Hábitos
+CREATE OR REPLACE VIEW public.vw_user_habits 
+WITH (security_invoker = true) AS
+SELECT 
+    uc.user_id,
+    COALESCE(uc.data->>'id', uc.id) AS habit_id,
+    COALESCE(uc.data->>'name', uc.data->>'title', 'Sin título') AS name,
+    uc.data->>'frequency' AS frequency,
+    uc.data->>'category' AS category,
+    uc.data->>'color' AS color,
+    (uc.data->>'streak')::integer AS streak,
+    (uc.data->>'targetDays')::integer AS target_days,
+    COALESCE((uc.data->>'isArchived')::boolean, false) AS is_archived,
+    uc.data AS raw_data,
+    uc.created_at,
+    uc.updated_at
+FROM public.user_collections uc
+WHERE uc.collection_name = 'habits' AND uc.deleted = false;
+
+-- B. Vista de Tareas y Misiones (Quests)
+CREATE OR REPLACE VIEW public.vw_user_quests 
+WITH (security_invoker = true) AS
+SELECT 
+    uc.user_id,
+    COALESCE(uc.data->>'id', uc.id) AS quest_id,
+    COALESCE(uc.data->>'title', 'Sin título') AS title,
+    uc.data->>'description' AS description,
+    COALESCE((uc.data->>'completed')::boolean, false) AS completed,
+    uc.data->>'priority' AS priority,
+    uc.data->>'difficulty' AS difficulty,
+    (uc.data->>'xp')::integer AS xp_reward,
+    uc.data->>'dueDate' AS due_date,
+    uc.data->'tags' AS tags,
+    uc.data AS raw_data,
+    uc.created_at,
+    uc.updated_at
+FROM public.user_collections uc
+WHERE uc.collection_name = 'quests' AND uc.deleted = false;
+
+-- C. Vista de Notas
+CREATE OR REPLACE VIEW public.vw_user_notes 
+WITH (security_invoker = true) AS
+SELECT 
+    uc.user_id,
+    COALESCE(uc.data->>'id', uc.id) AS note_id,
+    COALESCE(uc.data->>'title', 'Sin título') AS title,
+    SUBSTRING(COALESCE(uc.data->>'content', '') FROM 1 FOR 200) AS content_preview,
+    uc.data->>'folderId' AS folder_id,
+    COALESCE((uc.data->>'isPinned')::boolean, false) AS is_pinned,
+    COALESCE((uc.data->>'isLocked')::boolean, false) AS is_locked,
+    COALESCE((uc.data->>'isArchived')::boolean, false) AS is_archived,
+    (uc.data->>'wordCount')::integer AS word_count,
+    uc.data AS raw_data,
+    uc.created_at,
+    uc.updated_at
+FROM public.user_collections uc
+WHERE uc.collection_name = 'notes' AND uc.deleted = false;
+
+-- D. Vista de Resumen y Métricas por Usuario
+CREATE OR REPLACE VIEW public.vw_user_summary 
+WITH (security_invoker = true) AS
+SELECT 
+    u.id AS user_id,
+    u.email,
+    u.display_name,
+    u.plan,
+    u.archetype,
+    u.theme,
+    u.es_pro,
+    u.stats->>'xp' AS xp,
+    u.stats->>'level' AS level,
+    COUNT(DISTINCT CASE WHEN uc.collection_name = 'habits' AND uc.deleted = false THEN uc.id END) AS total_habits,
+    COUNT(DISTINCT CASE WHEN uc.collection_name = 'quests' AND uc.deleted = false AND COALESCE((uc.data->>'completed')::boolean, false) = false THEN uc.id END) AS pending_quests,
+    COUNT(DISTINCT CASE WHEN uc.collection_name = 'quests' AND uc.deleted = false AND (uc.data->>'completed')::boolean = true THEN uc.id END) AS completed_quests,
+    COUNT(DISTINCT CASE WHEN uc.collection_name = 'notes' AND uc.deleted = false THEN uc.id END) AS total_notes,
+    COUNT(DISTINCT CASE WHEN uc.deleted = false THEN uc.id END) AS total_active_items,
+    MAX(uc.updated_at) AS last_collection_sync_at,
+    u.last_login_at
+FROM public.users u
+LEFT JOIN public.user_collections uc ON u.id = uc.user_id
+GROUP BY u.id, u.email, u.display_name, u.plan, u.archetype, u.theme, u.es_pro, u.stats, u.last_login_at;
+
+-- E. Vistas generales legibles
+CREATE OR REPLACE VIEW public.vw_colecciones_legibles 
+WITH (security_invoker = true) AS
+SELECT 
+    u.email,
+    u.display_name AS nombre,
+    uc.collection_name AS tipo_dato,
+    uc.data AS contenido,
+    uc.created_at AS fecha_creacion,
+    uc.updated_at AS fecha_actualizacion,
+    uc.id AS id_registro,
+    uc.user_id
+FROM public.user_collections uc
+JOIN public.users u ON u.id = uc.user_id
+WHERE uc.deleted = false
+ORDER BY u.email, uc.collection_name, uc.created_at DESC;
+
+CREATE OR REPLACE VIEW public.vw_datos_por_usuario 
+WITH (security_invoker = true) AS
+SELECT 
+    u.id AS user_id,
+    u.email,
+    u.display_name AS nombre,
+    (
+        SELECT COALESCE(jsonb_object_agg(col.collection_name, col.items), '{}'::jsonb)
+        FROM (
+            SELECT 
+                user_collections.collection_name,
+                jsonb_agg(user_collections.data) AS items
+            FROM public.user_collections
+            WHERE user_collections.user_id = u.id AND user_collections.deleted = false
+            GROUP BY user_collections.collection_name
+        ) col
+    ) AS todos_los_datos
+FROM public.users u;
+
+
