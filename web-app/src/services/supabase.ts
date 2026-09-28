@@ -47,6 +47,7 @@ export const supabase = createClient(
     supabaseAnonKey,
     {
         auth: {
+            storageKey: 'sb-lux-auth-token',
             storage: Capacitor.isNativePlatform() ? capacitorStorage : window.localStorage,
             autoRefreshToken: true,
             persistSession: true,

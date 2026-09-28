@@ -24,8 +24,8 @@ class SupabaseWidgetClient(private val context: Context) {
 
     companion object {
         private const val TAG = "SupabaseWidgetClient"
-        private const val SUPABASE_URL = "https://aysntbpxjejxumpqvlbz.supabase.co"
-        private const val SUPABASE_ANON_KEY = "sb_publishable_VaKr6McgkkGUFE3cPYUFpw_jt0faAw0"
+        private const val SUPABASE_URL = "https://api.89.117.73.97.sslip.io"
+        private const val SUPABASE_ANON_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc4Nzg0OTc2MCwiZXhwIjo0OTQzNTIzMzYwLCJyb2xlIjoiYW5vbiJ9._DvifLx6sViDd5UePak7xswzmT6dQp9FoQZqPnyxeRU"
         private const val REST_PATH = "/rest/v1"
     }
 
@@ -78,7 +78,7 @@ class SupabaseWidgetClient(private val context: Context) {
         // ALWAYS check CapacitorStorage first as it is the Single Source of Truth
         try {
             val capPrefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
-            val sessionJson = capPrefs.getString("sb-aysntbpxjejxumpqvlbz-auth-token", null)
+            val sessionJson = capPrefs.getString("sb-lux-auth-token", null)
             if (!sessionJson.isNullOrEmpty()) {
                 val root = JsonParser.parseString(sessionJson).asJsonObject
                 val access = root.get("access_token")?.asString

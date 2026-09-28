@@ -2371,7 +2371,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
         <div className="absolute top-0 left-0 right-0 h-48 opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 75%)` }} />
 
         {/* Top Header Controls - Single Responsive Row */}
-        <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-white/10 relative z-20 bg-[#0d0d14]/95 gap-1.5 w-full overflow-x-auto no-scrollbar">
+        <div className="flex items-center justify-start px-3 sm:px-4 py-2 border-b border-white/10 relative z-20 bg-[#0d0d14]/95 gap-1.5 w-full overflow-x-auto no-scrollbar">
           {/* Left: BLUE Exit Button + Categorize Button */}
           <div className="flex items-center gap-1.5 shrink-0">
             <button 
