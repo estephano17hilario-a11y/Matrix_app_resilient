@@ -39,6 +39,7 @@ interface HabitVisualViewProps {
     isActive?: boolean;
     currentSection?: 'PROTOCOLS' | 'VICES';
     onOpenStreak?: () => void;
+    displayStreak?: number;
     onReorder?: (habits: Habit[]) => void;
     onReorderBadHabits?: (habits: BadHabit[]) => void;
     isPro?: boolean;
@@ -80,7 +81,7 @@ const BadHabitWrapper: React.FC<BadHabitWrapperProps> = React.memo(({
     }, { threshold: 600 });
 
     return (
-        <div className="w-full px-2 mx-auto">
+        <div className="lux-reveal w-full px-2 mx-auto">
             <div 
                 role="button"
                 tabIndex={0}
@@ -124,6 +125,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     isActive = true,
     currentSection,
     onOpenStreak,
+    displayStreak,
     onReorder,
     onReorderBadHabits,
     isPro,
@@ -509,6 +511,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                     <HabitConsistencyChart 
                                         habits={habits} 
                                         onOpenStreak={onOpenStreak} 
+                                        displayStreak={displayStreak}
                                         isActive={isActive} 
                                         isPro={isPro}
                                         onOpenPro={onOpenPro}
@@ -843,7 +846,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                     return (
                                         <div
                                              key={habit.id}
-                                             className="w-full px-2 mx-auto"
+                                             className="lux-reveal w-full px-2 mx-auto"
                                          >
                                             <div
                                                 {...longPressHandlers}

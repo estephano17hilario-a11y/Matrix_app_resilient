@@ -138,6 +138,7 @@ export interface Habit {
   rewardedGold?: number; // Actual gold rewarded upon completion (for integrity)
   rewardedXp?: number; // Actual XP rewarded upon completion (for integrity)
   lastUpdatedDate?: string; // Tracks the last date any progress was made (to reset correctly)
+  streakForgiven?: string[]; // Missed days forgiven by a store streak recovery (date keys)
 }
 
 export interface BadHabit {
@@ -168,6 +169,31 @@ export interface BadHabit {
   order?: number;
   iconName?: string;
   customColor?: string;
+  // ── Vice market (store) ──
+  market?: ViceOffer;            // how this vice is sold in the store
+  vicePasses?: number;           // passes owned, not used yet
+  indulgences?: string[];        // ISO timestamps of paid (planned) indulgences
+}
+
+/** How a bad habit is offered in the store. */
+export interface ViceOffer {
+  mode: 'OFF' | 'PASS';
+  passPrice: number;             // base price of one indulgence
+}
+
+/** One line of the store ledger (purchases and uses of vices). */
+export interface ViceLedgerEntry {
+  id: string;
+  habitId: string;
+  habitTitle: string;
+  color?: string;
+  iconName?: string;
+  kind: 'PASS_BUY' | 'PASS_USE';
+  price: number;                 // gold spent (0 for uses)
+  balanceAfter?: number;
+  deal?: boolean;                // bought as the deal of the day
+  createdAt: number;
+  deleted?: boolean;
 }
 
 export interface FocusRoutineStep {
@@ -207,6 +233,7 @@ export interface Project {
   order?: number;
   streak?: number;
   lastStreakDate?: string;
+  previousStreak?: number; // Streak lost at the last reset (for store recovery)
   longestStreak?: number;
   focusRoutine?: FocusRoutineStep[];
   focusRoutineDays?: number[];

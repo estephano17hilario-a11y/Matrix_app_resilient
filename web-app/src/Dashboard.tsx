@@ -50,6 +50,12 @@ import { ParticleLayer } from './modules/dashboard/components/ParticleLayer';
 import { StreakCelebrationOverlay } from './modules/dashboard/components/StreakCelebrationOverlay';
 import { StatsTutorialOverlay } from './components/StatsTutorialOverlay';
 import { cn } from './utils/cn';
+import { pulseWorld, runSceneTransition, setScene, setSceneAccent, setWorldScroll } from './immersion/engine';
+import { availableUses } from './modules/store/market/viceMarket';
+import { useDepthRecede } from './immersion/useDepthRecede';
+import { useLifeSync } from './immersion/useLifeSync';
+import { carriedDailyStreak, displayDailyStreak, habitStreakRecovery, isDailyStreakMet, todayTaskCounts } from './utils/streakRules';
+import { announceArea } from './immersion/WorldWhisper';
 
 // Lazy Load Heavy Views
 const HabitVisualView = lazy(() => import('./modules/dashboard/HabitVisualView').then(m => ({ default: m.HabitVisualView })));
@@ -71,6 +77,10 @@ const StreakRoadmapView = lazy(() => import('./modules/dashboard/StreakRoadmapVi
 const PomodoroView = lazy(() => import('./modules/focus/PomodoroView').then(m => ({ default: m.PomodoroView })));
 const ImprovementFeedView = lazy(() => import('./modules/feed/ImprovementFeedView').then(m => ({ default: m.ImprovementFeedView })));
 import { DeluxSuccessOverlay } from './modules/monetization/DeluxSuccessOverlay';
+
+// Sections laid out left → right in the world. The dock's own order comes
+// first, so travelling right in the dock moves the camera right.
+const SCENE_ORDER = ['TASKS', 'HABITS', 'FOCUS', 'NOTES', 'FEED', 'ACHIEVEMENTS', 'STORE'];
 
 const SuspenseFallback = () => (
  <div className="flex items-center justify-center h-full w-full min-h-[200px]">
@@ -327,6 +337,11 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
   console.log(`🌀 [Dashboard LifeCycle] Dashboard rendering (activeModal: "${dashboardLogic.activeModal}")`);
  const {
  user,
+ restoreStreak,
+ viceLedger,
+ buyVice,
+ spendVicePass,
+ updateViceOffer,
  lastAchievement,
  setLastAchievement,
  currentTheme,
@@ -1306,7 +1321,33 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  }
  }, [smartProjects, user?.id, setSmartProjects, setQuests, t, handleDeleteSmartProject]);
 
- const handleDockViewChange = useCallback((view: string) => {
+ const sceneOrder = useMemo(() => {
+  const dockOrder = (dockConfig?.order || []).filter((id: string) => SCENE_ORDER.includes(id));
+  return Array.from(new Set([...dockOrder, ...SCENE_ORDER]));
+ }, [dockConfig]);
+
+ // Move the world camera to the active section; each section brings its light.
+ useEffect(() => {
+  const index = sceneOrder.indexOf(currentView);
+  if (index >= 0) setScene(index);
+  setSceneAccent(currentView);
+ }, [currentView, sceneOrder]);
+
+ // Plays a navigation change as a scene transition: travel sideways between
+ // sections, or dive (depth) when switching sub-modes inside the same one.
+ const travelTo = useCallback((view: string, apply: () => void) => {
+  if (view === currentView) {
+   runSceneTransition(apply, 0, 'depth');
+   return;
+  }
+  const from = sceneOrder.indexOf(currentView);
+  const to = sceneOrder.indexOf(view);
+  const direction = from < 0 || to < 0 ? 1 : Math.sign(to - from) || 1;
+  runSceneTransition(apply, direction, 'travel');
+  announceArea(view);
+ }, [currentView, sceneOrder]);
+
+ const applyDockViewChange = useCallback((view: string) => {
   if (view === 'SETTINGS') {
     setIsDockOpen(false);
     setIsSettingsOpen(true);
@@ -1353,100 +1394,97 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  }
  }, [currentView, allowDockSectionSwitch, setTaskViewMode, setHabitViewMode, setNoteViewMode, setCurrentView]);
 
- // Scroll Reset on View Change
+ const handleDockViewChange = useCallback((view: string) => {
+  // Overlays (settings, pomodoro) open on top of the world; no travel.
+  if (view === 'SETTINGS' || view === 'POMODORO') {
+   applyDockViewChange(view);
+   return;
+  }
+  const target = view === 'STRATEGY' ? 'TASKS' : view;
+  if (target === currentView && view !== 'STRATEGY' && !allowDockSectionSwitch) {
+   applyDockViewChange(view);
+   return;
+  }
+  travelTo(target, () => applyDockViewChange(view));
+ }, [applyDockViewChange, travelTo, currentView, allowDockSectionSwitch]);
+
+ // Scroll Reset on View Change. A new section starts at the top instantly
+ // (the scene transition already carries the motion); sub-mode switches
+ // inside a section keep the smooth scroll.
  const scrollContainerRef = useRef<HTMLDivElement>(null);
  useEffect(() => {
- if (scrollContainerRef.current) {
- scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
- }
- }, [currentView, taskViewMode]);
+ scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+ }, [currentView]);
+ useEffect(() => {
+ scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+ }, [taskViewMode]);
 
-  // Calculate total quests active/due for today
-  const questsTotalToday = useMemo(() => {
-    const todayStr = toLocalISOString(new Date());
-    const safeQuests = quests || [];
-    const todayCompleted = safeQuests.filter(q => {
-      if (!q.completed || !q.completedAt) return false;
-      try {
-        return toLocalISOString(new Date(q.completedAt)) === todayStr;
-      } catch (e) {
-        return false;
-      }
-    }).length;
-      const todayUncompleted = safeQuests.filter(q => {
-        if (q.completed) return false;
-        if (!q.deadline) return true; // Treat tasks without deadline as active/pending today
-        try {
-          const deadlineStr = q.deadline.split('T')[0];
-        return deadlineStr <= todayStr;
-      } catch (e) {
-        return false;
-      }
-    }).length;
-    return todayCompleted + todayUncompleted;
-  }, [quests]);
+ // Depth: the interface recedes while a modal or the expanded dock is in front.
+ useDepthRecede(scrollContainerRef, !!activeModal || isDockOpen);
 
-  // Calculate if all daily requirements are met (Streak Logic)
-  const isStreakActiveToday = useMemo(() => {
-    // ROBUSTNESS UPDATE: Visual state must reflect REALITY, not just DB state.
-    // Even if DB says "today is done", if the user unchecked a habit, 
-    // the UI must show it as pending.
-    if (!dailyLimits) return false;
+ // The sky behind follows the content scroll with parallax.
+ useEffect(() => {
+ const el = scrollContainerRef.current;
+ if (!el) return;
+ const onScroll = () => setWorldScroll(el.scrollTop);
+ el.addEventListener('scroll', onScroll, { passive: true });
+ return () => el.removeEventListener('scroll', onScroll);
+ }, []);
 
-    const {
-      habitsCompleted = 0,
-      focusSeconds = 0
-    } = dailyLimits;
+  // Today's tasks (completed today + pending ones that are due), same rule as
+  // the streak modal and the streak activation (utils/streakRules).
+  const todayTasks = useMemo(() => todayTaskCounts(quests), [quests]);
+  const questsTotalToday = todayTasks.total;
 
-    const todayStr = toLocalISOString(new Date());
-    const safeQuests = quests || [];
-    
-    const todayCompletedTasks = safeQuests.filter(q => {
-      if (!q.completed || !q.completedAt) return false;
-      try {
-        return toLocalISOString(new Date(q.completedAt)) === todayStr;
-      } catch (e) {
-        return false;
-      }
-    });
-    const todayCompleted = todayCompletedTasks.length;
-
-    const isTasksRequirementMet = questsTotalToday === 0 ? true : (todayCompleted >= questsTotalToday);
-
-    return (
-      isTasksRequirementMet &&
-      habitsCompleted >= 1 &&
-      focusSeconds >= 3600
-    );
-  }, [dailyLimits, quests, questsTotalToday]);
+  // Today's streak requirements: all tasks due today, 1 habit, 1 hour of focus.
+  const isStreakActiveToday = useMemo(() => isDailyStreakMet({
+    tasksDone: todayTasks.done,
+    tasksTotal: todayTasks.total,
+    habitsCompleted: dailyLimits?.habitsCompleted || 0,
+    focusSeconds: dailyLimits?.focusSeconds || 0,
+  }), [todayTasks, dailyLimits?.habitsCompleted, dailyLimits?.focusSeconds]);
 
  const [isProjectDetailOpen, setIsProjectDetailOpen] = useState(false); // State to track detail view
 
  const notificationRoot = typeof document !== 'undefined' ? document.getElementById('notification-stack-root') : null;
 
- // Visual Streak Calculation (Strict Mode)
- const displayStreak = useMemo(() => {
- const dbStreak = user?.stats?.streak || 0;
- const lastStreakDate = user?.stats?.lastStreakDate;
- const todayStr = toLocalISOString(new Date());
- 
- // If DB says "today is counted" (lastStreakDate === today),
- // but our real-time check says "incomplete" (!isStreakActiveToday),
- // we subtract 1 to show the true pending state.
- if (lastStreakDate === todayStr) {
- if (!isStreakActiveToday) {
- return Math.max(0, dbStreak - 1);
- }
- // If DB says it's 0 but it's active today, force at least 1
- return Math.max(1, dbStreak);
- } else {
- // If they just met requirements but DB hasn't synced yet
- if (isStreakActiveToday) {
- return dbStreak + 1;
- }
- return dbStreak;
- }
- }, [user?.stats?.streak, user?.stats?.lastStreakDate, isStreakActiveToday]);
+ // Visible daily streak: what carries over from yesterday (or a freeze) plus
+ // today once today's requirements are met. Never trusts a stored value that
+ // is a day behind or belongs to a broken streak.
+ const displayStreak = useMemo(() => displayDailyStreak(
+  carriedDailyStreak({
+   streak: user?.stats?.streak,
+   lastStreakDate: user?.stats?.lastStreakDate,
+   frozenUntil: user?.stats?.streakFrozenUntil,
+  }),
+  isStreakActiveToday,
+ ), [user?.stats?.streak, user?.stats?.lastStreakDate, user?.stats?.streakFrozenUntil, isStreakActiveToday]);
+
+ // Streaks the store can bring back: habits whose streak broke in the last
+ // days (missed days get forgiven) and projects that lost theirs at a reset.
+ const recoverableHabits = useMemo(() => (habits || [])
+  .filter(h => !h.archived)
+  .map(h => {
+   const recovery = habitStreakRecovery(h, h.history, { weekStartDay, frozenUntil: user?.stats?.streakFrozenUntil });
+   return recovery ? { ...h, previousStreak: recovery.restored } : null;
+  })
+  .filter(Boolean) as any[], [habits, weekStartDay, user?.stats?.streakFrozenUntil]);
+ const recoverableProjects = useMemo(
+  () => (projects || []).filter(p => (p.previousStreak || 0) > 0 && !(p.streak && p.streak > 0)),
+  [projects],
+ );
+
+ // Adaptive world: the light, the stars and the whispers follow your day.
+ useLifeSync({
+ quests: quests as any,
+ habits: habits as any,
+ badHabits: badHabits as any,
+ questsTotalToday,
+ focusSeconds: dailyLimits?.focusSeconds || 0,
+ health,
+ streak: displayStreak,
+ streakSecured: isStreakActiveToday,
+ });
 
  // --- HARDWARE BACK BUTTON HANDLER ---
  const backButtonStateRef = useRef<any>({});
@@ -1588,14 +1626,16 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
        // Update History State immediately for sync
        state.setViewHistory(newHistory);
        
-       // Navigate
-       state.setCurrentView(previousView);
+       // Navigate (camera travels back)
+       runSceneTransition(() => state.setCurrentView(previousView), -1, 'travel');
+       announceArea(previousView);
        return;
      }
 
      // Fallback: If history is empty/corrupted but we are not at home, go home
      if (state.currentView !== 'TASKS') {
-       state.setCurrentView('TASKS');
+       runSceneTransition(() => state.setCurrentView('TASKS'), -1, 'travel');
+       announceArea('TASKS');
        return;
      }
 
@@ -1702,6 +1742,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  {/* SCROLLABLE CONTENT LAYER - OPTIMIZED: Removed 'size' from contain to fix disappearing graphs on scroll */}
  <div 
  ref={scrollContainerRef} 
+ data-lux-stage
  className={cn(
  "absolute inset-0 z-10 w-full h-full overflow-x-hidden scroll-smooth",
  (isSettingsOpen || activeModal || isWizardOpen || validationHabit || habitActionsHabit || isProjectDetailOpen || isProgressOpen) 
@@ -1724,7 +1765,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
   {/* PERSISTENT HUD - OUTSIDE MAIN TO PREVENT RE-LAYOUT JUMPS */}
   {!isBackgroundHidden && !isFocusMode && !isFullScreenFocus && !isNotesStatsOpen && !isProjectDetailOpen && (
   <>
- <div className="relative z-[300] w-full bg-transparent transition-all duration-300 pt-safe flex justify-center">
+ <div data-lux-hud className="lux-depth-layer relative z-[300] w-full bg-transparent pt-safe flex justify-center">
  <div className={`${APP_MAX_WIDTH} px-4 sm:px-6`}>
  <StatsHeader 
  level={player.level} 
@@ -1737,7 +1778,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  lastStreakDate={user?.stats?.lastStreakDate}
  isHidden={false} // Always visible in Dashboard
  showProfile={showProfile}
- onShowStore={() => setCurrentView(prev => prev === 'STORE' ? 'TASKS' : 'STORE')}
+ onShowStore={() => { const next = currentView === 'STORE' ? 'TASKS' : 'STORE'; travelTo(next, () => setCurrentView(next)); }}
  onShowPro={() => setIsProModalOpen(true)}
  onShowSettings={() => setIsSettingsOpen(true)}
  onShowSettingsWithTab={(tab) => {
@@ -1754,6 +1795,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  productivityScore={liveScore}
  onNavigate={handleDockViewChange}
  questsTotalToday={questsTotalToday}
+ tasksDoneToday={todayTasks.done}
  />
  </div>
  </div>
@@ -1764,7 +1806,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  {showProfile && currentView === 'TASKS' && taskViewMode !== 'STRATEGY' && (
  <div className="w-full flex justify-center">
  <div className={cn(
- "px-4 sm:px-6 mt-1 mb-1 w-full",
+ "lux-depth-layer px-4 sm:px-6 mt-1 mb-1 w-full",
  APP_MAX_WIDTH,
  "relative z-[290]"
  )}>
@@ -1790,7 +1832,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
   )}>
 
   <div 
-    className={`h-full flex-1 w-full relative ${currentView === 'FOCUS' ? 'z-10' : 'z-0'}`}
+    className={`lux-depth-layer h-full flex-1 w-full relative ${currentView === 'FOCUS' ? 'z-10' : 'z-0'}`}
     style={{ visibility: isBackgroundHidden ? 'hidden' : 'visible' }}
   >
  {/* ⚡ TASKS VIEW (Always loaded initially) */}
@@ -1949,6 +1991,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  currentSection={habitViewMode}
  isActive={currentView === 'HABITS'}
  onOpenStreak={handleOpenStreakView}
+ displayStreak={displayStreak}
  onReorder={handleReorderHabits}
  onReorderBadHabits={handleReorderBadHabits}
  isPro={user?.plan === 'PRO'}
@@ -2031,7 +2074,21 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  {(loadedViews.has('STORE') || currentView === 'STORE') && (
   <ViewContainer isActive={currentView === 'STORE'} id="STORE" className={cn("h-full pt-0 px-4 sm:px-6 mx-auto w-full", APP_MAX_WIDTH)}>
  <Suspense fallback={<SuspenseFallback />}>
- <StoreScreen onNavigate={(view) => setCurrentView(view)} />
+ <StoreScreen
+  onNavigate={(view) => setCurrentView(view)}
+  gold={player.gold}
+  badHabits={badHabits}
+  attributes={attributes}
+  viceLedger={viceLedger}
+  onBuyVice={buyVice}
+  onSpendVicePass={spendVicePass}
+  onUpdateViceOffer={updateViceOffer}
+  onCreateVice={handleAddBadHabit}
+  streakStats={user?.stats}
+  recoverableHabits={recoverableHabits}
+  recoverableProjects={recoverableProjects}
+  onRestoreStreak={restoreStreak}
+ />
  </Suspense>
  </ViewContainer>
  )}
@@ -2225,6 +2282,18 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
       setRelapsingHabit(null);
     }}
     userGold={player.gold}
+    passesAvailable={(() => {
+      const live = relapsingHabit && badHabits.find(b => b.id === relapsingHabit.id);
+      return live ? availableUses(live) : 0;
+    })()}
+    onUsePass={() => {
+      if (relapsingHabit && spendVicePass(relapsingHabit.id)) {
+        pulseWorld(window.innerWidth / 2, window.innerHeight / 2, '#f59e0b');
+        toast.success(t('store.market.usedToast', 'Indulgencia registrada. Tu racha sigue intacta.'));
+      }
+      setActiveModal(null);
+      setRelapsingHabit(null);
+    }}
   />
   
   {/* Validation Modal */}

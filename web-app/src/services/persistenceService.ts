@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Quest, Habit, Note, NoteFolder, JournalEntry, Attribute, Project, BadHabit } from '../types';
+import { Quest, Habit, Note, NoteFolder, JournalEntry, Attribute, Project, BadHabit, ViceLedgerEntry } from '../types';
 import { SmartProject } from '../types/SmartGoal';
 import { DailyFeedEntry } from '../types/DailyFeedEntry';
 import { sanitizeFirestoreData } from '../utils/firestoreUtils';
@@ -352,6 +352,7 @@ export const badHabitService = createSubCollectionService<BadHabit>('badHabits')
 export const specialEventsService = createSubCollectionService<any>('specialEvents');
 export const secureNotesService = createSubCollectionService<any>('secureNotes');
 export const dailyFeedService = createSubCollectionService<DailyFeedEntry>('dailyFeed');
+export const viceLedgerService = createSubCollectionService<ViceLedgerEntry>('viceLedger');
 
 export const persistenceService = {
   quests: questService,
@@ -363,6 +364,7 @@ export const persistenceService = {
   attributes: attributeService,
   smartProjects: smartProjectService,
   projects: projectService,
+  viceLedger: viceLedgerService,
   settings: settingsService,
   specialEvents: specialEventsService,
   secureNotes: secureNotesService,

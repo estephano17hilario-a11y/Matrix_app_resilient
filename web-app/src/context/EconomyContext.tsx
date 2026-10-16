@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
+import { anchorRestoredStreak } from '@/utils/streakRules';
 import { purchaseItem, consumeItem, StoreItem, InventoryItem } from '@/services/economyService';
 import { useLux } from '@/context/LuxContext';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { calculateLevelFromXp, calculateNextLevelXp } from '@/utils/leveling';
 import { UserData } from '@/types/User';
@@ -41,6 +43,9 @@ const STORE_ITEMS: StoreItem[] = [
 
 export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, updateLuxLocally } = useLux();
+  // The daily streak (count, date, freeze) is read from the auth profile, so
+  // streak items must start from it and write back to it.
+  const { profile, updateProfileLocally } = useAuth();
   const [isTransactionPending, setIsTransactionPending] = useState(false);
 
   const purchase = useCallback(async (item: StoreItem): Promise<boolean> => {
@@ -148,7 +153,14 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
           throw new Error("No tienes este ítem en tu inventario");
         }
 
-        const newStats = { ...(user.stats || {}) };
+        const authStats: any = profile?.stats || {};
+        const newStats = {
+          ...(user.stats || {}),
+          ...(authStats.streak !== undefined ? { streak: authStats.streak } : {}),
+          ...(authStats.lastStreakDate !== undefined ? { lastStreakDate: authStats.lastStreakDate } : {}),
+          ...(authStats.previousStreak !== undefined ? { previousStreak: authStats.previousStreak } : {}),
+          ...(authStats.streakFrozenUntil !== undefined ? { streakFrozenUntil: authStats.streakFrozenUntil } : {}),
+        } as any;
         
         // Apply effect locally to stats
         switch (itemId) {
@@ -179,6 +191,8 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
             } else {
               newStats.streak = currentStreak + 1;
             }
+            // Continue the restored streak today (see anchorRestoredStreak).
+            anchorRestoredStreak(newStats);
             break;
           }
           case 'freeze_streak': {
@@ -207,6 +221,17 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
 
         // Update local state (Optimistic updates to React state & Capacitor Preferences cache)
         updateLuxLocally(updates);
+        if (itemId === 'redemption_token' || itemId === 'freeze_streak') {
+          updateProfileLocally({
+            stats: {
+              ...(profile?.stats || {}),
+              streak: newStats.streak,
+              lastStreakDate: newStats.lastStreakDate,
+              previousStreak: newStats.previousStreak,
+              streakFrozenUntil: newStats.streakFrozenUntil,
+            } as any,
+          });
+        }
         console.log("🎒 [Store Consume] Local state updated successfully (Optimistic).");
 
         // Success Haptic
@@ -253,7 +278,7 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
       } finally {
         setIsTransactionPending(false);
       }
-  }, [user, updateLuxLocally]);
+  }, [user, updateLuxLocally, profile, updateProfileLocally]);
 
   const consume = useItem;
   const inventory = useMemo(() => (user?.inventory || []) as InventoryItem[], [user?.inventory]);

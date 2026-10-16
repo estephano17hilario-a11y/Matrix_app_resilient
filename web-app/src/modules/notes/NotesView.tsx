@@ -1818,7 +1818,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                         openNote(note);
                       }
                     }}
-                    className={`w-full py-3 px-4 rounded-2xl flex items-center justify-between gap-3 hover:scale-[1.005] active:scale-[0.995] transition-all cursor-pointer border select-none ${
+                    className={`lux-reveal w-full py-3 px-4 rounded-2xl flex items-center justify-between gap-3 hover:scale-[1.005] active:scale-[0.995] transition-all cursor-pointer border select-none ${
                       isSelected 
                         ? 'border-cyan-400 bg-cyan-950/40 ring-1 ring-cyan-500/30' 
                         : 'border-white/10 bg-[#121216] hover:border-white/20'
@@ -1874,7 +1874,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                       openNote(note);
                     }
                   }} 
-                  className={`w-full h-44 rounded-[28px] p-4 flex flex-col justify-between hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer group relative overflow-hidden shadow-lg border select-none ${
+                  className={`lux-reveal w-full h-44 rounded-[28px] p-4 flex flex-col justify-between hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer group relative overflow-hidden shadow-lg border select-none ${
                     isSelected 
                       ? 'border-cyan-400 ring-2 ring-cyan-500/40 bg-cyan-950/30 scale-[1.02]' 
                       : 'border-white/10 bg-[#121216] hover:border-white/20'

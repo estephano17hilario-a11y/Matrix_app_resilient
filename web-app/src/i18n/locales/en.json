@@ -1,4 +1,89 @@
 {
+  "world": {
+    "area": {
+      "TASKS": {
+        "title": "Missions",
+        "sub": "What matters today"
+      },
+      "HABITS": {
+        "title": "Habits",
+        "sub": "What builds you"
+      },
+      "FOCUS": {
+        "title": "Focus",
+        "sub": "A single point of light"
+      },
+      "NOTES": {
+        "title": "Mind",
+        "sub": "Where you think quietly"
+      },
+      "FEED": {
+        "title": "Progress",
+        "sub": "The road behind you"
+      },
+      "ACHIEVEMENTS": {
+        "title": "Legacy",
+        "sub": "What you have conquered"
+      },
+      "STORE": {
+        "title": "Store",
+        "sub": "Rewards for the effort"
+      }
+    },
+    "mood": {
+      "victory": {
+        "title": "Day conquered",
+        "detail": "Everything for today is done. The sky shines for you."
+      },
+      "recovery": {
+        "title": "A hard day",
+        "detail": "A small step still counts. Start with the minimum."
+      },
+      "urgency": {
+        "title": "The day is closing",
+        "detail": "{{pending}} things left. Your {{streak}}-day streak is waiting."
+      },
+      "drift": {
+        "title": "The world is cooling down",
+        "detail": "The day is passing on pause. Two minutes of focus bring it back."
+      },
+      "flow": {
+        "title": "You are in flow",
+        "detail": "{{pct}}% of the day done. Ride the momentum."
+      },
+      "fresh": {
+        "title": "A new streak starts today",
+        "detail": "Clean canvas: {{pending}} things ahead."
+      },
+      "dawn": {
+        "title": "Dawn",
+        "detail": "The day just opened: {{pending}} things ahead."
+      },
+      "morning": {
+        "title": "Morning",
+        "detail": "High energy. A good time for the hard things."
+      },
+      "afternoon": {
+        "title": "Afternoon",
+        "detail": "Keep the pace: {{pending}} pending."
+      },
+      "evening": {
+        "title": "Dusk",
+        "detail": "Close the day with intention."
+      },
+      "night": {
+        "title": "Night",
+        "detail": "The sky fills with stars. Rest: tomorrow resumes."
+      }
+    },
+    "phase": {
+      "dawn": "Dawn",
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "evening": "Dusk",
+      "night": "Night"
+    }
+  },
   "rivals": {
     "levelMap": "Level Map",
     "level": "Level",
@@ -179,6 +264,11 @@
       }
     },
     "traits": {
+      "lead": "You already have 2 base traits. Pick 3 or 4 more to complete your matrix.",
+      "ready": "Ready, you can continue",
+      "missing": "Pick {{count}} more",
+      "base": "Base traits (included)",
+      "pick": "Pick 3 or 4",
       "title": "Select your Focus",
       "subtitle": "Choose 5 areas to improve ({{count}}/5)",
       "button": "Initialize Lux",
@@ -662,6 +752,112 @@
     }
   },
   "store": {
+    "rarity": {
+      "common": "Common",
+      "uncommon": "Uncommon",
+      "rare": "Rare",
+      "epic": "Epic",
+      "legendary": "Legendary"
+    },
+    "deal": {
+      "title": "Deal of the day",
+      "short": "Deal",
+      "endsIn": "ends in {{time}}"
+    },
+    "effect": {
+      "heal": "+{{value}} HP",
+      "restore": "Restores a streak",
+      "freeze": "Freezes your streak",
+      "xp": "+{{value}}% XP"
+    },
+    "upgrades": {
+      "missing": "{{amount}} gold to go"
+    },
+    "tabs": {
+      "market": "Market",
+      "upgrades": "Upgrades",
+      "inventory": "Inventory",
+      "ledger": "Ledger"
+    },
+    "vault": {
+      "kicker": "Your vault",
+      "week": "Spent 7d",
+      "passes": "Passes",
+      "atStake": "At stake",
+      "control": "Self-control",
+      "controlLine": "{{planned}} planned · {{falls}} falls"
+    },
+    "market": {
+      "title": "Vice market",
+      "lead": "Falling resets your streak. Buying it with your gold is a decision: it gets recorded and your streak goes on.",
+      "emptyTitle": "No vices on the market yet",
+      "offMarket": "Off the market",
+      "sell": "Put on sale",
+      "configure": "Configure offer",
+      "passesOwned": "{{count}} passes saved",
+      "use": "Use",
+      "inflation": "+{{pct}}% · {{count}} this week",
+      "buyPass": "Buy",
+      "usedToast": "Indulgence recorded. Your streak is intact.",
+      "useOnRelapse": "Use an indulgence pass",
+      "useOnRelapseDesc": "You already paid for it: your streak stays and you lose no HP. {{count}} left.",
+      "newVice": "Create bad habit",
+      "newViceDesc": "It enters the market with its rarity and price",
+      "newShort": "New",
+      "emptyCreate": "Create your first bad habit: it gets a rarity, a price and a ledger."
+    },
+    "ritual": {
+      "contract": "Indulgence contract",
+      "subtitle": "A conscious decision, not a fall.",
+      "p1": "Grants you 1 indulgence of “{{title}}”, whenever you decide.",
+      "streak": "Your {{count}}-day streak stays.",
+      "noReset": "Your progress is not reset.",
+      "noDamage": "No HP or XP damage.",
+      "ledger": "It is written into your purchase ledger.",
+      "balance": "Your vault",
+      "price": "Price",
+      "after": "Left",
+      "hold": "Hold to sign",
+      "holding": "Signing…",
+      "missing": "You need {{count}} more gold",
+      "signed": "Signed",
+      "holdHint": "Let go early to cancel.",
+      "stamp": "Acquired",
+      "receipt": "Receipt",
+      "receiptPass": "Indulgence pass ×1",
+      "newBalance": "Vault balance",
+      "paid": "Paid",
+      "usedTitle": "Indulgence recorded",
+      "usedDesc": "Your streak is intact. Enjoy it with intention.",
+      "useNow": "Use now",
+      "keep": "Keep for later",
+      "openLedger": "See purchase ledger"
+    },
+    "offer": {
+      "kicker": "Market offer",
+      "lead": "Decide how this vice is sold. The suggestion comes from its mode and impact.",
+      "off": "Not for sale",
+      "offDesc": "Does not appear on the market",
+      "pass": "Single pass",
+      "passDesc": "Each indulgence is bought separately",
+      "passPrice": "Price per pass",
+      "inflationNote": "Each pass bought in the same week costs 25% more.",
+      "useSuggested": "Use suggested: {{price}}",
+      "reset": "Suggested",
+      "save": "Save"
+    },
+    "ledger": {
+      "emptyTitle": "Your ledger is blank",
+      "emptyDesc": "Every pass and indulgence will be written here.",
+      "week": "This week",
+      "month": "30 days",
+      "uses": "Indulgences",
+      "byVice": "Where your gold goes (30 days)",
+      "passBuy": "Pass bought",
+      "passUse": "Indulgence with pass",
+      "used": "Use",
+      "dealBuy": "Pass on deal"
+    },
     "title": "Store",
     "buy": "Buy",
     "locked": "Locked",
@@ -679,6 +875,8 @@
       "inventory": "Inventory"
     },
     "inventory": {
+      "vices": "Paid indulgences",
+      "items": "Items",
       "empty": "Empty inventory",
       "use": "Use"
     },
@@ -1567,6 +1765,26 @@
     "manageSubscription": "Manage Subscription"
   },
   "settings": {
+    "immersion": {
+      "areaTitles": "Section names",
+      "areaTitlesDesc": "When you travel to a section, its name appears briefly above the dock",
+      "adaptive": "Adaptive world",
+      "adaptiveDesc": "Light, stars and tone change with your day: tasks, habits, streak, relapses, the hour and your battery",
+      "reading": "Reading your day…",
+      "now": "Right now",
+      "pending": "{{count}} pending",
+      "streak": "Streak {{count}}",
+      "eco": "Saver mode",
+      "title": "Immersive experience",
+      "desc": "A living world with depth, light and travel between sections",
+      "reduced": "Your system asks for reduced motion: the world stays still",
+      "motion": "Motion depth",
+      "motionDesc": "The world and the glass react when you tilt your phone",
+      "haptics": "Haptic feedback",
+      "hapticsDesc": "A subtle pulse on touch and when travelling between sections",
+      "sound": "Spatial sound",
+      "soundDesc": "Soft echoes that follow the direction of travel"
+    },
     "title": "System Config",
     "subtitle": "Lux Environment Preferences",
     "tabs": {

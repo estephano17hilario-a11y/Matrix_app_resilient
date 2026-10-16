@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { App } from '@capacitor/app';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, CheckCircle2, Sparkles, ChevronDown, Target, Flame, Zap, Coins, Bell, MessageSquare, Quote, Volume2, ShieldAlert } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Sparkles, ChevronDown, Target, Flame, Zap, Coins, Bell, MessageSquare, Quote, Volume2, ShieldAlert, Lock } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { OnboardingLayout } from './components/OnboardingLayout';
@@ -22,6 +22,9 @@ export function OnboardingFlow() {
   const { i18n, t } = useTranslation();
   const { setTheme } = useTheme();
   const lockedTraitIds = ['DISCIPLINA', 'RESILIENCIA'];
+  // Everyone starts with the 2 base traits and picks 3–4 more (5–6 in total).
+  const MIN_EXTRA_TRAITS = 3;
+  const MAX_EXTRA_TRAITS = 4;
   
   const [step, setStep] = useState<Step>('avatar');
   
@@ -38,6 +41,11 @@ export function OnboardingFlow() {
 
   const currentLanguage = profile?.onboarding?.language || i18n.language || 'es';
   const freeSelectedCount = selectedTraits.filter(t => !lockedTraitIds.includes(t)).length;
+  // The button, the guard in handleNext and the counter all use this, so they
+  // can never disagree again (the button used to count the 2 base traits too,
+  // which made it impossible to continue with 3–4 picked).
+  const traitsReady = freeSelectedCount >= MIN_EXTRA_TRAITS && freeSelectedCount <= MAX_EXTRA_TRAITS;
+  const traitsMissing = Math.max(0, MIN_EXTRA_TRAITS - freeSelectedCount);
 
   useEffect(() => {
     return () => {
@@ -64,8 +72,7 @@ export function OnboardingFlow() {
 
   const handleNext = async () => {
     if (step === 'traits') {
-      const freeSelected = selectedTraits.filter(t => !lockedTraitIds.includes(t));
-      if (freeSelected.length < 3 || freeSelected.length > 4) return;
+      if (!traitsReady) return;
       setStep('notification_tone');
     } else if (step === 'notification_tone') {
       setStep('custom_phrases');
@@ -79,7 +86,7 @@ export function OnboardingFlow() {
     if (selectedTraits.includes(id)) {
       setSelectedTraits(selectedTraits.filter(t => t !== id));
     } else {
-      if (freeSelectedCount >= 4) return;
+      if (freeSelectedCount >= MAX_EXTRA_TRAITS) return;
       setSelectedTraits([...selectedTraits, id]);
     }
   };
@@ -246,21 +253,53 @@ export function OnboardingFlow() {
                           Selecciona tus Rasgos
                       </h1>
                       <p className="text-white/60 text-lg font-light tracking-wide">
-                          Elige tus áreas de desarrollo personal para inicializar la matriz.
+                          {t('onboarding.traits.lead', 'Ya tienes 2 rasgos base. Elige 3 o 4 más para completar tu matriz.')}
                       </p>
-                      <p className="text-white/35 text-sm mt-1 font-bold">
-                          Mínimo 3 y máximo 4 rasgos adicionales (ya tienes 2 fijos)
-                      </p>
+                      <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5">
+                          <span className={`text-sm font-black tabular-nums ${traitsReady ? 'text-emerald-300' : 'text-white'}`}>
+                              {freeSelectedCount} / {MAX_EXTRA_TRAITS}
+                          </span>
+                          <span className="text-xs font-semibold text-white/45">
+                              {traitsReady
+                                  ? t('onboarding.traits.ready', 'Listo, puedes continuar')
+                                  : t('onboarding.traits.missing', 'Elige {{count}} más', { count: traitsMissing })}
+                          </span>
+                      </div>
                   </div>
 
                   <div className="w-full max-w-5xl mx-auto px-4 pb-24">
                       <div className="relative rounded-3xl border border-white/10 bg-[#0a0a0f] p-4 sm:p-6">
+                        <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">
+                          {t('onboarding.traits.base', 'Rasgos base (incluidos)')}
+                        </div>
+                        <div className="relative grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
+                          {TRAITS_LIST.filter(trait => lockedTraitIds.includes(trait.id)).map(trait => {
+                              const Icon = (trait.icon || Sparkles) as any;
+                              return (
+                                  <div
+                                      key={trait.id}
+                                      className="relative aspect-square rounded-2xl p-3 flex flex-col items-center justify-center gap-2 border"
+                                      style={{ borderColor: `${trait.color}80`, backgroundColor: `${trait.color}12` }}
+                                  >
+                                      <Lock size={12} className="absolute top-2.5 right-2.5 text-white/40" />
+                                      <div
+                                          className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+                                          style={{ backgroundColor: trait.color, color: '#fff' }}
+                                      >
+                                          <Icon size={20} />
+                                      </div>
+                                      <span className="text-xs font-bold text-center text-white">{t(trait.label)}</span>
+                                  </div>
+                              );
+                          })}
+                        </div>
+                        <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">
+                          {t('onboarding.traits.pick', 'Elige 3 o 4')}
+                        </div>
                         <div className="relative grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                          {TRAITS_LIST.filter(trait => !lockedTraitIds.includes(trait.id)).map((trait, index) => {
+                          {TRAITS_LIST.filter(trait => !lockedTraitIds.includes(trait.id)).map((trait) => {
                               const isSelected = selectedTraits.includes(trait.id);
-                              const freeSelected = selectedTraits.filter(t => !lockedTraitIds.includes(t));
-                              const isAtMax = freeSelected.length >= 4;
-                              const isGreyedOut = isAtMax && !isSelected;
+                              const isGreyedOut = freeSelectedCount >= MAX_EXTRA_TRAITS && !isSelected;
                               const Icon = (trait.icon || Sparkles) as any;
                               const backgroundColor = isSelected ? `${trait.color}15` : 'rgba(255,255,255,0.03)';
                               
@@ -269,9 +308,11 @@ export function OnboardingFlow() {
                                       key={trait.id}
                                       type="button"
                                       onClick={() => { if (!isGreyedOut) toggleTrait(trait.id); }}
+                                      aria-pressed={isSelected}
                                       className={`
                                           relative aspect-square rounded-2xl p-3 flex flex-col items-center justify-center gap-2 border transition-all
                                           ${isSelected ? 'shadow-lg' : 'hover:bg-white/10 border-white/10'}
+                                          ${isGreyedOut ? 'opacity-35' : ''}
                                       `}
                                       style={{
                                           borderColor: isSelected ? trait.color : 'rgba(255,255,255,0.1)',
@@ -511,19 +552,23 @@ export function OnboardingFlow() {
                   e.stopPropagation();
                   handleNext();
                 }}
-                disabled={step === 'traits' && (selectedTraits.length < 3 || selectedTraits.length > 4)}
+                disabled={step === 'traits' && !traitsReady}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className={`
                   pointer-events-auto relative px-8 py-4 rounded-full font-bold text-base sm:text-lg transition-all flex items-center gap-3 overflow-hidden border cursor-pointer
-                  ${(step === 'traits' && (selectedTraits.length < 3 || selectedTraits.length > 4))
+                  ${(step === 'traits' && !traitsReady)
                     ? 'bg-gray-800/50 text-white/30 border-white/5 cursor-not-allowed grayscale'
                     : 'bg-white text-black border-white/50 shadow-lg shadow-indigo-500/10'
                   }
                 `}
               >
                 <span>
-                  {step === 'custom_phrases' ? 'Finalizar Registro' : 'Continuar'}
+                  {step === 'custom_phrases'
+                    ? 'Finalizar Registro'
+                    : step === 'traits' && !traitsReady
+                      ? t('onboarding.traits.missing', 'Elige {{count}} más', { count: traitsMissing })
+                      : 'Continuar'}
                 </span>
                 <ArrowRight className="w-5 h-5" />
               </motion.button>

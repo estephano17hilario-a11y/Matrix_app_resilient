@@ -17,25 +17,21 @@ interface StreakStatusModalProps {
     lastStreakDate?: string;
     onNavigate?: (view: string) => void;
     questsTotalToday?: number;
+    tasksDoneToday?: number;
 }
 
-export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, onClose, dailyLimits, streak = 0, lastStreakDate, onNavigate, questsTotalToday }) => {
+export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, onClose, dailyLimits, streak = 0, lastStreakDate, onNavigate, questsTotalToday, tasksDoneToday }) => {
     const { t, i18n } = useTranslation();
     const isSpanish = i18n.language?.startsWith('es');
     const tasksTarget = questsTotalToday !== undefined ? questsTotalToday : 2;
+    // Same count the streak rule uses (tasks completed today), not the daily
+    // reward counter, which doesn't go down when a task is unchecked.
+    const tasksDone = tasksDoneToday ?? (dailyLimits.tasksCompleted || 0);
     const [showStatsDetails, setShowStatsDetails] = useState(false);
 
-    // Validate streak continuity: if lastStreakDate is older than yesterday, current streak is 0
-    const effectiveStreak = React.useMemo(() => {
-        if (!lastStreakDate || streak <= 0) return 0;
-        const today = new Date();
-        const todayStr = format(today, 'yyyy-MM-dd');
-        const yesterdayStr = format(subDays(today, 1), 'yyyy-MM-dd');
-        if (lastStreakDate < yesterdayStr && lastStreakDate !== todayStr) {
-            return 0;
-        }
-        return streak;
-    }, [streak, lastStreakDate]);
+    // The caller passes the canonical visible streak (utils/streakRules), which
+    // already handles broken streaks and freezes; don't second-guess it here.
+    const effectiveStreak = streak;
 
     // 1. Define Requirements
     const REQUIREMENTS = [
@@ -43,9 +39,9 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
             id: 'tasks',
             label: tasksTarget === 0 
                 ? (isSpanish ? 'Sin tareas hoy' : 'No tasks today')
-                : (isSpanish ? `Completar tareas (${dailyLimits.tasksCompleted || 0}/${tasksTarget})` : `Complete tasks (${dailyLimits.tasksCompleted || 0}/${tasksTarget})`),
+                : (isSpanish ? `Completar tareas (${tasksDone}/${tasksTarget})` : `Complete tasks (${tasksDone}/${tasksTarget})`),
             icon: Target,
-            current: dailyLimits.tasksCompleted || 0,
+            current: tasksDone,
             target: tasksTarget,
             unit: '',
             view: 'TASKS',

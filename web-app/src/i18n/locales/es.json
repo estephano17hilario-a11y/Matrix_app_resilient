@@ -1,4 +1,89 @@
 {
+  "world": {
+    "area": {
+      "TASKS": {
+        "title": "Misiones",
+        "sub": "Lo que hoy importa"
+      },
+      "HABITS": {
+        "title": "Hábitos",
+        "sub": "Lo que te construye"
+      },
+      "FOCUS": {
+        "title": "Enfoque",
+        "sub": "Un solo punto de luz"
+      },
+      "NOTES": {
+        "title": "Mente",
+        "sub": "Donde piensas en voz baja"
+      },
+      "FEED": {
+        "title": "Progreso",
+        "sub": "El camino recorrido"
+      },
+      "ACHIEVEMENTS": {
+        "title": "Legado",
+        "sub": "Lo que ya conquistaste"
+      },
+      "STORE": {
+        "title": "Tienda",
+        "sub": "Recompensas del esfuerzo"
+      }
+    },
+    "mood": {
+      "victory": {
+        "title": "Día conquistado",
+        "detail": "Todo lo de hoy está hecho. El cielo brilla por ti."
+      },
+      "recovery": {
+        "title": "Día difícil",
+        "detail": "Un paso pequeño también cuenta. Empieza por lo mínimo."
+      },
+      "urgency": {
+        "title": "El día se está cerrando",
+        "detail": "Quedan {{pending}} pendientes. Tu racha de {{streak}} días te espera."
+      },
+      "drift": {
+        "title": "El mundo se enfría",
+        "detail": "El día avanza en pausa. Dos minutos de enfoque lo reactivan."
+      },
+      "flow": {
+        "title": "Estás en flujo",
+        "detail": "{{pct}}% del día completado. Sigue el impulso."
+      },
+      "fresh": {
+        "title": "Hoy empieza una racha",
+        "detail": "Lienzo limpio: {{pending}} cosas por delante."
+      },
+      "dawn": {
+        "title": "Amanecer",
+        "detail": "El día recién abre: {{pending}} pendientes por delante."
+      },
+      "morning": {
+        "title": "Mañana",
+        "detail": "Energía alta. Buen momento para lo difícil."
+      },
+      "afternoon": {
+        "title": "Tarde",
+        "detail": "Mantén el ritmo: {{pending}} pendientes."
+      },
+      "evening": {
+        "title": "Atardecer",
+        "detail": "Cierra el día con intención."
+      },
+      "night": {
+        "title": "Noche",
+        "detail": "El cielo se llena de estrellas. Descansa: mañana se reanuda."
+      }
+    },
+    "phase": {
+      "dawn": "Amanecer",
+      "morning": "Mañana",
+      "afternoon": "Tarde",
+      "evening": "Atardecer",
+      "night": "Noche"
+    }
+  },
   "rivals": {
     "levelMap": "Mapa de Niveles",
     "level": "Nivel",
@@ -179,6 +264,11 @@
       }
     },
     "traits": {
+      "lead": "Ya tienes 2 rasgos base. Elige 3 o 4 más para completar tu matriz.",
+      "ready": "Listo, puedes continuar",
+      "missing": "Elige {{count}} más",
+      "base": "Rasgos base (incluidos)",
+      "pick": "Elige 3 o 4",
       "title": "Selecciona tus Objetivos",
       "subtitle": "Elige 5 áreas para mejorar ({{count}}/5)",
       "button": "Inicializar Lux",
@@ -662,6 +752,112 @@
     }
   },
   "store": {
+    "rarity": {
+      "common": "Común",
+      "uncommon": "Poco común",
+      "rare": "Raro",
+      "epic": "Épico",
+      "legendary": "Legendario"
+    },
+    "deal": {
+      "title": "Oferta del día",
+      "short": "Oferta",
+      "endsIn": "termina en {{time}}"
+    },
+    "effect": {
+      "heal": "+{{value}} HP",
+      "restore": "Restaura una racha",
+      "freeze": "Congela tu racha",
+      "xp": "+{{value}}% XP"
+    },
+    "upgrades": {
+      "missing": "Te faltan {{amount}} de oro"
+    },
+    "tabs": {
+      "market": "Mercado",
+      "upgrades": "Mejoras",
+      "inventory": "Inventario",
+      "ledger": "Registro"
+    },
+    "vault": {
+      "kicker": "Tu bóveda",
+      "week": "Gasto 7d",
+      "passes": "Pases",
+      "atStake": "En juego",
+      "control": "Autocontrol",
+      "controlLine": "{{planned}} plan. · {{falls}} caídas"
+    },
+    "market": {
+      "title": "Mercado de vicios",
+      "lead": "Caer reinicia tu racha. Comprarlo con tu oro es una decisión: queda registrada y tu racha sigue.",
+      "emptyTitle": "Aún no hay vicios en el mercado",
+      "offMarket": "Fuera del mercado",
+      "sell": "Poner a la venta",
+      "configure": "Configurar oferta",
+      "passesOwned": "{{count}} pases guardados",
+      "use": "Usar",
+      "inflation": "+{{pct}}% · {{count}} esta semana",
+      "buyPass": "Comprar",
+      "usedToast": "Indulgencia registrada. Tu racha sigue intacta.",
+      "useOnRelapse": "Usar un pase de indulgencia",
+      "useOnRelapseDesc": "Ya lo pagaste: tu racha se mantiene y no pierdes vida. Te quedan {{count}}.",
+      "newVice": "Crear mal hábito",
+      "newViceDesc": "Entra al mercado con su rareza y su precio",
+      "newShort": "Nuevo",
+      "emptyCreate": "Crea tu primer mal hábito: tendrá su rareza, su precio y su registro."
+    },
+    "ritual": {
+      "contract": "Contrato de indulgencia",
+      "subtitle": "Una decisión consciente, no una caída.",
+      "p1": "Te concede 1 indulgencia de «{{title}}», cuando tú lo decidas.",
+      "streak": "Tu racha de {{count}} días se mantiene.",
+      "noReset": "Tu progreso no se reinicia.",
+      "noDamage": "Sin daño de vida ni de XP.",
+      "ledger": "Queda escrita en tu registro de compras.",
+      "balance": "Tu bóveda",
+      "price": "Precio",
+      "after": "Queda",
+      "hold": "Mantén para firmar",
+      "holding": "Firmando…",
+      "missing": "Te faltan {{count}} de oro",
+      "signed": "Firmado",
+      "holdHint": "Suelta antes de tiempo para cancelar.",
+      "stamp": "Adquirido",
+      "receipt": "Recibo",
+      "receiptPass": "Pase de indulgencia ×1",
+      "newBalance": "Saldo de la bóveda",
+      "paid": "Pagado",
+      "usedTitle": "Indulgencia registrada",
+      "usedDesc": "Tu racha sigue intacta. Disfrútalo con intención.",
+      "useNow": "Usar ahora",
+      "keep": "Guardar para después",
+      "openLedger": "Ver registro de compras"
+    },
+    "offer": {
+      "kicker": "Oferta en el mercado",
+      "lead": "Decide cómo se vende este vicio. Lo sugerido sale de su modo e impacto.",
+      "off": "No se vende",
+      "offDesc": "No aparece en el mercado",
+      "pass": "Pase único",
+      "passDesc": "Cada indulgencia se compra aparte",
+      "passPrice": "Precio por pase",
+      "inflationNote": "Cada pase comprado en la misma semana sube un 25%.",
+      "useSuggested": "Usar sugerido: {{price}}",
+      "reset": "Sugerido",
+      "save": "Guardar"
+    },
+    "ledger": {
+      "emptyTitle": "Tu registro está en blanco",
+      "emptyDesc": "Cada pase e indulgencia quedará escrita aquí.",
+      "week": "Esta semana",
+      "month": "30 días",
+      "uses": "Indulgencias",
+      "byVice": "Dónde va tu oro (30 días)",
+      "passBuy": "Pase comprado",
+      "passUse": "Indulgencia con pase",
+      "used": "Uso",
+      "dealBuy": "Pase en oferta"
+    },
     "title": "Tienda",
     "buy": "Comprar",
     "locked": "Bloqueado",
@@ -679,6 +875,8 @@
       "inventory": "Inventario"
     },
     "inventory": {
+      "vices": "Indulgencias pagadas",
+      "items": "Objetos",
       "empty": "Inventario vacío",
       "use": "Usar"
     },
@@ -1559,6 +1757,26 @@
     "manageSubscription": "Administrar Suscripción"
   },
   "settings": {
+    "immersion": {
+      "areaTitles": "Nombre de cada sección",
+      "areaTitlesDesc": "Al viajar a una sección, su nombre aparece un instante sobre el dock",
+      "adaptive": "Mundo adaptativo",
+      "adaptiveDesc": "La luz, las estrellas y el tono cambian según tu día: tareas, hábitos, racha, recaídas, la hora y tu batería",
+      "reading": "Leyendo tu día…",
+      "now": "Ahora mismo",
+      "pending": "{{count}} pendientes",
+      "streak": "Racha {{count}}",
+      "eco": "Modo ahorro",
+      "title": "Experiencia inmersiva",
+      "desc": "Un mundo vivo con profundidad, luz y viaje entre secciones",
+      "reduced": "Tu sistema pide reducir el movimiento: el mundo queda en calma",
+      "motion": "Profundidad por movimiento",
+      "motionDesc": "El mundo y los cristales reaccionan al inclinar el teléfono",
+      "haptics": "Respuesta háptica",
+      "hapticsDesc": "Un pulso sutil al tocar y al viajar entre secciones",
+      "sound": "Sonido espacial",
+      "soundDesc": "Ecos suaves que siguen la dirección del viaje"
+    },
     "title": "Configuración del Sistema",
     "subtitle": "Preferencias del Entorno Lux",
     "tabs": {

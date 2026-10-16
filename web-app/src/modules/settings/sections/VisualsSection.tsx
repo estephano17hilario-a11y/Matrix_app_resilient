@@ -14,6 +14,7 @@ import confetti from 'canvas-confetti';
 import { TraitRadarChart } from '../../dashboard/components/TraitRadarChart';
 import { Attribute } from '../../../types';
 import { supabase } from '@/services/supabase';
+import { ImmersionSettingsCard } from '@/immersion/ImmersionSettingsCard';
 
 type DisplayCategory = 'mine' | 'all' | 'orbs' | 'minimal' | 'gradients' | 'holo' | 'cosmic';
 
@@ -295,6 +296,9 @@ export const VisualsSection = () => {
             </button>
           </div>
         </div>
+
+        {/* Immersive world: depth, motion, haptics, sound */}
+        <ImmersionSettingsCard />
 
         {/* ─── RADAR CHART CUSTOMIZATION SECTION (COMPACT & COLLAPSIBLE) ─── */}
         <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-4 transition-colors">

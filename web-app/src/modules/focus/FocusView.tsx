@@ -142,7 +142,7 @@ export const FocusView = React.memo(({
                 {visibleProjects.map(project => {
                     const attribute = attributes.find(a => a.id === project.attribute);
                     return (
-                        <div key={project.id} className="w-full">
+                        <div key={project.id} className="lux-reveal w-full">
                             <div 
                                 className="relative z-10 touch-manipulation w-full"
                                 {...longPressHandlers}

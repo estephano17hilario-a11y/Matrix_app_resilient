@@ -664,7 +664,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  {virtualItems.map((quest) => (
  <div
  key={quest.id}
- className="w-full"
+ className="lux-reveal w-full"
  style={{
  contentVisibility: 'auto',
  containIntrinsicSize: '160px',

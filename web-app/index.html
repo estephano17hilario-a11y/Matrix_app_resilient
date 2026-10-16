@@ -78,25 +78,34 @@
         z-index: 99999;
         transition: opacity 0.3s ease-out;
       }
-      .initial-loader-spinner {
-        width: 40px;
-        height: 40px;
-        border: 2px solid rgba(255, 255, 255, 0.1);
-        border-top-color: #ffffff;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
+      /* Same mark as the in-app boot sequence, so there is no jump from a
+         spinner to the logo while the bundle loads. */
+      .initial-loader-mark {
+        font-family: system-ui, -apple-system, sans-serif;
+        font-weight: 100;
+        font-size: clamp(2.5rem, 8vw, 4rem);
+        letter-spacing: 0.45em;
+        margin-right: -0.45em;
+        color: rgba(255, 255, 255, 0.94);
+        text-shadow: 0 0 32px rgba(129, 140, 248, 0.35);
+        line-height: 1;
+        /* sits where the boot screen draws it (slightly above center) */
+        margin-bottom: 57px;
+        animation: initial-loader-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
       }
-      @keyframes spin {
-        to { transform: rotate(360deg); }
+      @keyframes initial-loader-in {
+        from { opacity: 0; transform: translateY(10px); filter: blur(8px); }
+        to { opacity: 1; transform: none; filter: blur(0); }
       }
     </style>
   </head>
   <body>
     <div id="root">
       <div class="initial-loader" id="initial-loader">
-        <div class="initial-loader-spinner"></div>
+        <div class="initial-loader-mark">LUX</div>
       </div>
     </div>
+    <script>window.__luxBootMark = Date.now();</script>
     <script type="module" src="/src/main.tsx"></script>
     <script>
       // Remove loader once React mounts

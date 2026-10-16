@@ -3,6 +3,7 @@ import { Crosshair, Plus, ChevronDown, Swords } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { DockConfig, DockItemConfig, DOCK_ITEMS, DockItemId } from '@/components/ui/DockConfigModal';
+import { LuxSheen } from '@/immersion/LuxSheen';
 
 interface DockProps {
  currentView: string;
@@ -130,6 +131,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   >
   <div className={`relative transition-all duration-300 ${isActive ? 'scale-110' : 'text-white/40 group-hover:text-white/80'}`}>
   {isActive && <div className={`absolute inset-0 ${item.bgColor} rounded-full blur-sm `} />}
+  {isActive && <motion.span layoutId="lux-dock-light" className="lux-dock-light" transition={{ type: 'spring', stiffness: 420, damping: 34, mass: 0.9 }} />}
   <Icon size={22} className={isActive ? item.color : ''} strokeWidth={isActive ? 2.5 : 2} />
   </div>
   <span className={`text-[9px] font-bold tracking-widest transition-colors ${isActive ? 'text-white' : 'text-white/30'}`}>{item.label}</span>
@@ -155,7 +157,9 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   onClick={() => handleSmartNav(id)} 
   className={`group relative flex flex-col items-center gap-0.5 transition-colors duration-300 ${isActive ? 'text-white' : 'text-white/30 hover:text-white/60'}`}
   >
-  <Icon size={22} className={`transition-transform group-active:scale-75 duration-300 ${isActive ? item.color : ''}`} strokeWidth={isActive ? 2.5 : 2} />
+  {/* A light that glides between sections instead of blinking on/off */}
+  {isActive && <motion.span layoutId="lux-dock-light" className="lux-dock-light" transition={{ type: 'spring', stiffness: 420, damping: 34, mass: 0.9 }} />}
+  <Icon size={22} className={`relative transition-transform group-active:scale-75 duration-300 ${isActive ? item.color : ''}`} strokeWidth={isActive ? 2.5 : 2} />
   {indicator ? (
   <span className={`text-[8px] font-mono tracking-widest ${isActive ? 'text-white/70' : 'text-white/30'}`}>{indicator}</span>
   ) : (
@@ -333,6 +337,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  <Backdrop />
  <motion.div 
  data-tour="dock"
+ data-lux-dock
  initial={false}
  animate={{ y: isHidden ? '200%' : '0%' }}
  transition={{ type: "spring", stiffness: 300, damping: 28 }}
@@ -358,6 +363,8 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
     WebkitBackdropFilter: 'blur(16px)' 
   }}
   >
+  {/* Specular sheen: glides as the phone tilts */}
+  <LuxSheen intensity={0.9} />
   {/* Fake-glass: top highlight line */}
   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-0" />
   {/* Fake-glass: subtle sheen overlay */}
@@ -436,6 +443,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  initial={false}
  animate={{ y: isHidden ? '200%' : '0%' }}
  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+ data-lux-dock
  className="fixed bottom-[26px] left-0 right-0 z-[400] flex justify-center" 
  style={{ pointerEvents, willChange: "transform" }}
  >
@@ -458,6 +466,8 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
       backgroundColor: 'rgba(0,0,0,0.07)' 
     }}
   > 
+  {/* Specular sheen: glides as the phone tilts */} 
+  <LuxSheen intensity={0.9} /> 
   {/* Fake-glass: top highlight line */}
   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-0" />
   {/* Fake-glass: sheen overlay */}
@@ -541,6 +551,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  <Backdrop />
  <motion.div 
  data-tour="dock"
+ data-lux-dock
  initial={false}
  animate={{ y: isHidden ? '200%' : '0%' }}
  transition={liquidSpring}
@@ -581,6 +592,8 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
           backfaceVisibility: 'hidden'
         }}
       />
+      {/* Specular sheen: glides as the phone tilts */}
+      <LuxSheen intensity={0.9} />
       {/* Fake-glass: top highlight line */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-0" />
       {/* Fake-glass: sheen overlay */}

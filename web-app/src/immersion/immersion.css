@@ -1,0 +1,533 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   LUX IMMERSION LAYER
+   Only transform / opacity are animated. Anything costlier (blur) is reserved
+   for capable devices: `html.lux-lite` strips it. `html.lux-immersive` is set
+   by the engine when the layer is on and the OS doesn't ask for reduced motion.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Section accent; the engine overrides it per scene. */
+  --lux-accent: var(--color-primary-glow, 99 102 241);
+  --lux-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --lux-ease-in: cubic-bezier(0.55, 0, 0.85, 0.35);
+  --lux-ease-exit: cubic-bezier(0.3, 0, 0.7, 0.4);
+}
+
+/* ── THE WORLD ─────────────────────────────────────────────────────────────── */
+
+.lux-world {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: rgb(var(--color-bg-depth));
+}
+
+.lux-far {
+  position: absolute;
+  inset: -7%;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
+.lux-stars-wrap {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 45%;
+}
+
+.lux-stars {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.lux-spot {
+  position: absolute;
+  left: -280px;
+  top: -280px;
+  width: 560px;
+  height: 560px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(var(--color-primary-glow) / 0.11) 0%, rgb(var(--color-primary-glow) / 0.04) 35%, transparent 65%);
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  will-change: transform;
+}
+
+/* Light layers (sky of the day, section floor light). Static gradients:
+   only their opacity ever changes, so colour shifts cost no repaint. */
+.lux-light {
+  position: absolute;
+  inset: 0;
+}
+
+/* Urgency: an ember glow breathing slowly from below. Half-screen tall so
+   the always-animating layer stays small. */
+.lux-ember {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 48%;
+  background: radial-gradient(85% 75% at 50% 110%, rgba(239, 68, 68, 0.2), rgba(251, 146, 60, 0.07) 45%, transparent 72%);
+  animation: lux-ember 4.8s ease-in-out infinite alternate;
+  will-change: opacity;
+}
+
+@keyframes lux-ember {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+
+.lux-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(130% 95% at 50% 45%, transparent 55%, #000 100%);
+  transition: opacity 1.6s ease;
+}
+
+/* Arrival: when the app finishes booting the sky settles in from slightly
+   closer. Small scale only: a big zoom would upscale the canvas and blur it. */
+html.lux-arriving .lux-stars-wrap {
+  animation: lux-arrive-stars 1.9s cubic-bezier(0.1, 0.85, 0.2, 1) both;
+}
+html.lux-arriving .lux-far {
+  animation: lux-arrive-far 2.1s var(--lux-ease-out) both;
+}
+
+@keyframes lux-arrive-stars {
+  from { opacity: 0; transform: scale(1.06); }
+  to { transform: scale(1); }
+}
+@keyframes lux-arrive-far {
+  from { opacity: 0.25; }
+}
+
+/* ── SCENE TRANSITIONS (View Transitions API) ──────────────────────────────── */
+
+/* Names exist only while a transition runs: a named element becomes a
+   backdrop root, which would flatten the dock's frosted glass at rest. */
+html.lux-vt [data-lux-stage] { view-transition-name: lux-stage; }
+html.lux-vt [data-lux-hud] { view-transition-name: lux-hud; }
+html.lux-vt [data-lux-dock] { view-transition-name: lux-dock; }
+
+/* Let taps through while the animation plays. */
+html.lux-vt::view-transition { pointer-events: none; }
+
+/* The world is not frozen in a snapshot: it keeps moving live underneath. */
+html.lux-vt::view-transition-old(root) { display: none; }
+html.lux-vt::view-transition-new(root) { animation: none; }
+
+html.lux-vt::view-transition-group(lux-stage) { animation-duration: 0.66s; }
+html.lux-vt::view-transition-image-pair(lux-stage) { isolation: auto; }
+html.lux-vt::view-transition-old(lux-stage),
+html.lux-vt::view-transition-new(lux-stage) {
+  mix-blend-mode: normal;
+  /* While travelling, the dock can't frost what passes behind it (a named
+     element samples no backdrop), so the content fades out right where the
+     dock begins instead of sliding crisp under the glass. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 150px), transparent calc(100% - 64px));
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 150px), transparent calc(100% - 64px));
+}
+
+html.lux-vt::view-transition-group(lux-hud),
+html.lux-vt::view-transition-group(lux-dock) { animation-duration: 0.42s; }
+
+/* Phones (and reduced tiers) travel without blur: a full-screen blur on two
+   snapshots is the single most expensive thing a mobile GPU could do here. */
+html[data-lux-scene='fwd']::view-transition-old(lux-stage)   { animation: lux-out-fwd-lite 0.26s var(--lux-ease-exit) both; }
+html[data-lux-scene='fwd']::view-transition-new(lux-stage)   { animation: lux-in-fwd-lite 0.6s var(--lux-ease-out) 0.04s both; }
+html[data-lux-scene='back']::view-transition-old(lux-stage)  { animation: lux-out-back-lite 0.26s var(--lux-ease-exit) both; }
+html[data-lux-scene='back']::view-transition-new(lux-stage)  { animation: lux-in-back-lite 0.6s var(--lux-ease-out) 0.04s both; }
+html[data-lux-scene='depth']::view-transition-old(lux-stage) { animation: lux-out-depth-lite 0.24s var(--lux-ease-exit) both; }
+html[data-lux-scene='depth']::view-transition-new(lux-stage) { animation: lux-in-depth-lite 0.56s var(--lux-ease-out) 0.04s both; }
+
+/* Desktop at full quality: the same travel with motion blur. */
+@media (hover: hover) and (pointer: fine) {
+  html:not(.lux-lite)[data-lux-scene='fwd']::view-transition-old(lux-stage)   { animation-name: lux-out-fwd; }
+  html:not(.lux-lite)[data-lux-scene='fwd']::view-transition-new(lux-stage)   { animation-name: lux-in-fwd; }
+  html:not(.lux-lite)[data-lux-scene='back']::view-transition-old(lux-stage)  { animation-name: lux-out-back; }
+  html:not(.lux-lite)[data-lux-scene='back']::view-transition-new(lux-stage)  { animation-name: lux-in-back; }
+  html:not(.lux-lite)[data-lux-scene='depth']::view-transition-old(lux-stage) { animation-name: lux-out-depth; }
+  html:not(.lux-lite)[data-lux-scene='depth']::view-transition-new(lux-stage) { animation-name: lux-in-depth; }
+}
+
+@keyframes lux-out-fwd   { to   { opacity: 0; transform: translate3d(-7%, 0, 0) scale(0.93); filter: blur(6px); } }
+@keyframes lux-in-fwd    { from { opacity: 0; transform: translate3d(10%, 0, 0) scale(0.97); filter: blur(10px); } }
+@keyframes lux-out-back  { to   { opacity: 0; transform: translate3d(7%, 0, 0) scale(0.93); filter: blur(6px); } }
+@keyframes lux-in-back   { from { opacity: 0; transform: translate3d(-10%, 0, 0) scale(0.97); filter: blur(10px); } }
+@keyframes lux-out-depth { to   { opacity: 0; transform: scale(0.9); filter: blur(6px); } }
+@keyframes lux-in-depth  { from { opacity: 0; transform: scale(1.07); filter: blur(10px); } }
+
+@keyframes lux-out-fwd-lite   { to   { opacity: 0; transform: translate3d(-7%, 0, 0) scale(0.93); } }
+@keyframes lux-in-fwd-lite    { from { opacity: 0; transform: translate3d(10%, 0, 0) scale(0.97); } }
+@keyframes lux-out-back-lite  { to   { opacity: 0; transform: translate3d(7%, 0, 0) scale(0.93); } }
+@keyframes lux-in-back-lite   { from { opacity: 0; transform: translate3d(-10%, 0, 0) scale(0.97); } }
+@keyframes lux-out-depth-lite { to   { opacity: 0; transform: scale(0.9); } }
+@keyframes lux-in-depth-lite  { from { opacity: 0; transform: scale(1.07); } }
+
+/* ── DEPTH: the interface recedes when something comes forward ─────────────── */
+
+.lux-depth-layer {
+  transition:
+    transform 0.6s cubic-bezier(0.2, 0.9, 0.25, 1),
+    opacity 0.45s ease;
+}
+
+html.lux-immersive [data-lux-recede='true'] .lux-depth-layer {
+  transform: scale(0.94) translate3d(0, 8px, 0);
+  opacity: 0.5;
+}
+
+/* ── REVEAL: content rises out of depth the first time it is seen ──────────── */
+
+html.lux-immersive .lux-reveal-armed:not(.lux-in) { opacity: 0; }
+
+html.lux-immersive .lux-reveal-armed.lux-in {
+  animation: lux-rise 0.7s var(--lux-ease-out) backwards;
+  animation-delay: var(--lux-delay, 0ms);
+}
+
+@keyframes lux-rise {
+  from { opacity: 0; transform: translate3d(0, 26px, 0) scale(0.965); }
+}
+
+/* ── GLASS SHEEN ───────────────────────────────────────────────────────────── */
+
+.lux-sheen-clip {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Only 1.4× the card in each direction (it glides at most ~14% of itself),
+   and only promoted to its own layer while it actually tracks the tilt. */
+.lux-sheen {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(34% 28% at 50% 50%, rgba(255, 255, 255, 0.075), transparent 70%),
+    linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.035) 50%, transparent 60%);
+}
+
+.lux-sheen.lux-sheen-live { will-change: transform; }
+
+html:not(.lux-immersive) .lux-sheen-clip { display: none; }
+
+/* ── DOCK LIGHT: glides to the active section ──────────────────────────────── */
+
+.lux-dock-light {
+  position: absolute;
+  left: 50%;
+  top: 11px;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle,
+    rgba(255, 255, 255, 0.16) 0%,
+    rgb(var(--color-primary-glow) / 0.2) 38%,
+    transparent 70%);
+}
+
+.lux-dock-light::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 14px;
+  height: 2px;
+  margin-left: -7px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 8px rgb(var(--color-primary-glow) / 0.9), 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+/* ── WINKS: every control answers touch with light ───────────────────────── */
+/* Colour = the current section's accent (--lux-accent, set by the engine).   */
+
+.lux-touch-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 100001;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.lux-touch-layer > span,
+.lux-wink-clip > span {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* Glow at the finger (128px: 15% tighter than the first version). */
+.lux-touch {
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  opacity: 0;
+  background: radial-gradient(circle,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.16) 16%,
+    rgb(var(--lux-accent) / 0.3) 36%,
+    transparent 70%);
+}
+
+/* The control's own outline lighting up. */
+.lux-wink-rim {
+  box-sizing: border-box;
+  border: 1.5px solid rgb(var(--lux-accent) / 0.9);
+  box-shadow: 0 0 14px rgb(var(--lux-accent) / 0.4), inset 0 0 12px rgb(var(--lux-accent) / 0.16);
+  opacity: 0;
+}
+
+/* Icon ping. */
+.lux-wink-ring {
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1.5px solid rgb(var(--lux-accent) / 0.95);
+  box-shadow: 0 0 10px rgb(var(--lux-accent) / 0.5);
+  opacity: 0;
+}
+
+.lux-wink-core {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.7), rgb(var(--lux-accent) / 0.35) 45%, transparent 72%);
+  opacity: 0;
+}
+
+/* Switch sparks. */
+.lux-wink-spark {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px 1px rgb(var(--lux-accent) / 0.95);
+}
+
+/* Cards and rows: light lives inside the glass. */
+.lux-touch-layer > .lux-wink-clip {
+  overflow: hidden;
+}
+
+.lux-wink-wave {
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgb(var(--lux-accent) / 0.34) 0%,
+    rgb(var(--lux-accent) / 0.18) 40%,
+    transparent 70%);
+  opacity: 0;
+}
+
+.lux-wink-band {
+  top: -20%;
+  left: 0;
+  height: 140%;
+  background: linear-gradient(90deg,
+    transparent,
+    rgb(var(--lux-accent) / 0.4) 32%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgb(var(--lux-accent) / 0.4) 68%,
+    transparent);
+}
+
+/* Typing also carries the section's colour. */
+html.lux-immersive input,
+html.lux-immersive textarea,
+html.lux-immersive [contenteditable='true'] {
+  caret-color: rgb(var(--lux-accent));
+}
+
+/* ── WHISPERS: one line from the world, above the dock ─────────────────────── */
+
+.lux-whisper-dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 116px);
+  z-index: 450;
+  display: flex;
+  justify-content: center;
+  padding: 0 20px;
+  pointer-events: none;
+}
+
+.lux-whisper-area {
+  /* A soft pool of darkness behind the words keeps them legible over any
+     content, without drawing a box. */
+  padding: 10px 26px;
+  background: radial-gradient(closest-side, rgba(4, 4, 8, 0.88), rgba(4, 4, 8, 0.6) 55%, transparent);
+  display: grid;
+  grid-template-columns: 28px auto 28px;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 4px;
+  justify-items: center;
+}
+
+.lux-whisper-line {
+  height: 1px;
+  width: 28px;
+  background: linear-gradient(90deg, transparent, rgb(var(--lux-w) / 0.9));
+}
+.lux-whisper-line:nth-of-type(3) { transform: scaleX(-1); }
+
+.lux-whisper-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  margin-right: -0.32em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 0 18px rgb(var(--lux-w) / 0.85);
+}
+
+.lux-whisper-sub {
+  grid-column: 1 / -1;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: rgb(var(--lux-w) / 0.75);
+}
+
+.lux-whisper-life {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 360px;
+  padding: 12px 16px 12px 14px;
+  border-radius: 18px;
+  text-align: left;
+  color: #fff;
+  background: linear-gradient(160deg, rgba(22, 22, 30, 0.94), rgba(8, 8, 12, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 18px 40px -16px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 0 0 1px rgb(var(--lux-w) / 0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+.lux-whisper-life::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(var(--lux-w) / 0.9), transparent);
+}
+
+.lux-whisper-orb {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgb(var(--lux-w));
+  box-shadow: 0 0 12px 2px rgb(var(--lux-w) / 0.7);
+  animation: lux-orb 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes lux-orb {
+  from { opacity: 0.55; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1.1); }
+}
+
+.lux-whisper-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lux-whisper-life-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.lux-whisper-life-detail {
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+/* ── 60FPS GUARDS ──────────────────────────────────────────────────────────── */
+
+/* The legacy dock's RGB rim animates a conic gradient through a custom
+   property: that repaints (with an 8px blur) on every frame. Android already
+   froze the sharp rim; freeze its glow too so the dock stops repainting. */
+.android-webview .rgb-border-container::after {
+  animation: none !important;
+}
+
+/* The receding interface is promoted only while it moves. */
+html.lux-immersive [data-lux-recede='true'] .lux-depth-layer {
+  will-change: transform, opacity;
+}
+
+/* Hold-to-confirm stays lit while held (the global :active press dims buttons). */
+button.lux-hold:active {
+  opacity: 1 !important;
+  transform: scale(0.985) !important;
+}
+
+/* ── STORE: rarity light + deal of the day ─────────────────────────────────── */
+
+/* A light sweep across epic/legendary cards and the deal (transform only). */
+.lux-shine {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.lux-shine::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 38%;
+  background: linear-gradient(100deg, transparent, rgb(var(--lux-shine, 255 255 255) / 0.16), transparent);
+  transform: translate3d(-120%, 0, 0) skewX(-18deg);
+  animation: lux-shine var(--lux-shine-period, 4.8s) cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform;
+}
+@keyframes lux-shine {
+  0%, 62% { transform: translate3d(-120%, 0, 0) skewX(-18deg); }
+  100% { transform: translate3d(330%, 0, 0) skewX(-18deg); }
+}
+
+/* Rarity gem: a small cut stone that breathes on the top tiers. */
+.lux-gem {
+  width: 9px;
+  height: 9px;
+  transform: rotate(45deg);
+  border-radius: 2px;
+}
+.lux-gem[data-tier="4"], .lux-gem[data-tier="5"] { animation: lux-gem 2.6s ease-in-out infinite alternate; }
+@keyframes lux-gem {
+  from { opacity: 0.75; transform: rotate(45deg) scale(0.9); }
+  to { opacity: 1; transform: rotate(45deg) scale(1.12); }
+}
+
+html.lux-lite .lux-shine::before, html.lux-lite .lux-gem { animation: none !important; }
+html.lux-lite .lux-shine::before { opacity: 0; }
+
+/* ── REDUCED MOTION ────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .lux-stars, .lux-stars-wrap, .lux-far, .lux-ember, .lux-shine::before, .lux-gem { animation: none !important; }
+}

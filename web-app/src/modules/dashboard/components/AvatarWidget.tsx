@@ -30,6 +30,7 @@ interface AvatarWidgetProps {
   onShowPro?: () => void;
   onShowSettingsWithTab?: (tab: string) => void;
   questsTotalToday?: number;
+  tasksDoneToday?: number;
 }
 
 const MiniLiquidBar = ({  value, 
@@ -94,7 +95,7 @@ const MiniLiquidBar = ({  value,
   );
 };
 
-export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, lastStreakDate, gold = 0, dailyLimits, displayName, email, isPro, avatarId, avatarShape = 'CIRCLE', isHabitsCompleted = false, productivityScore = 0, onNavigate, onShowPro, onShowSettingsWithTab, questsTotalToday }: AvatarWidgetProps) => {
+export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, streak, lastStreakDate, gold = 0, dailyLimits, displayName, email, isPro, avatarId, avatarShape = 'CIRCLE', isHabitsCompleted = false, productivityScore = 0, onNavigate, onShowPro, onShowSettingsWithTab, questsTotalToday, tasksDoneToday }: AvatarWidgetProps) => {
     const { i18n } = useTranslation();
     const isSpanish = i18n.language?.startsWith('es');
     const deluxeText = isSpanish ? 'SÉ DELUX' : 'GO DELUX';
@@ -432,6 +433,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
             streak={streak}
             lastStreakDate={lastStreakDate}
             questsTotalToday={questsTotalToday}
+            tasksDoneToday={tasksDoneToday}
         />
     )}
     <HpInfoModal

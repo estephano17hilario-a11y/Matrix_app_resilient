@@ -20,6 +20,11 @@ import { useNotificationSystem } from './hooks/useNotificationSystem';
 import { TourProvider } from '@/components/TourGuide';
 
 import { AuroraBackground } from '@/components/AuroraBackground';
+import { ImmersiveWorld } from '@/immersion/ImmersiveWorld';
+import { TouchLight } from '@/immersion/TouchLight';
+import { WorldWhisper } from '@/immersion/WorldWhisper';
+import { arrive } from '@/immersion/engine';
+import { startReveal } from '@/immersion/reveal';
 import Dashboard from './Dashboard';
 
 // 🚀 PERFORMANCE: Lazy load heavy components
@@ -70,10 +75,14 @@ const AppRoutes = () => {
     if (dashboardUnlocked) {
       const timer = setTimeout(() => {
         setShowSplash(false);
+        // The splash dissolves and the camera drops into the world.
+        arrive();
       }, 1500);
       return () => clearTimeout(timer);
     }
   }, [dashboardUnlocked]);
+
+  useEffect(() => { startReveal(); }, []);
 
   // If Supabase is still thinking about the session, don't render ANYTHING.
   // The native Splash Screen will stay visible, preventing flicker.
@@ -114,10 +123,12 @@ const AppRoutes = () => {
           <EconomyProvider>
             <NotesProvider>
               <div 
-                className="w-full h-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] origin-center"
+                className="w-full h-full origin-center"
                 style={{
                   opacity: showSplash ? 0 : 1,
-                  transform: showSplash ? 'scale(0.95)' : 'scale(1)',
+                  // Arrives from depth: the interface surfaces out of the world.
+                  transform: showSplash ? 'scale(0.9) translate(0px, 22px)' : 'scale(1) translate(0px, 0px)',
+                  transition: 'opacity 0.9s cubic-bezier(0.16,1,0.3,1) 0.18s, transform 1.25s cubic-bezier(0.16,1,0.3,1) 0.18s, visibility 0s',
                   pointerEvents: showSplash ? 'none' : 'auto',
                   visibility: showSplash ? 'hidden' : 'visible'
                 }}
@@ -129,8 +140,9 @@ const AppRoutes = () => {
                   <motion.div
                     key="startup-splash-overlay"
                     initial={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.04 }}
-                    transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                    // Fly through the logo: it rushes past the camera as it fades.
+                    exit={{ opacity: 0, scale: 1.45 }}
+                    transition={{ duration: 0.85, ease: [0.5, 0, 0.2, 1] }}
                     className="fixed inset-0 z-[9999] pointer-events-auto"
                   >
                     <LoadingScreen />
@@ -147,10 +159,12 @@ const AppRoutes = () => {
   return (
     <RewardProvider>
       <div className="relative w-full h-full overflow-hidden bg-[#020204]">
-        {/* 1. LAYER 0: PERSISTENT BACKGROUND */}
-        <div className="fixed inset-0 z-0">
+        {/* 1. LAYER 0: PERSISTENT WORLD (aurora + stars + atmosphere, moved by the immersion camera) */}
+        <ImmersiveWorld>
           <AuroraBackground />
-        </div>
+        </ImmersiveWorld>
+        <TouchLight />
+        {dashboardUnlocked && <WorldWhisper />}
 
         {/* 2. LAYER 1: APP CONTENT */}
         <div className="relative z-10 w-full h-full">
@@ -280,42 +294,50 @@ export default function App() {
 
   return (
     <AuthProvider>
-      <ThemeProvider>
-        <TourProvider>
-          <MotionConfig transition={{ type: 'tween', duration: 0.18, ease: [0.25, 0.1, 0.25, 1.0] }}>
-            <Toaster
-              position="top-center"
-              toastOptions={{
-                duration: 2000,
-                style: {
-                  background: 'rgba(0, 0, 0, 0.9)',
-                  color: '#fff',
-                  backdropFilter: 'none',
-                  WebkitBackdropFilter: 'none',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '16px',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
-                },
-                success: {
-                  iconTheme: {
-                    primary: '#10b981',
-                    secondary: '#fff',
-                  },
-                },
-                error: {
-                  iconTheme: {
-                    primary: '#ef4444',
-                    secondary: '#fff',
-                  },
-                },
-              }}
-            />
-            <AppRoutes />
-          </MotionConfig>
-        </TourProvider>
-      </ThemeProvider>
+      <AppShell />
     </AuthProvider>
+  );
+}
+
+// Everything below the auth boundary. Exported so the dev-only lab harness
+// (lab.html) can mount the real app tree under a mocked AuthContext.
+export function AppShell() {
+  return (
+    <ThemeProvider>
+      <TourProvider>
+        <MotionConfig transition={{ type: 'tween', duration: 0.18, ease: [0.25, 0.1, 0.25, 1.0] }}>
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              duration: 2000,
+              style: {
+                background: 'rgba(0, 0, 0, 0.9)',
+                color: '#fff',
+                backdropFilter: 'none',
+                WebkitBackdropFilter: 'none',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '16px',
+                fontSize: '14px',
+                fontWeight: 600,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
+              },
+              success: {
+                iconTheme: {
+                  primary: '#10b981',
+                  secondary: '#fff',
+                },
+              },
+              error: {
+                iconTheme: {
+                  primary: '#ef4444',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
+          <AppRoutes />
+        </MotionConfig>
+      </TourProvider>
+    </ThemeProvider>
   );
 }

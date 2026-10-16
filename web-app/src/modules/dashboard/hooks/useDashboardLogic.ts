@@ -37,6 +37,10 @@ import { useReward } from '@/modules/rewards/context/RewardContext';
 
 import { SmartProject } from '@/types/SmartGoal';
 import { DockConfig, DEFAULT_DOCK_CONFIG } from '@/components/ui/DockConfigModal';
+import { pulseWorld } from '@/immersion/engine';
+import { anchorRestoredStreak, carriedDailyStreak, computeHabitStreak, habitStreakRecovery, isDailyStreakMet, todayTaskCounts } from '@/utils/streakRules';
+import { dealOfTheDay, passQuote } from '@/modules/store/market/viceMarket';
+import type { ViceLedgerEntry, ViceOffer } from '@/types';
 
 import { Target, Dumbbell, Brain, Users, Ghost, Wallet, Palette, Anchor, Crown, Shield, Zap, Feather, Rocket, Heart, Leaf, Hexagon } from 'lucide-react';
 
@@ -60,33 +64,12 @@ const TRAIT_ID_TO_ICON: Record<string, string> = {
   ESTILO: 'Feather',
 };
 
-const recalculateHabitStreak = (history: string[]): number => {
-    if (!history || history.length === 0) return 0;
-    const uniqueDates = Array.from(new Set(history.map(d => getHistoryDateKey(d)))).sort();
-    
-    const todayStr = getHistoryDateKey(new Date());
-    const yesterdayDate = new Date();
-    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    const yesterdayStr = getHistoryDateKey(yesterdayDate);
-    
-    if (!uniqueDates.includes(todayStr) && !uniqueDates.includes(yesterdayStr)) {
-        return 0;
-    }
-    
-    let streak = 0;
-    let current = uniqueDates.includes(todayStr) ? new Date() : yesterdayDate;
-    
-    while (true) {
-        const currentStr = getHistoryDateKey(current);
-        if (uniqueDates.includes(currentStr)) {
-            streak++;
-            current.setDate(current.getDate() - 1);
-        } else {
-            break;
-        }
-    }
-    return streak;
-};
+// Habit streaks follow each habit's own schedule (utils/streakRules): days a
+// habit isn't due never break it. The context carries the user's week start
+// and an active streak freeze; the hook keeps it current.
+const streakCtx: { weekStartDay: 0 | 1; frozenUntil: string | null } = { weekStartDay: 1, frozenUntil: null };
+const recalculateHabitStreak = (habit: Habit, history: string[]): number =>
+    computeHabitStreak(habit, history, streakCtx);
 
 const backupHabitStateForDate = (habit: Habit, dateKey: string): Habit => {
     const updated = { ...habit };
@@ -205,7 +188,9 @@ export const useDashboardLogic = () => {
                     ...luxUser.stats,
                     streak: authProfile.stats?.streak !== undefined ? authProfile.stats.streak : (luxUser.stats?.streak || 0),
                     lastStreakDate: authProfile.stats?.lastStreakDate !== undefined ? authProfile.stats.lastStreakDate : luxUser.stats?.lastStreakDate,
-                    streakFrozenUntil: authProfile.stats?.streakFrozenUntil !== undefined ? authProfile.stats.streakFrozenUntil : luxUser.stats?.streakFrozenUntil
+                    streakFrozenUntil: authProfile.stats?.streakFrozenUntil !== undefined ? authProfile.stats.streakFrozenUntil : luxUser.stats?.streakFrozenUntil,
+                    // Written together with the streak (reset guard), so read from the same place.
+                    previousStreak: (authProfile.stats as any)?.previousStreak !== undefined ? (authProfile.stats as any).previousStreak : (luxUser.stats as any)?.previousStreak
                 }
             };
         }
@@ -426,6 +411,8 @@ export const useDashboardLogic = () => {
     const prefAllowDockSectionSwitch = user?.preferences?.allowDockSectionSwitch ?? user?.allowDockSectionSwitch ?? true;
     const prefDockConfigStr = JSON.stringify(user?.preferences?.dockConfig || user?.dockConfig || DEFAULT_DOCK_CONFIG);
     const prefWeekStartDay = user?.preferences?.weekStartDay ?? user?.weekStartDay ?? 1;
+    streakCtx.weekStartDay = weekStartDay;
+    streakCtx.frozenUntil = user?.stats?.streakFrozenUntil || null;
     const prefDefaultChartMode = user?.preferences?.defaultChartMode || user?.defaultChartMode || 'RADAR';
     const prefShowProfile = user?.preferences?.showProfile ?? user?.showProfile ?? true;
 
@@ -700,6 +687,35 @@ export const useDashboardLogic = () => {
                     cleanXp = calculateXpForLevel(cleanLevel);
                 }
 
+                const serverMoved = !currentLast || serverStats.xp !== currentLast.xp || serverStats.level !== currentLast.level;
+                if (serverMoved) {
+                    // Save corrected stats back to DB if they changed. Done here, not inside the
+                    // setPlayer updater: updaters run during render, and updating the auth
+                    // profile from there is a setState-in-render (React warned on every load).
+                    if (cleanXp !== serverStats.xp || cleanLevel !== serverStats.level) {
+                        console.log(`🩹 Auto-correcting player stats: XP ${serverStats.xp} -> ${cleanXp}, Level ${serverStats.level} -> ${cleanLevel}`);
+                        
+                        const updatedStats = {
+                            ...serverStats,
+                            xp: cleanXp,
+                            level: cleanLevel,
+                            nextXp: calculateNextLevelXp(cleanLevel)
+                        };
+
+                        supabase.from('users')
+                            .update({ stats: updatedStats })
+                            .eq('id', user.id)
+                            .then(({ error }) => {
+                                if (error) console.error("❌ Failed to save corrected stats to Supabase:", error);
+                                else console.log("✅ Corrected stats saved successfully to Supabase:", updatedStats);
+                            });
+
+                        updateProfileLocally({
+                            stats: updatedStats
+                        });
+                    }
+                }
+
                 setPlayer(prev => {
                     const newPlayer = { ...prev };
                     let changed = false;
@@ -710,30 +726,6 @@ export const useDashboardLogic = () => {
                         newPlayer.level = cleanLevel;
                         newPlayer.nextXp = calculateNextLevelXp(cleanLevel);
                         changed = true;
-
-                        // Save corrected stats back to DB if they changed
-                        if (cleanXp !== serverStats.xp || cleanLevel !== serverStats.level) {
-                            console.log(`🩹 Auto-correcting player stats: XP ${serverStats.xp} -> ${cleanXp}, Level ${serverStats.level} -> ${cleanLevel}`);
-                            
-                            const updatedStats = {
-                                ...serverStats,
-                                xp: cleanXp,
-                                level: cleanLevel,
-                                nextXp: calculateNextLevelXp(cleanLevel)
-                            };
-
-                            supabase.from('users')
-                                .update({ stats: updatedStats })
-                                .eq('id', user.id)
-                                .then(({ error }) => {
-                                    if (error) console.error("❌ Failed to save corrected stats to Supabase:", error);
-                                    else console.log("✅ Corrected stats saved successfully to Supabase:", updatedStats);
-                                });
-
-                            updateProfileLocally({
-                                stats: updatedStats
-                            });
-                        }
                     }
 
                     // Sync Gold if Server moved
@@ -992,30 +984,15 @@ export const useDashboardLogic = () => {
                     }
                 }
 
-                // 2.2 Calculate daily streak health penalty: 2 HP for each day not active
-                if (!isFrozen) {
-                    const missedDaysCount = Math.max(1, Math.round((new Date(today).getTime() - new Date(lastDate).getTime()) / 86400000));
-                    for (let i = 0; i < missedDaysCount; i++) {
-                        const checkDateObj = new Date(lastDate + 'T12:00:00');
-                        checkDateObj.setDate(checkDateObj.getDate() + i);
-                        const checkDateStr = toLocalISOString(checkDateObj);
-                        
-                        if (lastStreakDate !== checkDateStr) {
-                            damage += 2;
-                        }
-                    }
-                    if (damage > 0) {
-                        console.log(`[DAILY RESET] Streak not active. Deducting ${damage} HP.`);
-                    }
+                // 2.2 Missed streak: a flat 2 HP when yesterday's streak wasn't met.
+                // (It used to charge 2 HP for *every* day since the last processed
+                // day, so a stale date or a few days away drained 40–80 HP at once.)
+                if (!isFrozen && lastStreakDate !== yesterdayStr) {
+                    damage = 2;
+                    console.log(`[DAILY RESET] Yesterday's streak wasn't met. Deducting 2 HP.`);
                 }
 
-                // 3. Apply Damage
-                let newHealth = health;
-                if (damage > 0) {
-                    console.log(`[DAILY RESET] Applying ${damage} damage.`);
-                    newHealth = Math.max(0, health - damage);
-                    
-                }
+                // 3. Damage is applied below with a functional update (see setHealth).
 
                 // 4. Reset Habits and Individual Streaks
                 let resetHabits = currentHabits;
@@ -1041,15 +1018,13 @@ export const useDashboardLogic = () => {
                             needsReset = true;
                         }
 
-                        // Check for broken streak (STRICT MODE)
-                        const lastCompletion = h.history && h.history.length > 0 
-                            ? getHistoryDateKey(h.history[h.history.length - 1])
-                            : null;
-                        const isStreakBroken = h.streak > 0 && (!lastCompletion || lastCompletion < yesterdayStr);
-                        if (isStreakBroken && !isFrozen) {
-                            updatedHabit.streak = 0;
+                        // Re-derive the streak from history + the habit's schedule.
+                        // (The old rule broke every non-daily habit on its off days.)
+                        const recomputed = recalculateHabitStreak(h, h.history || []);
+                        if (recomputed !== (h.streak || 0)) {
+                            updatedHabit.streak = recomputed;
                             needsReset = true;
-                            console.log(`❌ [Streak] LOST: ${h.title}. Last: ${lastCompletion}, Yesterday: ${yesterdayStr}`);
+                            if (recomputed < (h.streak || 0)) console.log(`❌ [Streak] LOST: ${h.title}`);
                         }
 
                         return needsReset ? updatedHabit : h;
@@ -1147,14 +1122,14 @@ export const useDashboardLogic = () => {
                         const lastCompletion = p.lastStreakDate || '';
                         if (lastCompletion < dayBeforeYesterdayStr && !isFrozen) {
                             console.log(`❌ [Project Streak] LOST for "${p.title}". Last: ${lastCompletion}, DayBeforeYesterday: ${dayBeforeYesterdayStr}`);
-                            return { ...p, streak: 0 };
+                            return { ...p, streak: 0, previousStreak: p.streak };
                         }
                     }
                     return p;
                 });
 
                 // OPTIMISTIC UPDATE: Update UI immediately
-                if (damage > 0) setHealth(newHealth);
+                if (damage > 0) setHealth(prev => Math.max(0, prev - damage));
                 if (canProcessHabits) {
                     setHabits(resetHabits);
                     PersistenceService.saveCollection(user.id, 'habits', resetHabits);
@@ -2506,21 +2481,12 @@ export const useDashboardLogic = () => {
             const yesterdayStr = toLocalISOString(yesterday);
 
             let hasChanges = false;
-            
-            // Check if streak is frozen
-            const streakFrozenUntil = user.stats?.streakFrozenUntil ? new Date(user.stats.streakFrozenUntil) : null;
-            const isFrozen = streakFrozenUntil && streakFrozenUntil > today;
 
             const updatedHabits = habits.map(habit => {
                 const newItem = { ...habit };
                 let changed = false;
 
                 // 1. Reset completedToday if it's a new day
-                // We check history to see if the last completion was actually today
-                const lastCompletion = habit.history && habit.history.length > 0 
-                    ? getHistoryDateKey(habit.history[habit.history.length - 1])
-                    : null;
-
                 const wasUpdatedToday = habit.lastUpdatedDate === todayStr;
 
                 // Reset partial or full progress if it was made on a previous day
@@ -2548,23 +2514,13 @@ export const useDashboardLogic = () => {
                     changed = true;
                 }
 
-                // 2. Check for broken streak (STRICT MODE)
-                // Rule: If not completed YESTERDAY (and not TODAY), the streak is lost.
-                // Logic: lastCompletion < yesterdayStr means the last time it was done was BEFORE yesterday.
-                // e.g. Today=3, Yesterday=2. Last=1. 1 < 2 -> TRUE -> Reset.
-                // e.g. Today=3, Yesterday=2. Last=2. 2 < 2 -> FALSE -> Keep.
-                // e.g. Today=3, Yesterday=2. Last=3. 3 < 2 -> FALSE -> Keep.
-                
-                const isStreakBroken = habit.streak > 0 && (!lastCompletion || lastCompletion < yesterdayStr);
-
-                if (isStreakBroken) {
-                    if (!isFrozen) {
-                        newItem.streak = 0;
-                        changed = true;
-                        console.log(`❌ [Streak] LOST: ${habit.title}. Last: ${lastCompletion}, Yesterday: ${yesterdayStr}`);
-                    } else {
-                        console.log(`🧊 [Streak] FROZEN: ${habit.title}`);
-                    }
+                // 2. Re-derive the streak from history + the habit's schedule
+                // (days it isn't due, today while pending and a freeze never break it).
+                const recomputed = recalculateHabitStreak(habit, habit.history || []);
+                if (recomputed !== (habit.streak || 0)) {
+                    newItem.streak = recomputed;
+                    changed = true;
+                    if (recomputed < (habit.streak || 0)) console.log(`❌ [Streak] LOST: ${habit.title}`);
                 }
 
                 if (changed) {
@@ -2600,6 +2556,7 @@ export const useDashboardLogic = () => {
 
             let hasChanges = false;
             let disciplineRewards: { habitId: string; habitTitle: string; traitId: string; bonusTp: number }[] = [];
+            let dynamicHpLoss = 0;
 
             const updatedBadHabits = badHabits.map(habit => {
                 const newItem = { ...habit };
@@ -2669,46 +2626,18 @@ export const useDashboardLogic = () => {
                             updatedStreak = 0;
                             updatedHistory.push(lastChecked.toISOString().split('T')[0]);
 
-                            const penalty = habit.penalties || { hp: 15, xp: 30, gold: 60 };
-                            
-                            // Health/Integrity deduction (copied from handleBadHabitRelapse)
-                            setHealth(prevHealth => {
-                                const newHealth = Math.max(0, prevHealth - penalty.hp);
-                                if (user?.id) {
-                                    const cached = PersistenceService.getProfile(user.id);
-                                    if (cached) {
-                                        PersistenceService.saveProfile({
-                                            ...cached,
-                                            stats: { ...cached.stats, hp: newHealth }
-                                        });
-                                    }
-                                    TransactionService.updateStat(user.id, 'hp', -penalty.hp, true);
-                                }
-                                
-                                // System failure handling if hp <= 0
-                                if (newHealth <= 0 && prevHealth > 0 && user?.id) {
-                                    addNotification({
-                                        type: 'SYSTEM',
-                                        label: 'SYSTEM FAILURE',
-                                        fromLevel: 'Critical',
-                                        toLevel: 'Terminal',
-                                        icon: Skull,
-                                        color: '#ef4444'
-                                    });
-
-                                    TransactionService.halveStats(user.id, attributes, player.level).then((result: any) => {
-                                        if (!result) return;
-                                        setHealth(100);
-                                    });
-                                }
-                                return newHealth;
-                            });
-
-                            addPlayerReward({
-                                xp: -penalty.xp,
-                                gold: 0
-                            });
-                            updateAttributeXp(habit.attribute, -penalty.xp, habit.subAttribute);
+                            // Only real net slips (more slips than wins) cost HP/XP.
+                            // A day with nothing logged on a "positive" goal resets
+                            // the streak, but it isn't a relapse.
+                            if (balance < 0) {
+                                const penalty = habit.penalties || { hp: 15, xp: 30, gold: 60 };
+                                dynamicHpLoss += penalty.hp;
+                                addPlayerReward({
+                                    xp: -penalty.xp,
+                                    gold: 0
+                                });
+                                updateAttributeXp(habit.attribute, -penalty.xp, habit.subAttribute);
+                            }
                         }
 
                         if (diffDays > 1) {
@@ -2816,6 +2745,21 @@ export const useDashboardLogic = () => {
                 }
                 return newItem;
             });
+
+            // Apply the night's vice damage once. It used to be subtracted locally
+            // AND again on the server as a delta (inside a state updater), so the
+            // next sync could pull a doubly-reduced value back down.
+            // Functional update: the daily streak reset may also have taken HP in
+            // this same cycle; the stats sync persists the final value.
+            if (dynamicHpLoss > 0) {
+                setHealth(prev => Math.max(0, prev - dynamicHpLoss));
+                if (health - dynamicHpLoss <= 0 && health > 0) {
+                    addNotification({ type: 'SYSTEM', label: 'SYSTEM FAILURE', fromLevel: 'Critical', toLevel: 'Terminal', icon: Skull, color: '#ef4444' });
+                    TransactionService.halveStats(user.id, attributes, player.level).then((result: any) => {
+                        if (result) setHealth(100);
+                    });
+                }
+            }
 
             if (hasChanges) {
                 setBadHabits(updatedBadHabits);
@@ -2966,46 +2910,54 @@ export const useDashboardLogic = () => {
             const lastStreakDate = user.stats.lastStreakDate;
             const currentStreak = user.stats.streak || 0;
             
-            // Already active today? (and not 0)
-            if (lastStreakDate === today && currentStreak > 0) return;
             if (isActivatingStreak.current) return;
+            // Quests/habits still loading would read as "no tasks today".
+            if (luxLoading || !areHabitsLoaded) return;
 
-            const { 
-                habitsCompleted = 0, 
-                focusSeconds = 0 
-            } = dailyLimits;
-
-            const safeQuests = quests || [];
-            const todayCompletedTasks = safeQuests.filter(q => {
-                if (!q.completed || !q.completedAt) return false;
-                try {
-                    return toLocalISOString(new Date(q.completedAt)) === today;
-                } catch (e) {
-                    return false;
-                }
+            // Same rule as the header and the streak modal (utils/streakRules):
+            // every task due today, 1 habit and 1 hour of focus.
+            const tasks = todayTaskCounts(quests);
+            const met = isDailyStreakMet({
+                tasksDone: tasks.done,
+                tasksTotal: tasks.total,
+                habitsCompleted: dailyLimits.habitsCompleted || 0,
+                focusSeconds: dailyLimits.focusSeconds || 0,
             });
-            const todayCompleted = todayCompletedTasks.length;
-            const todayUncompleted = safeQuests.filter(q => {
-                if (q.completed) return false;
-                if (!q.deadline) return true; // Treat tasks without deadline as active/pending today
-                try {
-                    const deadlineStr = q.deadline.split('T')[0];
-                    return deadlineStr <= today;
-                } catch (e) {
-                    return false;
-                }
-            }).length;
-            const todayTotal = todayCompleted + todayUncompleted;
+            const carried = carriedDailyStreak({
+                streak: currentStreak,
+                lastStreakDate,
+                frozenUntil: user.stats.streakFrozenUntil,
+            });
 
-            const isTasksRequirementMet = todayTotal === 0 ? true : (todayCompleted >= 1);
+            // Counted today but no longer met (a task was unchecked, a new task
+            // due today was added…): give today back so the stored streak never
+            // claims a day that wasn't earned.
+            if (lastStreakDate === today && currentStreak > 0 && !met) {
+                const yesterday = parseLocalDate(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                const revertedStats = {
+                    ...(user.stats || {}),
+                    streak: carried,
+                    lastStreakDate: carried > 0 ? toLocalISOString(yesterday) : undefined,
+                };
+                updateProfileLocally({ stats: revertedStats });
+                supabase.from('users').update({ stats: revertedStats }).eq('id', user.id)
+                    .then(({ error }) => { if (error) console.error('[STREAK] Failed to persist revert:', error); });
+                return;
+            }
 
-            if (isTasksRequirementMet && habitsCompleted >= 1 && focusSeconds >= 1800) {
+            // Already counted today.
+            if (lastStreakDate === today && currentStreak > 0) return;
+
+            if (met) {
                 console.log("🔥 STREAK ACTIVATED!");
                 hapticService.streakActivated();
                 isActivatingStreak.current = true;
-                
+
                 try {
-                    const newStreak = lastStreakDate === today ? 1 : currentStreak + 1;
+                    // Continue only a streak that is still alive (yesterday, or
+                    // protected by a freeze); a broken one starts again at 1.
+                    const newStreak = carried + 1;
                     const updatedStats = {
                         ...(user.stats || {}),
                         streak: newStreak,
@@ -3033,7 +2985,7 @@ export const useDashboardLogic = () => {
                     updateAttributeXp('DISCIPLINA', disciplineReward);
 
                     // RESILIENCIA Trigger: restart daily streak after breaking it
-                    if (currentStreak === 0 && (user.stats as any)?.previousStreak && (user.stats as any).previousStreak > 0) {
+                    if (carried === 0 && (user.stats as any)?.previousStreak && (user.stats as any).previousStreak > 0) {
                         const resilienceReward = Math.floor(Math.random() * 31) + 20; // 20 - 50 TP
                         updateAttributeXp('RESILIENCIA', resilienceReward);
                         setTimeout(() => {
@@ -3063,7 +3015,7 @@ export const useDashboardLogic = () => {
         };
 
         checkStreak();
-    }, [dailyLimits, user?.id, user?.stats?.streak, user?.stats?.lastStreakDate, addNotification, quests]);
+    }, [dailyLimits, user?.id, user?.stats?.streak, user?.stats?.lastStreakDate, user?.stats?.streakFrozenUntil, addNotification, quests, luxLoading, areHabitsLoaded]);
 
     // Enforce streak reset if it's broken (even if daily reset date has already updated)
     useEffect(() => {
@@ -3075,16 +3027,15 @@ export const useDashboardLogic = () => {
         
         if (currentStreak > 0) {
             const today = toLocalISOString(new Date());
-            const streakFrozenUntil = user.stats.streakFrozenUntil ? new Date(user.stats.streakFrozenUntil) : null;
-            const isFrozen = streakFrozenUntil && streakFrozenUntil > new Date();
-            
-            if (!isFrozen) {
-                const yesterday = parseLocalDate(today);
-                yesterday.setDate(yesterday.getDate() - 1);
-                const yesterdayStr = toLocalISOString(yesterday);
-                
-                if (!lastStreakDate || lastStreakDate < yesterdayStr) {
-                    console.log(`[STREAK RESET GUARD] Streak is broken. lastStreakDate: ${lastStreakDate}, yesterdayStr: ${yesterdayStr}. Resetting streak to 0.`);
+            const alive = lastStreakDate === today || carriedDailyStreak({
+                streak: currentStreak,
+                lastStreakDate,
+                frozenUntil: user.stats.streakFrozenUntil,
+            }) > 0;
+
+            if (!alive) {
+                {
+                    console.log(`[STREAK RESET GUARD] Streak is broken. lastStreakDate: ${lastStreakDate}. Resetting streak to 0.`);
                     
                     const updatedStats = {
                         ...(user.stats || {}),
@@ -3140,6 +3091,48 @@ export const useDashboardLogic = () => {
 
     const addPlayerXp = useCallback((amount: number) => addPlayerReward({ xp: amount, gold: 0 }), [addPlayerReward]);
     const addPlayerGold = useCallback((amount: number) => addPlayerReward({ xp: 0, gold: amount }), [addPlayerReward]);
+
+    // --- STREAK RECOVERY (store) ---
+    // Restores a lost streak for gold. The daily streak goes back to its
+    // previous value anchored to yesterday; a habit gets its missed days
+    // forgiven (its streak is derived from history, so a plain number would be
+    // recalculated away); a project gets back the streak it lost at the reset.
+    const restoreStreak = useCallback(async (category: 'HUD' | 'HABIT' | 'PROJECT', targetId?: string, cost = 0): Promise<boolean> => {
+        if (!user?.id || player.gold < cost) return false;
+
+        if (category === 'HUD') {
+            const previous = (user.stats as any)?.previousStreak || 0;
+            if (previous <= 0) return false;
+            const stats = anchorRestoredStreak({ ...(user.stats || {}), streak: previous, previousStreak: 0 } as any);
+            updateProfileLocally({ stats });
+            supabase.from('users').update({ stats }).eq('id', user.id)
+                .then(({ error }) => { if (error) console.error('[STREAK RECOVERY] Failed to persist:', error); });
+        } else if (category === 'HABIT' && targetId) {
+            const habit = habitsRef.current.find(h => h.id === targetId);
+            const recovery = habit ? habitStreakRecovery(habit, habit.history, streakCtx) : null;
+            if (!habit || !recovery) return false;
+            const updates = { streakForgiven: [...(habit.streakForgiven || []), ...recovery.forgive], streak: recovery.restored };
+            setHabits(prev => {
+                const next = prev.map(h => h.id === targetId ? { ...h, ...updates } : h);
+                PersistenceService.saveCollection(user.id, 'habits', next);
+                return next;
+            });
+            persistenceService.habits.update(user.id, targetId, updates);
+        } else if (category === 'PROJECT' && targetId) {
+            const project = projectsRef.current.find(p => p.id === targetId);
+            if (!project?.previousStreak) return false;
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const updates = { streak: project.previousStreak, previousStreak: 0, lastStreakDate: toLocalISOString(yesterday) };
+            setProjects(prev => prev.map(p => p.id === targetId ? { ...p, ...updates } : p));
+            persistenceService.projects.update(user.id, targetId, updates);
+        } else {
+            return false;
+        }
+
+        if (cost > 0) addPlayerGold(-cost);
+        return true;
+    }, [user, player.gold, updateProfileLocally, addPlayerGold]);
 
     const updateAttributeXp = useCallback((attrId: string, amount: number, subAttrId?: string) => {
         if (!user?.id || user.isSkeleton) return;
@@ -3286,6 +3279,8 @@ export const useDashboardLogic = () => {
             ty
         }));
         setParticles(prev => [...prev, ...newParticles]);
+        // The world itself feels the impact: a wave of light from where it happened.
+        pulseWorld(x, y, type === 'fire' ? '#f97316' : color);
         setTimeout(() => { setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id))); }, targetId ? 1000 : 2000); 
     }, []);
 
@@ -5239,7 +5234,7 @@ export const useDashboardLogic = () => {
 
         if (isReversal) {
             newHistory = (habit.history || []).filter(d => getHistoryDateKey(d) !== todayKey);
-            const newStreak = recalculateHabitStreak(newHistory);
+            const newStreak = recalculateHabitStreak(habit, newHistory);
             newHabit = {
                 ...habit,
                 completedToday: isTargetToday ? false : habit.completedToday,
@@ -5252,7 +5247,7 @@ export const useDashboardLogic = () => {
             };
         } else {
             newHistory = [...(habit.history || []), todayHistory];
-            const newStreak = recalculateHabitStreak(newHistory);
+            const newStreak = recalculateHabitStreak(habit, newHistory);
             newHabit = {
                 ...habit,
                 completedToday: isTargetToday ? true : habit.completedToday,
@@ -5399,7 +5394,13 @@ export const useDashboardLogic = () => {
             if (validationHabit.checklist?.every(i => i.completed)) isComplete = true;
         }
 
+        // Adding more after the goal was already reached today is progress, not
+        // a second completion: no extra rewards, history entry or streak day.
+        if (validationHabit.completedToday) isComplete = false;
+
         const todayHistory = toLocalISOString(new Date());
+        const completedHistory = [...(validationHabit.history || []), todayHistory];
+        const completedStreak = recalculateHabitStreak(validationHabit, completedHistory);
         let rewards = { rewardXp: 0, rewardGold: 0, rewardTraitXp: 0 };
 
         if (isComplete) {
@@ -5414,10 +5415,10 @@ export const useDashboardLogic = () => {
                         return { 
                             ...h, 
                             completedToday: true, 
-                            streak: h.streak + 1, 
-                            totalCompletions: h.totalCompletions + 1, 
+                            streak: completedStreak,
+                            totalCompletions: h.totalCompletions + 1,
                             currentValue: newCurrentValue,
-                            history: [...(h.history || []), todayHistory],
+                            history: completedHistory,
                             rewardedXp: rewards.rewardXp,
                             rewardedGold: rewards.rewardGold,
                             lastUpdatedDate: getHistoryDateKey(todayHistory)
@@ -5517,10 +5518,10 @@ export const useDashboardLogic = () => {
                     rewards.rewardTraitXp,
                     { 
                         completedToday: true, 
-                        streak: validationHabit.streak + 1, 
-                        totalCompletions: validationHabit.totalCompletions + 1, 
+                        streak: completedStreak,
+                        totalCompletions: validationHabit.totalCompletions + 1,
                         currentValue: newCurrentValue,
-                        history: [...(validationHabit.history || []), todayHistory],
+                        history: completedHistory,
                         rewardedXp: rewards.rewardXp,
                         rewardedGold: rewards.rewardGold,
                         lastUpdatedDate: getHistoryDateKey(todayHistory)
@@ -5802,14 +5803,14 @@ export const useDashboardLogic = () => {
 
             if (isNowComplete && !wasComplete) {
                 const nextHistory = [...(h.history || []), todayHistory];
-                const nextStreak = recalculateHabitStreak(nextHistory);
+                const nextStreak = recalculateHabitStreak(h, nextHistory);
                 const nextTotal = (h.totalCompletions || 0) + 1;
                 next = { ...next, completedToday: isTargetToday ? true : h.completedToday, streak: nextStreak, totalCompletions: nextTotal, history: nextHistory };
                 habitToReward = h;
                 isReversal = false;
             } else if (!isNowComplete && wasComplete) {
                 const nextHistory = (h.history || []).filter(d => getHistoryDateKey(d) !== todayKey);
-                const nextStreak = recalculateHabitStreak(nextHistory);
+                const nextStreak = recalculateHabitStreak(h, nextHistory);
                 const nextTotal = Math.max(0, (h.totalCompletions || 0) - 1);
                 next = { ...next, completedToday: isTargetToday ? false : h.completedToday, streak: nextStreak, totalCompletions: nextTotal, history: nextHistory };
                 habitToReward = next; // Use the decremented state for reversal calculation if needed
@@ -5864,14 +5865,14 @@ export const useDashboardLogic = () => {
             
             if (isNowComplete && !wasComplete) {
                 const nextHistory = [...(h.history || []), todayHistory];
-                const nextStreak = recalculateHabitStreak(nextHistory);
+                const nextStreak = recalculateHabitStreak(h, nextHistory);
                 const nextTotal = (h.totalCompletions || 0) + 1;
                 next = { ...next, completedToday: isTargetToday ? true : h.completedToday, streak: nextStreak, totalCompletions: nextTotal, history: nextHistory };
                 habitToReward = h;
                 isReversal = false;
             } else if (!isNowComplete && wasComplete) {
                 const nextHistory = (h.history || []).filter(d => getHistoryDateKey(d) !== todayKey);
-                const nextStreak = recalculateHabitStreak(nextHistory);
+                const nextStreak = recalculateHabitStreak(h, nextHistory);
                 const nextTotal = Math.max(0, (h.totalCompletions || 0) - 1);
                 next = { ...next, completedToday: isTargetToday ? false : h.completedToday, streak: nextStreak, totalCompletions: nextTotal, history: nextHistory };
                 habitToReward = next;
@@ -6569,7 +6570,7 @@ export const useDashboardLogic = () => {
                             stats: { ...cached.stats, hp: newHealth }
                         });
                     }
-                    TransactionService.updateStat(user.id, 'hp', -hpPenalty, true);
+                    TransactionService.updateStat(user.id, 'hp', newHealth, false); // absolute: local already applied it
                 }
 
                 addPlayerReward({
@@ -6620,7 +6621,7 @@ export const useDashboardLogic = () => {
                             stats: { ...cached.stats, hp: newHealth }
                         });
                     }
-                    TransactionService.updateStat(user.id, 'hp', -penalty.hp, true);
+                    TransactionService.updateStat(user.id, 'hp', newHealth, false); // absolute: local already applied it
                 }
 
                 addPlayerReward({
@@ -6649,6 +6650,102 @@ export const useDashboardLogic = () => {
         persistenceService.badHabits.save(user.id, updatedHabit).catch(err => console.error("Error saving relapsed bad habit:", err));
 
     }, [user?.id, health, addPlayerGold, addPlayerReward, updateAttributeXp, player.level, attributes]);
+
+    // --- VICE MARKET (store) ---
+    // Vices bought on purpose with gold: passes and their ledger.
+    const [viceLedger, setViceLedger] = useState<ViceLedgerEntry[]>([]);
+
+    useEffect(() => {
+        if (!user?.id) return;
+        const uid = user.id;
+        const cached = PersistenceService.getCollection<ViceLedgerEntry>(uid, 'viceLedger');
+        if (cached) setViceLedger(cached);
+        persistenceService.viceLedger.getAll(uid).then(remote => {
+            if (!remote || remote.length === 0) return;
+            setViceLedger(prev => {
+                const byId = new Map(prev.map(e => [e.id, e]));
+                remote.forEach(e => byId.set(e.id, e));
+                const merged = Array.from(byId.values()).filter(e => !e.deleted).sort((a, b) => b.createdAt - a.createdAt);
+                PersistenceService.saveCollection(uid, 'viceLedger', merged);
+                return merged;
+            });
+        }).catch(err => console.error('[VICE LEDGER] load failed', err));
+    }, [user?.id]);
+
+    const recordVice = useCallback((entry: Omit<ViceLedgerEntry, 'id' | 'createdAt'>) => {
+        if (!user?.id) return null;
+        const full: ViceLedgerEntry = { ...entry, id: `vice_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, createdAt: Date.now() };
+        const uid = user.id;
+        setViceLedger(prev => {
+            const next = [full, ...prev].slice(0, 500);
+            PersistenceService.saveCollection(uid, 'viceLedger', next);
+            return next;
+        });
+        persistenceService.viceLedger.save(uid, full).catch(err => console.error('[VICE LEDGER] save failed', err));
+        return full;
+    }, [user?.id]);
+
+    const saveBadHabit = useCallback((updated: BadHabit) => {
+        if (!user?.id) return;
+        const uid = user.id;
+        setBadHabits(prev => {
+            const next = prev.map(h => h.id === updated.id ? updated : h);
+            PersistenceService.saveCollection(uid, 'badHabits', next);
+            return next;
+        });
+        persistenceService.badHabits.save(uid, updated).catch(err => console.error('[VICE] save failed', err));
+    }, [user?.id]);
+
+    /** Buys a pass for a vice (deal of the day included). Returns the ledger entry (the receipt). */
+    const buyVice = useCallback((habitId: string): ViceLedgerEntry | null => {
+        const habit = badHabits.find(h => h.id === habitId);
+        if (!user?.id || !habit) return null;
+        const now = Date.now();
+        const quote = passQuote(habit, viceLedger, dealOfTheDay(badHabits, now), now);
+        if (player.gold < quote.price) return null;
+
+        saveBadHabit({ ...habit, vicePasses: (habit.vicePasses || 0) + 1 });
+        addPlayerGold(-quote.price);
+        return recordVice({
+            habitId,
+            habitTitle: habit.title,
+            color: habit.customColor,
+            iconName: habit.iconName,
+            kind: 'PASS_BUY',
+            price: quote.price,
+            balanceAfter: player.gold - quote.price,
+            deal: quote.deal || undefined,
+        });
+    }, [badHabits, user?.id, viceLedger, player.gold, saveBadHabit, addPlayerGold, recordVice]);
+
+    /**
+     * Spends one pass: a planned indulgence. It is recorded, and unlike a
+     * relapse it keeps the streak and costs no HP/XP — the gold was already paid.
+     */
+    const spendVicePass = useCallback((habitId: string): ViceLedgerEntry | null => {
+        const habit = badHabits.find(h => h.id === habitId);
+        if (!user?.id || !habit || !((habit.vicePasses || 0) > 0)) return null;
+
+        saveBadHabit({
+            ...habit,
+            vicePasses: (habit.vicePasses || 0) - 1,
+            indulgences: [...(habit.indulgences || []), new Date().toISOString()].slice(-200),
+        });
+        return recordVice({
+            habitId,
+            habitTitle: habit.title,
+            color: habit.customColor,
+            iconName: habit.iconName,
+            kind: 'PASS_USE',
+            price: 0,
+        });
+    }, [badHabits, user?.id, saveBadHabit, recordVice]);
+
+    const updateViceOffer = useCallback((habitId: string, offer: ViceOffer) => {
+        const habit = badHabits.find(h => h.id === habitId);
+        if (!habit) return;
+        saveBadHabit({ ...habit, market: offer });
+    }, [badHabits, saveBadHabit]);
 
     const handleUpdateBadHabitBalance = useCallback(async (habit: BadHabit, newBalance: number) => {
         if (!user?.id) return;
@@ -6842,6 +6939,11 @@ export const useDashboardLogic = () => {
 
     return {
         user,
+        restoreStreak,
+        viceLedger,
+        buyVice,
+        spendVicePass,
+        updateViceOffer,
         luxLoading,
         matrixLoading: luxLoading,
         lastAchievement,

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { getHistoryDateKey } from '@/utils/dateUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Habit } from '../../../types';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, startOfQuarter, endOfQuarter, subQuarters, addQuarters, startOfMonth, endOfMonth, subMonths, addMonths, startOfYear, endOfYear, subYears, addYears } from 'date-fns';
@@ -97,7 +98,8 @@ export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b
             const subItem = habit.checklist?.find(i => i.id === selectedSubtaskId);
             if (subItem && subItem.history) {
                 subItem.history.forEach(h => {
-                    const datePart = h.includes('T') ? h.split('T')[0] : h.substring(0, 10);
+                    // Local day (an ISO timestamp after 19:00 in UTC-5 is already "tomorrow" in UTC).
+                    const datePart = getHistoryDateKey(h);
                     set.add(datePart);
                 });
             }
@@ -106,7 +108,8 @@ export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b
 
         if (!habit.history) return set;
         habit.history.forEach(h => {
-            const datePart = h.includes('T') ? h.split('T')[0] : h.substring(0, 10);
+            // Local day (an ISO timestamp after 19:00 in UTC-5 is already "tomorrow" in UTC).
+                    const datePart = getHistoryDateKey(h);
             set.add(datePart);
         });
         return set;

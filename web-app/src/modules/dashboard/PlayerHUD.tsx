@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { LuxSheen } from '@/immersion/LuxSheen';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { HelpCircle } from 'lucide-react';
@@ -534,6 +535,7 @@ export const PlayerHUD: React.FC<PlayerHUDProps> = React.memo(({
 
  return (
   <GlassPanel className={cn("w-full p-3 flex flex-col gap-2 relative", className)}>
+   <LuxSheen intensity={0.8} />
    <div className="flex flex-col relative">
     
     {/* Top Header Bar */}

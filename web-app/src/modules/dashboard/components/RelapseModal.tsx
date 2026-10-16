@@ -1,7 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Skull, Coins, Heart, AlertTriangle, ShieldCheck, Sparkles, RotateCcw, Check, ArrowDown } from 'lucide-react';
+import { Skull, Coins, Heart, AlertTriangle, ShieldCheck, Sparkles, RotateCcw, Check, ArrowDown, Ticket } from 'lucide-react';
 import { BadHabit } from '../../../types';
 import { useTranslation } from 'react-i18next';
 
@@ -13,6 +13,9 @@ interface RelapseModalProps {
     habit: BadHabit | null;
     onConfirm: (method: 'GOLD' | 'HP') => void;
     userGold: number;
+    /** Passes owned for this vice, bought in the store. */
+    passesAvailable?: number;
+    onUsePass?: () => void;
 }
 
 const AuroraBackground = () => (
@@ -27,7 +30,9 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
     onClose,
     habit,
     onConfirm,
-    userGold
+    userGold,
+    passesAvailable = 0,
+    onUsePass
 }) => {
     const { t } = useTranslation();
     
@@ -97,6 +102,28 @@ export const RelapseModal: React.FC<RelapseModalProps> = ({
                 <AuroraBackground />
 
                 <div className="relative p-7 text-center space-y-5">
+                    {/* A vice bought in advance turns this into a planned indulgence. */}
+                    {passesAvailable > 0 && onUsePass && (
+                        <motion.button
+                            type="button"
+                            onClick={onUsePass}
+                            initial={{ opacity: 0, y: -8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="w-full flex items-center gap-3 p-4 rounded-2xl text-left border border-amber-400/40 bg-gradient-to-r from-amber-500/15 to-amber-500/5 shadow-[0_0_24px_rgba(245,158,11,0.15)]"
+                        >
+                            <div className="w-11 h-11 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center shrink-0">
+                                <Ticket size={20} className="text-amber-300" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="text-[14px] font-black text-amber-100 tracking-tight">
+                                    {t('store.market.useOnRelapse', 'Usar un pase de indulgencia')}
+                                </div>
+                                <div className="text-[11.5px] text-amber-100/60 leading-snug">
+                                    {t('store.market.useOnRelapseDesc', 'Ya lo pagaste: tu racha se mantiene y no pierdes vida. Te quedan {{count}}.', { count: passesAvailable })}
+                                </div>
+                            </div>
+                        </motion.button>
+                    )}
                     {isIntelligent ? (
                         <>
                             <div className="relative">

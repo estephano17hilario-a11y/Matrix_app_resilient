@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { getHistoryDateKey } from '@/utils/dateUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Habit } from '../../../types';
 import { cn } from '../../../utils/cn';
@@ -50,9 +51,9 @@ export const HabitTrendChart: React.FC<HabitTrendChartProps> = ({ habit, color =
         const historySet = (() => {
             if (selectedSubtaskId && selectedSubtaskId !== 'ALL') {
                 const subItem = habit.checklist?.find(i => i.id === selectedSubtaskId);
-                return new Set(subItem?.history?.map(h => h.split('T')[0].substring(0, 10)) || []);
+                return new Set(subItem?.history?.map(h => getHistoryDateKey(h)) || []);
             }
-            return new Set(habit.history?.map(h => h.split('T')[0].substring(0, 10)) || []);
+            return new Set(habit.history?.map(h => getHistoryDateKey(h)) || []);
         })();
         
         let rawData: number[] = [];

@@ -1,4 +1,5 @@
 import { supabase } from '@/services/supabase';
+import { anchorRestoredStreak } from '../utils/streakRules';
 import { calculateLevelFromXp, calculateNextLevelXp } from '../utils/leveling';
 
 export interface InventoryItem {
@@ -154,6 +155,8 @@ export const consumeItem = async (userId: string, itemId: string, _effect: Store
         } else {
           stats.streak = currentStreak + 1;
         }
+        // Continue the restored streak today (see anchorRestoredStreak).
+        anchorRestoredStreak(stats);
         break;
       }
       case 'freeze_streak': {

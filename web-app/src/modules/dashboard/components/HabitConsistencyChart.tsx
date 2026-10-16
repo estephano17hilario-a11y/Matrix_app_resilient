@@ -15,6 +15,8 @@ import { TourLightbulb } from '../../../components/TourLightbulb';
 interface HabitConsistencyChartProps {
     habits: Habit[];
     onOpenStreak?: () => void;
+    /** The daily streak exactly as the header shows it (same rules everywhere). */
+    displayStreak?: number;
     isActive?: boolean;
     isPro?: boolean;
     onOpenPro?: () => void;
@@ -38,6 +40,7 @@ const getRequiredPercentForDay = (day: number) => {
 export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React.memo(({ 
     habits, 
     onOpenStreak, 
+    displayStreak,
     isActive = true, 
     isPro, 
     onOpenPro, 
@@ -401,7 +404,9 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
             stats: {
                 average: currentAvg,
                 best: bestDay,
-                streak: user?.stats?.streak !== undefined ? user.stats.streak : currentStreak,
+                // This badge opens the daily streak, so it shows the same number as
+                // the header (not the stored value, which can be a day behind).
+                streak: displayStreak ?? (user?.stats?.streak !== undefined ? user.stats.streak : currentStreak),
                 totalHabits: currentTotalHabits
             },
             trend: trendValue,
@@ -414,7 +419,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                 requiredToday
             }
         };
-    }, [habits, timeframe, currentDate, dateLocale, weekStartDay]);
+    }, [habits, timeframe, currentDate, dateLocale, weekStartDay, displayStreak, user?.stats?.streak]);
 
     // Color logic for the progress bar
     const getProgressColor = (percent: number, required: number) => {
