@@ -237,6 +237,8 @@ export interface Project {
   longestStreak?: number;
   focusRoutine?: FocusRoutineStep[];
   focusRoutineDays?: number[];
+  /** Daily focus goal for the ELO day close (−2 ELO when missed). 0/undefined = none. */
+  dailyFocusGoalMinutes?: number;
 }
 
 export interface Session {
@@ -339,6 +341,9 @@ export interface JournalEntry {
   customEmoji?: string;
   theme?: string;
   tags: string[];
+  /** Set when the entry was created from a completion report. */
+  linkedItems?: { kind: 'FOCUS' | 'HABIT' | 'TASK' | 'SUBTASK'; id: string; name: string; logId: string }[];
+  title?: string;
 }
 
 export interface NoteBlueprint {

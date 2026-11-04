@@ -3,6 +3,7 @@ import { Crosshair, Plus, ChevronDown, Swords } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { DockConfig, DockItemConfig, DOCK_ITEMS, DockItemId } from '@/components/ui/DockConfigModal';
+import { onPress } from '@/immersion/press';
 import { LuxSheen } from '@/immersion/LuxSheen';
 
 interface DockProps {
@@ -26,16 +27,20 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  const [localIsOpen, setLocalIsOpen] = React.useState(false);
  const isOpen = localIsOpen;
 
+ // Opening/closing only re-renders the dock. The interface recedes on the
+ // same frame (lux:dock event → useDepthRecede), and the parent learns about
+ // it once the animation is over, so its (much bigger) render never lands in
+ // the middle of the motion.
+ const propagateTimer = React.useRef(0);
  const onToggle = React.useCallback((open: boolean) => {
-   console.log(`➕ [Dock UI] onToggle called. Changing Dock state to: ${open}`);
    setLocalIsOpen(open);
+   window.dispatchEvent(new CustomEvent('lux:dock', { detail: open }));
    if (propOnToggle) {
-     requestAnimationFrame(() => {
-       console.log(`➕ [Dock UI] Propagating Dock state (${open}) to parent`);
-       propOnToggle(open);
-     });
+     window.clearTimeout(propagateTimer.current);
+     propagateTimer.current = window.setTimeout(() => propOnToggle(open), 320);
    }
  }, [propOnToggle]);
+ React.useEffect(() => () => window.clearTimeout(propagateTimer.current), []);
 
   React.useEffect(() => {
     if (propIsOpen !== undefined) {
@@ -54,16 +59,28 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
     }
   }, [isHidden, pointerEvents, propIsOpen, propOnToggle]);
 
- const handleView = (v: string) => { onChangeView(v); onToggle(false); };
+ // Close first: the section change commits synchronously and takes this
+ // update with it, so a tap costs one render instead of two.
+ // Ranks and Friends are full-screen overlays, not sections.
+ const openOverlay = (v: string) => {
+   if (v === 'RANKS') window.dispatchEvent(new CustomEvent('open-progression-screen', { detail: { tab: 'LADDER' } }));
+   else if (v === 'FRIENDS') window.dispatchEvent(new CustomEvent('open-friends'));
+   else return false;
+   onToggle(false);
+   return true;
+ };
+
+ const handleView = (v: string) => { if (openOverlay(v)) return; onToggle(false); onChangeView(v); };
  
   const handleSmartNav = (v: string) => {
+    if (openOverlay(v)) return;
     if (v === 'SETTINGS') {
       onOpenModal('SETTINGS');
       onToggle(false);
       return;
     }
-    onChangeView(v);
     onToggle(false);
+    onChangeView(v);
   };
 
  const handleModal = (m: string, e?: React.MouseEvent) => {
@@ -88,14 +105,14 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  const effectiveConfig = dockConfig || {
  enabledItems: ['TASKS', 'HABITS', 'FOCUS', 'NOTES'] as DockItemId[],
  order: ['TASKS', 'HABITS', 'FOCUS', 'NOTES'] as DockItemId[],
- expandedItems: ['HABITS', 'FOCUS', 'STORE', 'ACHIEVEMENTS', 'FEED'] as DockItemId[],
+ expandedItems: ['HABITS', 'FOCUS', 'STORE', 'ACHIEVEMENTS', 'FEED', 'RANKS', 'FRIENDS'] as DockItemId[],
  };
 
  const activeOrder = effectiveConfig.order.slice(0, 4);
  const leftItems = activeOrder.slice(0, 2);
  const rightItems = activeOrder.slice(2, 4);
 
- const rawExpandedItems = effectiveConfig.expandedItems || ['HABITS', 'FOCUS', 'STORE', 'ACHIEVEMENTS', 'FEED'];
+ const rawExpandedItems = effectiveConfig.expandedItems || ['HABITS', 'FOCUS', 'STORE', 'ACHIEVEMENTS', 'FEED', 'RANKS', 'FRIENDS'];
  
  // Dynamically swap FEED and STORE if FEED is placed before STORE
  const mappedItems = rawExpandedItems.map(id => id === 'STRATEGY' ? 'FEED' : id);
@@ -117,6 +134,25 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  return null;
  };
 
+ // Sections switch the moment the finger lands (pointerdown), not when it
+ // lifts: a click only fires on release, which added the whole press time
+ // (~80–150ms) before anything happened. The click that follows the press is
+ // swallowed; keyboard activation still goes through onClick.
+ const pressedNav = React.useRef<{ id: DockItemId; at: number } | null>(null);
+ const navPress = (id: DockItemId) => ({
+  onPointerDown: (e: React.PointerEvent) => {
+   if (!e.isPrimary || e.button !== 0 || id === 'SETTINGS') return;
+   pressedNav.current = { id, at: performance.now() };
+   handleSmartNav(id);
+  },
+  onClick: () => {
+   const p = pressedNav.current;
+   pressedNav.current = null;
+   if (p && p.id === id && performance.now() - p.at < 1500) return;
+   handleSmartNav(id);
+  },
+ });
+
  const renderDockButton = (id: DockItemId) => {
   const item = DOCK_ITEMS.find((item: DockItemConfig) => item.id === id);
   if (!item) return null;
@@ -126,12 +162,12 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   return (
   <button
   key={id}
-  onClick={() => handleSmartNav(id)}
+  {...navPress(id)}
   className="group relative z-10 flex flex-col items-center gap-0.5 min-w-[40px] w-full"
   >
   <div className={`relative transition-all duration-300 ${isActive ? 'scale-110' : 'text-white/40 group-hover:text-white/80'}`}>
   {isActive && <div className={`absolute inset-0 ${item.bgColor} rounded-full blur-sm `} />}
-  {isActive && <motion.span layoutId="lux-dock-light" className="lux-dock-light" transition={{ type: 'spring', stiffness: 420, damping: 34, mass: 0.9 }} />}
+  <span className="lux-dock-light" data-on={isActive ? 'true' : 'false'} aria-hidden="true" />
   <Icon size={22} className={isActive ? item.color : ''} strokeWidth={isActive ? 2.5 : 2} />
   </div>
   <span className={`text-[9px] font-bold tracking-widest transition-colors ${isActive ? 'text-white' : 'text-white/30'}`}>{item.label}</span>
@@ -154,11 +190,11 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   return (
   <button 
   key={id}
-  onClick={() => handleSmartNav(id)} 
+  {...navPress(id)}
   className={`group relative flex flex-col items-center gap-0.5 transition-colors duration-300 ${isActive ? 'text-white' : 'text-white/30 hover:text-white/60'}`}
   >
   {/* A light that glides between sections instead of blinking on/off */}
-  {isActive && <motion.span layoutId="lux-dock-light" className="lux-dock-light" transition={{ type: 'spring', stiffness: 420, damping: 34, mass: 0.9 }} />}
+  <span className="lux-dock-light" data-on={isActive ? 'true' : 'false'} aria-hidden="true" />
   <Icon size={22} className={`relative transition-transform group-active:scale-75 duration-300 ${isActive ? item.color : ''}`} strokeWidth={isActive ? 2.5 : 2} />
   {indicator ? (
   <span className={`text-[8px] font-mono tracking-widest ${isActive ? 'text-white/70' : 'text-white/30'}`}>{indicator}</span>
@@ -370,15 +406,16 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   {/* Fake-glass: subtle sheen overlay */}
   <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] via-transparent to-black/[0.04] pointer-events-none z-0" />
 
- <motion.div 
- initial={false}
- animate={{
- opacity: isOpen ? 1 : 0,
- y: isOpen ? 0 : -16,
- pointerEvents: isOpen ? 'auto' : 'none'
- }}
- transition={{ type: "spring", stiffness: 80, damping: 20, mass: 1, delay: isOpen ? 0.05 : 0 }}
+ <div
  className="absolute inset-x-0 top-0 p-4 grid grid-cols-2 gap-2"
+ style={{
+ opacity: isOpen ? 1 : 0,
+ transform: isOpen ? 'translate3d(0,0,0)' : 'translate3d(0,-16px,0)',
+ pointerEvents: isOpen ? 'auto' : 'none',
+ transition: isOpen
+   ? 'opacity 0.22s ease 0.05s, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1) 0.05s'
+   : 'opacity 0.1s ease, transform 0.1s ease',
+ }}
  >
  <button onClick={(e) => handleModal('QUEST', e)} className="relative z-10 col-span-2 p-3 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 flex items-center justify-between group">
  <div className="flex items-center gap-3">
@@ -401,20 +438,16 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  </div>
  );
  })}
- </motion.div>
+ </div>
  
  <div className="pointer-events-auto absolute bottom-0 left-0 right-0 h-[72px] px-6 flex items-center justify-between gap-2 z-20">
  {leftItems.map(id => renderDockButton(id))}
 
  <div className="px-0 relative z-10 shrink-0 flex items-center justify-center">
- <motion.button
+ <button
  data-tour="dock-main-btn"
- onClick={() => onToggle(!isOpen)}
- animate={{
- rotate: isOpen ? 45 : 0,
- scale: isOpen ? 1 : 1
- }}
- transition={{ type: "spring", stiffness: 300, damping: 28 }}
+ {...onPress(() => onToggle(!isOpen))}
+ style={{ transform: `rotate(${isOpen ? 45 : 0}deg)`, transition: 'transform 0.3s cubic-bezier(0.22, 1, 0.36, 1)' }}
  className={`
  w-12 h-12 rounded-full flex items-center justify-center ${isOpen
  ? 'bg-zinc-800/80 border border-white/10 text-white hover:bg-zinc-700'
@@ -423,7 +456,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  `}
  >
  <Plus size={24} strokeWidth={2.5} />
- </motion.button>
+ </button>
  </div>
 
  {rightItems.map(id => renderDockButton(id))}
@@ -508,15 +541,15 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  <div className="col-span-1 flex items-center justify-center h-full z-20"> 
  <button 
  data-tour="dock-main-btn"
- onClick={() => onToggle(!isOpen)}
+ {...onPress(() => onToggle(!isOpen))}
  className={` 
- relative transition-all duration-300 ease-[cubic-bezier(0.19,1,0.22,1)] 
+ relative transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.19,1,0.22,1)]
  flex items-center justify-center gap-2 rounded-full font-bold shadow-2xl z-20 overflow-hidden btn-orb-glow transform-gpu
  ${isOpen ? 'w-16 h-12 bg-white/10 !shadow-none !border-white/5 translate-y-[2px]' : 'w-14 h-14 active:scale-90 hover:scale-105'} 
  `} 
  > 
  {isOpen 
- ? <ChevronDown size={28} className="text-white animate-pulse" strokeWidth={2.5} /> 
+ ? <ChevronDown size={28} className="text-white" strokeWidth={2.5} />
  : <Plus size={28} strokeWidth={3} className="text-white drop-shadow-md" /> 
  } 
  </button> 
@@ -599,19 +632,16 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
       {/* Fake-glass: sheen overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] via-transparent to-black/[0.04] pointer-events-none z-0" />
       <div className="relative w-full h-full pointer-events-auto">
-  <motion.div 
-  initial={false}
-  animate={{
-  opacity: isOpen ? 1 : 0,
-  y: isOpen ? 0 : 15,
-  pointerEvents: isOpen ? 'auto' : 'none',
-  scale: isOpen ? 1 : 0.98
-  }}
-  transition={isOpen 
-  ? { ...liquidSpring, delay: 0.08 }
-  : { duration: 0.05, ease: "easeOut" }
-  }
+  <div
   className="absolute bottom-[80px] left-0 right-0 px-4 grid grid-cols-2 gap-2"
+  style={{
+  opacity: isOpen ? 1 : 0,
+  transform: isOpen ? 'translate3d(0,0,0) scale(1)' : 'translate3d(0,15px,0) scale(0.98)',
+  pointerEvents: isOpen ? 'auto' : 'none',
+  transition: isOpen
+    ? 'opacity 0.22s ease 0.06s, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1) 0.06s'
+    : 'opacity 0.08s ease, transform 0.08s ease',
+  }}
   >
   
   <button onClick={(e) => { handleModal('QUEST', e); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
@@ -620,8 +650,8 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   {expandedItems.map((id, index) => {
   const isLastOdd = index === expandedItems.length - 1 && expandedItems.length % 2 !== 0;
   return renderLegacyExpandedButton(id as DockItemId, isLastOdd);
-  })} 
-  </motion.div>
+  })}
+  </div>
   <div className={`pointer-events-auto absolute bottom-0 left-0 right-0 h-[70px] grid grid-cols-5 items-center px-2 sm:px-6 z-20`}>
   
   <div className="col-span-2 flex items-center justify-around h-full">
@@ -631,16 +661,16 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   {/* BOTÓN "+" CENTRAL ANIMADO INTEGRADO EN LEGACY UI */} 
   <div className="col-span-1 flex items-center justify-center h-full z-30">
   <button 
-  data-tour="dock-main-btn"
-  onClick={() => onToggle(!isOpen)} 
+ data-tour="dock-main-btn"
+ {...onPress(() => onToggle(!isOpen))}
   className={` 
-  relative transition-all duration-300 ease-[cubic-bezier(0.19,1,0.22,1)] 
-  flex items-center justify-center gap-2 rounded-full font-bold shadow-2xl z-[450] overflow-hidden btn-orb-glow pointer-events-auto transform-gpu
+ relative transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.19,1,0.22,1)]
+ flex items-center justify-center gap-2 rounded-full font-bold shadow-2xl z-[450] overflow-hidden btn-orb-glow pointer-events-auto transform-gpu
   ${isOpen ? 'w-16 h-12 bg-white/10 !shadow-none !border-white/5 translate-y-[2px]' : 'w-14 h-14 active:scale-90 hover:scale-105'} 
   `} 
   > 
   {isOpen 
-  ? <ChevronDown size={28} className="text-white animate-pulse" strokeWidth={2.5} /> 
+ ? <ChevronDown size={28} className="text-white" strokeWidth={2.5} />
   : <Plus size={28} strokeWidth={3} className="text-white drop-shadow-md" /> 
   } 
   </button> 

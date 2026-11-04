@@ -892,6 +892,10 @@
         "name": "Memory Recovery",
         "desc": "Restores XP lost from inactivity or penalties."
       },
+      "rest_shield": {
+        "name": "Rest Shield",
+        "desc": "Protects one day: no ELO losses and your streak is kept. Habits and tasks don’t score that day; focus does."
+      },
       "redemption_token": {
         "name": "Streak Restoration",
         "desc": "Repairs a broken streak. A second chance for perfection."
@@ -924,6 +928,20 @@
     "buyNow": "Confirm Purchase"
   },
   "achievements": {
+    "social": {
+      "day": {
+        "title": "First day won",
+        "desc": "Win one day of a duel against a friend."
+      },
+      "week": {
+        "title": "Weekly champion",
+        "desc": "Win a one-week duel against a friend."
+      },
+      "month": {
+        "title": "Champion of the month",
+        "desc": "Win a one-month duel against a friend."
+      }
+    },
     "title": "Achievements",
     "subtitle": "Your journey to mastery",
     "loading": "Loading achievement data...",
@@ -2778,5 +2796,111 @@
   "timesPerWeek": "Times per week",
   "specificDates": "SPECIFIC DATES",
   "lastDayOfMonth": "Last day of month",
-  "timesPerMonth": "Times per month"
+  "timesPerMonth": "Times per month",
+  "progression": {
+    "ladderView": {
+      "all": "See every rank",
+      "allHint": "All 8 ranks and their sub-ranks, with the ELO of each",
+      "here": "You are here",
+      "hint": "Every rank has 3 sub-ranks. Insignias evolve: I shield, II fins, III wings and crown.",
+      "legend": "A single rank with no sub-ranks. It shows your place among all Legends.",
+      "locked": "Locked",
+      "yours": "Your ELO"
+    },
+    "back": "Back",
+    "board": {
+      "anonymous": "Player",
+      "empty": "Be the first on the board",
+      "emptyHint": "Your ELO will show up here as soon as it is published.",
+      "general": "Overall",
+      "legends": "Legends",
+      "position": "Your position",
+      "unavailable": "Leaderboard unavailable",
+      "unavailableHint": "Could not reach the leaderboard. Try again later.",
+      "you": "you"
+    },
+    "boost": {
+      "firstWeek": "First week: gains ×2",
+      "sunday": "Sunday: +25% gold, XP and ELO"
+    },
+    "celebrate": {
+      "division": "Division up!",
+      "rank": "New rank",
+      "tap": "Tap to continue"
+    },
+    "chip": {
+      "aria": "Your rank"
+    },
+    "historyEmpty": "No movements yet",
+    "historyEmptyHint": "Complete habits, tasks or an hour of focus to start your history.",
+    "historyTitle": "ELO history",
+    "kind": {
+      "focus": "Focus session",
+      "habit": "Habit",
+      "subtask": "Subtask",
+      "task": "Task"
+    },
+    "ladder": "Ranks",
+    "level": "Level",
+    "protected": "Rank protection active",
+    "report": {
+      "done": "Done",
+      "eloDay": "Projected ELO today",
+      "eloNow": "ELO now",
+      "journal": "Add to my journal",
+      "journaled": "Added to your journal",
+      "metrics": "Metrics",
+      "note": "Quick note (optional)",
+      "notePlaceholder": "What helped you or what distracted you?",
+      "rate": "How was your focus?",
+      "stars": "{{n}} of 5"
+    },
+    "settings": {
+      "cutoff": "Day cut-off time",
+      "cutoffHint": "Anything before this time counts for the previous day.",
+      "dark": "Dark",
+      "habitGoal": "Daily habit goal",
+      "habitGoalHint": "Share of today’s habits that counts as goal met (minimum 50%).",
+      "haptics": "Vibration",
+      "less": "Less",
+      "light": "Light",
+      "more": "More",
+      "noProjects": "You have no active projects yet.",
+      "none": "No goal",
+      "projectGoals": "Daily focus goal per project",
+      "projectGoalsHint": "Missing it with the timer costs −2 ELO per project.",
+      "reports": "Report on completion",
+      "sound": "Sound effects",
+      "system": "System",
+      "theme": "Progression theme"
+    },
+    "shield": {
+      "activated": "Shield on: today is a rest day",
+      "active": "Shield active today",
+      "buy": "Buy and activate · {{price}} gold",
+      "counts": "Earned {{earned}}/{{max}} · Bought {{owned}}",
+      "desc": "A protected day: no losses and your streak is kept. Habits and tasks don’t score; focus does.",
+      "store": "Go to the store",
+      "title": "Rest shields",
+      "use": "Activate for today"
+    },
+    "streakHint": "Days in a row meeting your habit goal",
+    "streakTitle": "Goal streak",
+    "tabs": {
+      "ladder": "Ranks",
+      "board": "Top",
+      "rank": "Rank",
+      "settings": "Settings",
+      "week": "Week"
+    },
+    "title": "Progression",
+    "toNext": "to",
+    "todayFocus": "Focus (already earned)",
+    "todayHint": "Projected ELO if the day ended now",
+    "todayTitle": "Today",
+    "week": {
+      "elo": "ELO per day",
+      "title": "Your week"
+    }
+  }
 }

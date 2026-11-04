@@ -16,6 +16,10 @@ const nativeFetch = window.fetch.bind(window);
 window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
   if (isLocal(url) || url.startsWith('https://fonts.')) return nativeFetch(input as any, init);
+  // Optional fixture hook set from the devtools console: (url, init) => body | undefined.
+  const fixture = (window as any).__labFetch?.(url, init);
+  if (fixture instanceof Response) return fixture;
+  if (fixture !== undefined) return new Response(JSON.stringify(fixture), { status: 200, headers: { 'content-type': 'application/json' } });
   return new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } });
 };
 

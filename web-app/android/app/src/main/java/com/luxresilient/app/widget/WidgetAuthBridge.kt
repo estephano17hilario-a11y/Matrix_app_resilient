@@ -44,7 +44,9 @@ class WidgetAuthBridge : Plugin() {
             prefs.edit()
                 .putString("user_id", userId)
                 .putString("access_token", accessToken)
-                .putString("refresh_token", refreshToken ?: "")
+                // Never store the refresh token: the widget redeeming it would rotate it and
+                // invalidate the app's session. This also wipes any token saved by older versions.
+                .putString("refresh_token", "")
                 .putLong("last_sync", System.currentTimeMillis())
                 .apply()
 
@@ -94,6 +96,22 @@ class WidgetAuthBridge : Plugin() {
     }
 
     /**
+     * Re-render the friend duel / shared-streak widgets (they fetch their own data)
+     * and make sure the midnight refresh and nudge polling alarms are scheduled.
+     */
+    @PluginMethod
+    fun refreshSocialWidgets(call: PluginCall) {
+        try {
+            val context = activity ?: context
+            SocialAlarms.ensure(context)
+            Thread { SocialAlarms.refreshWidgets(context) }.start()
+            call.resolve()
+        } catch (e: Exception) {
+            call.reject("Failed to refresh social widgets: ${e.message}")
+        }
+    }
+
+    /**
      * Update the productivity score and refresh score widgets
      */
     @PluginMethod
@@ -107,9 +125,9 @@ class WidgetAuthBridge : Plugin() {
         try {
             val context = activity ?: context
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val capPrefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
+            // NEVER write typed values into "CapacitorStorage": the Capacitor Preferences plugin reads
+            // every entry with getString(), so a Float/Int there crashes the whole app at startup.
             prefs.edit().putInt("productivity_score", score).apply()
-            capPrefs.edit().putInt("productivity_score", score).apply()
             
             Log.d(TAG, "Score updated in widget shared preferences: $score")
             
@@ -164,9 +182,8 @@ class WidgetAuthBridge : Plugin() {
         try {
             val context = activity ?: context
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val capPrefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
 
-            // Write to BOTH SharedPrefs for redundancy (same pattern as updateScore)
+            // Only lux_widget_auth: typed values in "CapacitorStorage" crash Capacitor's Preferences plugin.
             val editor = prefs.edit()
                 .putString("rival_name", rivalName)
                 .putString("rival_avatar", rivalAvatar)
@@ -184,25 +201,7 @@ class WidgetAuthBridge : Plugin() {
                 .putBoolean("is_victory", isVictory)
             editor.apply()
 
-            // Also write to CapacitorStorage for native fallback reads
-            capPrefs.edit()
-                .putString("rival_name", rivalName)
-                .putString("rival_avatar", rivalAvatar)
-                .putInt("rival_level", rivalLevel)
-                .putString("rival_activity", rivalActivity)
-                .putInt("rival_tasks", rivalTasks)
-                .putInt("user_tasks", userTasks)
-                .putInt("target_tasks", targetTasks)
-                .putFloat("rival_focus", rivalFocus)
-                .putFloat("user_focus", userFocus)
-                .putFloat("target_focus", targetFocus)
-                .putInt("rival_habits", rivalHabits)
-                .putInt("user_habits", userHabits)
-                .putInt("target_habits", targetHabits)
-                .putBoolean("is_victory", isVictory)
-                .apply()
-
-            Log.d(TAG, "Rivals data updated in BOTH preferences: $rivalName (User T:$userTasks F:${userFocus}h H:$userHabits% vs Rival T:$rivalTasks F:${rivalFocus}h H:$rivalHabits%)")
+            Log.d(TAG, "Rivals data updated: $rivalName (User T:$userTasks F:${userFocus}h H:$userHabits% vs Rival T:$rivalTasks F:${rivalFocus}h H:$rivalHabits%)")
 
             // Broadcast refresh action
             val intent = Intent(context, RivalsWidgetProvider::class.java).apply {

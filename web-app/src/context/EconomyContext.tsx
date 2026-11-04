@@ -1,3 +1,8 @@
+import { PROGRESSION_CONFIG } from '@/modules/progression/engine/config';
+import { progressionStore } from '@/modules/progression/progressionStore';
+import { frameItemId } from '@/modules/progression/frames';
+import { SOCIAL_CONFIG, chestItemId } from '@/modules/social/engine';
+import { supabase } from '@/services/supabase';
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
 import { anchorRestoredStreak } from '@/utils/streakRules';
 import { purchaseItem, consumeItem, StoreItem, InventoryItem } from '@/services/economyService';
@@ -10,6 +15,8 @@ import { OfflineSyncService } from '@/services/offlineSync';
 
 export interface EconomyContextType {
   purchase: (item: StoreItem) => Promise<boolean>;
+  /** Adds items to the inventory without charging (duel chests, rewards). */
+  grantItem: (itemId: string, quantity?: number) => Promise<boolean>;
   useItem: (itemId: string) => Promise<boolean>;
   consume: (itemId: string) => Promise<boolean>; // Alias for backward compatibility
   isTransactionPending: boolean;
@@ -38,7 +45,36 @@ const STORE_ITEMS: StoreItem[] = [
     category: 'power_up',
     iconName: 'ShieldAlert',
     effect: { type: 'restore_streak', value: 1 }
-  }
+  },
+  {
+    id: PROGRESSION_CONFIG.SHIELD_ITEM_ID,
+    name: 'store.items.rest_shield.name',
+    description: 'store.items.rest_shield.desc',
+    price: PROGRESSION_CONFIG.SHIELD_PRICE_GOLD,
+    category: 'power_up',
+    iconName: 'ShieldAlert',
+    effect: { type: 'rest_shield', value: 1 }
+  },
+  // Duel chests: never sold, only won. Opening one pays its value in gold.
+  ...SOCIAL_CONFIG.CHEST_TIERS.map((value): StoreItem => ({
+    id: chestItemId(value),
+    name: `Cofre de ${value} de oro`,
+    description: 'Premio de duelo: ábrelo para recibir su oro',
+    price: value,
+    category: 'chest',
+    iconName: 'Gift',
+    effect: { type: 'chest', value },
+  })),
+  // Rank frames: never sold, granted when the rank is reached. Equipping one is optional.
+  ...PROGRESSION_CONFIG.RANKS.map((rank, i): StoreItem => ({
+    id: frameItemId(i),
+    name: `Marco ${rank.name}`,
+    description: `Marco de perfil del rango ${rank.name}. Equípalo o quítalo cuando quieras.`,
+    price: [300, 600, 1000, 1500, 2500, 4000, 6000, 10000][i] ?? 300,
+    category: 'frame',
+    iconName: 'Gem',
+    effect: { type: 'frame', value: i },
+  })),
 ];
 
 export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -201,6 +237,18 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
             newStats.streakFrozenUntil = freezeUntil.toISOString();
             break;
           }
+          case itemId.startsWith('chest_') ? itemId : '': {
+            newStats.gold = (newStats.gold || 0) + (Number(itemId.slice(6)) || 0);
+            break;
+          }
+          case PROGRESSION_CONFIG.SHIELD_ITEM_ID: {
+            // One rest day: no ELO losses and the habit streak is kept.
+            const r = progressionStore.activateShield('PURCHASED');
+            if (!r.ok) {
+              throw new Error(r.reason === 'ALREADY_ACTIVE' ? 'Ya tienes un escudo activo hoy' : 'No se pudo activar el escudo');
+            }
+            break;
+          }
           default:
             throw new Error(`Efecto para el ítem '${itemId}' no configurado.`);
         }
@@ -262,6 +310,10 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
         // Show toast success message
         if (itemId === 'potion_hp_small') {
           toast.success("Poción usada, recuperaste HP");
+        } else if (itemId.startsWith('chest_')) {
+          toast.success(`Cofre abierto: +${Number(itemId.slice(6)) || 0} de oro`);
+        } else if (itemId === PROGRESSION_CONFIG.SHIELD_ITEM_ID) {
+          toast.success("Escudo activado: hoy es día de descanso");
         } else {
           toast.success("Objeto utilizado correctamente");
         }
@@ -280,16 +332,39 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
   }, [user, updateLuxLocally, profile, updateProfileLocally]);
 
+  const grantItem = useCallback(async (itemId: string, quantity = 1): Promise<boolean> => {
+    if (!user?.id || quantity <= 0) return false;
+    const add = (inv: InventoryItem[]) => {
+      const next = [...inv];
+      const i = next.findIndex(x => x.itemId === itemId);
+      if (i >= 0) next[i] = { ...next[i], quantity: next[i].quantity + quantity };
+      else next.push({ itemId, quantity, acquiredAt: Date.now() });
+      return next;
+    };
+    updateLuxLocally({ inventory: add((user.inventory || []) as InventoryItem[]) });
+    try {
+      const { data, error } = await supabase.from('users').select('inventory').eq('id', user.id).maybeSingle();
+      if (error) throw error;
+      const { error: upErr } = await supabase.from('users').update({ inventory: add((data?.inventory || []) as InventoryItem[]) }).eq('id', user.id);
+      if (upErr) throw upErr;
+      return true;
+    } catch (e) {
+      console.warn('[Economy] grantItem sync failed', e);
+      return false;
+    }
+  }, [user, updateLuxLocally]);
+
   const consume = useItem;
   const inventory = useMemo(() => (user?.inventory || []) as InventoryItem[], [user?.inventory]);
   const value = useMemo(() => ({ 
     purchase, 
+    grantItem,
     useItem, 
     consume,
     isTransactionPending, 
     storeItems: STORE_ITEMS,
     inventory
-  }), [purchase, useItem, consume, isTransactionPending, inventory]);
+  }), [purchase, grantItem, useItem, consume, isTransactionPending, inventory]);
 
   return (
     <EconomyContext.Provider value={value}>

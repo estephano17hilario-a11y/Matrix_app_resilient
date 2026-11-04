@@ -4,6 +4,8 @@ export interface WidgetBridgePlugin {
   shareSession(options: { userId: string; accessToken: string; refreshToken?: string }): Promise<void>;
   clearSession(): Promise<void>;
   refreshWidgets(): Promise<void>;
+  /** Re-renders the friend duel and shared-streak widgets (they fetch their own data). */
+  refreshSocialWidgets?(): Promise<void>;
   updateScore(options: { score: number }): Promise<void>;
   updateRivalsData(options: {
     rivalName: string;

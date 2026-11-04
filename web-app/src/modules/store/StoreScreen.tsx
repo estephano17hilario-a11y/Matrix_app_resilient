@@ -6,6 +6,7 @@ import { useEconomy } from '@/context/EconomyContext';
 import { StoreCard, itemRarity } from './components/StoreCard';
 import { StreakRecoveryModal } from './components/StreakRecoveryModal';
 import { StoreItem, InventoryItem } from '../../services/economyService';
+import { FrameInventory } from '@/modules/progression/ui/FrameInventory';
 import type { Attribute, BadHabit, ViceLedgerEntry, ViceOffer } from '../../types';
 import { toast } from 'react-hot-toast';
 import { pulseWorld } from '@/immersion/engine';
@@ -21,7 +22,7 @@ import {
     Smartphone, Code, Square, Image, User, Share2, Bell, Gamepad, Newspaper,
     Coffee, Armchair, Moon, UserX, Droplet, Layers, Frown, CloudRain, Target,
     MicOff, Watch, MessageSquare, CreditCard, Trash,
-    Flame, Backpack, ScrollText, Ticket, Plus
+    Flame, Backpack, ScrollText, Ticket, Plus, Gift
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -49,7 +50,7 @@ const GoldCounter = ({ value }: { value: number }) => {
 const IconMap: Record<string, React.ElementType> = {
     Zap, Brain, Palette, User, ShieldAlert, ShoppingBag, Clock, Code, Smartphone,
     Square, Image, Share2, Bell, Gamepad, Newspaper, Coffee, Armchair, Moon, UserX,
-    Droplet, Layers, Frown, CloudRain, Target, MicOff, Watch, MessageSquare, CreditCard, Trash
+    Droplet, Layers, Frown, CloudRain, Target, MicOff, Watch, MessageSquare, CreditCard, Trash, Gift
 };
 
 const ConfirmationModal = ({ 
@@ -715,7 +716,7 @@ const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSp
 
             {tab === 'UPGRADES' && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {storeItems.map(item => (
+                {storeItems.filter(item => item.category !== 'chest' && item.category !== 'frame').map(item => (
                   <div id={`store-item-${item.id}`} key={item.id} className="lux-reveal">
                     <StoreCard
                       item={item}
@@ -766,12 +767,18 @@ const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSp
                 )}
 
                 <div>
+                  <div className="px-1 mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">Marcos de rango</div>
+                  <p className="px-1 mb-2.5 text-[11.5px] text-white/40">Ganas el marco de cada rango al alcanzarlo. Llevarlo en tu foto es opcional.</p>
+                  <FrameInventory />
+                </div>
+
+                <div>
                   <div className="px-1 mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">{t('store.inventory.items', 'Objetos')}</div>
-                  {inventory.length > 0 ? (
+                  {inventory.some(i => storeItems.find(si => si.id === i.itemId)?.category !== 'frame') ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                       {inventory.map((invItem) => {
                         const storeItem = storeItems.find(si => si.id === invItem.itemId);
-                        if (!storeItem) return null;
+                        if (!storeItem || storeItem.category === 'frame') return null;
                         const Icon = IconMap[storeItem.iconName || 'ShoppingBag'] || ShoppingBag;
                         const rarity = itemRarity(storeItem.price);
                         return (

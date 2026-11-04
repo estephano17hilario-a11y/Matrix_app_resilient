@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { X, GripVertical, Check, ClipboardList, Flame, Target, Brain, Map, Trophy, Plus, Settings2, PenLine, Activity, AlertCircle } from 'lucide-react';
+import { X, GripVertical, Check, ClipboardList, Flame, Target, Brain, Map, Trophy, Plus, Settings2, PenLine, Activity, AlertCircle, Medal, Users } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../utils/cn';
 
-export type DockItemId = 'TASKS' | 'HABITS' | 'FOCUS' | 'NOTES' | 'STRATEGY' | 'STORE' | 'ACHIEVEMENTS' | 'FEED' | 'SETTINGS';
+export type DockItemId = 'TASKS' | 'HABITS' | 'FOCUS' | 'NOTES' | 'STRATEGY' | 'STORE' | 'ACHIEVEMENTS' | 'FEED' | 'SETTINGS' | 'RANKS' | 'FRIENDS';
 
 export interface DockItemConfig {
   id: DockItemId;
@@ -26,7 +26,10 @@ export const DOCK_ITEMS: DockItemConfig[] = [
   { id: 'STORE', icon: PenLine, label: 'NOTA', color: 'text-emerald-400', bgColor: 'bg-emerald-500/20', borderColor: 'border-emerald-500/20' },
   { id: 'ACHIEVEMENTS', icon: Trophy, label: 'LEGACY', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', borderColor: 'border-yellow-500/20' },
   { id: 'FEED', icon: Activity, label: 'FEED', color: 'text-teal-400', bgColor: 'bg-teal-500/20', borderColor: 'border-teal-500/20' },
-  { id: 'SETTINGS', icon: Settings2, label: 'SETTINGS', color: 'text-slate-300', bgColor: 'bg-slate-500/20', borderColor: 'border-slate-500/20' }
+  { id: 'SETTINGS', icon: Settings2, label: 'SETTINGS', color: 'text-slate-300', bgColor: 'bg-slate-500/20', borderColor: 'border-slate-500/20' },
+  // Overlays (not sections): opened through window events, see Dock.openOverlay
+  { id: 'RANKS', icon: Medal, label: 'RANGOS', color: 'text-amber-300', bgColor: 'bg-amber-500/20', borderColor: 'border-amber-500/20' },
+  { id: 'FRIENDS', icon: Users, label: 'AMIGOS', color: 'text-sky-300', bgColor: 'bg-sky-500/20', borderColor: 'border-sky-500/20' }
 ];
 
 export interface DockConfig {
@@ -38,7 +41,7 @@ export interface DockConfig {
 export const DEFAULT_DOCK_CONFIG: DockConfig = {
   enabledItems: ['TASKS', 'HABITS', 'FOCUS', 'NOTES'],
   order: ['TASKS', 'HABITS', 'FOCUS', 'NOTES'],
-  expandedItems: ['HABITS', 'FOCUS', 'STORE', 'ACHIEVEMENTS', 'FEED', 'SETTINGS'],
+  expandedItems: ['HABITS', 'FOCUS', 'STORE', 'ACHIEVEMENTS', 'FEED', 'SETTINGS', 'RANKS', 'FRIENDS'],
 };
 
 interface DockConfigModalProps {

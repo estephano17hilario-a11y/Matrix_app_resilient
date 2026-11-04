@@ -413,10 +413,9 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
               >
                 <Activity size={20} className="text-emerald-400" />
               </motion.div>
-              <motion.div 
+              <div
                 className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#0a0a0a]"
-                animate={{ scale: [1, 1.2, 1], opacity: [1, 0.7, 1] }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                style={{ animation: 'lux-dot-pulse 2s ease-in-out infinite' }}
               />
             </div>
             <div>

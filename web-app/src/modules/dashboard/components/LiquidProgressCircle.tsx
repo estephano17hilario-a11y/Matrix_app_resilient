@@ -47,15 +47,10 @@ export const LiquidProgressCircle: React.FC<LiquidProgressCircleProps> = ({
                 >
                     {/* Wave Animation - Optimized to Single Layer for Performance */}
                     {showWave && (
-                        <motion.div 
+                        <div
                             className="absolute -top-[12px] left-[-50%] w-[200%] h-[24px]"
-                            animate={{ x: ["0%", "-50%"] }}
-                            transition={{ 
-                                repeat: Infinity, 
-                                ease: "linear", 
-                                duration: 2 
-                            }}
                             style={{
+                                animation: 'lux-wave 2s linear infinite',
                                 backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='24' viewBox='0 0 200 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 12C40 12 60 0 100 0C140 0 160 12 200 12V24H0V12Z' fill='${encodeURIComponent(color)}' fill-opacity='0.8'/%3E%3C/svg%3E")`,
                                 backgroundSize: "50% 100%",
                                 backgroundRepeat: "repeat-x",

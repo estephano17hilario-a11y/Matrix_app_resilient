@@ -1,0 +1,48 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`generated report > fixed seed → stable snapshot 1`] = `
+{
+  "insights": [
+    "RECORD",
+    "TREND",
+    "ABOVE_AVERAGE",
+  ],
+  "metrics": [
+    "Duración: 80 min",
+    "Vs. plan: 160 %",
+    "Vs. promedio 7: +67 %",
+    "Pausas: 0",
+    "Hoy vs. meta: 80/120 min",
+  ],
+  "text": "Lo de esta noche fue de otra liga. Récord histórico desbloqueado. Y lo mejor: la línea de tus últimos 14 días sube sin tropiezos. Encima, tu media venía en 48 minutos y hoy llegaste a poco más de una hora. Así es como se construye un rango.",
+  "tone": "EXCELLENT",
+}
+`;
+
+exports[`generated report > habit and task reports render clean text 1`] = `
+{
+  "habit": "Gran cierre de noche, Ana. 7 días al hilo: eso ya es costumbre. De hecho, vas en subida: 86 % esta semana. Plata III queda a unos 11 días si sigues así.",
+  "task": "Bien hecho esta noche. La terminaste en 40 minutos, un tercio más que lo estimado. De paso, 40 % del día resuelto. Sigue así y en unos 11 días estrenas Plata III.",
+}
+`;
+
+exports[`weekly summary > fixed seed → stable snapshot, clean text 1`] = `
+{
+  "factTypes": [
+    "ELO",
+    "HABITS",
+    "TASKS",
+  ],
+  "text": "Semana redonda, Ana. El balance de ELO es de +22. Por si fuera poco, cumpliste tu meta de hábitos 5 veces esta semana. Encima, despachaste 14 tareas en siete días. La próxima semana, a defender lo ganado.",
+  "tone": "EXCELLENT",
+  "variantIds": [
+    "wopen:EXCELLENT:4",
+    "wfact:ELO:2",
+    "wfact:HABITS:0",
+    "con:POSITIVE:4",
+    "wfact:TASKS:2",
+    "con:POSITIVE:2",
+    "wclose:EXCELLENT:0",
+  ],
+}
+`;

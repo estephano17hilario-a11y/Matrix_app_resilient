@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense, useCallback, useMemo } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, Suspense, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
@@ -47,10 +47,19 @@ import { BadHabitActionsModal } from './modules/dashboard/components/BadHabitAct
 
 import { ViewContainer } from './modules/dashboard/components/ViewContainer';
 import { ParticleLayer } from './modules/dashboard/components/ParticleLayer';
+import { ProgressionLayer } from './modules/progression/ProgressionLayer';
+import type { ProgressionTab } from './modules/progression/ui/ProgressionScreen';
+import { SocialLayer } from './modules/social/SocialLayer';
+import type { RewardEvent } from './modules/social/socialStore';
+import { chestItemId } from './modules/social/engine';
+import { useEconomy } from './context/EconomyContext';
 import { StreakCelebrationOverlay } from './modules/dashboard/components/StreakCelebrationOverlay';
 import { StatsTutorialOverlay } from './components/StatsTutorialOverlay';
 import { cn } from './utils/cn';
 import { pulseWorld, runSceneTransition, setScene, setSceneAccent, setWorldScroll } from './immersion/engine';
+import { revealNow } from './immersion/reveal';
+import { onPress } from './immersion/press';
+import { preloadable } from './utils/preloadable';
 import { availableUses } from './modules/store/market/viceMarket';
 import { useDepthRecede } from './immersion/useDepthRecede';
 import { useLifeSync } from './immersion/useLifeSync';
@@ -58,29 +67,33 @@ import { carriedDailyStreak, displayDailyStreak, habitStreakRecovery, isDailyStr
 import { announceArea } from './immersion/WorldWhisper';
 
 // Lazy Load Heavy Views
-const HabitVisualView = lazy(() => import('./modules/dashboard/HabitVisualView').then(m => ({ default: m.HabitVisualView })));
-const FocusView = lazy(() => import('./modules/focus/FocusView').then(m => ({ default: m.FocusView })));
-const NotesView = lazy(() => import('./modules/notes/NotesView').then(m => ({ default: m.NotesView })));
+const HabitVisualView = preloadable(() => import('./modules/dashboard/HabitVisualView').then(m => ({ default: m.HabitVisualView })));
+const FocusView = preloadable(() => import('./modules/focus/FocusView').then(m => ({ default: m.FocusView })));
+const NotesView = preloadable(() => import('./modules/notes/NotesView').then(m => ({ default: m.NotesView })));
 import { useAuth } from './context/AuthContext';
 
 import { supabase } from './services/supabase';
 import toast from 'react-hot-toast';
 import { verifySubscriptionStatus } from './services/mercadoPagoService';
 
-const AchievementsScreen = lazy(() => import('./modules/achievements/AchievementsScreen').then(m => ({ default: m.AchievementsScreen })));
-const StoreScreen = lazy(() => import('./modules/store/StoreScreen').then(m => ({ default: m.StoreScreen })));
-const SmartTaskWizard = lazy(() => import('./modules/smart-tasks/SmartTaskWizard').then(m => ({ default: m.SmartTaskWizard })));
-const StrategicMapView = lazy(() => import('./modules/smart-tasks/components/StrategicMapView').then(m => ({ default: m.StrategicMapView })));
+const AchievementsScreen = preloadable(() => import('./modules/achievements/AchievementsScreen').then(m => ({ default: m.AchievementsScreen })));
+const StoreScreen = preloadable(() => import('./modules/store/StoreScreen').then(m => ({ default: m.StoreScreen })));
+const SmartTaskWizard = preloadable(() => import('./modules/smart-tasks/SmartTaskWizard').then(m => ({ default: m.SmartTaskWizard })));
+const StrategicMapView = preloadable(() => import('./modules/smart-tasks/components/StrategicMapView').then(m => ({ default: m.StrategicMapView })));
 import { SettingsView } from './modules/dashboard/SettingsView';
-const ProUpgradeModal = lazy(() => import('./modules/monetization/ProUpgradeModal').then(m => ({ default: m.ProUpgradeModal })));
-const StreakRoadmapView = lazy(() => import('./modules/dashboard/StreakRoadmapView').then(m => ({ default: m.StreakRoadmapView })));
-const PomodoroView = lazy(() => import('./modules/focus/PomodoroView').then(m => ({ default: m.PomodoroView })));
-const ImprovementFeedView = lazy(() => import('./modules/feed/ImprovementFeedView').then(m => ({ default: m.ImprovementFeedView })));
+const ProUpgradeModal = preloadable(() => import('./modules/monetization/ProUpgradeModal').then(m => ({ default: m.ProUpgradeModal })));
+const StreakRoadmapView = preloadable(() => import('./modules/dashboard/StreakRoadmapView').then(m => ({ default: m.StreakRoadmapView })));
+const PomodoroView = preloadable(() => import('./modules/focus/PomodoroView').then(m => ({ default: m.PomodoroView })));
+const ImprovementFeedView = preloadable(() => import('./modules/feed/ImprovementFeedView').then(m => ({ default: m.ImprovementFeedView })));
 import { DeluxSuccessOverlay } from './modules/monetization/DeluxSuccessOverlay';
 
 // Sections laid out left → right in the world. The dock's own order comes
 // first, so travelling right in the dock moves the camera right.
 const SCENE_ORDER = ['TASKS', 'HABITS', 'FOCUS', 'NOTES', 'FEED', 'ACHIEVEMENTS', 'STORE'];
+
+// Every on-demand screen, warmed up behind the boot splash (see the effect in
+// Dashboard), so the first time one opens it is already in memory.
+const ON_DEMAND = [HabitVisualView, FocusView, NotesView, AchievementsScreen, StoreScreen, SmartTaskWizard, StrategicMapView, ProUpgradeModal, StreakRoadmapView, PomodoroView, ImprovementFeedView];
 
 const SuspenseFallback = () => (
  <div className="flex items-center justify-center h-full w-full min-h-[200px]">
@@ -217,6 +230,17 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  const [showDeluxSuccess, setShowDeluxSuccess] = useState(false);
  const [showStatsTutorial, setShowStatsTutorial] = useState(false);
  const [isProgressOpen, setIsProgressOpen] = useState(false);
+ const [isRankScreenOpen, setIsRankScreenOpen] = useState(false);
+ const { grantItem } = useEconomy();
+ const [rankScreenTab, setRankScreenTab] = useState<ProgressionTab | undefined>(undefined);
+ useEffect(() => {
+  const open = (e: Event) => {
+   setRankScreenTab((e as CustomEvent<{ tab?: ProgressionTab }>).detail?.tab);
+   setIsRankScreenOpen(true);
+  };
+  window.addEventListener('open-progression-screen', open);
+  return () => window.removeEventListener('open-progression-screen', open);
+ }, []);
  const [selectedProgressTrait, setSelectedProgressTrait] = useState<'DISCIPLINA' | 'RESILIENCIA'>('DISCIPLINA');
  const [progressTimeRange, setProgressTimeRange] = useState<'7' | '30' | '90'>('30');
 
@@ -512,6 +536,15 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  // STABLE REFERENCES FOR REACT.MEMO COMPONENTS
  const logicRef = useRef(dashboardLogic);
  useEffect(() => { logicRef.current = dashboardLogic; }, [dashboardLogic]);
+
+ // Friend duel prizes / stakes arrive aggregated: one gold+XP update, then chests.
+ const handleSocialReward = useCallback(async (r: RewardEvent) => {
+  if (r.gold || r.xp) logicRef.current.addPlayerReward({ xp: r.xp, gold: r.gold });
+  for (const value of r.chests) await grantItem(chestItemId(value), 1);
+  if (r.gold > 0 || r.chests.length) {
+   toast.success(`Duelos: +${r.gold} oro${r.xp ? ` · +${r.xp} XP` : ''}${r.chests.length ? ` · ${r.chests.length} cofre${r.chests.length > 1 ? 's' : ''}` : ''}`, { duration: 5000 });
+  }
+ }, [grantItem]);
 
  const handleHabitClick = useCallback((e: React.MouseEvent, habit: Habit, targetDate?: Date) => logicRef.current.handleHabitClick(e, habit, targetDate), []);
  const handleToggleHabitDay = useCallback((habitId: string, date: string) => logicRef.current.handleToggleHabitDay(habitId, date), []);
@@ -1326,6 +1359,19 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
   return Array.from(new Set([...dockOrder, ...SCENE_ORDER]));
  }, [dockConfig]);
 
+ // However the section changes (dock, header, links, its own tabs), its content
+ // arrives with it: shown at once, before paint, instead of rising in after the
+ // section is already there. The very first view keeps its entrance.
+ // Warm every on-demand screen while the boot splash still covers the app, so
+ // opening any of them later never waits for (or flashes) a loading state.
+ useEffect(() => { ON_DEMAND.forEach(c => { c.preload().catch(() => {}); }); }, []);
+
+ const sectionArrived = useRef(false);
+ useLayoutEffect(() => {
+  if (!sectionArrived.current) { sectionArrived.current = true; return; }
+  revealNow(document.querySelector('[data-lux-stage]') || document);
+ }, [currentView, taskViewMode, habitViewMode, noteViewMode]);
+
  // Move the world camera to the active section; each section brings its light.
  useEffect(() => {
   const index = sceneOrder.indexOf(currentView);
@@ -1416,11 +1462,12 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
  }, [currentView]);
  useEffect(() => {
- scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+ // Instant: the sub-section transition carries the motion.
+ scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
  }, [taskViewMode]);
 
  // Depth: the interface recedes while a modal or the expanded dock is in front.
- useDepthRecede(scrollContainerRef, !!activeModal || isDockOpen);
+ useDepthRecede(scrollContainerRef, !!activeModal, isDockOpen);
 
  // The sky behind follows the content scroll with parallax.
  useEffect(() => {
@@ -1762,6 +1809,31 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  {/* FX LAYER */}
  <ParticleLayer particles={particles} />
 
+ {/* PROGRESSION (ELO, ranks, completion reports) */}
+ <ProgressionLayer
+ user={user ? { id: user.id, createdAt: user.createdAt, displayName: user.displayName, avatarId: user.avatarId } : null}
+ habits={habits}
+ quests={quests}
+ projects={projects}
+ dataReady={!!dashboardLogic.progressionDataReady}
+ screenOpen={isRankScreenOpen}
+ screenTab={rankScreenTab}
+ onCloseScreen={() => setIsRankScreenOpen(false)}
+ onUpdateProject={handleUpdateProject}
+ onOpenStore={() => { setIsRankScreenOpen(false); travelTo('STORE', () => setCurrentView('STORE')); }}
+ />
+
+ {/* SOCIAL (friends, duels, shared streaks) */}
+ <SocialLayer
+ user={user ? { id: user.id, displayName: user.displayName, avatarId: user.avatarId } : null}
+ score={liveScore}
+ projects={projects}
+ hudActive={isStreakActiveToday}
+ hudStreak={displayStreak}
+ gold={player.gold}
+ onReward={handleSocialReward}
+ />
+
   {/* PERSISTENT HUD - OUTSIDE MAIN TO PREVENT RE-LAYOUT JUMPS */}
   {!isBackgroundHidden && !isFocusMode && !isFullScreenFocus && !isNotesStatsOpen && !isProjectDetailOpen && (
   <>
@@ -1826,7 +1898,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  )}
 
  
- <main className={cn(
+ <main data-lux-scene className={cn(
     "relative w-full mx-auto min-h-screen pt-2 pb-0 flex flex-col",
     isOverlayActive ? 'z-[400]' : (currentView === 'FOCUS' ? 'z-[200]' : 'z-10')
   )}>
@@ -1844,13 +1916,13 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
   <div className="flex justify-center pt-1 pb-0 z-10 relative shrink-0">
   <div className="flex p-1 bg-white/5 backdrop-blur-xl selector-blur rounded-full border border-white/10 shadow-sm w-full max-w-[280px]">
   <button
-  onClick={() => setTaskViewMode('LIST')}
+  {...onPress(() => { if (taskViewMode !== 'LIST') runSceneTransition(() => setTaskViewMode('LIST'), 0, 'depth'); })}
   className={`flex-1 px-2 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-300 whitespace-nowrap truncate min-w-0 ${taskViewMode === 'LIST' ? 'bg-white text-black shadow-sm' : 'text-white/60 hover:text-white'}`}
   >
   {t('dashboard.tasks', 'TASKS')}
   </button>
   <button
-  onClick={() => setTaskViewMode('STRATEGY')}
+  {...onPress(() => { if (taskViewMode !== 'STRATEGY') runSceneTransition(() => setTaskViewMode('STRATEGY'), 0, 'depth'); })}
   className={`flex-1 px-2 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-300 whitespace-nowrap truncate min-w-0 ${taskViewMode === 'STRATEGY' ? 'bg-cyan-500 text-white shadow-sm shadow-cyan-500/20' : 'text-white/60 hover:text-white'}`}
   >
   {t('dashboard.strategy', 'STRATEGY')}
@@ -1954,14 +2026,14 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  <div className="flex justify-center pt-2 pb-1 z-10 relative">
  <div className="flex p-1 bg-white/5 backdrop-blur-xl selector-blur rounded-full border border-white/10 shadow-sm">
  <button
- onClick={() => setHabitViewMode('PROTOCOLS')}
+ {...onPress(() => { if (habitViewMode !== 'PROTOCOLS') runSceneTransition(() => setHabitViewMode('PROTOCOLS'), 0, 'depth'); })}
  className={`flex-1 px-2 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-300 whitespace-nowrap truncate min-w-0 ${habitViewMode === 'PROTOCOLS' ? 'bg-white text-black shadow-sm' : 'text-white/60 hover:text-white'}`}
  >
  {t('dashboard.protocols', 'PROTOCOLS')}
  </button>
  <button
  data-tour="habit-vices-tab"
- onClick={() => setHabitViewMode('VICES')}
+ {...onPress(() => { if (habitViewMode !== 'VICES') runSceneTransition(() => setHabitViewMode('VICES'), 0, 'depth'); })}
  className={`flex-1 px-2 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-bold tracking-wider transition-all duration-300 whitespace-nowrap truncate min-w-0 ${habitViewMode === 'VICES' ? 'bg-red-500 text-white shadow-sm shadow-red-500/20' : 'text-white/60 hover:text-white'}`}
  >
  {t('dashboard.vices', 'VICES')}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skull, Archive, ChevronLeft, ArrowUpDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -430,8 +430,9 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
         return displayedHabits.length + badHabits.length > 20;
     }, [displayedHabits.length, badHabits.length]);
 
-    // Sync section with external prop
-    useEffect(() => {
+    // Sync section with external prop. A layout effect, so a switch commits the
+    // new section before the first frame of its transition is painted.
+    useLayoutEffect(() => {
         if (currentSection) {
             setSection(currentSection);
         }
@@ -671,12 +672,11 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
 
                             {/* LIST */}
                             {viewPreference === 'CHRONOLOGICAL' && !showArchived ? (
-                                chronologicalItems.map((item, idx) => (
+                                chronologicalItems.map((item) => (
                                     <div key={item.id} className="w-full px-2 mx-auto">
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: 10 }}
+                                    <motion.div
+                                        initial={false}
                                         animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.15, delay: idx * 0.05, ease: "easeOut" }}
                                         className={cn("w-full flex items-center gap-3 bg-[#050505]/90 border rounded-[14px] px-3.5 py-2 touch-manipulation cursor-pointer hover:bg-[#0a0a0a] transition-all relative overflow-hidden", !item.isDue && !item.isCompleted && "opacity-60 grayscale")}
                                         style={{ borderColor: item.isCompleted ? 'rgba(255,255,255,0.05)' : `${item.color}42` }}
                                         onClick={() => setMasteryHabit(item.habit)}

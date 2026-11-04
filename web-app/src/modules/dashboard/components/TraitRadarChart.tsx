@@ -334,7 +334,7 @@ export const TraitRadarChart: React.FC<TraitRadarChartProps> = ({
                             stroke={`url(#segGrad-${i})`}
                             strokeWidth="2.5"
                             strokeLinecap="round"
-                            initial={{ pathLength: 0, opacity: 0 }}
+                            initial={false}
                             animate={{ pathLength: 1, opacity: 1 }}
                             transition={{ 
                                 duration: 0.3, 

@@ -242,7 +242,9 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  const el = listContainerRef.current;
  if (!el) return;
  
- const measure = () => setViewportHeight(el.clientHeight);
+ // Hidden sections measure 0: assume a full screen so the list is complete
+ // the moment the section is shown, not one frame later.
+ const measure = () => setViewportHeight(el.clientHeight || window.innerHeight);
  measure();
  
  const observer = new ResizeObserver(measure);
@@ -338,7 +340,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  <div className="mt-1 h-1 w-full bg-white/5 rounded-full overflow-hidden border border-white/10">
  <motion.div
  className="h-full bg-gradient-to-r from-cyan-400 to-indigo-400 origin-left"
- initial={{ scaleX: 0 }}
+ initial={false}
  animate={{ scaleX: maxTaskXp > 0 ? Math.min(1, safeTaskXp / maxTaskXp) : 0 }}
  transition={{ type: "spring", stiffness: 350, damping: 20 }}
  style={{ width: '100%' }}
@@ -356,7 +358,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  <div className="mt-1 h-1 w-full bg-white/5 rounded-full overflow-hidden border border-white/10">
  <motion.div
  className="h-full bg-gradient-to-r from-fuchsia-400 to-violet-400 origin-left"
- initial={{ scaleX: 0 }}
+ initial={false}
  animate={{ scaleX: maxTaskTraitPoints > 0 ? Math.min(1, safeTaskTraitPoints / maxTaskTraitPoints) : 0 }}
  transition={{ type: "spring", stiffness: 350, damping: 20, delay: 0.1 }}
  style={{ width: '100%' }}

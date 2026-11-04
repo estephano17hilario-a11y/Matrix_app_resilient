@@ -1,0 +1,219 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Progression design tokens. Dark is the primary theme; light is opt-in
+   (data-prog-theme="light") or follows the system with data-prog-theme="system".
+   Spacing on a 4/8 px scale. Animations only touch transform and opacity.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.prog-root {
+  --p-bg: 9 9 12;
+  --p-surface: 19 19 25;
+  --p-surface-2: 29 29 37;
+  --p-line: 255 255 255;
+  --p-text: 244 244 248;
+  --p-text-2: 168 168 184;
+  --p-text-3: 118 118 134;
+  --p-positive: 52 211 153;
+  --p-negative: 248 113 113;
+  --p-warning: 251 191 36;
+
+  --p-space-1: 4px;
+  --p-space-2: 8px;
+  --p-space-3: 12px;
+  --p-space-4: 16px;
+  --p-space-5: 20px;
+  --p-space-6: 24px;
+  --p-space-8: 32px;
+
+  --p-r-sm: 8px;
+  --p-r-md: 12px;
+  --p-r-lg: 16px;
+  --p-r-xl: 24px;
+  --p-r-2xl: 32px;
+
+  --p-shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --p-shadow-2: 0 12px 32px rgb(0 0 0 / 0.45);
+
+  --p-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Set inline per rank */
+  --rank: 201 138 91;
+  --rank-from: #7a4a2a;
+  --rank-to: #e0a577;
+
+  color: rgb(var(--p-text));
+  font-family: var(--p-font);
+}
+
+.prog-root[data-prog-theme='light'] {
+  --p-bg: 246 246 250;
+  --p-surface: 255 255 255;
+  --p-surface-2: 238 238 244;
+  --p-line: 15 15 25;
+  --p-text: 18 18 26;
+  --p-text-2: 72 72 88;
+  --p-text-3: 110 110 126;
+  --p-positive: 4 150 105;
+  --p-negative: 210 45 45;
+  --p-warning: 180 120 0;
+  --p-shadow-2: 0 12px 32px rgb(20 20 40 / 0.14);
+}
+
+@media (prefers-color-scheme: light) {
+  .prog-root[data-prog-theme='system'] {
+    --p-bg: 246 246 250;
+    --p-surface: 255 255 255;
+    --p-surface-2: 238 238 244;
+    --p-line: 15 15 25;
+    --p-text: 18 18 26;
+    --p-text-2: 72 72 88;
+    --p-text-3: 110 110 126;
+    --p-positive: 4 150 105;
+    --p-negative: 210 45 45;
+    --p-warning: 180 120 0;
+    --p-shadow-2: 0 12px 32px rgb(20 20 40 / 0.14);
+  }
+}
+
+.prog-surface { background: rgb(var(--p-surface)); border: 1px solid rgb(var(--p-line) / 0.08); }
+.prog-surface-2 { background: rgb(var(--p-surface-2)); }
+.prog-text-2 { color: rgb(var(--p-text-2)); }
+.prog-text-3 { color: rgb(var(--p-text-3)); }
+.prog-positive { color: rgb(var(--p-positive)); }
+.prog-negative { color: rgb(var(--p-negative)); }
+
+/* Touch targets ≥ 44 px */
+.prog-tap { min-width: 44px; min-height: 44px; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.prog-tap:focus-visible { outline: 2px solid rgb(var(--rank)); outline-offset: 2px; }
+
+/* Progress bar: the fill is scaled, never resized */
+.prog-bar { position: relative; overflow: hidden; border-radius: 999px; background: rgb(var(--p-line) / 0.08); }
+.prog-bar__fill { position: absolute; inset: 0; transform-origin: left center; border-radius: inherit; background: linear-gradient(90deg, var(--rank-from), var(--rank-to)); }
+.prog-bar__shine {
+  position: absolute; inset: 0; border-radius: inherit; opacity: 0;
+  background: linear-gradient(90deg, transparent 0%, rgb(255 255 255 / 0.55) 50%, transparent 100%);
+}
+
+/* Glow is a gradient layer animated by opacity (no blur filters) */
+.prog-glow { position: absolute; inset: -40%; border-radius: 999px; pointer-events: none; background: radial-gradient(closest-side, rgb(var(--rank) / 0.55), transparent); opacity: 0; }
+
+/* Skeletons */
+.prog-skeleton { position: relative; overflow: hidden; background: rgb(var(--p-line) / 0.06); border-radius: var(--p-r-md); }
+.prog-skeleton::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(var(--p-line) / 0.07), transparent);
+  transform: translateX(-100%); animation: prog-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes prog-shimmer { to { transform: translateX(100%); } }
+
+.prog-sheet-handle { width: 40px; height: 5px; border-radius: 999px; background: rgb(var(--p-line) / 0.2); }
+
+.prog-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+
+/* Subtle app-wide tint with the current rank colour */
+.prog-rank-tint {
+  position: fixed; inset: 0 0 auto 0; height: 280px; pointer-events: none; z-index: 0;
+  background: radial-gradient(120% 100% at 50% 0%, rgb(var(--rank) / 0.10), transparent 70%);
+}
+
+/* Legend halo: slow rotation (transform only) */
+.rb-spin { transform-box: fill-box; transform-origin: center; animation: rb-spin 48s linear infinite; }
+@keyframes rb-spin { to { transform: rotate(360deg); } }
+
+/* Insignia sparkles: opacity + scale only */
+.rb-twinkle { transform-box: fill-box; transform-origin: center; animation: rb-twinkle 2.6s ease-in-out infinite; }
+@keyframes rb-twinkle { 0%, 100% { opacity: 0.2; transform: scale(0.6); } 50% { opacity: 1; transform: scale(1); } }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ARENA — shared look of the Progression and Friends screens: an aurora tinted
+   with the rank colour, layered glass cards and a floating icon dock.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.arena-backdrop { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; contain: none; }
+.arena-orb {
+  position: absolute; border-radius: 999px; will-change: transform;
+  background: radial-gradient(closest-side, rgb(var(--rank) / 0.32), rgb(var(--rank) / 0.08) 60%, transparent);
+}
+.arena-orb--a { width: 120vw; height: 120vw; max-width: 760px; max-height: 760px; left: -35%; top: -38%; animation: arena-drift-a 22s ease-in-out infinite alternate; }
+.arena-orb--b { width: 90vw; height: 90vw; max-width: 560px; max-height: 560px; right: -40%; top: -10%; opacity: 0.7; animation: arena-drift-b 26s ease-in-out infinite alternate; }
+.arena-orb--c { width: 70vw; height: 70vw; max-width: 420px; max-height: 420px; left: 10%; top: 38%; opacity: 0.28; animation: arena-drift-a 30s ease-in-out infinite alternate-reverse; }
+@keyframes arena-drift-a { to { transform: translate3d(12%, 8%, 0) scale(1.08); } }
+@keyframes arena-drift-b { to { transform: translate3d(-14%, 10%, 0) scale(0.92); } }
+.arena-grid {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(rgb(var(--p-line) / 0.07) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 46%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 46%);
+}
+
+/* Cards: a soft glass slab; --glow adds a rank-coloured gradient border */
+.arena-card {
+  position: relative; border-radius: var(--p-r-xl);
+  background: linear-gradient(180deg, rgb(var(--p-surface) / 0.94), rgb(var(--p-surface) / 0.82));
+  border: 1px solid rgb(var(--p-line) / 0.07);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.035), 0 10px 30px -18px rgb(0 0 0 / 0.6);
+}
+.arena-card--glow {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(180deg, rgb(var(--p-surface) / 0.97), rgb(var(--p-surface) / 0.9)) padding-box,
+    linear-gradient(140deg, rgb(var(--rank) / 0.7), rgb(var(--rank) / 0.06) 38%, rgb(var(--rank) / 0.04) 62%, rgb(var(--rank) / 0.45)) border-box;
+}
+.arena-inset { border-radius: var(--p-r-lg); background: rgb(var(--p-line) / 0.045); border: 1px solid rgb(var(--p-line) / 0.05); }
+
+.arena-kicker { font-size: 10.5px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: rgb(var(--p-text-3)); }
+.arena-grad-text {
+  background: linear-gradient(180deg, rgb(var(--p-text)) 10%, rgb(var(--rank)) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.arena-rainbow-text {
+  background: linear-gradient(90deg, #ff6b6b, #fbbf24, #a3e635, #22d3ee, #818cf8, #e879f9);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.arena-cta {
+  background: linear-gradient(100deg, var(--rank-from), var(--rank-to));
+  color: #0b0b10; box-shadow: 0 10px 24px -10px rgb(var(--rank) / 0.75), inset 0 1px 0 rgb(255 255 255 / 0.35);
+}
+.arena-chip {
+  display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 10px;
+  font-size: 11.5px; font-weight: 700; background: rgb(var(--p-line) / 0.07); color: rgb(var(--p-text-2));
+}
+
+/* Light rays behind the hero insignia (rotation = transform only) */
+.arena-rays {
+  position: absolute; border-radius: 999px; will-change: transform;
+  background: repeating-conic-gradient(from 0deg, rgb(var(--rank) / 0.22) 0deg 6deg, transparent 6deg 22deg);
+  -webkit-mask-image: radial-gradient(closest-side, #000 30%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 30%, transparent 100%);
+  animation: rb-spin 60s linear infinite;
+}
+.arena-halo { position: absolute; border-radius: 999px; background: radial-gradient(closest-side, rgb(var(--rank) / 0.5), transparent); animation: arena-breathe 4.5s ease-in-out infinite; }
+@keyframes arena-breathe { 0%, 100% { opacity: 0.55; transform: scale(0.94); } 50% { opacity: 1; transform: scale(1.04); } }
+
+/* Floating dock */
+.arena-dock {
+  border-radius: 26px; padding: 6px;
+  background: rgb(var(--p-surface) / 0.94);
+  border: 1px solid rgb(var(--p-line) / 0.09);
+  box-shadow: 0 18px 40px -16px rgb(0 0 0 / 0.75), inset 0 1px 0 rgb(255 255 255 / 0.05);
+}
+
+/* Flame flicker (scale + opacity) */
+.arena-flame { transform-origin: 50% 90%; animation: arena-flicker 1.6s ease-in-out infinite; }
+@keyframes arena-flicker { 0%, 100% { transform: scale(1) rotate(-1deg); } 35% { transform: scale(1.06, 0.97) rotate(1.5deg); } 70% { transform: scale(0.97, 1.05) rotate(-0.5deg); } }
+.arena-pulse { animation: arena-pulse 2s ease-in-out infinite; }
+@keyframes arena-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(0.85); } }
+
+/* Podium steps */
+.arena-step {
+  border-radius: 16px 16px 6px 6px;
+  background: linear-gradient(180deg, rgb(var(--rank) / 0.38), rgb(var(--rank) / 0.06));
+  border: 1px solid rgb(var(--rank) / 0.35); border-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prog-skeleton::after { animation: none; }
+  .rb-twinkle { animation: none; opacity: 0.9; }
+  .rb-spin { animation: none; }
+  .arena-orb, .arena-rays, .arena-halo, .arena-flame, .arena-pulse { animation: none; }
+}

@@ -353,6 +353,10 @@ export const specialEventsService = createSubCollectionService<any>('specialEven
 export const secureNotesService = createSubCollectionService<any>('secureNotes');
 export const dailyFeedService = createSubCollectionService<DailyFeedEntry>('dailyFeed');
 export const viceLedgerService = createSubCollectionService<ViceLedgerEntry>('viceLedger');
+// Progression (ELO / ranks): one doc per day, one meta doc, one log per completion.
+export const progressionDayService = createSubCollectionService<{ id: string } & Record<string, any>>('progressionDays');
+export const progressionMetaService = createSubCollectionService<{ id: string } & Record<string, any>>('progressionMeta');
+export const completionLogService = createSubCollectionService<{ id: string } & Record<string, any>>('completionLogs');
 
 export const persistenceService = {
   quests: questService,

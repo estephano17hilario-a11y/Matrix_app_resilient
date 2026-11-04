@@ -156,10 +156,9 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
         {/* Dynamic top accent bar with subtle shimmer */}
         <div className={`absolute top-0 left-0 right-0 h-[3px] z-10 ${cardStyle.barClass}`}>
           {isToday && (
-            <motion.div
+            <div
               className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent"
-              animate={{ x: ['-100%', '200%'] }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'linear', repeatDelay: 3 }}
+              style={{ animation: 'lux-bar-sweep 6s linear infinite' }}
             />
           )}
         </div>
@@ -167,10 +166,9 @@ export const FeedDayCard: React.FC<FeedDayCardProps> = ({ entry, prevEntry, inde
         {/* Live indicator for today */}
         {isToday && (
           <div className="absolute top-4 right-4 flex items-center gap-1.5 z-10">
-            <motion.div 
+            <div
               className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]"
-              animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              style={{ animation: 'lux-dot-pulse 2s ease-in-out infinite' }}
             />
             <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-[0.15em]">{t('feed.card.live')}</span>
           </div>

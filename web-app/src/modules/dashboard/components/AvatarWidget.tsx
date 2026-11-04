@@ -8,6 +8,7 @@ import { calculateXpForLevel } from '@/utils/leveling';
 import { StreakStatusModal } from './StreakStatusModal';
 import { HpInfoModal } from './HpInfoModal';
 import { useTranslation } from 'react-i18next';
+import { RankFrame } from '@/modules/progression/ui/RankFrame';
 
 interface AvatarWidgetProps {
   level: number;
@@ -266,7 +267,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
     <div className="flex items-center gap-3 sm:gap-4 opacity-100 translate-x-0 w-full pl-1">
         {/* AVATAR - RESTORED & CENTERED */}
         <div 
-            className="relative group active:scale-95 transition-transform shrink-0 cursor-pointer" 
+            className="relative group active:scale-95 transition-transform shrink-0 cursor-pointer ml-5 mr-2" 
             onClick={(e) => {
                 e.stopPropagation();
                 if (onShowSettingsWithTab) {
@@ -282,6 +283,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
                 {scoreVal.toFixed(0)}%
             </div>
 
+            <RankFrame onOpen={() => window.dispatchEvent(new CustomEvent('open-progression-screen'))}>
             <div 
                 className={`w-14 h-14 ${shapeClass} overflow-hidden shadow-md ${isPro ? '' : 'ring-1 ring-white/10 shadow-black/50'}`}
                 style={auraStyle}
@@ -300,6 +302,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
                 {/* Shine effect */}
                 <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
             </div>
+            </RankFrame>
             
             {/* Level Badge - Minimalist Corner Circle */}
             <div 

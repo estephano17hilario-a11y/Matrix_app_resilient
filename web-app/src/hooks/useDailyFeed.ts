@@ -5,7 +5,7 @@ import { DailyFeedEntry } from '../types/DailyFeedEntry';
 import { Quest, Habit, Project } from '../types';
 import { DailyLimits } from '../types/User';
 import { toLocalISOString } from '../utils/dateUtils';
-import { calculateLiveProductivityScore, isHabitActive } from '../utils/productivityScore';
+import { calculateLiveProductivityScore, isHabitActive, isHabitDoneOn } from '../utils/productivityScore';
 
 interface UseDailyFeedProps {
   userId?: string;
@@ -128,10 +128,12 @@ export const useDailyFeed = ({
       .slice(0, 5);
 
     // Focus Minutes (derived from actual sessions, fallback to limits)
-    const focusMinutes = Math.round(Math.max(Number(safeLimits.focusSeconds || 0), focusSecondsFromSessions) / 60);
+    // dailyLimits may still describe yesterday until the daily reset runs.
+    const limitsFocusSeconds = safeLimits.date === today ? Number(safeLimits.focusSeconds || 0) : 0;
+    const focusMinutes = Math.round(Math.max(limitsFocusSeconds, focusSecondsFromSessions) / 60);
 
     // Habits
-    const todayCompletedHabits = safeHabits.filter(h => !h.archived && h.completedToday);
+    const todayCompletedHabits = safeHabits.filter(h => !h.archived && isHabitDoneOn(h, today));
     const habitsCompleted = todayCompletedHabits.length;
     const habitsTotal = safeHabits.filter(h => !h.archived).length;
     
@@ -162,7 +164,7 @@ export const useDailyFeed = ({
     // Completed task/habit titles
     const completedTaskTitles = todayCompletedTasks.map(t => t.title).slice(0, 5);
     const completedHabitTitles = safeHabits
-      .filter(h => !h.archived && h.completedToday)
+      .filter(h => !h.archived && isHabitDoneOn(h, today))
       .map(h => h.title)
       .slice(0, 5);
 

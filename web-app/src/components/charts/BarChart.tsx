@@ -343,7 +343,7 @@ export const BarChart = React.memo(({
                                     return (
                                         <motion.div 
                                             key={idx}
-                                            initial={{ height: 0 }}
+                                            initial={false}
                                             animate={{ height: `${heightPercent}%` }}
                                             transition={{ type: "spring", stiffness: 480, damping: 28, mass: 0.8 }}
                                             className={cn(

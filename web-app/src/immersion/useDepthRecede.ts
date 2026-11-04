@@ -1,4 +1,4 @@
-import { RefObject, useLayoutEffect } from 'react';
+import { RefObject, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 
 // When something comes forward (a modal, the expanded dock), the interface
 // behind it recedes into the world: it scales back and dims, iOS-sheet style.
@@ -7,11 +7,19 @@ import { RefObject, useLayoutEffect } from 'react';
 // siblings of the modals, never ancestors, so fixed-position modals are not
 // affected by the transform. Each layer scales around the center of the
 // viewport rather than its own box, so they recede together as one plane.
-export const useDepthRecede = (containerRef: RefObject<HTMLElement>, active: boolean) => {
-  useLayoutEffect(() => {
+//
+// The dock announces itself (`lux:dock`) the moment it opens, so the recede
+// starts on the same frame; the dashboard state catches up afterwards.
+export const useDepthRecede = (containerRef: RefObject<HTMLElement>, modal: boolean, dockOpen: boolean) => {
+  const state = useRef({ modal, dock: dockOpen, on: false });
+
+  const apply = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
-    if (active) {
+    const on = state.current.modal || state.current.dock;
+    if (on === state.current.on && container.dataset.luxRecede !== undefined) return;
+    state.current.on = on;
+    if (on) {
       const cx = window.innerWidth / 2;
       const cy = window.innerHeight / 2;
       container.querySelectorAll<HTMLElement>('.lux-depth-layer').forEach(el => {
@@ -19,6 +27,21 @@ export const useDepthRecede = (containerRef: RefObject<HTMLElement>, active: boo
         el.style.transformOrigin = `${(cx - r.left).toFixed(1)}px ${(cy - r.top).toFixed(1)}px`;
       });
     }
-    container.dataset.luxRecede = active ? 'true' : 'false';
-  }, [containerRef, active]);
+    container.dataset.luxRecede = on ? 'true' : 'false';
+  }, [containerRef]);
+
+  useLayoutEffect(() => {
+    state.current.modal = modal;
+    state.current.dock = dockOpen;
+    apply();
+  }, [modal, dockOpen, apply]);
+
+  useEffect(() => {
+    const onDock = (e: Event) => {
+      state.current.dock = !!(e as CustomEvent<boolean>).detail;
+      apply();
+    };
+    window.addEventListener('lux:dock', onDock);
+    return () => window.removeEventListener('lux:dock', onDock);
+  }, [apply]);
 };

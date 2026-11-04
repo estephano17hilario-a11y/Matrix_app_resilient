@@ -888,6 +888,10 @@
         "name": "Restauración de Vida (+5 HP)",
         "desc": "Restaura 5 HP al instante por 1,500 monedas de oro."
       },
+      "rest_shield": {
+        "name": "Escudo de descanso",
+        "desc": "Protege un día: sin pérdidas de ELO y sin romper la racha. Los hábitos y tareas no suman ese día; el foco sí."
+      },
       "redemption_token": {
         "name": "Restauración de Racha",
         "desc": "Reactiva tu última racha perdida (HUD: 5000g, Llama: 3000g, Hábito/Proyecto: 1800g). Válido dentro de los 3 días posteriores a perderla."
@@ -916,6 +920,20 @@
     "buyNow": "Confirmar Compra"
   },
   "achievements": {
+    "social": {
+      "day": {
+        "title": "Primer día ganado",
+        "desc": "Gana un día de duelo contra un amigo."
+      },
+      "week": {
+        "title": "Campeón semanal",
+        "desc": "Gana un duelo de una semana contra un amigo."
+      },
+      "month": {
+        "title": "Campeón del mes",
+        "desc": "Gana un duelo de un mes contra un amigo."
+      }
+    },
     "title": "Logros",
     "subtitle": "Tu viaje hacia la maestría",
     "loading": "Cargando datos de logros...",
@@ -2770,5 +2788,111 @@
   "timesPerWeek": "Veces por semana",
   "specificDates": "FECHAS ESPECÍFICAS",
   "lastDayOfMonth": "Último día del mes",
-  "timesPerMonth": "Veces por mes"
+  "timesPerMonth": "Veces por mes",
+  "progression": {
+    "ladderView": {
+      "all": "Ver todos los rangos",
+      "allHint": "Los 8 rangos y sus subrangos, con el ELO de cada uno",
+      "here": "Estás aquí",
+      "hint": "Cada rango tiene 3 subrangos. Las insignias evolucionan: I escudo, II aletas, III alas y corona.",
+      "legend": "Un único rango sin subrangos. Se muestra tu puesto entre todas las Leyendas.",
+      "locked": "Bloqueado",
+      "yours": "Tu ELO"
+    },
+    "back": "Volver",
+    "board": {
+      "anonymous": "Jugador",
+      "empty": "Sé el primero en la tabla",
+      "emptyHint": "Tu ELO aparecerá aquí en cuanto lo publiques.",
+      "general": "General",
+      "legends": "Leyendas",
+      "position": "Tu posición",
+      "unavailable": "Clasificación no disponible",
+      "unavailableHint": "No se pudo conectar con la clasificación. Inténtalo más tarde.",
+      "you": "tú"
+    },
+    "boost": {
+      "firstWeek": "Primera semana: ganancias ×2",
+      "sunday": "Domingo: +25% oro, XP y ELO"
+    },
+    "celebrate": {
+      "division": "¡Subiste de división!",
+      "rank": "Nuevo rango",
+      "tap": "Toca para continuar"
+    },
+    "chip": {
+      "aria": "Tu rango"
+    },
+    "historyEmpty": "Aún no hay movimientos",
+    "historyEmptyHint": "Completa hábitos, tareas o una hora de foco para estrenar tu historial.",
+    "historyTitle": "Historial de ELO",
+    "kind": {
+      "focus": "Sesión de foco",
+      "habit": "Hábito",
+      "subtask": "Subtarea",
+      "task": "Tarea"
+    },
+    "ladder": "Rangos",
+    "level": "Nivel",
+    "protected": "Protección de rango activa",
+    "report": {
+      "done": "Listo",
+      "eloDay": "ELO proyectado hoy",
+      "eloNow": "ELO ahora",
+      "journal": "Añadir a mi journaling",
+      "journaled": "Añadido a tu journaling",
+      "metrics": "Métricas",
+      "note": "Nota rápida (opcional)",
+      "notePlaceholder": "¿Qué te ayudó o qué te distrajo?",
+      "rate": "¿Qué tal tu enfoque?",
+      "stars": "{{n}} de 5"
+    },
+    "settings": {
+      "cutoff": "Hora de corte del día",
+      "cutoffHint": "Lo que hagas antes de esta hora cuenta para el día anterior.",
+      "dark": "Oscuro",
+      "habitGoal": "Meta diaria de hábitos",
+      "habitGoalHint": "Porcentaje de tus hábitos del día que cuenta como meta cumplida (mínimo 50 %).",
+      "haptics": "Vibración",
+      "less": "Menos",
+      "light": "Claro",
+      "more": "Más",
+      "noProjects": "Aún no tienes proyectos activos.",
+      "none": "Sin meta",
+      "projectGoals": "Meta diaria de foco por proyecto",
+      "projectGoalsHint": "Si no la cumples con el temporizador: −2 ELO por proyecto.",
+      "reports": "Informe al completar",
+      "sound": "Efectos de sonido",
+      "system": "Sistema",
+      "theme": "Tema de progresión"
+    },
+    "shield": {
+      "activated": "Escudo activado: hoy es día de descanso",
+      "active": "Escudo activo hoy",
+      "buy": "Comprar y activar · {{price}} oro",
+      "counts": "Ganados {{earned}}/{{max}} · Comprados {{owned}}",
+      "desc": "Un día protegido: sin pérdidas y sin romper la racha. Los hábitos y tareas no suman, el foco sí.",
+      "store": "Ir a la tienda",
+      "title": "Escudos de descanso",
+      "use": "Activar para hoy"
+    },
+    "streakHint": "Días seguidos cumpliendo tu meta de hábitos",
+    "streakTitle": "Racha de meta",
+    "tabs": {
+      "ladder": "Rangos",
+      "board": "Top",
+      "rank": "Rango",
+      "settings": "Ajustes",
+      "week": "Semana"
+    },
+    "title": "Progresión",
+    "toNext": "para",
+    "todayFocus": "Foco (ya ganado)",
+    "todayHint": "ELO proyectado si el día terminara ahora",
+    "todayTitle": "Hoy",
+    "week": {
+      "elo": "ELO por día",
+      "title": "Tu semana"
+    }
+  }
 }

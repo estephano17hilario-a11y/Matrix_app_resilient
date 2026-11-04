@@ -6,7 +6,7 @@ import {
 import { useImmersionPrefs, prefersReducedMotion } from './immersionPrefs';
 import { useLifeReading } from './lifeStore';
 import { getPerfTier, subscribePerf } from './perf';
-import { createStarfield, StarFieldSpec } from './starfield';
+import { createStarfield, releaseStarfield, StarFieldSpec } from './starfield';
 import './immersion.css';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -24,9 +24,9 @@ import './immersion.css';
 // Kept sparse on purpose: a quiet sky, not a particle storm. Stars are crisp
 // points; only a few bright ones get a tight sparkle, never a soft blob.
 const FIELDS: StarFieldSpec[] = [
-  { tile: 460, depth: 0.25, count: 64, size: [0.4, 0.8], alpha: [0.18, 0.5], glow: 0 },
-  { tile: 560, depth: 0.55, count: 24, size: [0.6, 1.1], alpha: [0.35, 0.85], glow: 0.12, twinkle: true },
-  { tile: 600, depth: 1, count: 7, size: [0.9, 1.4], alpha: [0.45, 0.75], glow: 0.3 },
+  { tile: 460, depth: 0.25, count: 88, size: [0.567, 1.134], alpha: [0.139, 0.385], glow: 0 },
+  { tile: 560, depth: 0.55, count: 33, size: [0.851, 1.56], alpha: [0.27, 0.655], glow: 0.12, twinkle: true },
+  { tile: 600, depth: 1, count: 10, size: [1.276, 1.985], alpha: [0.347, 0.578], glow: 0.3 },
 ];
 
 const readRgb = (name: string, fallback: string) => {
@@ -92,8 +92,14 @@ const ImmersiveWorldComponent: React.FC<{ children: React.ReactNode }> = ({ chil
   // ThemeProvider has already written the new CSS variables.
   useEffect(() => {
     if (!living || !starsRef.current) return;
+    const canvas = starsRef.current;
     const tint = vicesMode ? '255,90,90' : readRgb('--color-primary-glow', '99 102 241');
-    return registerStarfield(createStarfield(starsRef.current, FIELDS.slice(0, depthCount), tint));
+    const unregister = registerStarfield(createStarfield(canvas, FIELDS.slice(0, depthCount), tint));
+    return () => {
+      unregister();
+      // Re-seeded on a theme change; its sky worker stops only once the canvas is gone.
+      window.setTimeout(() => { if (!canvas.isConnected) releaseStarfield(canvas); }, 0);
+    };
   }, [theme, vicesMode, living, depthCount]);
 
   // The day's mood sets how bright the stars are and how fast the sky drifts.

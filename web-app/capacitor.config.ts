@@ -4,6 +4,9 @@ const config: CapacitorConfig = {
   appId: 'com.luxresilient.app',
   appName: 'Lux',
   webDir: 'dist',
+  // The WebView's own colour shows through for any frame a layer isn't drawn
+  // yet; dark like the app instead of the default white (no white flashes).
+  backgroundColor: '#020204',
   server: {
     androidScheme: 'https'
   },

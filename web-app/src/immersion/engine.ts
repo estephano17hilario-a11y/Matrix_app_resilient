@@ -3,6 +3,7 @@ import { getImmersionPrefs, immersionActive, subscribeImmersionPrefs } from './i
 import { playTouch, playTravel } from './spatialSound';
 import { applyPerfClass, getPerfTier, reportFrame, subscribePerf } from './perf';
 import type { Pulse, Starfield } from './starfield';
+import { revealNow } from './reveal';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LUX IMMERSION ENGINE
@@ -61,8 +62,28 @@ const ambientDrift = () => hoverCapable && getPerfTier() === 0;
 
 // ── Frame loop ───────────────────────────────────────────────────────────────
 
+// The worker sky animates itself: it only needs to know where things are
+// heading. Sent whenever a target changes (deduplicated in starfield.ts).
+const pushSky = () => {
+  if (!starfield?.drivesItself) return;
+  const tiltFactor = getPerfTier() >= 2 ? 0 : 1;
+  starfield.setInputs({
+    camTarget: cam.target,
+    width: window.innerWidth,
+    tiltX: tilt.tx * tiltFactor,
+    tiltY: tilt.ty * tiltFactor,
+    scroll: scroll.ty,
+    stars: mood.stars,
+    energy: mood.energy,
+    drift: ambientDrift(),
+    halfRate: getPerfTier() >= 2,
+    instant: !immersionActive(),
+  });
+};
+
 const drawStars = (now = performance.now()) => {
   if (!starfield) return;
+  if (starfield.drivesItself) { pushSky(); return; }
   if (ambientDrift()) {
     if (lastDriftAt) driftTime += Math.min(now - lastDriftAt, 100) / 1000 * mood.energy;
     lastDriftAt = now;
@@ -95,11 +116,13 @@ const render = (now = performance.now()) => {
   const w = window.innerWidth;
   const h = window.innerHeight;
 
-  // When only the hand is moving (no travel, scroll or pulses), a reduced tier
-  // repaints the sky every other frame; the DOM layers still move at 60fps.
+  // The sky is cheap to draw (sprites, see starfield.ts), so it moves at full
+  // rate; only the minimal tier repaints it every other frame while nothing
+  // but the hand moves it. Travel always runs at full rate.
   const onlyTilt = Math.abs(cam.v) < 0.002 && Math.abs(scroll.ty - scroll.y) < 0.3 && pulses.length === 0;
+  const halfRate = onlyTilt && getPerfTier() >= 2;
   frameParity ^= 1;
-  if (!(onlyTilt && getPerfTier() >= 1 && frameParity)) drawStars(now);
+  if (!(halfRate && frameParity)) drawStars(now);
 
   layers.forEach(layer => {
     if (layer.kind === 'far') {
@@ -154,7 +177,7 @@ const step = (now: number) => {
     frameParity = 0;
     render(now);
     lastFrame = 0;
-    if (ambientDrift() && starfield && immersionActive()) raf = requestAnimationFrame(idle);
+    if (ambientDrift() && starfield && !starfield.drivesItself && immersionActive()) raf = requestAnimationFrame(idle);
     return;
   }
   raf = requestAnimationFrame(step);
@@ -170,6 +193,7 @@ const idle = (now: number) => {
 
 const wake = () => {
   if (document.hidden) return;
+  pushSky(); // the sky starts moving now, without waiting for a main-thread frame
   if (raf) cancelAnimationFrame(raf); // an idle frame may be queued: switch to physics
   raf = requestAnimationFrame(step);
 };
@@ -179,8 +203,15 @@ const wake = () => {
 // Neutral orientation adapts slowly to however the phone is being held.
 const base = { beta: NaN, gamma: NaN };
 
+// While a finger is on the glass (tapping, scrolling) the sky stops following
+// the tilt, so every frame goes to the interface; it eases back afterwards.
+let touchingUntil = 0;
+const onTouchStart = () => { touchingUntil = Infinity; };
+const onTouchEnd = () => { touchingUntil = performance.now() + 450; };
+
 const onOrientation = (e: DeviceOrientationEvent) => {
   if (e.beta == null || e.gamma == null) return;
+  if (performance.now() < touchingUntil) return;
   if (Number.isNaN(base.beta)) { base.beta = e.beta; base.gamma = e.gamma; }
   base.beta += (e.beta - base.beta) * 0.012;
   base.gamma += (e.gamma - base.gamma) * 0.012;
@@ -212,12 +243,19 @@ const bindMotion = (on: boolean) => {
   motionBound = on;
   if (on) {
     window.addEventListener('deviceorientation', onOrientation);
+    window.addEventListener('touchstart', onTouchStart, { passive: true, capture: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true, capture: true });
+    window.addEventListener('touchcancel', onTouchEnd, { passive: true, capture: true });
     if (hoverCapable) {
       window.addEventListener('pointermove', onPointerMove, { passive: true });
       document.documentElement.addEventListener('pointerleave', onPointerLeave);
     }
   } else {
     window.removeEventListener('deviceorientation', onOrientation);
+    window.removeEventListener('touchstart', onTouchStart, true);
+    window.removeEventListener('touchend', onTouchEnd, true);
+    window.removeEventListener('touchcancel', onTouchEnd, true);
+    touchingUntil = 0;
     window.removeEventListener('pointermove', onPointerMove);
     document.documentElement.removeEventListener('pointerleave', onPointerLeave);
     base.beta = NaN;
@@ -311,13 +349,23 @@ export const subscribeSceneAccent = (l: (rgb: string) => void) => {
   return () => { accentListeners.delete(l); };
 };
 
+let accentTimer = 0;
+
 export const setSceneAccent = (scene: string) => {
   const rgb = SCENE_ACCENTS[scene];
-  if (!rgb || rgb === accent) return;
-  accent = rgb;
-  // One style recalc per navigation (never per frame).
-  document.documentElement.style.setProperty('--lux-accent', rgb);
-  accentListeners.forEach(l => l(rgb));
+  if (!rgb) return;
+  window.clearTimeout(accentTimer);
+  if (rgb === accent) return;
+  const apply = () => {
+    accent = rgb;
+    // One style recalc per navigation (never per frame). It restyles the whole
+    // document, so after boot it lands once the scene has glided in, not in
+    // the frame that has to render the new section.
+    document.documentElement.style.setProperty('--lux-accent', rgb);
+    accentListeners.forEach(l => l(rgb));
+  };
+  if (!accent) apply();
+  else accentTimer = window.setTimeout(apply, TRAVEL_MS);
 };
 
 export const setScene = (index: number) => {
@@ -337,16 +385,11 @@ export const setWorldScroll = (y: number) => {
 
 export const hasArrived = () => arrived;
 
-// Fires the "arrival" sequence on the world when the app finishes booting.
+// The app finished booting. (The sky no longer plays an entrance of its own:
+// the boot is just the name fading, and the world is already there behind it.)
 export const arrive = () => {
-  const root = document.documentElement;
   arrived = true;
   window.dispatchEvent(new Event('lux:arrived'));
-  if (!immersionActive()) return;
-  root.classList.remove('lux-arriving');
-  void root.offsetWidth; // restart the CSS animation
-  root.classList.add('lux-arriving');
-  window.setTimeout(() => root.classList.remove('lux-arriving'), 2200);
 };
 
 // ── Impact ───────────────────────────────────────────────────────────────────
@@ -372,6 +415,7 @@ const toRgb = (color?: string) => {
 // from the point where something was achieved.
 export const pulseWorld = (x: number, y: number, color?: string) => {
   if (!starfield || !immersionActive() || document.hidden) return;
+  if (starfield.drivesItself) { starfield.pulse(x, y, toRgb(color)); return; }
   pulses.push({ x, y, rgb: toRgb(color), start: performance.now() });
   if (pulses.length > 4) pulses.shift();
   wake();
@@ -411,105 +455,60 @@ export const touchFeedback = (kind: WinkKind = 'bloom') => {
 
 type SceneKind = 'travel' | 'depth';
 
-let transitionRunning = false;
-let activeTransition: { skipTransition?: () => void } | null = null;
+// Scene travel, built for phones. The section changes on the same tap (no
+// snapshot of the screen is taken first, which is what made Android wait), and
+// the new section glides in from the direction of travel while the sky moves.
+// Only `transform` is animated, on the content alone: no opacity, filter or
+// mask, so the dock and every frosted panel keep their blur the whole time and
+// the section is complete from the first frame.
+const TRAVEL_MS = 260;
+const DEPTH_MS = 280;
+let sceneAnim: Animation | null = null;
 
-// While a view transition plays, the browser doesn't deliver taps to the real
-// interface, so a quick second tap on the dock used to be lost. Any touch now
-// fast-forwards the running transition to its end first; the tap's click
-// (dispatched on release) then reaches the interface as usual.
-//
-// The press itself landed on the transition overlay, though, so when the
-// finger lifts over a button the browser sends the click to their common
-// ancestor (the root), not to the button. In that case the tap is delivered to
-// the control under the finger by hand — only if the browser didn't.
-const TAPPABLE = 'button, a[href], [role="button"], [role="tab"], [role="switch"], [role="menuitem"]';
-let skipOnTouchBound = false;
-const bindSkipOnTouch = () => {
-  if (skipOnTouchBound || typeof window === 'undefined') return;
-  skipOnTouchBound = true;
-  let pendingTap: { x: number; y: number; id: number } | null = null;
-  let awaiting: HTMLElement | null = null;
+const reducedMotion = () =>
+  typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-  window.addEventListener('pointerdown', e => {
-    if (!activeTransition) return;
-    pendingTap = { x: e.clientX, y: e.clientY, id: e.pointerId };
-    try { activeTransition.skipTransition?.(); } catch { /* already finished */ }
-  }, { capture: true, passive: true });
-
-  window.addEventListener('pointerup', e => {
-    const tap = pendingTap;
-    pendingTap = null;
-    if (!tap || e.pointerId !== tap.id) return;
-    if (Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 12) return; // a drag, not a tap
-    const target = document.elementFromPoint(e.clientX, e.clientY)?.closest(TAPPABLE) as HTMLElement | null;
-    if (!target || (target as HTMLButtonElement).disabled) return;
-    awaiting = target;
-    // The native click (if any) fires right after pointerup, before this frame.
-    requestAnimationFrame(() => {
-      if (awaiting === target) target.click();
-      awaiting = null;
-    });
-  }, { capture: true, passive: true });
-
-  window.addEventListener('click', e => {
-    if (awaiting && e.isTrusted && e.target instanceof Node && awaiting.contains(e.target)) awaiting = null;
-  }, { capture: true });
+const playArrival = (direction: number, kind: SceneKind) => {
+  const scene = document.querySelector('[data-lux-scene]') as HTMLElement | null;
+  if (!scene || typeof scene.animate !== 'function') return;
+  sceneAnim?.cancel();
+  if (kind === 'depth') {
+    // A sub-section (Protocols ↔ Vices, Missions ↔ Strategy…) surfaces in place:
+    // a soft fade with a hint of zoom around the centre of what is on screen
+    // (the section can be much taller than the screen, so its own centre would
+    // make the visible part drift). Nothing moves up or down.
+    const r = scene.getBoundingClientRect();
+    scene.style.transformOrigin = `50% ${(window.innerHeight / 2 - r.top).toFixed(0)}px`;
+    sceneAnim = scene.animate(
+      [{ opacity: 0.2, transform: 'scale(0.985)' }, { opacity: 1, transform: 'scale(1)' }],
+      { duration: DEPTH_MS, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' },
+    );
+  } else {
+    const shift = Math.min(window.innerWidth, 640) * 0.07 * (direction >= 0 ? 1 : -1);
+    sceneAnim = scene.animate(
+      [{ transform: `translate3d(${shift.toFixed(1)}px, 0, 0)` }, { transform: 'translate3d(0, 0, 0)' }],
+      { duration: TRAVEL_MS, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+    );
+  }
+  const done = sceneAnim;
+  done.onfinish = done.oncancel = () => { if (sceneAnim === done) sceneAnim = null; };
 };
 
 /**
- * Applies a navigation state change as a scene transition.
- *
- * Uses the View Transitions API when available: the old screen recedes while
- * the new one flies in from the direction of travel. The world background is
- * excluded from the snapshot so it keeps moving live underneath. Without
- * support (or with immersion off) the update is applied instantly, exactly as
- * before.
+ * Applies a navigation state change as a scene transition: the change is
+ * committed synchronously (with everything in the new section revealed at
+ * once), then the section glides in. With immersion off or reduced motion the
+ * change is simply applied.
  */
 export const runSceneTransition = (update: () => void, direction: number, kind: SceneKind = 'travel') => {
-  const doc = document as Document & { startViewTransition?: (cb: () => void) => { finished: Promise<void>; skipTransition?: () => void } };
   const active = immersionActive();
-  bindSkipOnTouch();
-
-  // A navigation while another transition is still playing: finish that one
-  // now instead of making the user wait for it.
-  if (transitionRunning && activeTransition) {
-    try { activeTransition.skipTransition?.(); } catch { /* ignore */ }
-  }
-
   if (active) {
     haptic(kind === 'travel' ? 12 : 7);
     if (getImmersionPrefs().sound) playTravel(kind === 'travel' ? Math.sign(direction) : 0);
   }
 
-  if (!active || !doc.startViewTransition || document.hidden) {
-    update();
-    return;
-  }
+  try { flushSync(update); } catch { update(); }
+  revealNow(document.querySelector('[data-lux-stage]') || document);
 
-  const root = document.documentElement;
-  root.dataset.luxScene = kind === 'depth' ? 'depth' : direction >= 0 ? 'fwd' : 'back';
-  root.classList.add('lux-vt');
-  transitionRunning = true;
-
-  let vt: { finished: Promise<void>; skipTransition?: () => void } | null = null;
-  const cleanup = () => {
-    if (activeTransition !== vt) return; // a newer transition owns the state now
-    transitionRunning = false;
-    activeTransition = null;
-    root.classList.remove('lux-vt');
-    delete root.dataset.luxScene;
-  };
-
-  try {
-    vt = doc.startViewTransition(() => { flushSync(update); });
-    activeTransition = vt;
-    vt.finished.then(cleanup, cleanup);
-  } catch {
-    transitionRunning = false;
-    activeTransition = null;
-    root.classList.remove('lux-vt');
-    delete root.dataset.luxScene;
-    update();
-  }
+  if (active && !reducedMotion() && !document.hidden) playArrival(direction, kind);
 };

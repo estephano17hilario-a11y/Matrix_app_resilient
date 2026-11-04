@@ -175,8 +175,8 @@ export const MoodSnakeChart = ({ data }: MoodSnakeChartProps) => {
                     })}
 
                     {/* --- THE SNAKE BODY --- */}
-                    <motion.path 
-                        initial={{ pathLength: 0, opacity: 0 }}
+                    <motion.path
+                        initial={false}
                         animate={{ pathLength: 1, opacity: 1 }}
                         transition={{ duration: 0.25, ease: "easeOut" }}
                         d={pathData} 

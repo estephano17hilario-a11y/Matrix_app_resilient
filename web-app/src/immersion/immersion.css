@@ -106,68 +106,24 @@ html.lux-arriving .lux-far {
   from { opacity: 0.25; }
 }
 
-/* ── SCENE TRANSITIONS (View Transitions API) ──────────────────────────────── */
+/* ── SCENE TRAVEL ──────────────────────────────────────────────────────────── */
 
-/* Names exist only while a transition runs: a named element becomes a
-   backdrop root, which would flatten the dock's frosted glass at rest. */
-html.lux-vt [data-lux-stage] { view-transition-name: lux-stage; }
-html.lux-vt [data-lux-hud] { view-transition-name: lux-hud; }
-html.lux-vt [data-lux-dock] { view-transition-name: lux-dock; }
+/* The section glides in with a transform-only Web Animation (engine.ts): no
+   screen snapshot, no opacity/filter/mask, so the dock and frosted panels keep
+   their blur and the section is whole from the first frame. The animation
+   promotes the layer only while it plays. */
 
-/* Let taps through while the animation plays. */
-html.lux-vt::view-transition { pointer-events: none; }
-
-/* The world is not frozen in a snapshot: it keeps moving live underneath. */
-html.lux-vt::view-transition-old(root) { display: none; }
-html.lux-vt::view-transition-new(root) { animation: none; }
-
-html.lux-vt::view-transition-group(lux-stage) { animation-duration: 0.66s; }
-html.lux-vt::view-transition-image-pair(lux-stage) { isolation: auto; }
-html.lux-vt::view-transition-old(lux-stage),
-html.lux-vt::view-transition-new(lux-stage) {
-  mix-blend-mode: normal;
-  /* While travelling, the dock can't frost what passes behind it (a named
-     element samples no backdrop), so the content fades out right where the
-     dock begins instead of sliding crisp under the glass. */
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 150px), transparent calc(100% - 64px));
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 150px), transparent calc(100% - 64px));
+/* Android: the layers that move on navigation (the section glide, the
+   interface receding behind the dock) are composited from the start, so their
+   first animation doesn't begin by rasterising the whole screen, and the end
+   of one doesn't rasterise it again. `will-change: opacity`, not transform: a
+   transform hint would make them the containing block of the fixed-position
+   modals inside the sections. Inner backdrop blurs are already off on
+   Android, so being a backdrop root costs nothing there. */
+html.android-webview [data-lux-scene],
+html.android-webview .lux-depth-layer {
+  will-change: opacity;
 }
-
-html.lux-vt::view-transition-group(lux-hud),
-html.lux-vt::view-transition-group(lux-dock) { animation-duration: 0.42s; }
-
-/* Phones (and reduced tiers) travel without blur: a full-screen blur on two
-   snapshots is the single most expensive thing a mobile GPU could do here. */
-html[data-lux-scene='fwd']::view-transition-old(lux-stage)   { animation: lux-out-fwd-lite 0.26s var(--lux-ease-exit) both; }
-html[data-lux-scene='fwd']::view-transition-new(lux-stage)   { animation: lux-in-fwd-lite 0.6s var(--lux-ease-out) 0.04s both; }
-html[data-lux-scene='back']::view-transition-old(lux-stage)  { animation: lux-out-back-lite 0.26s var(--lux-ease-exit) both; }
-html[data-lux-scene='back']::view-transition-new(lux-stage)  { animation: lux-in-back-lite 0.6s var(--lux-ease-out) 0.04s both; }
-html[data-lux-scene='depth']::view-transition-old(lux-stage) { animation: lux-out-depth-lite 0.24s var(--lux-ease-exit) both; }
-html[data-lux-scene='depth']::view-transition-new(lux-stage) { animation: lux-in-depth-lite 0.56s var(--lux-ease-out) 0.04s both; }
-
-/* Desktop at full quality: the same travel with motion blur. */
-@media (hover: hover) and (pointer: fine) {
-  html:not(.lux-lite)[data-lux-scene='fwd']::view-transition-old(lux-stage)   { animation-name: lux-out-fwd; }
-  html:not(.lux-lite)[data-lux-scene='fwd']::view-transition-new(lux-stage)   { animation-name: lux-in-fwd; }
-  html:not(.lux-lite)[data-lux-scene='back']::view-transition-old(lux-stage)  { animation-name: lux-out-back; }
-  html:not(.lux-lite)[data-lux-scene='back']::view-transition-new(lux-stage)  { animation-name: lux-in-back; }
-  html:not(.lux-lite)[data-lux-scene='depth']::view-transition-old(lux-stage) { animation-name: lux-out-depth; }
-  html:not(.lux-lite)[data-lux-scene='depth']::view-transition-new(lux-stage) { animation-name: lux-in-depth; }
-}
-
-@keyframes lux-out-fwd   { to   { opacity: 0; transform: translate3d(-7%, 0, 0) scale(0.93); filter: blur(6px); } }
-@keyframes lux-in-fwd    { from { opacity: 0; transform: translate3d(10%, 0, 0) scale(0.97); filter: blur(10px); } }
-@keyframes lux-out-back  { to   { opacity: 0; transform: translate3d(7%, 0, 0) scale(0.93); filter: blur(6px); } }
-@keyframes lux-in-back   { from { opacity: 0; transform: translate3d(-10%, 0, 0) scale(0.97); filter: blur(10px); } }
-@keyframes lux-out-depth { to   { opacity: 0; transform: scale(0.9); filter: blur(6px); } }
-@keyframes lux-in-depth  { from { opacity: 0; transform: scale(1.07); filter: blur(10px); } }
-
-@keyframes lux-out-fwd-lite   { to   { opacity: 0; transform: translate3d(-7%, 0, 0) scale(0.93); } }
-@keyframes lux-in-fwd-lite    { from { opacity: 0; transform: translate3d(10%, 0, 0) scale(0.97); } }
-@keyframes lux-out-back-lite  { to   { opacity: 0; transform: translate3d(7%, 0, 0) scale(0.93); } }
-@keyframes lux-in-back-lite   { from { opacity: 0; transform: translate3d(-10%, 0, 0) scale(0.97); } }
-@keyframes lux-out-depth-lite { to   { opacity: 0; transform: scale(0.9); } }
-@keyframes lux-in-depth-lite  { from { opacity: 0; transform: scale(1.07); } }
 
 /* ── DEPTH: the interface recedes when something comes forward ─────────────── */
 
@@ -194,6 +150,9 @@ html.lux-immersive .lux-reveal-armed.lux-in {
 @keyframes lux-rise {
   from { opacity: 0; transform: translate3d(0, 26px, 0) scale(0.965); }
 }
+
+/* Arrived with its scene: no rise of its own. */
+html.lux-immersive .lux-reveal-armed.lux-in.lux-instant { animation: none; }
 
 /* ── GLASS SHEEN ───────────────────────────────────────────────────────────── */
 
@@ -231,11 +190,18 @@ html:not(.lux-immersive) .lux-sheen-clip { display: none; }
   margin: -23px 0 0 -23px;
   border-radius: 50%;
   pointer-events: none;
+  /* Lit on the active section with a compositor transition (it used to glide
+     with a JS layout animation, which cost main-thread work every frame). */
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.22s ease, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   background: radial-gradient(circle,
     rgba(255, 255, 255, 0.16) 0%,
     rgb(var(--color-primary-glow) / 0.2) 38%,
     transparent 70%);
 }
+
+.lux-dock-light[data-on='true'] { opacity: 1; transform: scale(1); }
 
 .lux-dock-light::after {
   content: '';
@@ -477,6 +443,13 @@ html.lux-immersive [data-lux-recede='true'] .lux-depth-layer {
   will-change: transform, opacity;
 }
 
+/* Android keeps the same hint the whole time (see above): switching
+   will-change re-creates the layer, and for the frame it isn't rasterised
+   yet the WebView shows through — that was the white flash on "+". */
+html.android-webview [data-lux-recede='true'] .lux-depth-layer {
+  will-change: opacity;
+}
+
 /* Hold-to-confirm stays lit while held (the global :active press dims buttons). */
 button.lux-hold:active {
   opacity: 1 !important;
@@ -525,6 +498,37 @@ button.lux-hold:active {
 
 html.lux-lite .lux-shine::before, html.lux-lite .lux-gem { animation: none !important; }
 html.lux-lite .lux-shine::before { opacity: 0; }
+
+/* ── AMBIENT LOOPS (CSS, compositor-only) ─────────────────────────────────────
+   These replaced JS-driven infinite framer-motion loops: a single one of those
+   keeps the main thread busy every frame, forever, even in a hidden section. */
+
+@keyframes lux-dot-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.6; }
+}
+@keyframes lux-ring-ping {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.15); opacity: 0; }
+}
+/* Sweep across in the first part of the cycle, then rest (the old repeatDelay). */
+@keyframes lux-bar-sweep {
+  0% { transform: translate3d(-100%, 0, 0); }
+  55%, 100% { transform: translate3d(200%, 0, 0); }
+}
+@keyframes lux-wave {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+@keyframes lux-soft-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Android: decorative loops that repaint every frame (an animated gradient
+   behind clipped text, a blurred spinning conic glow) stay still. */
+html.android-webview .text-galactic { animation: none !important; }
+html.android-webview .btn-orb-glow::before { animation: none !important; }
 
 /* ── REDUCED MOTION ────────────────────────────────────────────────────────── */
 

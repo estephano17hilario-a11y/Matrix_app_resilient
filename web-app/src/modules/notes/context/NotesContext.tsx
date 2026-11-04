@@ -255,30 +255,19 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const existing = journalRef.current;
         const isNew = !existing.some(e => e.id === entry.id);
 
-        setJournalEntries(prev => {
-            const index = prev.findIndex(e => e.id === entry.id);
-            if (index >= 0) {
-                const newEntries = [...prev];
-                newEntries[index] = entry;
-                return newEntries;
-            }
-            return [...prev, entry];
-        });
-
         const currentEntries = journalRef.current;
-        const index = currentEntries.findIndex(e => e.id === entry.id);
+        const index = currentEntries.findIndex(e => e.id === entry.id || e.date === entry.date);
+        const finalEntry = index >= 0 ? { ...entry, id: currentEntries[index].id } : entry;
         const computedNextEntries = index >= 0 
-            ? currentEntries.map(e => e.id === entry.id ? entry : e) 
-            : [...currentEntries, entry];
+            ? currentEntries.map((e, i) => i === index ? finalEntry : e) 
+            : [...currentEntries, finalEntry];
+        journalRef.current = computedNextEntries;
+        setJournalEntries(computedNextEntries);
 
         PersistenceService.saveCollection(user.id, 'journal', computedNextEntries);
         PersistenceService.saveCollectionSafe(user.id, 'journal', computedNextEntries);
 
-        if (!isNew) {
-            persistenceService.journal.update(user.id, entry.id, entry).catch(err => console.error("Error updating journal:", err));
-        } else {
-            persistenceService.journal.save(user.id, entry).catch(err => console.error("Error saving journal:", err));
-        }
+        persistenceService.journal.save(user.id, finalEntry).catch(err => console.error("Error saving journal:", err));
         return { isNew };
     }, [user?.id]);
 

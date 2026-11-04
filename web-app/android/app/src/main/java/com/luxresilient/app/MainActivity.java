@@ -7,9 +7,34 @@ import com.luxresilient.app.widget.WidgetAuthBridge;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+        // Local plugins MUST be registered before super.onCreate(), which builds the Capacitor
+        // bridge. Registering afterwards leaves them "not implemented on android".
+        purgeNonStringCapacitorPrefs();
         registerPlugin(FocusPlugin.class);
         registerPlugin(WidgetAuthBridge.class);
+        super.onCreate(savedInstanceState);
+    }
+
+    /**
+     * Capacitor's Preferences plugin reads every entry of "CapacitorStorage" with getString().
+     * Any Float/Int/Boolean left there (older widget code wrote some) throws a ClassCastException
+     * that kills the app on every launch, so drop them before the bridge starts.
+     */
+    private void purgeNonStringCapacitorPrefs() {
+        try {
+            android.content.SharedPreferences prefs = getSharedPreferences("CapacitorStorage", MODE_PRIVATE);
+            android.content.SharedPreferences.Editor editor = prefs.edit();
+            boolean dirty = false;
+            for (java.util.Map.Entry<String, ?> entry : prefs.getAll().entrySet()) {
+                if (!(entry.getValue() instanceof String)) {
+                    editor.remove(entry.getKey());
+                    dirty = true;
+                }
+            }
+            if (dirty) editor.commit();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

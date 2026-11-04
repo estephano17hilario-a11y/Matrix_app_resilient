@@ -79,7 +79,7 @@ export const FeedMiniChart: React.FC<FeedMiniChartProps> = ({
             strokeWidth={2}
             strokeLinecap="round"
             strokeLinejoin="round"
-            initial={{ pathLength: 0 }}
+            initial={false}
             animate={{ pathLength: 1 }}
             transition={{ delay, duration: 1, ease: [0.16, 1, 0.3, 1] }}
           />

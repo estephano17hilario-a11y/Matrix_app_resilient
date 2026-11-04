@@ -24,6 +24,7 @@ class SupabaseWidgetClient(private val context: Context) {
 
     companion object {
         private const val TAG = "SupabaseWidgetClient"
+        private const val ALLOW_WIDGET_TOKEN_REFRESH = false
         private const val SUPABASE_URL = "https://api.89.117.73.97.sslip.io"
         private const val SUPABASE_ANON_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc4Nzg0OTc2MCwiZXhwIjo0OTQzNTIzMzYwLCJyb2xlIjoiYW5vbiJ9._DvifLx6sViDd5UePak7xswzmT6dQp9FoQZqPnyxeRU"
         private const val REST_PATH = "/rest/v1"
@@ -747,6 +748,13 @@ class SupabaseWidgetClient(private val context: Context) {
     @Synchronized
     private fun refreshAccessToken(): String? {
         val prefs = context.getSharedPreferences("lux_widget_auth", Context.MODE_PRIVATE)
+        // The refresh token belongs exclusively to the app: Supabase rotates it on every use, so
+        // redeeming it here invalidates the app's copy and logs the user out. The app pushes a
+        // fresh access token via WidgetAuthBridge.shareSession whenever it refreshes its session.
+        if (!ALLOW_WIDGET_TOKEN_REFRESH) {
+            Log.w(TAG, "Widget token refresh disabled; waiting for the app to share a fresh session")
+            return null
+        }
         val refreshToken = prefs.getString("refresh_token", null)
         if (refreshToken.isNullOrEmpty()) {
             Log.w(TAG, "No refresh token available to refresh session")
@@ -819,6 +827,22 @@ class SupabaseWidgetClient(private val context: Context) {
         val (userId, accessToken) = getCredentials()
         return userId != null && accessToken != null
     }
+
+    /** Authenticated GET on the REST API (e.g. "duels?select=*"). Null on failure. */
+    fun restGet(pathAndQuery: String): String? {
+        val (_, token) = getCredentials()
+        if (token.isNullOrEmpty()) return null
+        return makeGetRequest("$SUPABASE_URL$REST_PATH/$pathAndQuery", token)
+    }
+
+    /** Authenticated PATCH on the REST API. */
+    fun restPatch(pathAndQuery: String, jsonBody: String): Boolean {
+        val (_, token) = getCredentials()
+        if (token.isNullOrEmpty()) return false
+        return makePatchRequest("$SUPABASE_URL$REST_PATH/$pathAndQuery", jsonBody, token)
+    }
+
+    fun currentUserId(): String? = getCredentials().first
 
     /**
      * Fetch projects for the user

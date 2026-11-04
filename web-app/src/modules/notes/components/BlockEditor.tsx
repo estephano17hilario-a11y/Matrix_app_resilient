@@ -60,7 +60,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
             if (b.type === 'quote') return `<blockquote class="pl-4 border-l-4 border-cyan-400 italic my-2 text-cyan-200/90">${rawContent || ''}</blockquote>`;
             if (b.type === 'code') return `<pre class="bg-black/60 p-3.5 rounded-xl border border-white/10 font-mono text-emerald-400 text-sm my-2 overflow-x-auto"><code>${rawContent || '// Escribe tu código aquí...'}</code></pre>`;
             if (b.type === 'latex') return `<div class="bg-purple-950/40 p-3 rounded-xl border border-purple-500/30 font-mono text-rose-300 my-2 latex-item flex items-center gap-2.5"><span class="px-2.5 py-1 rounded-md bg-purple-500/20 text-xs font-black text-rose-300 border border-purple-500/40 select-none shadow-sm">∑ LaTeX</span><span>${rawContent || 'E=mc^2'}</span></div>`;
-            return `<div>${rawContent || ''}</div>`;
+            return `<div>${rawContent || '<br>'}</div>`;
         }).join('');
     };
 
@@ -120,7 +120,7 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
             return {
                 id: (index + 1).toString(),
                 type: type,
-                content: content,
+                content: content.trim() === '<br>' ? '' : content,
                 checked: isCheck ? !!(el.querySelector('input[type="checkbox"]') as HTMLInputElement)?.checked : false
             };
         });

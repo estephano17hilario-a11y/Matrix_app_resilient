@@ -96,10 +96,9 @@ export const FeedWeekSummary: React.FC<FeedWeekSummaryProps> = ({ entries, delay
     >
       {/* Dynamic top accent bar with shimmer */}
       <div className={`absolute top-0 left-0 right-0 h-[3px] z-10 ${cardStyle.barClass}`}>
-        <motion.div
+        <div
           className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent"
-          animate={{ x: ['-100%', '200%'] }}
-          transition={{ duration: 3.5, repeat: Infinity, ease: 'linear', repeatDelay: 1.5 }}
+          style={{ animation: 'lux-bar-sweep 5s linear infinite' }}
         />
       </div>
 
@@ -116,11 +115,9 @@ export const FeedWeekSummary: React.FC<FeedWeekSummaryProps> = ({ entries, delay
       <div className="relative p-4 flex flex-col gap-3">
         {/* Header Title */}
         <div className="flex items-center gap-1.5 relative z-10 shrink-0">
-          <motion.div 
+          <div
             className="w-1.5 h-1.5 rounded-full"
-            style={{ backgroundColor: scoreColor }}
-            animate={{ scale: [1, 1.3, 1], opacity: [1, 0.6, 1] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+            style={{ backgroundColor: scoreColor, animation: 'lux-dot-pulse 2.5s ease-in-out infinite' }}
           />
           <span className="text-[9px] font-black text-white/45 uppercase tracking-[0.15em]">
             {t('feed.weekly.summaryTitle')}

@@ -13,6 +13,7 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="com.android.vending.BILLING" />
 
     <!-- ============================================================ -->
@@ -238,6 +239,53 @@
                 android:resource="@xml/rivals_widget_info" />
         </receiver>
         <!-- Google Play Services version -->
+        <!-- Social: duel + shared-streak widgets, friend picker, background alarms -->
+        <receiver
+            android:name=".widget.DuelWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_duel_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.luxresilient.app.REFRESH_DUEL_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/duel_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.FriendStreakWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_friend_streak_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.luxresilient.app.REFRESH_STREAK_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/friend_streak_widget_info" />
+        </receiver>
+
+        <activity
+            android:name=".widget.FriendPickerActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
+            android:taskAffinity=""
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <receiver
+            android:name=".widget.SocialAlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version" />
 
     </application>

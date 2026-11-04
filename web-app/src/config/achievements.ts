@@ -1,8 +1,9 @@
 import { Flame, Zap, Brain, Target, Dumbbell, Users, Ghost, Wallet, Palette, Anchor, Crown, Shield, Feather } from 'lucide-react';
 import { UserData } from '../types/User';
 import { Attribute } from '../types';
+import { socialWins } from '@/modules/social/socialWins';
 
-export type AchievementCategory = 'LEVEL' | 'STREAK' | 'RANK' | 'TRAIT';
+export type AchievementCategory = 'LEVEL' | 'STREAK' | 'RANK' | 'TRAIT' | 'SOCIAL';
 
 export interface Achievement {
   id: string;
@@ -86,6 +87,11 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'STR_075', title: 'achievements.streak.075.title', description: 'achievements.streak.075.desc', icon: Flame, category: 'STREAK', condition: (user) => user.stats.streak >= 75, xpReward: 4000, arc: 'Legend' },
   { id: 'STR_100', title: 'achievements.streak.100.title', description: 'achievements.streak.100.desc', icon: Flame, category: 'STREAK', condition: (user) => user.stats.streak >= 100, xpReward: 5000, arc: 'Legend' },
   { id: 'STR_200', title: 'achievements.streak.200.title', description: 'achievements.streak.200.desc', icon: Flame, category: 'STREAK', condition: (user) => user.stats.streak >= 200, xpReward: 10000, arc: 'Legend' },
+
+  // --- SOCIAL ACHIEVEMENTS (friend duels) ---
+  { id: 'DUEL_DAY_WIN', title: 'achievements.social.day.title', description: 'achievements.social.day.desc', icon: Users, category: 'SOCIAL', condition: () => socialWins.DAY >= 1, xpReward: 100, arc: 'Rivals' },
+  { id: 'DUEL_WEEK_WIN', title: 'achievements.social.week.title', description: 'achievements.social.week.desc', icon: Crown, category: 'SOCIAL', condition: () => socialWins.WEEK >= 1, xpReward: 400, arc: 'Rivals' },
+  { id: 'DUEL_MONTH_WIN', title: 'achievements.social.month.title', description: 'achievements.social.month.desc', icon: Shield, category: 'SOCIAL', condition: () => socialWins.MONTH >= 1, xpReward: 1500, arc: 'Rivals' },
 
   // --- TRAIT ACHIEVEMENTS ---
   ...generateTraitAchievements()

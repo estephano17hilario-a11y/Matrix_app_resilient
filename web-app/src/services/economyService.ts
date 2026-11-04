@@ -13,12 +13,12 @@ export interface StoreItem {
   name: string;
   description: string;
   price: number;
-  category: 'power_up' | 'theme' | 'radar_color';
+  category: 'power_up' | 'theme' | 'radar_color' | 'chest' | 'frame';
   subCategory?: string; // For grouping items
   icon?: React.ReactNode; // We might handle icons in the UI component mapping
   iconName?: string; // For serializable icon reference
   effect?: {
-    type: 'heal' | 'restore_streak' | 'xp_boost' | 'freeze_streak' | 'none';
+    type: 'heal' | 'restore_streak' | 'xp_boost' | 'freeze_streak' | 'rest_shield' | 'chest' | 'frame' | 'none';
     value: number;
     duration?: number; // hours
   };
@@ -165,7 +165,15 @@ export const consumeItem = async (userId: string, itemId: string, _effect: Store
         stats.streakFrozenUntil = freezeUntil.toISOString();
         break;
       }
+      case 'rest_shield':
+        // The rest day itself is recorded by the progression store.
+        break;
       default:
+        if (itemId.startsWith('chest_')) {
+          // Duel chests: opening one pays its value in gold.
+          stats.gold = (stats.gold || 0) + (Number(itemId.slice(6)) || 0);
+          break;
+        }
         throw new Error(`Efecto para el ítem '${itemId}' no configurado.`);
     }
 

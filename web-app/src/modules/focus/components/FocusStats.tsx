@@ -748,7 +748,7 @@ export const FocusStats = React.memo(({
                     </div>
                 </div>
                 {/* CHART AREA */}
-                <AnimatePresence>
+                <AnimatePresence initial={false}>
                     {isChartMaximized && (
                         <motion.div 
                             initial={{ height: 0, opacity: 0 }}

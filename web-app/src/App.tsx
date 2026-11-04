@@ -15,7 +15,7 @@ import { LuxProvider } from '@/context/LuxContext';
 import { EconomyProvider } from '@/context/EconomyContext';
 import { NotesProvider } from '@/modules/notes/context/NotesContext';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { MotionConfig, motion, AnimatePresence } from 'framer-motion';
+import { MotionConfig } from 'framer-motion';
 import { useNotificationSystem } from './hooks/useNotificationSystem';
 import { TourProvider } from '@/components/TourGuide';
 
@@ -62,23 +62,29 @@ const AppRoutes = () => {
   }, [isLoading, profile, isInitializing]);
 
   const [showSplash, setShowSplash] = useState(true);
+  // The splash overlay fades out with a CSS transition (composited, and it
+  // completes even when no frames are being produced), then unmounts.
+  const [splashMounted, setSplashMounted] = useState(true);
 
   // Reset splash screen status on logout so it triggers again on next login
   useEffect(() => {
     if (!canEnterLux) {
       setShowSplash(true);
+      setSplashMounted(true);
       dashboardUnlockedRef.current = false;
     }
   }, [canEnterLux]);
 
   useEffect(() => {
     if (dashboardUnlocked) {
+      // The name holds for a moment (the app renders and warms up behind it),
+      // then fades out over the already-painted interface.
       const timer = setTimeout(() => {
         setShowSplash(false);
-        // The splash dissolves and the camera drops into the world.
         arrive();
-      }, 1500);
-      return () => clearTimeout(timer);
+      }, 1100);
+      const gone = setTimeout(() => setSplashMounted(false), 1100 + 500);
+      return () => { clearTimeout(timer); clearTimeout(gone); };
     }
   }, [dashboardUnlocked]);
 
@@ -122,33 +128,28 @@ const AppRoutes = () => {
         <LuxProvider userId={user?.id || profile?.uid || 'phantom-user'}>
           <EconomyProvider>
             <NotesProvider>
-              <div 
-                className="w-full h-full origin-center"
-                style={{
-                  opacity: showSplash ? 0 : 1,
-                  // Arrives from depth: the interface surfaces out of the world.
-                  transform: showSplash ? 'scale(0.9) translate(0px, 22px)' : 'scale(1) translate(0px, 0px)',
-                  transition: 'opacity 0.9s cubic-bezier(0.16,1,0.3,1) 0.18s, transform 1.25s cubic-bezier(0.16,1,0.3,1) 0.18s, visibility 0s',
-                  pointerEvents: showSplash ? 'none' : 'auto',
-                  visibility: showSplash ? 'hidden' : 'visible'
-                }}
+              {/* Rendered and painted behind the opaque splash from the start, so
+                  when the name fades out the interface is already on screen (no
+                  first-paint or raster work in the first second). */}
+              <div
+                className="w-full h-full"
+                style={{ pointerEvents: showSplash ? 'none' : 'auto' }}
               >
                 <Dashboard isAppLoading={showSplash} />
               </div>
-              <AnimatePresence>
-                {showSplash && (
-                  <motion.div
-                    key="startup-splash-overlay"
-                    initial={{ opacity: 1, scale: 1 }}
-                    // Fly through the logo: it rushes past the camera as it fades.
-                    exit={{ opacity: 0, scale: 1.45 }}
-                    transition={{ duration: 0.85, ease: [0.5, 0, 0.2, 1] }}
-                    className="fixed inset-0 z-[9999] pointer-events-auto"
-                  >
-                    <LoadingScreen />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {splashMounted && (
+                <div
+                  key="startup-splash-overlay"
+                  className="fixed inset-0 z-[9999]"
+                  style={{
+                    opacity: showSplash ? 1 : 0,
+                    transition: 'opacity 0.45s ease-out',
+                    pointerEvents: showSplash ? 'auto' : 'none',
+                  }}
+                >
+                  <LoadingScreen />
+                </div>
+              )}
             </NotesProvider>
           </EconomyProvider>
         </LuxProvider>

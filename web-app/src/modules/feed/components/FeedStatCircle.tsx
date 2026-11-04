@@ -112,14 +112,12 @@ export const FeedStatCircle: React.FC<FeedStatCircleProps> = ({
 
         {/* Completion glow pulse */}
         {isComplete && (
-          <motion.div
+          <div
             className="absolute inset-0 rounded-full pointer-events-none"
-            style={{ 
+            style={{
               border: `2px solid ${gradient[0]}30`,
-              transform: 'translateZ(0)'
+              animation: 'lux-ring-ping 2s ease-in-out infinite',
             }}
-            animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           />
         )}
       </div>

@@ -12,4 +12,8 @@
     <string name="widget_score_description">Muestra tu Score de productividad actualizado</string>
     <string name="widget_rivals_title">Lux · Duelos</string>
     <string name="widget_rivals_description">Muestra tu duelo activo contra las leyendas en tiempo real</string>
+    <string name="widget_duel_title">Lux · Duelo con amigo</string>
+    <string name="widget_duel_description">Tu marcador contra un amigo: días ganados y perdidos, duelo activo y el día de hoy</string>
+    <string name="widget_friend_streak_title">Lux · Racha con amigo</string>
+    <string name="widget_friend_streak_description">Calendario de la racha compartida con un amigo</string>
 </resources>

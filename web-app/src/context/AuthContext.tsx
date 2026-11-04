@@ -113,10 +113,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const { data: { session } } = await supabase.auth.getSession();
         if (session && session.user && Capacitor.isNativePlatform()) {
+          // ⚠️ NEVER share the refresh token with the widget: Supabase rotates refresh tokens,
+          // so if the widget redeems it the app's copy is invalidated and the user is logged out.
           WidgetAuthBridge.shareSession({
             userId: session.user.id,
-            accessToken: session.access_token,
-            refreshToken: session.refresh_token || undefined
+            accessToken: session.access_token
           }).catch(e => console.error("Widget session sharing error from checkInitialSession", e));
         }
       } catch (e) {
@@ -129,19 +130,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       const currentUser = session?.user || null;
+      const wasIntentional = localStorage.getItem('MATRIX_INTENTIONAL_LOGOUT') === 'true';
+      console.log(`🔐 MATRIX AUTH EVENT: ${event} (session: ${session ? 'yes' : 'none'})`);
+      if (!currentUser && event === 'SIGNED_OUT' && !wasIntentional) {
+        // Supabase dropped the session on its own (refresh token rejected/revoked server-side).
+        console.error('🚨 MATRIX AUTH: UNEXPECTED SIGNED_OUT — session was invalidated, not a user logout.');
+        toast.error('Tu sesión fue cerrada por el servidor. Inicia sesión de nuevo.', { duration: 6000 });
+      }
       try {
         // FASE 2: Captura de Tokens de Google para Backups (SSOT)
         if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.provider_token) {
           const { provider_token, provider_refresh_token, user } = session;
           
           if (provider_refresh_token) {
-            await supabase.from('user_integrations').upsert({
-              user_id: user.id,
-              google_access_token: provider_token,
-              google_refresh_token: provider_refresh_token,
-              updated_at: new Date().toISOString()
-            });
-            console.log("🔐 MATRIX: Google Tokens persistidos en SSOT.");
+            // Deferred: awaiting supabase calls inside onAuthStateChange deadlocks the auth
+            // lock and can stall token refreshes (which ends in a forced logout).
+            setTimeout(() => {
+              supabase.from('user_integrations').upsert({
+                user_id: user.id,
+                google_access_token: provider_token,
+                google_refresh_token: provider_refresh_token,
+                updated_at: new Date().toISOString()
+              }).then(({ error: upsertErr }) => {
+                if (upsertErr) console.error("Failed to persist Google tokens:", upsertErr);
+                else console.log("🔐 MATRIX: Google Tokens persistidos en SSOT.");
+              });
+            }, 0);
           }
         }
 
@@ -170,10 +184,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setError(null);
         
         if (Capacitor.isNativePlatform() && session) {
+          // See note in checkInitialSession: the refresh token stays exclusive to the app.
           WidgetAuthBridge.shareSession({
             userId: currentUser.id,
-            accessToken: session.access_token,
-            refreshToken: session.refresh_token || undefined
+            accessToken: session.access_token
           }).catch(e => console.error("Widget session sharing error", e));
         }
         

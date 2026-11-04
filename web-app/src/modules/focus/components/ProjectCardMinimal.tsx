@@ -254,14 +254,11 @@ export const ProjectCardMinimal: React.FC<ProjectCardMinimalProps> = ({ project,
                 <div className="flex items-baseline gap-2 mb-2">
                     <motion.span 
                         className="text-[22px] md:text-[24px] font-black text-white tracking-tighter tabular-nums leading-none"
-                        animate={displayPercentage >= 100 ? { 
-                            opacity: [1, 0.7, 1],
-                            textShadow: [`0 0 10px ${themeColor}66`, `0 0 20px ${themeColor}99`, `0 0 10px ${themeColor}66`]
-                        } : { 
-                            opacity: 1,
-                            textShadow: '0 0 0px transparent'
-                        }}
-                        transition={displayPercentage >= 100 ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : { duration: 0.15 }}
+                        // Done: a soft breathing glow (CSS opacity loop; the text
+                        // shadow is static — animating it repainted every frame).
+                        style={displayPercentage >= 100
+                            ? { textShadow: `0 0 14px ${themeColor}88`, animation: 'lux-soft-pulse 3s ease-in-out infinite' }
+                            : undefined}
                     >
                         {timeString}
                     </motion.span>

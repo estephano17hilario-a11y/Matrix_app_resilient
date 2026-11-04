@@ -4,6 +4,7 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import FocusSession from '../../../plugins/FocusPlugin';
+import { focusBus } from '../../progression/focusBus';
 
 export interface FocusSessionState {
     projectId: string;
@@ -98,6 +99,18 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
     const [isPaused, setIsPaused] = useState(false);
     
     const lastTickRef = useRef<number>(0);
+
+    // Progression: segment start/pauses (report) and live elapsed time (immediate focus ELO).
+    useEffect(() => {
+        if (!isActive) return;
+        if (isPaused) focusBus.pause(project.id);
+        else focusBus.start(project.id, mode === 'POMO' ? totalDuration : null);
+    }, [isActive, isPaused, project.id, mode, totalDuration]);
+
+    useEffect(() => {
+        if (!isActive || isPaused) return;
+        focusBus.tick(project.id, mode === 'POMO' ? Math.max(0, totalDuration - timeLeft) : timeLeft);
+    }, [timeLeft, isActive, isPaused, project.id, mode, totalDuration]);
     const onCompleteRef = useRef(onComplete);
     const timeLeftRef = useRef(timeLeft);
 
@@ -671,10 +684,12 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
 
         setupListeners();
 
+        // These are already-resolved PluginListenerHandles (we `await`ed addListener above),
+        // not promises — calling `.then` on them threw "m.then is not a function" on exit.
         return () => {
-            if (pauseListener) pauseListener.then((l: any) => l.remove()).catch(console.error);
-            if (resumeListener) resumeListener.then((l: any) => l.remove()).catch(console.error);
-            if (stopListener) stopListener.then((l: any) => l.remove()).catch(console.error);
+            [pauseListener, resumeListener, stopListener].forEach((l) => {
+                try { l?.remove(); } catch (e) { console.error(e); }
+            });
         };
     }, [stopSession]);
 

@@ -344,8 +344,8 @@ export const FeedScoreBreakdownChart: React.FC<FeedScoreBreakdownChartProps> = (
                               minHeight: seg.height > 0 ? 1 : 0,
                               willChange: 'height',
                             }}
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ 
+                            initial={false}
+                            animate={{
                               height: seg.height, 
                               opacity: seg.height > 0 ? 1 : 0 
                             }}

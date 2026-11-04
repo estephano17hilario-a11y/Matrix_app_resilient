@@ -404,7 +404,7 @@ export const RelapseChart: React.FC<RelapseChartProps> = React.memo(({
 
                             <motion.div
                                 className="w-full rounded-t-lg origin-bottom"
-                                initial={{ scaleY: 0, opacity: 0 }}
+                                initial={false}
                                 animate={{ 
                                     scaleY: maxDaily > 0 ? Math.max(data.count / maxDaily, 0.04) : 0,
                                     opacity: data.isCurrent ? 1 : 0.6

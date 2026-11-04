@@ -522,7 +522,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                 </div>
             </div>
 
-            <AnimatePresence>
+            <AnimatePresence initial={false}>
                 {!isMinimized && (
                     <motion.div
                         initial={{ height: 0, opacity: 0 }}
@@ -656,7 +656,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
 
                             <motion.div
                                 className="w-full rounded-t-lg origin-bottom"
-                                initial={{ scaleY: 0, opacity: 0 }}
+                                initial={false}
                                 animate={{ 
                                     scaleY: data.total > 0 ? Math.max(data.percent / 100, 0.04) : 0,
                                     opacity: data.isCurrent ? 1 : 0.6
@@ -742,7 +742,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
                         {/* Progress */}
                             <motion.div 
                                 className={cn("h-full rounded-full transition-colors duration-200 origin-left")}
-                                initial={{ scaleX: 0 }}
+                                initial={false}
                                 animate={{ scaleX: todayStats.percent / 100 }}
                                 transition={{ type: "spring", stiffness: 350, damping: 20 }}
                                 style={{ width: '100%', backgroundColor: getProgressColor(todayStats.percent, todayStats.requiredToday) }}

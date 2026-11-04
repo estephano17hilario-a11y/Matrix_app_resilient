@@ -1,3 +1,4 @@
+import { applyWeeklyBoost } from '@/modules/progression/progressionStore';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useLux } from '@/context/LuxContext';
 import { useAuth } from '@/context/AuthContext';
@@ -3543,6 +3544,10 @@ export const useDashboardLogic = () => {
             if (finalTP < 1) finalTP = 1;
         }
 
+        // Weekly boost (Sundays +25% gold and XP)
+        finalXp = applyWeeklyBoost(finalXp);
+        finalGold = applyWeeklyBoost(finalGold);
+
         console.log(`[REWARD CALC] Duration: ${safeDurationSeconds}s -> Capped: ${finalDurationSeconds}s | Final: ${finalXp}/${finalTP}/${finalGold}`);
         
         // --- DAILY GOAL COMPLETION BONUS ---
@@ -3867,8 +3872,8 @@ export const useDashboardLogic = () => {
             if (finalTP < 1) finalTP = 1;
         }
 
-        const totalXp = finalXp;
-        const totalGold = finalGold;
+        const totalXp = applyWeeklyBoost(finalXp);
+        const totalGold = applyWeeklyBoost(finalGold);
         const totalTP = finalTP;
 
         const rawMinutes = safeMinutes;
@@ -3885,6 +3890,7 @@ export const useDashboardLogic = () => {
         const newSession: Session = {
             id: nextSessionId,
             type,
+            isManual: true,
             duration: durationSeconds,
             date: nextSessionDate,
             xpEarned: totalXp,
@@ -4470,8 +4476,8 @@ export const useDashboardLogic = () => {
             // SYNC FIX: Use 1:1 ratio for TP to match RewardCalculator and allow reaching the 350 TP limit
             const rawTraitXp = rawXp; 
 
-            rewardXp = rawXp;
-            rewardGold = rawGold;
+            rewardXp = applyWeeklyBoost(rawXp);
+            rewardGold = applyWeeklyBoost(rawGold);
             rewardTraitXp = rawTraitXp;
             
             console.log(`[QUEST] Awarding EXACT: XP=${rewardXp}, Gold=${rewardGold}`);
@@ -5050,8 +5056,8 @@ export const useDashboardLogic = () => {
             
             // REMOVED MAX_COUNT LIMIT to ensure exact rewards are always given
             const prediction = calculateTaskRewards(habit.estimatedTime, habit.impact, habit.streak, 'HABIT');
-            rewardXp = prediction.xp;
-            rewardGold = prediction.coins;
+            rewardXp = applyWeeklyBoost(prediction.xp);
+            rewardGold = applyWeeklyBoost(prediction.coins);
             rewardTraitXp = prediction.traitXp;
 
             // RESILIENCIA Trigger: restart normal habit streak after a relapse/break
@@ -5920,8 +5926,8 @@ export const useDashboardLogic = () => {
                 }
             } else {
                 const prediction = calculateTaskRewards(currentHabit.estimatedTime, currentHabit.impact, currentHabit.streak, 'HABIT');
-                rewardXp = prediction.xp;
-                rewardGold = prediction.coins;
+                rewardXp = applyWeeklyBoost(prediction.xp);
+                rewardGold = applyWeeklyBoost(prediction.coins);
                 rewardTraitXp = prediction.traitXp;
             }
 
@@ -6939,6 +6945,7 @@ export const useDashboardLogic = () => {
 
     return {
         user,
+        progressionDataReady: areHabitsLoaded && projectsHydratedRef.current && questsHydratedRef.current,
         restoreStreak,
         viceLedger,
         buyVice,
