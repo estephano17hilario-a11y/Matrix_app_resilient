@@ -2538,11 +2538,9 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
               />
 
               {/* Word + Notion Clone Rich Block Editor */}
-              {(!isDraftFuture || draftBlocks.some(b => b.type === 'image' || (b.content && getPlainTextFromContent(b.content).trim().length > 0))) && (
-                <div className="text-left">
-                  <BlockEditor key={`${editorMode}-${draftId}`} blocks={draftBlocks} onChange={handleBlockEditorChange} readOnly={editorMode === 'JOURNAL' && isDraftFuture} />
-                </div>
-              )}
+              <div className="text-left">
+                <BlockEditor key={`${editorMode}-${draftId}`} blocks={draftBlocks} onChange={handleBlockEditorChange} />
+              </div>
             </div>
           ) : (
             <div className="max-w-2xl mx-auto text-center space-y-6">
