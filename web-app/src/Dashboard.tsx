@@ -74,7 +74,6 @@ import { useAuth } from './context/AuthContext';
 
 import { supabase } from './services/supabase';
 import toast from 'react-hot-toast';
-import { verifySubscriptionStatus } from './services/mercadoPagoService';
 
 const AchievementsScreen = preloadable(() => import('./modules/achievements/AchievementsScreen').then(m => ({ default: m.AchievementsScreen })));
 const StoreScreen = preloadable(() => import('./modules/store/StoreScreen').then(m => ({ default: m.StoreScreen })));
@@ -261,55 +260,6 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
 
  // ⚡ PERFORMANCE: Pre-load all heavy views after initial render for "Flash" switching
  useEffect(() => {
- const checkSubscriptionStatus = async () => {
- const params = new URLSearchParams(window.location.search);
- const paymentStatus = params.get('payment_status');
- const plan = params.get('plan');
- const preapprovalId = params.get('preapproval_id'); // MP appends this to the URL
-
- if (paymentStatus === 'success' && plan && user?.id) {
- // Remove params from URL immediately to prevent refreshes from triggering it again
- window.history.replaceState({}, document.title, window.location.pathname);
-
- // AUDITORIA EXTREMA: Validate preapproval ID before giving PRO
- if (!preapprovalId) {
- toast.error("Transacción inválida: No se detectó ID de suscripción.");
- return;
- }
-
- const toastId = toast.loading('Verificando pago en la bóveda de Mercado Pago...');
- 
- try {
- const isAuthorized = await verifySubscriptionStatus(preapprovalId);
- 
- if (!isAuthorized) {
- toast.dismiss(toastId); // Just dismiss quietly if they didn't pay
- return;
- }
-
- const now = new Date();
- if (plan === 'monthly') {
- now.setMonth(now.getMonth() + 1);
- } else if (plan === 'yearly') {
- now.setFullYear(now.getFullYear() + 1);
- }
-
- await supabase.from('users').update({
- plan: 'PRO',
- es_pro: true
- }).eq('id', user.id);
-
- toast.success('Auditoría Completada: Autenticidad verificada.', { id: toastId });
- setShowDeluxSuccess(true);
- } catch (e) {
- console.error("Failed to verify/update subscription status", e);
- toast.error('Error de red al verificar pago. Contacte a soporte.', { id: toastId });
- }
- }
- };
-
- checkSubscriptionStatus();
-
  let idleId: number | null = null;
  let prefetchTimeout: ReturnType<typeof setTimeout> | null = null;
  const prefetch = async () => {

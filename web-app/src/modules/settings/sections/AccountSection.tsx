@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { User, LogOut, Edit2, Check, X, Link2, Unlink, Eye, EyeOff, Loader2, Lock } from 'lucide-react';
+import { User, LogOut, Edit2, Check, X, Link2, Unlink, Eye, EyeOff, Loader2, Lock, Trash2 } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
 import { useAuth } from '@/context/AuthContext';
 import { useLux } from '@/context/LuxContext';
@@ -24,6 +24,8 @@ export const AccountSection = () => {
   const [editName, setEditName] = useState('');
   const [isSavingName, setIsSavingName] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [linkedIdentities, setLinkedIdentities] = useState<any[]>([]);
   const [isLoadingIdentities, setIsLoadingIdentities] = useState(true);
   const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
@@ -406,7 +408,53 @@ export const AccountSection = () => {
             </span>
           </div>
         </button>
+
+        <button
+          onClick={() => setShowDeleteConfirm(true)}
+          className="w-full flex items-center gap-4 p-4 rounded-[20px] border border-white/5 hover:border-red-500/30 transition-all group active:scale-[0.98]"
+        >
+          <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-white/40 group-hover:text-red-400 transition-colors">
+            <Trash2 size={18} />
+          </div>
+          <div className="text-left">
+            <span className="block text-white/60 font-semibold text-sm group-hover:text-red-300 transition-colors">
+              {t('settings.deleteAccount', 'Eliminar mi cuenta')}
+            </span>
+            <span className="block text-white/30 text-xs mt-0.5">
+              {t('settings.deleteAccountHint', 'Borra tu cuenta y todos tus datos de forma permanente')}
+            </span>
+          </div>
+        </button>
       </div>
+
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => !isDeletingAccount && setShowDeleteConfirm(false)}
+        onConfirm={async () => {
+          setIsDeletingAccount(true);
+          try {
+            // SECURITY DEFINER function: removes the auth user, every row of the account cascades.
+            const { error } = await supabase.rpc('delete_my_account');
+            if (error) throw error;
+            setShowDeleteConfirm(false);
+            toast.success(t('settings.deleteAccountDone', 'Tu cuenta y tus datos fueron eliminados.'));
+            setTimeout(() => logout(), 50);
+          } catch (err) {
+            console.error('Delete account failed:', err);
+            toast.error(t('settings.deleteAccountError', 'No se pudo eliminar la cuenta. Revisa tu conexión e inténtalo de nuevo.'));
+          } finally {
+            setIsDeletingAccount(false);
+          }
+        }}
+        title={t('settings.deleteAccountConfirmTitle', '¿ELIMINAR TU CUENTA?')}
+        message={t(
+          'settings.deleteAccountConfirmMessage',
+          'Se borrarán de forma permanente tu cuenta y todos tus datos (hábitos, tareas, notas, progreso, amigos). Esta acción no se puede deshacer. Si tienes una suscripción activa, cancélala también en Google Play: borrar la cuenta no la cancela.'
+        )}
+        confirmText={isDeletingAccount ? t('common.loading', 'Eliminando…') : t('settings.deleteAccountConfirmBtn', 'Sí, eliminar para siempre')}
+        cancelText={t('settings.cancel', 'Cancel')}
+        variant="danger"
+      />
 
       <ConfirmationModal
         isOpen={showLogoutConfirm}

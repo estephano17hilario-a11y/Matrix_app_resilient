@@ -1,100 +1,93 @@
 // @ts-nocheck
+// RevenueCat -> Supabase webhook. Activates / extends / deactivates PRO automatically.
+//
+// Secrets: REVENUECAT_WEBHOOK_AUTH_TOKEN (must match the "Authorization header" set in the
+// RevenueCat dashboard, value `Bearer <token>`), REVENUECAT_SECRET_API_KEY (sk_..., recommended),
+// SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import {
+  UUID_RE, adminClient, applyState, corsHeaders, deriveFromEvent, fetchRevenueCatState, json, safeEqual,
+} from "../_shared/subscription.ts";
 
-const REVENUECAT_WEBHOOK_AUTH_TOKEN = Deno.env.get("REVENUECAT_WEBHOOK_AUTH_TOKEN");
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
-  'Content-Security-Policy': "default-src 'none'",
-};
+const db = adminClient();
 
 serve(async (req: Request) => {
-  // 0. Handle CORS Preflight
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
+
+  // Fail closed: with no configured token EVERY request would otherwise match "Bearer undefined".
+  const token = Deno.env.get("REVENUECAT_WEBHOOK_AUTH_TOKEN");
+  if (!token) {
+    console.error("REVENUECAT_WEBHOOK_AUTH_TOKEN is not configured");
+    return json({ error: "webhook not configured" }, 500);
+  }
+  if (!safeEqual(req.headers.get("authorization") ?? "", `Bearer ${token}`)) {
+    return json({ error: "unauthorized" }, 401);
   }
 
+  let event: any;
   try {
-    // 1. Verify Request Method
-    if (req.method !== "POST") {
-      return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+    event = (await req.json())?.event;
+  } catch {
+    return json({ error: "invalid json" }, 400);
+  }
+  if (!event?.type) return json({ error: "no event" }, 400);
+
+  try {
+    // Users touched by this event. TRANSFER moves a subscription between app user ids.
+    const candidates = new Set<string>(
+      [event.app_user_id, event.original_app_user_id, ...(event.aliases ?? []), ...(event.transferred_from ?? []), ...(event.transferred_to ?? [])]
+        .filter((id: unknown): id is string => typeof id === "string" && UUID_RE.test(id)),
+    );
+
+    // Idempotency + audit trail.
+    const eventId: string | null = event.id ?? null;
+    if (eventId) {
+      const { data: seen } = await db.from("subscription_events").select("id, applied").eq("event_id", eventId).maybeSingle();
+      if (seen?.applied) return json({ success: true, duplicate: true });
+    }
+    const { data: logged, error: logErr } = await db
+      .from("subscription_events")
+      .upsert({
+        event_id: eventId,
+        app_user_id: String(event.app_user_id ?? ""),
+        event_type: event.type,
+        environment: event.environment ?? null,
+        product_id: event.product_id ?? null,
+        expiration_at_ms: event.expiration_at_ms ?? null,
+        event_timestamp_ms: event.event_timestamp_ms ?? null,
+        payload: event,
+      }, { onConflict: "event_id" })
+      .select("id")
+      .maybeSingle();
+    if (logErr) throw logErr;
+
+    if (candidates.size === 0) {
+      // Anonymous RevenueCat ids ($RCAnonymousID:...) cannot be mapped to a user. Ack so RC does not retry.
+      await db.from("subscription_events").update({ applied: true, note: "no mappable user id" }).eq("id", logged?.id);
+      return json({ success: true, ignored: "no mappable user id" });
     }
 
-    // 2. Verify Authorization Header (Security)
-    const authHeader = req.headers.get("authorization");
-    if (authHeader !== `Bearer ${REVENUECAT_WEBHOOK_AUTH_TOKEN}`) {
-      console.error("Unauthorized webhook attempt");
-      return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+    const notes: string[] = [];
+    for (const userId of candidates) {
+      let state = await fetchRevenueCatState(userId);
+      if (state === null) {
+        // No REST key configured: fall back to what the event itself says (only for the event's own user).
+        if (userId !== event.app_user_id) continue;
+        const derived = deriveFromEvent(event);
+        if (derived === "NOOP") { notes.push(`${event.type}: no access change`); continue; }
+        state = derived;
+      }
+      const result = await applyState(db, userId, state, event.event_timestamp_ms);
+      notes.push(`${userId.slice(0, 8)}: ${result.note}`);
     }
 
-    // 3. Parse Webhook Payload
-    const body = await req.json();
-    const event = body.event;
-
-    if (!event) {
-      return new Response("No event found", { status: 400, headers: corsHeaders });
-    }
-
-    const { type, app_user_id } = event;
-    console.log(`Processing RevenueCat Event: ${type} for User: ${app_user_id}`);
-
-    if (!app_user_id) {
-      return new Response("No app_user_id found", { status: 400, headers: corsHeaders });
-    }
-
-    // 4. Handle Event Types
-    let es_pro = false;
-    let plan = 'FREE';
-
-    switch (type) {
-      case "INITIAL_PURCHASE":
-      case "RENEWAL":
-      case "NON_RENEWING_PURCHASE":
-        es_pro = true;
-        plan = 'PRO';
-        break;
-
-      case "CANCELLATION":
-      case "EXPIRATION":
-      case "BILLING_ISSUE":
-        es_pro = false;
-        plan = 'FREE';
-        break;
-
-      default:
-        console.log(`Unhandled event type: ${type}. Ignoring.`);
-        return new Response("Event ignored", { status: 200, headers: corsHeaders });
-    }
-
-    // 5. Update Supabase Database
-    const { error } = await supabase
-      .from('users') // perfiles/users table
-      .update({ es_pro, plan, planExpiryDate: plan === 'PRO' ? null : undefined })
-      .eq('id', app_user_id); // Since app_user_id is exactly the Supabase UUID
-
-    if (error) {
-      console.error("Error updating Supabase:", error);
-      return new Response("Database error", { status: 500, headers: corsHeaders });
-    }
-
-    console.log(`Successfully updated user ${app_user_id} to PRO: ${es_pro}`);
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-
-  } catch (error) {
-    console.error("Webhook error:", error);
-    return new Response("Internal Server Error", { status: 500, headers: corsHeaders });
+    await db.from("subscription_events").update({ applied: true, note: notes.join("; ").slice(0, 500) }).eq("id", logged?.id);
+    console.log(`RevenueCat ${event.type} -> ${notes.join("; ")}`);
+    return json({ success: true });
+  } catch (err) {
+    // 5xx makes RevenueCat retry the delivery, which is what we want for transient failures.
+    console.error("Webhook error:", err);
+    return json({ error: "internal error" }, 500);
   }
 });

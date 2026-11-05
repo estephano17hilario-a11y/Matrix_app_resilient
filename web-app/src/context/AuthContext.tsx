@@ -3,13 +3,15 @@ import { supabase, configStatus } from '../services/supabase';
 import { UserProfile, DEFAULT_USER_STATS } from '../types/User';
 import { PersistenceService } from '../services/persistence';
 import { User } from '@supabase/supabase-js';
-import { initRevenueCat, checkProEntitlement } from '../services/revenueCatService';
+import { initRevenueCat, checkProEntitlement, logoutRevenueCat } from '../services/revenueCatService';
+import { syncSubscriptionWithServer, isPlanExpired } from '../services/subscriptionService';
 import { toast } from 'react-hot-toast';
 import { OfflineSyncService } from '../services/offlineSync';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import WidgetAuthBridge from '../plugins/WidgetBridgePlugin';
 import { ENABLE_GLOBAL_PRO } from '../config/limits';
+import { isRecoveryUrl, markPasswordRecovery } from '../modules/auth/passwordRecovery';
 
 const DEFAULT_ONBOARDING = {
   successDefinition: "Becoming the One",
@@ -81,6 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       setTimeout(async () => {
         try {
+            await logoutRevenueCat();
             await supabase.auth.signOut();
         } catch (e) {
             console.error("Supabase signout error:", e);
@@ -132,6 +135,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const currentUser = session?.user || null;
       const wasIntentional = localStorage.getItem('MATRIX_INTENTIONAL_LOGOUT') === 'true';
       console.log(`🔐 MATRIX AUTH EVENT: ${event} (session: ${session ? 'yes' : 'none'})`);
+      if (event === 'PASSWORD_RECOVERY') markPasswordRecovery();
       if (!currentUser && event === 'SIGNED_OUT' && !wasIntentional) {
         // Supabase dropped the session on its own (refresh token rejected/revoked server-side).
         console.error('🚨 MATRIX AUTH: UNEXPECTED SIGNED_OUT — session was invalidated, not a user logout.');
@@ -239,7 +243,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     return;
                 }
 
-                const { data: userDataList, error } = await supabase.from('users').select('id, email, display_name, photo_url, plan, archetype, theme, created_at, last_login_at, stats, onboarding, es_pro, revenuecat_app_user_id, avatar_id, preferences, updated_at, inventory, unlocked_store_items').eq('id', currentUser.id).limit(1);
+                const { data: userDataList, error } = await supabase.from('users').select('id, email, display_name, photo_url, plan, archetype, theme, created_at, last_login_at, stats, onboarding, es_pro, revenuecat_app_user_id, avatar_id, preferences, updated_at, inventory, unlocked_store_items, planExpiryDate, plan_product, plan_source').eq('id', currentUser.id).limit(1);
         const userData = userDataList && userDataList.length > 0 ? userDataList[0] : null;
                 
                 if (userData && !error) {
@@ -270,6 +274,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         userData.photo_url = metaPhotoUrl;
                     }
 
+                    // PRO that ran out (null expiry = no expiry, e.g. manual grants). The server downgrades the row itself.
+                    const planLapsed = userData.plan === 'PRO' && isPlanExpired(userData.planExpiryDate);
+
                     const finalProfile: UserProfile = {
                         ...userData,
                         uid: currentUser.id,
@@ -284,8 +291,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                         archivedTraits: userData.preferences?.archivedTraits || {},
                         stats: userData.stats || DEFAULT_USER_STATS,
                         archetype: userData.archetype || 'NEO',
-                        plan: ENABLE_GLOBAL_PRO ? 'PRO' : (userData.plan || 'FREE'),
-                        es_pro: ENABLE_GLOBAL_PRO ? true : (userData.es_pro || false),
+                        plan: ENABLE_GLOBAL_PRO ? 'PRO' : (planLapsed ? 'FREE' : (userData.plan || 'FREE')),
+                        es_pro: ENABLE_GLOBAL_PRO ? true : (planLapsed ? false : (userData.es_pro || false)),
                         theme: userData.theme || 'MATRIX',
                         createdAt: userData.created_at ? new Date(userData.created_at).getTime() : Date.now(),
                         lastLoginAt: userData.last_login_at ? new Date(userData.last_login_at).getTime() : Date.now(),
@@ -425,6 +432,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             });
             if (error) throw error;
             console.log('✅ [Deep Link] Supabase session established for user:', data.user?.id);
+            if (isRecoveryUrl(event.url)) markPasswordRecovery();
           } else {
             console.warn('⚠️ [Deep Link] URL does not contain access_token and refresh_token');
           }
@@ -488,86 +496,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         hasSyncedRef.current = profileId;
 
         const dbIsPro = currentProfile.plan === 'PRO';
-        
-        // Only perform upgrades from the client side.
-        // Downgrades are handled securely via backend webhooks (RevenueCat/MercadoPago)
-        // to prevent client-side synchronization errors from reverting developer-assigned or manually set PRO statuses.
+        const revenueCatManaged = currentProfile.plan_source === 'revenuecat' || currentProfile.revenuecat_app_user_id === currentProfile.id;
+
+        // The CLIENT NEVER WRITES THE PLAN. It unlocks features locally from what Google Play/RevenueCat
+        // report, and asks the server (sync-subscription) to verify and persist it. The server is the
+        // only writer of plan / es_pro / planExpiryDate, so a tampered client cannot grant itself PRO.
+        const adoptServerPlan = (server: Awaited<ReturnType<typeof syncSubscriptionWithServer>>) => {
+          if (!server) return;
+          updateProfileLocally({
+            plan: server.plan,
+            es_pro: server.es_pro,
+            planExpiryDate: server.planExpiryDate,
+            plan_product: server.plan_product,
+          });
+        };
+
         if (active) {
-          const nextPlan = 'PRO';
-          const nextEsPro = true;
-
-          // 1. Instantly upgrade local profile state to PRO to unlock features
-          if (currentProfile.plan !== nextPlan || currentProfile.es_pro !== nextEsPro || currentProfile.revenuecat_app_user_id !== currentProfile.id) {
-            console.log(`[RevenueCat Sync] User is premium in RevenueCat. Optimistically updating local profile to PRO.`);
-            updateProfileLocally({ plan: nextPlan, es_pro: nextEsPro, revenuecat_app_user_id: currentProfile.id });
+          // 1. Unlock instantly from the store receipt
+          if (!dbIsPro || !currentProfile.es_pro) {
+            updateProfileLocally({ plan: 'PRO', es_pro: true });
           }
-
-          // 2. Perform DB update in the background (fire-and-forget) to keep client synchronized with server
-          if (!dbIsPro || currentProfile.revenuecat_app_user_id !== currentProfile.id) {
-            console.log(`[RevenueCat Sync] Upgrading Supabase DB to PRO in the background...`);
-            (async () => {
-              for (let attempt = 1; attempt <= 3; attempt++) {
-                try {
-                  console.log(`[RevenueCat Sync DB Update] Attempting (attempt ${attempt}/3)...`);
-                  const { error } = await supabase
-                    .from('users')
-                    .update({ 
-                      plan: nextPlan, 
-                      es_pro: nextEsPro, 
-                      planExpiryDate: null,
-                      revenuecat_app_user_id: currentProfile.id 
-                    })
-                    .eq('id', currentProfile.id);
-                    
-                  if (error) throw error;
-                  console.log(`[RevenueCat Sync] Supabase DB successfully updated to PRO.`);
-                  break;
-                } catch (err) {
-                  console.error(`[RevenueCat Sync DB Update] Failed at attempt ${attempt}:`, err);
-                  if (attempt < 3) {
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                  }
-                }
-              }
-            })();
+          // 2. Persist/refresh on the server when it does not know yet, or the period is about to roll over
+          const needsServerSync = !dbIsPro || !revenueCatManaged || isPlanExpired(currentProfile.planExpiryDate, Date.now() + 60_000);
+          if (needsServerSync) {
+            const server = await syncSubscriptionWithServer();
+            if (server?.plan === 'PRO') adoptServerPlan(server); // never downgrade here: the store says active
           }
-        } else {
-          // If NOT active in RevenueCat, but they currently have their own app ID registered as the RevenueCat purchase holder,
-          // it means their subscription was cancelled, expired, or transferred to another account.
-          // In this case, we MUST downgrade them back to FREE.
-          if (dbIsPro && currentProfile.revenuecat_app_user_id === currentProfile.id) {
-            console.log(`[RevenueCat Sync] User is no longer premium in RevenueCat. Downgrading to FREE.`);
-            
-            const nextPlan = 'FREE';
-            const nextEsPro = false;
-            
-            updateProfileLocally({ plan: nextPlan, es_pro: nextEsPro, revenuecat_app_user_id: null });
-            
-            (async () => {
-              for (let attempt = 1; attempt <= 3; attempt++) {
-                try {
-                  const { error } = await supabase
-                    .from('users')
-                    .update({ 
-                      plan: nextPlan, 
-                      es_pro: nextEsPro, 
-                      revenuecat_app_user_id: null 
-                    })
-                    .eq('id', currentProfile.id);
-                  if (error) throw error;
-                  console.log(`[RevenueCat Sync] Supabase DB successfully downgraded to FREE.`);
-                  break;
-                } catch (err) {
-                  console.error(`[RevenueCat Sync Downgrade Update] Failed at attempt ${attempt}:`, err);
-                  if (attempt < 3) {
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                  }
-                }
-              }
-            })();
-          } else if (dbIsPro) {
-            console.log("[RevenueCat Sync] User is PRO in database but inactive in RevenueCat. Keeping PRO status (revenuecat_app_user_id is not set, meaning it is a manual or MercadoPago upgrade).");
+        } else if (dbIsPro && revenueCatManaged) {
+          // Store says no active subscription but the account is flagged PRO from a purchase: let the
+          // server decide (it re-reads RevenueCat). If it is unreachable, fall back to the store verdict.
+          const server = await syncSubscriptionWithServer(true);
+          if (server) {
+            adoptServerPlan(server);
+          } else {
+            console.log('[RevenueCat Sync] Subscription is no longer active. Downgrading locally.');
+            updateProfileLocally({ plan: 'FREE', es_pro: false, planExpiryDate: null, plan_product: null });
           }
+        } else if (dbIsPro && isPlanExpired(currentProfile.planExpiryDate)) {
+          updateProfileLocally({ plan: 'FREE', es_pro: false, planExpiryDate: null, plan_product: null });
         }
       } catch (e) {
         // 🔐 CRITICAL: If RevenueCat throws ANY error (network, config, etc.),

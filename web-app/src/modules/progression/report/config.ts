@@ -27,7 +27,7 @@ export const REPORT_CONFIG = {
   RARITY_DECAY: 0.08,
   /** Probability of addressing the user by name in a report. */
   NAME_PROBABILITY: 0.3,
-  TYPEWRITER_CPS: 35,
+  TYPEWRITER_CPS: 110,
 
   /** Priority weight per insight (spec order: rules first, deeper analysis after). */
   WEIGHTS: {

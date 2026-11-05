@@ -68,6 +68,11 @@ export interface UserProfile {
   avatarId?: string; // ID del avatar seleccionado (interno)
   plan: UserPlan;
   es_pro?: boolean; // Flag to easily check if user has premium plan
+  /** Epoch ms when the paid period ends (set by the server). null/undefined = no expiry. */
+  planExpiryDate?: number | null;
+  /** Store product of the active plan (weekly / monthly), set by the server. */
+  plan_product?: string | null;
+  plan_source?: string | null;
   archetype: UserArchetype;
   stats: UserStats;
   preferences?: {

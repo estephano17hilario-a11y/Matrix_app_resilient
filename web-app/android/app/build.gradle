@@ -1,6 +1,15 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
+// Signing secrets live in android/keystore.properties (git-ignored) or in LUX_* environment variables,
+// never in this tracked file.
+def keystoreProps = new Properties()
+def keystorePropsFile = rootProject.file("keystore.properties")
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+def signingValue = { String key, String envName -> keystoreProps[key] ?: System.getenv(envName) }
+
 android {
     namespace = "com.luxresilient.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -8,8 +17,8 @@ android {
         applicationId "com.luxresilient.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 46
-        versionName "1.0.46"
+        versionCode 47
+        versionName "1.0.47"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -19,10 +28,10 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file("release-key.jks")
-            storePassword "matrix123"
-            keyAlias "matrix-alias"
-            keyPassword "matrix123"
+            storeFile file(signingValue("storeFile", "LUX_KEYSTORE_FILE") ?: "release-key.jks")
+            storePassword signingValue("storePassword", "LUX_KEYSTORE_PASSWORD")
+            keyAlias signingValue("keyAlias", "LUX_KEY_ALIAS")
+            keyPassword signingValue("keyPassword", "LUX_KEY_PASSWORD")
         }
     }
     buildTypes {

@@ -14,7 +14,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useRevenueCat } from '../../hooks/useRevenueCat';
 import { useAuth } from '../../context/AuthContext';
-import { supabase } from '../../services/supabase';
+import { syncSubscriptionWithServer } from '../../services/subscriptionService';
 import { toast } from 'react-hot-toast';
 
 interface ProUpgradeModalProps {
@@ -40,10 +40,15 @@ const useCountdown = (targetDate: number) => {
  return { days, hours, minutes, seconds };
 };
 
+const PROMO_ENDS_AT = new Date('2026-10-14T23:59:59').getTime();
+
 const CountdownBanner = () => {
  const { t } = useTranslation();
-  const targetDate = new Date('2026-10-14T23:59:59').getTime();
- const { days, hours, minutes, seconds } = useCountdown(targetDate);
+ const { days, hours, minutes, seconds } = useCountdown(PROMO_ENDS_AT);
+ // The launch promo is over: never show a dead countdown, but keep the layout spacing.
+ if (Date.now() >= PROMO_ENDS_AT) {
+   return <div className="mt-[20rem] sm:mt-[22rem] md:mt-[24rem] mb-4 md:mb-6" aria-hidden />;
+ }
 
  return (
  <motion.div
@@ -82,68 +87,38 @@ const CountdownBanner = () => {
 
 export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
-  useEffect(() => {
-    console.log("🟢 [ProUpgradeModal LifeCycle] ProUpgradeModal mounted!");
-    return () => {
-      console.log("🔴 [ProUpgradeModal LifeCycle] ProUpgradeModal UNMOUNTED!");
-    };
-  }, []);
-  console.log(`🌀 [ProUpgradeModal LifeCycle] ProUpgradeModal rendering (isOpen: ${isOpen})`);
   const [mounted, setMounted] = useState(false);
  const [isCelebrating, setIsCelebrating] = useState(false);
  const isNative = Capacitor.isNativePlatform();
  const { weeklyPackage, monthlyPackage, isPremium, comprarPaquete, restaurarCompras } = useRevenueCat();
  const { user, updateProfileLocally } = useAuth();
  
+ const activateLocallyAndSync = async () => {
+   updateProfileLocally({ plan: 'PRO', es_pro: true });
+   const server = await syncSubscriptionWithServer(true);
+   if (server?.plan === 'PRO') {
+     updateProfileLocally({ plan: 'PRO', es_pro: true, planExpiryDate: server.planExpiryDate, plan_product: server.plan_product });
+   }
+ };
+
  const handlePurchase = async (rcPackage: any) => {
    const toastId = toast.loading('Procesando compra...');
    try {
      const isProNow = await comprarPaquete(rcPackage);
      
       if (isProNow && user?.id) {
-        // Force DB update manually to ensure instant activation on client without waiting for webhook
-        let updateSuccess = false;
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          try {
-            console.log(`[Supabase Update] Attempting to set PRO status in DB (attempt ${attempt}/3)...`);
-            const { error } = await supabase.from('users').update({
-              plan: 'PRO',
-              es_pro: true,
-              planExpiryDate: null
-            }).eq('id', user.id);
-            
-            if (error) throw error;
-            updateSuccess = true;
-            break;
-          } catch (err) {
-            console.error(`[Supabase Update] Failed at attempt ${attempt}:`, err);
-            if (attempt < 3) {
-              await new Promise(resolve => setTimeout(resolve, 2000));
-            }
-          }
-        }
-
-        if (updateSuccess) {
-          updateProfileLocally({ plan: 'PRO', es_pro: true });
-          toast.dismiss(toastId);
-          setIsCelebrating(true);
-          
-          // Restart app after celebration
-          setTimeout(() => {
-            window.location.reload();
-          }, 4500);
-        } else {
-          toast.error('Compra exitosa, pero hubo un problema al sincronizar con el servidor. Tu plan se actualizará automáticamente.', { id: toastId, duration: 6000 });
-          // Fallback optimistic update
-          updateProfileLocally({ plan: 'PRO', es_pro: true });
-          setIsCelebrating(true);
-          setTimeout(() => {
-            window.location.reload();
-          }, 4500);
-        }
+        // Google Play + RevenueCat already confirmed the purchase: unlock right away, then let the
+        // server verify and persist it (the client is not allowed to write the plan itself).
+        await activateLocallyAndSync();
+        toast.dismiss(toastId);
+        setIsCelebrating(true);
+        // Restart app after celebration
+        setTimeout(() => {
+          window.location.reload();
+        }, 4500);
       } else {
-       toast.dismiss(toastId);
-     }
+        toast.dismiss(toastId);
+      }
    } catch (error: any) {
      console.error("Purchase error captured:", error);
      const isConfigError = 
@@ -338,7 +313,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
               {t('pro.activateWeekly', "Plan Semanal")}
             </span>
             <span className="text-white/70 text-xs font-bold mt-1">
-              {weeklyPackage ? weeklyPackage.product.priceString : "S/. 7.90"} / {t('pro.week', 'Semana')}
+              {weeklyPackage ? weeklyPackage.product.priceString : '…'} / {t('pro.week', 'Semana')}
             </span>
           </div>
         </motion.button>
@@ -372,7 +347,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
               {t('pro.activateMonthly', "Plan Mensual")}
             </span>
             <span className="text-white/70 text-xs font-bold mt-1">
-              {monthlyPackage ? monthlyPackage.product.priceString : "S/. 19.90"} / {t('pro.month', 'Mes')}
+              {monthlyPackage ? monthlyPackage.product.priceString : '…'} / {t('pro.month', 'Mes')}
             </span>
           </div>
         </motion.button>
@@ -384,32 +359,8 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
             try {
               const isProNow = await restaurarCompras();
               if (isProNow && user?.id) {
-                let updateSuccess = false;
-                for (let attempt = 1; attempt <= 3; attempt++) {
-                  try {
-                    console.log(`[Supabase Restore] Attempting to set PRO status in DB (attempt ${attempt}/3)...`);
-                    const { error } = await supabase.from('users').update({
-                      plan: 'PRO',
-                      es_pro: true,
-                      planExpiryDate: null
-                    }).eq('id', user.id);
-                    if (error) throw error;
-                    updateSuccess = true;
-                    break;
-                  } catch (err) {
-                    console.error(`[Supabase Restore] Failed at attempt ${attempt}:`, err);
-                    if (attempt < 3) {
-                      await new Promise(resolve => setTimeout(resolve, 2000));
-                    }
-                  }
-                }
-                if (updateSuccess) {
-                  updateProfileLocally({ plan: 'PRO', es_pro: true });
-                  toast.success('¡Suscripción restaurada con éxito!');
-                } else {
-                  toast.error('Compra restaurada en la tienda, pero hubo un problema al sincronizar con el servidor. Tu cuenta se sincronizará automáticamente.');
-                  updateProfileLocally({ plan: 'PRO', es_pro: true });
-                }
+                await activateLocallyAndSync();
+                toast.success('¡Suscripción restaurada con éxito!');
               } else {
                 toast.error('No se encontró ninguna compra para restaurar.');
               }

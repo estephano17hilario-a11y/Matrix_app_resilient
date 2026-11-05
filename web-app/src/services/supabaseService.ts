@@ -90,7 +90,6 @@ export const loginWithGoogle = async (): Promise<any | null> => {
             
             if (error) {
                 console.error("Supabase rechazó el token:", error.message);
-                alert("Error en Supabase: " + error.message);
                 throw error;
             }
             

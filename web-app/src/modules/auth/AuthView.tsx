@@ -3,7 +3,9 @@ import { App } from '@capacitor/app';
 import { Mail, Lock, User, ArrowRight, Loader2, Sparkles, ChevronLeft, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { atomicRegister, atomicLogin, loginWithGoogle } from '../../services/supabaseService';
-import { Purchases } from '@revenuecat/purchases-capacitor';
+import { loginRevenueCat } from '../../services/revenueCatService';
+import { requestPasswordReset } from './passwordRecovery';
+import { toast } from 'react-hot-toast';
 import { AuthLayout } from './components/AuthLayout';
 import { AuthInput } from './components/AuthInput';
 import { retryOperation, isNetworkAvailable } from '../../utils/networkUtils';
@@ -214,11 +216,7 @@ export const AuthView = () => {
  // 1. CREATE USER IN AUTH
  const user = await retryOperation(() => atomicRegister(email.trim(), password, name.trim(), i18n.language));
 
- try {
-   await Purchases.logIn({ appUserID: user.id });
- } catch (rcError) {
-   console.error('RevenueCat register sync error:', rcError);
- }
+ await loginRevenueCat(user.id);
 
  // 2. SAVE SESSION
  PersistenceService.setSession(user.id);
@@ -252,11 +250,7 @@ export const AuthView = () => {
  // 1. LOGIN
  const user = await retryOperation(() => atomicLogin(email.trim(), password));
 
- try {
-   await Purchases.logIn({ appUserID: user.id });
- } catch (rcError) {
-   console.error('RevenueCat login sync error:', rcError);
- }
+ await loginRevenueCat(user.id);
 
  // 2. SAVE SESSION
  PersistenceService.setSession(user.id);
@@ -271,6 +265,26 @@ export const AuthView = () => {
  }
  setIsLoading(false);
  }
+ };
+
+ const handleForgotPassword = async () => {
+   if (!isEmailValid) {
+     return setError(t('auth.forgot.needEmail', 'Escribe tu correo arriba y vuelve a tocar "¿Olvidaste tu contraseña?"'));
+   }
+   setIsLoading(true);
+   setError(null);
+   try {
+     const isOnline = await isNetworkAvailable();
+     if (!isOnline) throw new Error(t('auth.errors.network', "No network connection. Please check your internet and try again."));
+     await requestPasswordReset(email);
+     // Same message whether or not the account exists.
+     toast.success(t('auth.forgot.sent', 'Si ese correo tiene una cuenta, te enviamos un enlace para crear una contraseña nueva.'), { duration: 7000 });
+   } catch (err: any) {
+     console.error('Password reset error:', err);
+     setError(err.message || t('auth.errors.generic', 'An error occurred.'));
+   } finally {
+     setIsLoading(false);
+   }
  };
 
  const handleGoogleLogin = async () => {
@@ -421,6 +435,17 @@ export const AuthView = () => {
   />
   )}
   
+  {view === 'LOGIN' && (
+  <button
+  type="button"
+  onClick={handleForgotPassword}
+  disabled={isLoading}
+  className="block ml-auto text-xs text-indigo-300/80 hover:text-indigo-200 underline underline-offset-2 disabled:opacity-50"
+  >
+  {t('auth.forgot.link', '¿Olvidaste tu contraseña?')}
+  </button>
+  )}
+
   {error && (
   <div className="text-red-400 text-xs p-3 bg-red-500/10 border border-red-500/20 rounded-xl transition-all">
   {error}

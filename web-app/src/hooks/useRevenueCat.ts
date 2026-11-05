@@ -2,9 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { Purchases, CustomerInfo, PurchasesOffering, PurchasesPackage } from '@revenuecat/purchases-capacitor'; 
 import { Capacitor } from '@capacitor/core'; 
 import { App } from '@capacitor/app';
-import { initRevenueCat } from '../services/revenueCatService';
+import { initRevenueCat, hasActiveEntitlement } from '../services/revenueCatService';
 
-const ENTITLEMENT_ID = 'lux_pro';
 const OFFERING_ID = 'default';
 
 export const useRevenueCat = () => { 
@@ -15,30 +14,7 @@ export const useRevenueCat = () => {
   const [isPremium, setIsPremium] = useState<boolean>(false); 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const checkPremiumStatus = useCallback((info: CustomerInfo) => {
-    if (!info || !info.entitlements) return false;
-    
-    // 1. Direct check for hardcoded entitlement ID ('lux_pro')
-    const hasEntitlement = typeof info.entitlements.active[ENTITLEMENT_ID] !== 'undefined';
-    if (hasEntitlement) return true;
-
-    // 2. Case-insensitive / substring match on active entitlements
-    const activeKeys = Object.keys(info.entitlements.active || {});
-    const hasProKey = activeKeys.some(key => 
-      key.toLowerCase().includes('pro') || 
-      key.toLowerCase().includes('lux') ||
-      key.toLowerCase().includes('default')
-    );
-    if (hasProKey) return true;
-
-    // 3. Fallback: If there are ANY active entitlements
-    if (activeKeys.length > 0) return true;
-
-    // 4. Fallback: If there are any active subscription product IDs
-    if (info.activeSubscriptions && info.activeSubscriptions.length > 0) return true;
-
-    return false;
-  }, []);
+  const checkPremiumStatus = useCallback((info: CustomerInfo) => hasActiveEntitlement(info), []);
 
   const fetchRevenueCatData = useCallback(async () => {
     if (!Capacitor.isNativePlatform()) {
@@ -53,8 +29,7 @@ export const useRevenueCat = () => {
       setIsPremium(checkPremiumStatus(info.customerInfo));
 
       const offerings = await Purchases.getOfferings();
-      console.log("RevenueCat offerings on mount:", offerings);
-      
+            
       // Buscar el offering activo (current) o por sus IDs comunes
       const offering = offerings.current || offerings.all[OFFERING_ID] || offerings.all['default'] || offerings.all['defaultt'] || null;
       if (offering) {
@@ -116,8 +91,7 @@ export const useRevenueCat = () => {
 
         if (!pkg) {
           const offerings = await Purchases.getOfferings();
-          console.log("RevenueCat offerings on demand:", offerings);
-          const offering = offerings.current || offerings.all[OFFERING_ID] || offerings.all['default'] || offerings.all['defaultt'] || null;
+                    const offering = offerings.current || offerings.all[OFFERING_ID] || offerings.all['default'] || offerings.all['defaultt'] || null;
           if (offering) {
             setCurrentOffering(offering);
             

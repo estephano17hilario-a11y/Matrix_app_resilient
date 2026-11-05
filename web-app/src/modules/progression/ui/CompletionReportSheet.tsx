@@ -8,8 +8,7 @@ import { toLocalISOString } from '@/utils/dateUtils';
 import { useNotesContext } from '@/modules/notes/context/NotesContext';
 import { progressionStore, useProgression, type CompletionLog, type PendingReport } from '../progressionStore';
 import { REPORT_CONFIG } from '../report';
-import { RankBadge } from './RankBadge';
-import { CountUp, DivisionBar, Typewriter, haptic } from './primitives';
+import { CountUp, Typewriter, haptic } from './primitives';
 import { MOTION, rankStyle } from './tokens';
 
 const KIND_LABEL: Record<CompletionLog['kind'], { key: string; es: string; Icon: typeof Clock }> = {
@@ -21,19 +20,21 @@ const KIND_LABEL: Record<CompletionLog['kind'], { key: string; es: string; Icon:
 
 const NOTE_MAX = 280;
 
-const journalBlocks = (p: PendingReport, typeLabel: string): NoteBlock[] => {
-  const { log, report } = p;
+/** Journal entry = what was done, at what time, and the user's note. Nothing else. */
+const journalBlocks = (p: PendingReport): NoteBlock[] => {
+  const { log } = p;
   const time = new Date(log.at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   const id = (s: string) => `rep-${log.id}-${s}`;
-  const blocks: NoteBlock[] = [
-    { id: id('h'), type: 'heading3', content: `${typeLabel}: ${log.itemName} · ${time}` },
-  ];
-  if (report.metrics.length) blocks.push({ id: id('m'), type: 'text', content: report.metrics.map(m => `${m.label}: ${m.display}`).join(' · ') });
-  if (log.rating) blocks.push({ id: id('r'), type: 'text', content: `Enfoque: ${'★'.repeat(log.rating)}${'☆'.repeat(5 - log.rating)} (${log.rating}/5)` });
+  const blocks: NoteBlock[] = [{ id: id('h'), type: 'heading3', content: `${log.itemName} · ${time}` }];
   if (log.note) blocks.push({ id: id('n'), type: 'quote', content: log.note });
-  blocks.push({ id: id('e'), type: 'callout', calloutIcon: '🏆', content: `ELO ${p.eloInstant >= 0 ? '+' : ''}${p.eloInstant} ahora · proyectado del día ${p.projectedDay >= 0 ? '+' : ''}${p.projectedDay} · XP +${p.xp}` });
-  blocks.push({ id: id('t'), type: 'text', content: report.narrative });
   return blocks;
+};
+
+/** First two sentences only: the feedback sheet is meant to be quick. */
+const shortNarrative = (text: string): string => {
+  const sentences = text.match(/[^.!?]+[.!?]+(\s|$)/g);
+  if (!sentences) return text;
+  return sentences.slice(0, 2).join('').trim();
 };
 
 export const CompletionReportSheet: React.FC = memo(() => {
@@ -54,19 +55,11 @@ const Sheet: React.FC<{ pending: PendingReport }> = ({ pending }) => {
   const { journalEntries, updateJournal } = useNotesContext();
   const { log, report, standing } = pending;
   const kind = KIND_LABEL[log.kind];
-  const [stage, setStage] = useState<'intro' | 'text' | 'actions'>(reduce ? 'actions' : 'intro');
   const [note, setNote] = useState(log.note ?? '');
   const [journaled, setJournaled] = useState(!!log.journalEntryId);
   const noteTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const close = useCallback(() => progressionStore.dismissReport(), []);
-
-  // Stage timing: header → numbers → bar → narrative → actions.
-  useEffect(() => {
-    if (reduce) return;
-    const timer = setTimeout(() => setStage('text'), 1500);
-    return () => clearTimeout(timer);
-  }, [reduce]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
@@ -97,11 +90,11 @@ const Sheet: React.FC<{ pending: PendingReport }> = ({ pending }) => {
     progressionStore.updateLog(log.id, { note: current.log.note });
     const date = toLocalISOString(new Date(log.at));
     const existing = journalEntries.find(e => e.date === date);
-    const blocks = journalBlocks(current, t(kind.key, kind.es));
+    const blocks = journalBlocks(current);
     const link = { kind: log.kind, id: log.itemId, name: log.itemName, logId: log.id };
     const entry: JournalEntry = existing
       ? { ...existing, blocks: [...existing.blocks, ...blocks], linkedItems: [...(existing.linkedItems ?? []), link] }
-      : { id: `${Date.now()}`, date, blocks, tags: ['informe'], linkedItems: [link] };
+      : { id: `${Date.now()}`, date, blocks, tags: [], linkedItems: [link] };
     await updateJournal(entry);
     progressionStore.updateLog(log.id, { journalEntryId: entry.id });
     haptic(meta.hapticsEnabled, [10, 40, 10]);
@@ -151,64 +144,27 @@ const Sheet: React.FC<{ pending: PendingReport }> = ({ pending }) => {
             </button>
           </motion.div>
 
-          {/* 2. Numbers */}
-          <motion.div {...fade(0.3)} className="grid grid-cols-3 gap-2 mt-5">
-            <Stat label={t('progression.report.eloNow', 'ELO ahora')} tone={pending.eloInstant > 0 ? 'pos' : 'neutral'}>
-              <CountUp value={pending.eloInstant} signed delay={reduce ? 0 : 350} />
-            </Stat>
-            <Stat label={t('progression.report.eloDay', 'ELO proyectado hoy')} tone={pending.projectedDay > 0 ? 'pos' : pending.projectedDay < 0 ? 'neg' : 'neutral'}>
-              <CountUp value={pending.projectedDay} signed delay={reduce ? 0 : 400} />
+          {/* 2. Numbers: just two */}
+          <motion.div {...fade(0.15)} className="grid grid-cols-2 gap-2 mt-4">
+            <Stat label={t('progression.report.eloNow', 'ELO ahora')} tone={pending.eloInstant > 0 ? "pos" : "neutral"}>
+              <CountUp value={pending.eloInstant} signed delay={reduce ? 0 : 150} />
             </Stat>
             <Stat label="XP" tone="pos">
-              <CountUp value={pending.xp} prefix="+" delay={reduce ? 0 : 450} />
+              <CountUp value={pending.xp} prefix="+" delay={reduce ? 0 : 200} />
             </Stat>
           </motion.div>
 
-          {report.metrics.length > 0 && (
-            <motion.ul {...fade(0.45)} className="mt-3 flex flex-wrap gap-2" aria-label={t('progression.report.metrics', 'Métricas')}>
-              {report.metrics.map(m => (
-                <li key={m.id} className="prog-surface rounded-full px-3 py-1.5 text-[12px]">
-                  <span className="prog-text-3">{m.label} </span>
-                  <span className="font-semibold tabular-nums">{m.display}</span>
-                </li>
-              ))}
-            </motion.ul>
-          )}
-
-          {/* 3. Division bar */}
-          <motion.div {...fade(0.8)} className="mt-5 prog-surface rounded-[var(--p-r-lg)] p-4 flex items-center gap-3">
-            <RankBadge rankIndex={standing.rankIndex} division={standing.division} size={34} />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="font-bold text-[15px]">{standing.label}</span>
-                {standing.eloToNext !== null && (
-                  <span className="text-[11px] prog-text-3 tabular-nums">
-                    {standing.eloToNext} {t('progression.toNext', 'para')} {standing.nextLabel}
-                  </span>
-                )}
-              </div>
-              {standing.progress !== null && (
-                <div className="mt-2"><DivisionBar value={standing.progress} from={pending.progressBefore} delay={0.9} shine label={standing.label} /></div>
-              )}
-            </div>
-          </motion.div>
-
-          {/* 4. Narrative */}
-          <div className="mt-5 min-h-[96px]">
-            {stage !== 'intro' && (
-              <Typewriter
-                text={report.narrative}
-                cps={REPORT_CONFIG.TYPEWRITER_CPS}
-                onDone={() => setStage('actions')}
-                className="text-[15.5px] leading-[1.6]"
-              />
-            )}
+          {/* 3. One short, fast line */}
+          <div className="mt-4 min-h-[44px]">
+            <Typewriter
+              text={shortNarrative(report.narrative)}
+              cps={REPORT_CONFIG.TYPEWRITER_CPS}
+              className="text-[15px] leading-[1.5]"
+            />
           </div>
 
-          {/* 5. Rating, note, journaling */}
-          <AnimatePresence>
-            {stage === 'actions' && (
-              <motion.div initial={reduce ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: MOTION.short, ease: MOTION.easeOut }} className="mt-4 space-y-4">
+          {/* 4. Rating, note, journaling */}
+          <motion.div {...fade(0.2)} className="mt-3 space-y-4">
                 <fieldset>
                   <legend className="text-[12px] font-semibold prog-text-2 mb-2">{t('progression.report.rate', '¿Qué tal tu enfoque?')}</legend>
                   <div className="grid grid-cols-5 gap-2" role="radiogroup">
@@ -258,9 +214,7 @@ const Sheet: React.FC<{ pending: PendingReport }> = ({ pending }) => {
                     {t('progression.report.done', 'Listo')}
                   </button>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          </motion.div>
         </div>
       </motion.div>
     </div>

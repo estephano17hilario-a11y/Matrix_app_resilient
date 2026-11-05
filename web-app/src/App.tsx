@@ -26,6 +26,8 @@ import { WorldWhisper } from '@/immersion/WorldWhisper';
 import { arrive } from '@/immersion/engine';
 import { startReveal } from '@/immersion/reveal';
 import Dashboard from './Dashboard';
+import { isRecoveryUrl, markPasswordRecovery } from '@/modules/auth/passwordRecovery';
+import { PasswordRecoveryModal } from '@/modules/auth/components/PasswordRecoveryModal';
 
 // 🚀 PERFORMANCE: Lazy load heavy components
 const AuthScreen = lazy(() => import('@/modules/auth/AuthScreen').then(m => ({ default: m.AuthScreen })));
@@ -177,6 +179,8 @@ const AppRoutes = () => {
           with z-99999 is truly at the top of the paint order. */}
       {dashboardUnlocked && <RewardOverlay />}
 
+      <PasswordRecoveryModal />
+
       {/* Portal target for AchievementToast — fixed, outside overflow-hidden so it's never clipped */}
       <div
         id="notification-stack-root"
@@ -258,6 +262,7 @@ export default function App() {
             });
             if (error) throw error;
             console.log('✅ [Deep Link App.tsx] Session established successfully');
+            if (isRecoveryUrl(event.url)) markPasswordRecovery();
           } else {
             console.warn('⚠️ [Deep Link App.tsx] Missing access_token or refresh_token in URL');
           }
