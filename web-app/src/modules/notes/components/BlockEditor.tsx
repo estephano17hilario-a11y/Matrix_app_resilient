@@ -1,3 +1,4 @@
+import { escapeAttr, isSafeImageUrl, sanitizeHtml } from '@/utils/sanitizeHtml';
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { 
   Bold, Italic, Underline, Strikethrough, 
@@ -47,12 +48,14 @@ export const BlockEditor = React.memo(({ blocks, onChange, readOnly = false }: {
     const getInitialHtml = () => {
         if (!blocks || blocks.length === 0) return '<div><br></div>';
         return blocks.map(b => {
-            const rawContent = b.content || '';
+            // Stored HTML is untrusted (backups, sync, pasted content): sanitize before injecting.
+            const rawContent = b.type === 'image' ? (b.content || '') : sanitizeHtml(b.content || '');
             if (b.type === 'check') {
                 return `<div class="flex items-start gap-2.5 my-1.5 check-item"><input type="checkbox" class="w-5 h-5 rounded-md accent-cyan-400 cursor-pointer shrink-0 mt-0.5" ${b.checked ? 'checked' : ''} /><span>${rawContent || 'Nueva tarea'}</span></div>`;
             }
             if (b.type === 'image' && rawContent) {
-                return `<div class="my-2 rounded-2xl overflow-hidden"><img src="${rawContent}" class="w-full rounded-2xl" /></div>`;
+                if (!isSafeImageUrl(rawContent)) return '<div><br></div>';
+                return `<div class="my-2 rounded-2xl overflow-hidden"><img src="${escapeAttr(rawContent.trim())}" class="w-full rounded-2xl" /></div>`;
             }
             if (b.type === 'heading1') return `<h1>${rawContent || ''}</h1>`;
             if (b.type === 'heading2') return `<h2>${rawContent || ''}</h2>`;

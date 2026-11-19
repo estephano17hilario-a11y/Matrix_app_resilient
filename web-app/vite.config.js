@@ -17,13 +17,6 @@ export default defineConfig({
   server: {
     host: true,
     port: 5174,
-    proxy: {
-      '/mp-api': {
-        target: 'https://api.mercadopago.com',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/mp-api/, ''),
-      },
-    }
   },
   esbuild: {
     drop: ['console', 'debugger'],

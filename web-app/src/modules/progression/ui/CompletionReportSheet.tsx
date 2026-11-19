@@ -5,6 +5,7 @@ import { BookPlus, Check, Clock, Flame, ListChecks, Star, Target, X } from 'luci
 import { useTranslation } from 'react-i18next';
 import type { JournalEntry, NoteBlock } from '@/types';
 import { toLocalISOString } from '@/utils/dateUtils';
+import { escapeHtml } from '@/utils/sanitizeHtml';
 import { useNotesContext } from '@/modules/notes/context/NotesContext';
 import { progressionStore, useProgression, type CompletionLog, type PendingReport } from '../progressionStore';
 import { REPORT_CONFIG } from '../report';
@@ -20,13 +21,16 @@ const KIND_LABEL: Record<CompletionLog['kind'], { key: string; es: string; Icon:
 
 const NOTE_MAX = 280;
 
-/** Journal entry = what was done, at what time, and the user's note. Nothing else. */
+/** Journal entry = name, time, stars and the user's comment. Nothing else. */
 const journalBlocks = (p: PendingReport): NoteBlock[] => {
   const { log } = p;
   const time = new Date(log.at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   const id = (s: string) => `rep-${log.id}-${s}`;
-  const blocks: NoteBlock[] = [{ id: id('h'), type: 'heading3', content: `${log.itemName} · ${time}` }];
-  if (log.note) blocks.push({ id: id('n'), type: 'quote', content: log.note });
+  const blocks: NoteBlock[] = [{ id: id('h'), type: 'heading3', content: escapeHtml(`${log.itemName} · ${time}`) }];
+  if (log.rating) {
+    blocks.push({ id: id('s'), type: 'text', content: '★'.repeat(log.rating) + '☆'.repeat(5 - log.rating) });
+  }
+  if (log.note) blocks.push({ id: id('n'), type: 'quote', content: escapeHtml(log.note) });
   return blocks;
 };
 

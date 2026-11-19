@@ -27,7 +27,8 @@ import { VirtualList } from './VirtualList';
 import { RankLadderFull } from './RankLadder';
 import { FrameInventory } from './FrameInventory';
 import { MOTION, RANKS, rankStyle } from './tokens';
-import { ArenaBackdrop, ArenaDock, ArenaHeader, Card, Delta, useMountTransition, EmptyState, SectionHead, StatTile, Toggle, rise, type DockTab } from './arena';
+import { ArenaBackdrop, ArenaDock, ArenaHeader, Card, Delta, useMountTransition, EmptyState, Segmented, SectionHead, StatTile, Toggle, rise, type DockTab } from './arena';
+import { useSocial } from '@/modules/social/socialStore';
 
 export type ProgressionTab = 'RANK' | 'LADDER' | 'BOARD' | 'WEEK' | 'SETTINGS';
 type Tab = ProgressionTab;
@@ -232,9 +233,12 @@ const RankTab: React.FC<{ snap: ProgressionSnapshot; habits: Habit[]; quests: Qu
           <span className="arena-chip" style={{ background: 'rgb(var(--rank) / 0.14)', color: 'rgb(var(--rank))' }}>
             <Zap size={12} /> <CountUp value={summary.elo} duration={900} className="tabular-nums" /> ELO
           </span>
+          <span className="arena-chip" style={{ background: projection.projectedTotal >= 0 ? 'rgb(var(--p-positive) / 0.12)' : 'rgb(var(--p-negative) / 0.12)' }}>
+            {projection.projectedTotal >= 0 ? <TrendingUp size={12} className="prog-positive" /> : <TrendingDown size={12} className="prog-negative" />}
+            <span className={projection.projectedTotal >= 0 ? 'prog-positive' : 'prog-negative'}>{projection.projectedTotal > 0 ? '+' : ''}{projection.projectedTotal} {t('progression.hero.today', 'hoy')}</span>
+          </span>
           {standing.protected && <span className="arena-chip" style={{ background: 'rgb(var(--p-warning) / 0.14)', color: 'rgb(var(--p-warning))' }}><ShieldCheck size={12} /> {t('progression.protected', 'Protección de rango activa')}</span>}
         </div>
-
         {standing.division !== null && standing.progress !== null && (
           <div className="mt-5 w-full max-w-[400px]">
             <DivisionTrack division={standing.division} progress={standing.progress} />
@@ -264,7 +268,7 @@ const RankTab: React.FC<{ snap: ProgressionSnapshot; habits: Habit[]; quests: Qu
       <motion.section className="grid grid-cols-3 gap-2.5" {...rise(1, reduce)}>
         <StatTile
           icon={<Star size={16} />} label={t('progression.level', 'Nivel')} value={level.level}
-          sub={<div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgb(var(--p-line) / 0.08)' }}><div className="h-full rounded-full origin-left" style={{ transform: `scaleX(${level.progress})`, background: 'linear-gradient(90deg, var(--rank-from), var(--rank-to))' }} /></div>}
+          sub={<><div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgb(var(--p-line) / 0.08)' }}><div className="h-full rounded-full origin-left" style={{ transform: `scaleX(${level.progress})`, background: 'linear-gradient(90deg, var(--rank-from), var(--rank-to))' }} /></div><p className="text-[10.5px] prog-text-3 mt-1 tabular-nums">{level.intoLevel}/{level.levelSpan} XP</p></>}
         />
         <StatTile icon={<Flame size={16} className="arena-flame" />} tint="#fb923c" label={t('progression.streakTitle', 'Racha de meta')} value={summary.streak} sub={<p className="text-[10.5px] prog-text-3 mt-0.5">{t('progression.stat.days', 'días')}</p>} />
         <StatTile icon={<Shield size={16} />} tint="#38bdf8" label={t('progression.shield.short', 'Escudos')} value={snap.earnedShieldsAvailable + owned} sub={<p className="text-[10.5px] prog-text-3 mt-0.5">{t('progression.shield.split', '{{earned}} ganados · {{owned}} comprados', { earned: snap.earnedShieldsAvailable, owned })}</p>} />
@@ -425,6 +429,13 @@ const BoardTab: React.FC<{ snap: ProgressionSnapshot; userName?: string | null; 
   const { t } = useTranslation();
   const reduce = useReducedMotion();
   const lb = snap.leaderboard;
+  const social = useSocial();
+  const [scope, setScope] = useState<'GLOBAL' | 'FRIENDS'>('GLOBAL');
+  const friendRows = useMemo<LeaderboardRow[]>(() => {
+    const mine: LeaderboardRow = { user_id: snap.userId ?? 'me', display_name: userName ?? null, avatar_id: avatarId ?? null, elo: snap.summary.elo, rank_index: snap.summary.rankIndex, level: snap.level.level };
+    const others = social.friends.map(f => ({ user_id: f.profile.user_id, display_name: f.profile.display_name, avatar_id: f.profile.avatar_id, elo: f.profile.elo, rank_index: f.profile.rank_index, level: f.profile.level }));
+    return [mine, ...others].sort((x, y) => y.elo - x.elo);
+  }, [social.friends, snap.userId, snap.summary.elo, snap.summary.rankIndex, snap.level.level, userName, avatarId]);
   useEffect(() => {
     if (lb.status === 'IDLE' || (lb.status === 'READY' && Date.now() - lb.fetchedAt > 60_000)) {
       progressionStore.refreshLeaderboard({ displayName: userName, avatarId });
@@ -432,7 +443,8 @@ const BoardTab: React.FC<{ snap: ProgressionSnapshot; userName?: string | null; 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (lb.status === 'LOADING' || lb.status === 'IDLE') {
+  const friendsScope = scope === 'FRIENDS';
+  if (!friendsScope && (lb.status === 'LOADING' || lb.status === 'IDLE')) {
     return (
       <div className="space-y-3" aria-busy="true">
         <div className="prog-skeleton h-[220px] rounded-[24px]" />
@@ -440,11 +452,12 @@ const BoardTab: React.FC<{ snap: ProgressionSnapshot; userName?: string | null; 
       </div>
     );
   }
-  if (lb.status === 'UNAVAILABLE') {
+  if (!friendsScope && lb.status === 'UNAVAILABLE') {
     return <EmptyState icon={<Users size={28} />} title={t('progression.board.unavailable', 'Clasificación no disponible')} text={t('progression.board.unavailableHint', 'No se pudo conectar con la clasificación. Inténtalo más tarde.')} />;
   }
 
-  const { rows, myPosition } = lb;
+  const rows = friendsScope ? friendRows : (lb.status === 'READY' ? lb.rows : []);
+  const myPosition = friendsScope ? friendRows.findIndex(r => r.user_id === (snap.userId ?? 'me')) + 1 : (lb.status === 'READY' ? lb.myPosition : null);
   const legends = rows.filter(r => r.rank_index === LEGEND_INDEX);
   const me = snap.userId;
   const name = (r: LeaderboardRow) => (r.display_name || t('progression.board.anonymous', 'Jugador')).split('@')[0];
@@ -468,6 +481,25 @@ const BoardTab: React.FC<{ snap: ProgressionSnapshot; userName?: string | null; 
 
   return (
     <div className="space-y-4">
+      <Segmented
+        label={t('progression.board.scope', 'Clasificación')}
+        value={scope}
+        onChange={setScope}
+        options={[
+          { id: 'GLOBAL', label: t('progression.board.global', 'Global') },
+          { id: 'FRIENDS', label: `${t('progression.board.friends', 'Amigos')}${social.friends.length ? ` · ${social.friends.length}` : ''}` },
+        ]}
+      />
+      {friendsScope && social.friends.length === 0 && (
+        <button type="button" onClick={() => window.dispatchEvent(new Event('open-friends'))} className="prog-tap w-full arena-card p-3.5 flex items-center gap-3 text-left">
+          <span className="w-10 h-10 rounded-[14px] flex items-center justify-center shrink-0" style={{ background: 'rgb(var(--rank) / 0.14)', color: 'rgb(var(--rank))' }}><Users size={18} /></span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-[14px] font-black">{t('progression.board.inviteTitle', 'Compite con tus amigos')}</span>
+            <span className="block text-[12px] prog-text-3">{t('progression.board.inviteHint', 'Añade amigos para ver quién va primero.')}</span>
+          </span>
+          <ChevronRight size={18} className="prog-text-3" />
+        </button>
+      )}
       {/* My position */}
       <Card glow className="p-4 flex items-center gap-4">
         <RankBadge rankIndex={snap.standing.rankIndex} division={snap.standing.division} size={56} animate />
@@ -607,7 +639,7 @@ const WeekTab: React.FC<{ snap: ProgressionSnapshot; quests: Quest[]; projects: 
             <p className="text-[15px] font-black leading-tight">{t('progression.week.title', 'Tu semana')}</p>
           </div>
         </div>
-        <Typewriter key={summary.text} text={summary.text} className="relative mt-3 text-[15.5px] leading-[1.65]" />
+        <Typewriter key={summary.text} text={summary.text} cps={260} className="relative mt-3 text-[15.5px] leading-[1.65]" />
       </Card>
 
       <motion.section className="grid grid-cols-2 gap-2.5" {...rise(1, reduce)}>

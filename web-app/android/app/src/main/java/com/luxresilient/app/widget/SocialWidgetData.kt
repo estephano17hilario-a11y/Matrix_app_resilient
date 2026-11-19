@@ -80,6 +80,12 @@ object SocialWidgetData {
         if (json.isNullOrEmpty()) JsonArray() else JsonParser.parseString(json).asJsonArray
     } catch (_: Exception) { JsonArray() }
 
+    /** Like [arr] but throws when the request failed (offline / expired session), so widgets keep their last data. */
+    private fun get(client: SupabaseWidgetClient, path: String): JsonArray {
+        val body = client.restGet(path) ?: throw java.io.IOException("offline or session expired")
+        return arr(body)
+    }
+
     private fun JsonObject.str(k: String): String? = if (has(k) && !get(k).isJsonNull) get(k).asString else null
     private fun JsonObject.int(k: String): Int = if (has(k) && !get(k).isJsonNull) get(k).asInt else 0
 
@@ -88,13 +94,13 @@ object SocialWidgetData {
     fun friends(context: Context): List<Friend> {
         val client = SupabaseWidgetClient(context)
         val me = client.currentUserId() ?: return emptyList()
-        val rows = arr(client.restGet("friendships?select=requester,addressee&status=eq.ACCEPTED"))
+        val rows = get(client, "friendships?select=requester,addressee&status=eq.ACCEPTED")
         val ids = rows.mapNotNull { r ->
             val o = r.asJsonObject
             if (o.str("requester") == me) o.str("addressee") else o.str("requester")
         }
         if (ids.isEmpty()) return emptyList()
-        val profiles = arr(client.restGet("public_profiles?select=user_id,display_name,rank_index,elo&user_id=in.(${ids.joinToString(",")})"))
+        val profiles = get(client, "public_profiles?select=user_id,display_name,rank_index,elo&user_id=in.(${ids.joinToString(",")})")
         return profiles.map {
             val o = it.asJsonObject
             Friend(o.str("user_id") ?: "", (o.str("display_name") ?: "Amigo").substringBefore("@"), o.int("rank_index"), o.int("elo"))
@@ -102,7 +108,7 @@ object SocialWidgetData {
     }
 
     private fun stats(client: SupabaseWidgetClient, ids: List<String>, from: String, to: String): Map<String, Map<String, DayStat>> {
-        val rows = arr(client.restGet("daily_public_stats?select=user_id,day,score,focus_minutes,hud_streak_active&user_id=in.(${ids.joinToString(",")})&day=gte.$from&day=lte.$to"))
+        val rows = get(client, "daily_public_stats?select=user_id,day,score,focus_minutes,hud_streak_active&user_id=in.(${ids.joinToString(",")})&day=gte.$from&day=lte.$to")
         val out = mutableMapOf<String, MutableMap<String, DayStat>>()
         for (r in rows) {
             val o = r.asJsonObject
@@ -119,7 +125,7 @@ object SocialWidgetData {
         val me = client.currentUserId() ?: return null
         val friend = friends(context).firstOrNull { it.id == friendId }
         val or = enc("(and(challenger.eq.$me,opponent.eq.$friendId),and(challenger.eq.$friendId,opponent.eq.$me))")
-        val duels = arr(client.restGet("duels?select=*&or=$or&status=in.(ACTIVE,FINISHED)&order=created_at.desc")).map {
+        val duels = get(client, "duels?select=*&or=$or&status=in.(ACTIVE,FINISHED)&order=created_at.desc").map {
             val o = it.asJsonObject
             val ex = mutableSetOf<String>()
             if (o.has("excluded_days") && o.get("excluded_days").isJsonArray) o.getAsJsonArray("excluded_days").forEach { d -> ex.add(d.asString) }
@@ -155,7 +161,7 @@ object SocialWidgetData {
         val me = client.currentUserId() ?: return null
         val friend = friends(context).firstOrNull { it.id == friendId }
         val or = enc("(and(user_a.eq.$me,user_b.eq.$friendId),and(user_a.eq.$friendId,user_b.eq.$me))")
-        val row = arr(client.restGet("friend_streaks?select=started_on,status&or=$or&status=eq.ACTIVE")).firstOrNull()?.asJsonObject
+        val row = get(client, "friend_streaks?select=started_on,status&or=$or&status=eq.ACTIVE").firstOrNull()?.asJsonObject
         val started = row?.str("started_on")
         val today = today()
         val from = started ?: addDays(today, -60)

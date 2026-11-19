@@ -62,34 +62,54 @@ class DuelWidgetProvider : AppWidgetProvider() {
             views.setViewVisibility(R.id.duel_body, View.VISIBLE)
             mgr.updateAppWidget(widgetId, views)
 
+            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            fun show(lines: Map<String, String>, footer: String) {
+                views.setTextViewText(R.id.duel_friend, lines["friend"] ?: "")
+                views.setTextViewText(R.id.duel_rank, lines["rank"] ?: "")
+                views.setTextViewText(R.id.duel_days, lines["days"] ?: "")
+                views.setTextViewText(R.id.duel_duels, lines["duels"] ?: "")
+                views.setTextViewText(R.id.duel_status, lines["status"] ?: "")
+                views.setTextViewText(R.id.duel_today, lines["today"] ?: "")
+                views.setTextViewText(R.id.duel_updated, footer)
+            }
+
+            // Paint the last good data immediately so the widget never flashes empty.
+            val cacheKey = "duel_cache_$widgetId"
+            val cached: Map<String, String>? = prefs.getString(cacheKey, null)?.let { raw ->
+                try { val o = org.json.JSONObject(raw); o.keys().asSequence().associateWith { k -> o.getString(k) } } catch (_: Exception) { null }
+            }
+            if (cached != null) { show(cached, "Actualizando…"); mgr.updateAppWidget(widgetId, views) }
+
             CoroutineScope(Dispatchers.IO).launch {
                 val s = try { SocialWidgetData.duelSummary(context, friendId) } catch (_: Exception) { null }
                 withContext(Dispatchers.Main) {
                     if (s == null) {
-                        views.setTextViewText(R.id.duel_status, "Sin conexión")
+                        // Offline or the session expired while the app was closed: keep the last data.
+                        if (cached != null) show(cached, "Sin conexión · abre Lux para actualizar ${cached["at"] ?: ""}".trim())
+                        else views.setTextViewText(R.id.duel_status, "Sin conexión · abre Lux para actualizar")
                     } else {
                         val name = s.friend?.name ?: "Tu amigo"
                         val rank = s.friend?.let { SocialWidgetData.RANK_NAMES.getOrElse(it.rankIndex) { "" } } ?: ""
-                        views.setTextViewText(R.id.duel_friend, "⚔ Tú vs $name")
-                        views.setTextViewText(R.id.duel_rank, if (s.friend != null) "$rank · ${s.friend.elo} ELO" else "")
-                        views.setTextViewText(R.id.duel_days, "${s.dayWins} – ${s.dayLosses}")
-                        views.setTextViewText(R.id.duel_duels, "Duelos ${s.duelWins} – ${s.duelLosses}")
                         val a = s.active
-                        views.setTextViewText(
-                            R.id.duel_status,
-                            if (a == null) "Sin duelo activo"
-                            else {
-                                val len = when (a.duration) { "DAY" -> "de 1 día"; "MONTH" -> "mensual"; else -> "semanal" }
-                                "Duelo $len: ${s.activeMine} – ${s.activeTheirs} · quedan ${s.activeRemaining} día(s)"
-                            }
-                        )
+                        val status = if (a == null) "Sin duelo activo"
+                        else {
+                            val len = when (a.duration) { "DAY" -> "de 1 día"; "MONTH" -> "mensual"; else -> "semanal" }
+                            "Duelo $len: ${s.activeMine} – ${s.activeTheirs} · quedan ${s.activeRemaining} día(s)"
+                        }
                         val tm = s.todayMine
                         val tt = s.todayTheirs
-                        views.setTextViewText(
-                            R.id.duel_today,
-                            "Hoy: tú ${Math.round(tm?.score ?: 0.0)} pts · ${tm?.focus ?: 0} min — $name ${Math.round(tt?.score ?: 0.0)} pts · ${tt?.focus ?: 0} min"
+                        val at = SimpleDateFormat("HH:mm", Locale.US).format(Date())
+                        val lines = mapOf(
+                            "friend" to "⚔ Tú vs $name",
+                            "rank" to (if (s.friend != null) "$rank · ${s.friend.elo} ELO" else ""),
+                            "days" to "${s.dayWins} – ${s.dayLosses}",
+                            "duels" to "Duelos ${s.duelWins} – ${s.duelLosses}",
+                            "status" to status,
+                            "today" to "Hoy: tú ${Math.round(tm?.score ?: 0.0)} pts · ${tm?.focus ?: 0} min — $name ${Math.round(tt?.score ?: 0.0)} pts · ${tt?.focus ?: 0} min",
+                            "at" to at,
                         )
-                        views.setTextViewText(R.id.duel_updated, "Actualizado ${SimpleDateFormat("HH:mm", Locale.US).format(Date())} · cierra a las 24:00")
+                        show(lines, "Actualizado $at · cierra a las 24:00")
+                        prefs.edit().putString(cacheKey, org.json.JSONObject(lines).toString()).apply()
                     }
                     mgr.updateAppWidget(widgetId, views)
                 }
@@ -106,7 +126,7 @@ class DuelWidgetProvider : AppWidgetProvider() {
 
     override fun onDeleted(context: Context, ids: IntArray) {
         val e = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-        ids.forEach { e.remove(friendKey(it)) }
+        ids.forEach { e.remove(friendKey(it)); e.remove("duel_cache_$it") }
         e.apply()
     }
 

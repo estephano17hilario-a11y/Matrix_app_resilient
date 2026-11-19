@@ -89,11 +89,13 @@ class SocialAlarmReceiver : BroadcastReceiver() {
         val pending = goAsync()
         Thread {
             try {
-                when (intent.action) {
-                    SocialAlarms.ACTION_MIDNIGHT -> SocialAlarms.refreshWidgets(context)
-                    SocialAlarms.ACTION_POLL -> SocialAlarms.pollMessages(context)
-                    Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED -> Unit
-                }
+                try {
+                    when (intent.action) {
+                        SocialAlarms.ACTION_MIDNIGHT -> SocialAlarms.refreshWidgets(context)
+                        SocialAlarms.ACTION_POLL -> SocialAlarms.pollMessages(context)
+                        Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED -> Unit
+                    }
+                } catch (_: Exception) { /* offline / expired session: retried at the next alarm */ }
                 SocialAlarms.ensure(context)
             } finally {
                 pending.finish()

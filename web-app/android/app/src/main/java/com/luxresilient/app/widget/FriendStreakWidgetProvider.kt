@@ -92,14 +92,39 @@ class FriendStreakWidgetProvider : AppWidgetProvider() {
 
             if (!SupabaseWidgetClient(context).isAuthenticated()) { render("ABRE LUX", null); return }
             if (friendId == null) { render("⚙ ELIGE UN AMIGO", null); return }
-            render("$monthName ${cal.get(Calendar.YEAR)}", null)
+
+            // Last good data first (never a misleading empty calendar), then refresh from the server.
+            val cacheKey = "streak_cache_$widgetId"
+            fun encode(d: SocialWidgetData.StreakData) = org.json.JSONObject()
+                .put("name", d.friend?.name ?: "").put("rank", d.friend?.rankIndex ?: 0).put("elo", d.friend?.elo ?: 0)
+                .put("started", d.startedOn ?: "").put("current", d.current)
+                .put("mine", org.json.JSONArray(d.mine.toList())).put("theirs", org.json.JSONArray(d.theirs.toList())).toString()
+            fun decode(raw: String): SocialWidgetData.StreakData? = try {
+                val o = org.json.JSONObject(raw)
+                fun set(k: String) = (0 until o.getJSONArray(k).length()).map { o.getJSONArray(k).getString(it) }.toSet()
+                SocialWidgetData.StreakData(
+                    SocialWidgetData.Friend(friendId, o.getString("name"), o.getInt("rank"), o.getInt("elo")),
+                    o.getString("started").ifEmpty { null }, set("mine"), set("theirs"), o.getInt("current")
+                )
+            } catch (_: Exception) { null }
+            fun header(data: SocialWidgetData.StreakData?, stale: Boolean): String {
+                val name = data?.friend?.name?.ifEmpty { null } ?: "AMIGO"
+                val tail = if (stale) " · SIN CONEXIÓN" else ""
+                return if (data?.startedOn == null) "SIN RACHA CON ${name.uppercase()}$tail" else "🔥 ${data.current} · ${name.uppercase()} · $monthName$tail"
+            }
+
+            val cached = prefs.getString(cacheKey, null)?.let { decode(it) }
+            render(if (cached != null) header(cached, false) else "$monthName ${cal.get(Calendar.YEAR)}", cached)
 
             CoroutineScope(Dispatchers.IO).launch {
                 val data = try { SocialWidgetData.streakData(context, friendId) } catch (_: Exception) { null }
                 withContext(Dispatchers.Main) {
-                    val name = data?.friend?.name ?: "AMIGO"
-                    val head = if (data?.startedOn == null) "SIN RACHA CON ${name.uppercase()}" else "🔥 ${data.current} · ${name.uppercase()} · $monthName"
-                    render(head, data)
+                    if (data != null) {
+                        prefs.edit().putString(cacheKey, encode(data)).apply()
+                        render(header(data, false), data)
+                    } else if (cached != null) {
+                        render(header(cached, true), cached)
+                    }
                 }
             }
         }

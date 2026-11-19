@@ -91,10 +91,11 @@ export const socialService = {
     return !error;
   },
 
-  async myInviteCode(userId: string): Promise<string | null | undefined> {
-    const { data, error } = await supabase.from('public_profiles').select('invite_code').eq('user_id', userId).maybeSingle();
+  /** My own invite code, created server-side the first time (other users can never read it). */
+  async myInviteCode(_userId: string): Promise<string | null | undefined> {
+    const { data, error } = await supabase.rpc('my_invite_code');
     if (error) { warn('invite code', error); return undefined; }
-    return (data?.invite_code as string | null) ?? null;
+    return (data as string | null) ?? null;
   },
 
   async profiles(ids: string[]): Promise<PublicProfile[]> {

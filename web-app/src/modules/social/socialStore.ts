@@ -9,7 +9,7 @@
 import { useSyncExternalStore } from 'react';
 import {
   EMPTY_PRIZE, addDays, addPrizes, checkExclusions, dayPrize, duelStanding, finalPrize, friendStreak, headToHead,
-  localDayKey, makeInviteCode, periodDays, type DayKey, type DayStats, type DuelDuration, type DuelStanding,
+  localDayKey, periodDays, type DayKey, type DayStats, type DuelDuration, type DuelStanding,
   type FriendStreak, type Prize, type Record2,
 } from './engine';
 import {
@@ -302,13 +302,11 @@ export const socialStore = {
     if (snap.myCode) return snap.myCode;
     const existing = await socialService.myInviteCode(me);
     if (existing === undefined) { set({ available: false }); return null; }
-    if (existing) { set({ myCode: existing }); return existing; }
-    for (let i = 0; i < 4; i++) {
-      const code = makeInviteCode();
-      if (await socialService.upsertProfile({ user_id: me, invite_code: code, ...profileExtras() })) {
-        set({ myCode: code });
-        return code;
-      }
+    if (existing) {
+      set({ myCode: existing });
+      // The server created the row if it was missing: fill in name/avatar/ELO right away.
+      void socialService.upsertProfile({ user_id: me, ...profileExtras() });
+      return existing;
     }
     return null;
   },

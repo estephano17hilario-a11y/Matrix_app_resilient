@@ -535,3 +535,11 @@ html.android-webview .btn-orb-glow::before { animation: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .lux-stars, .lux-stars-wrap, .lux-far, .lux-ember, .lux-shine::before, .lux-gem { animation: none !important; }
 }
+
+/* Low-end devices (≤4 cores / ≤3 GB RAM, or the governor stepped down): backdrop-filter is the
+   most expensive paint operation in an Android WebView. Panels keep their translucent
+   background and simply lose the blur, which keeps scrolling and animations at 60fps. */
+html.lux-lite [class*="backdrop-blur"] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}

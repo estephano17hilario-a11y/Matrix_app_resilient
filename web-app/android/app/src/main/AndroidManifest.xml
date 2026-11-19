@@ -125,7 +125,7 @@
         <!-- Widget Receiver -->
         <receiver
             android:name=".widget.HabitWidgetProvider"
-            android:exported="true"
+            android:exported="false"
             android:label="@string/widget_habits_title">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -148,7 +148,7 @@
         <!-- Task Widget Receiver -->
         <receiver
             android:name=".widget.TaskWidgetProvider"
-            android:exported="true"
+            android:exported="false"
             android:label="Matrix Quests">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -169,7 +169,7 @@
         <!-- Focus Graph Widget Receiver -->
         <receiver
             android:name=".widget.FocusWidgetProvider"
-            android:exported="true"
+            android:exported="false"
             android:label="Matrix Enfoque">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -185,7 +185,7 @@
         <!-- Project Progress Widget Receiver -->
         <receiver
             android:name=".widget.ProjectWidgetProvider"
-            android:exported="true"
+            android:exported="false"
             android:label="Matrix Progreso Proyecto">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -198,7 +198,7 @@
         <!-- Journaling Calendar Widget Receiver -->
         <receiver
             android:name=".widget.JournalWidgetProvider"
-            android:exported="true"
+            android:exported="false"
             android:label="Matrix Diario Calendario">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -213,7 +213,7 @@
         <!-- Score Widget Receiver -->
         <receiver
             android:name=".widget.ScoreWidgetProvider"
-            android:exported="true"
+            android:exported="false"
             android:label="@string/widget_score_title">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -227,7 +227,7 @@
         <!-- Rivals Widget Receiver -->
         <receiver
             android:name=".widget.RivalsWidgetProvider"
-            android:exported="true"
+            android:exported="false"
             android:label="@string/widget_rivals_title">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -241,7 +241,7 @@
         <!-- Social: duel + shared-streak widgets, friend picker, background alarms -->
         <receiver
             android:name=".widget.DuelWidgetProvider"
-            android:exported="true"
+            android:exported="false"
             android:label="@string/widget_duel_title">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -254,7 +254,7 @@
 
         <receiver
             android:name=".widget.FriendStreakWidgetProvider"
-            android:exported="true"
+            android:exported="false"
             android:label="@string/widget_friend_streak_title">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
