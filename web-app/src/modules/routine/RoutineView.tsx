@@ -3,8 +3,8 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import * as LucideIcons from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
-  BookOpen, CalendarClock, Check, CheckSquare, ChevronLeft, ChevronRight, Clock, Flame, Moon, PenLine,
-  Play, Plus, Settings2, Sparkles, Sun, Sunset, Target, AlertCircle, PartyPopper,
+  BookOpen, CalendarClock, Check, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, Clock, Flame, Moon, PenLine,
+  Play, Plus, Settings2, SlidersHorizontal, Sparkles, Sun, Sunset, Target, AlertCircle, PartyPopper,
 } from 'lucide-react';
 import type { Attribute, Habit, Project, Quest } from '../../types';
 import { JournalRemindersModal } from '../notes/components/JournalRemindersModal';
@@ -52,6 +52,9 @@ const KIND_ICON: Record<RoutineItem['kind'], React.ElementType> = {
   HABIT: Flame, SUBHABIT: Flame, TASK: CheckSquare, PROJECT: Target, JOURNAL: BookOpen,
 };
 
+// Width of the optional time column beside the timeline rail (kept tight: no dead space left of the hours).
+const TIME_COL = 34;
+
 const pad = (n: number) => String(n).padStart(2, '0');
 const hhmm = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
@@ -61,7 +64,7 @@ const ProgressRing: React.FC<{ pct: number; reduce: boolean }> = ({ pct, reduce 
   const r = 38;
   const c = 2 * Math.PI * r;
   return (
-    <div className="relative w-[92px] h-[92px] shrink-0">
+    <div className="relative w-[64px] h-[64px] shrink-0">
       <svg viewBox="0 0 92 92" className="w-full h-full -rotate-90">
         <defs>
           <linearGradient id="routine-ring" x1="0" y1="0" x2="1" y2="1">
@@ -80,7 +83,7 @@ const ProgressRing: React.FC<{ pct: number; reduce: boolean }> = ({ pct, reduce 
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-[24px] font-black text-white leading-none tabular-nums">{pct}<span className="text-[12px] text-white/50">%</span></span>
+        <span className="text-[17px] font-black text-white leading-none tabular-nums">{pct}<span className="text-[9px] text-white/50">%</span></span>
       </div>
     </div>
   );
@@ -117,12 +120,12 @@ const RoutineCard: React.FC<CardProps> = React.memo(({ item, Icon, index, exactT
     >
       {/* Time column (optional): the time of each item, beside the timeline */}
       {timeLeft && (
-        <div className="w-[44px] shrink-0 pt-[22px] pr-1.5 text-right">
+        <div className="shrink-0 pt-[22px] pr-1 text-right" style={{ width: TIME_COL }}>
           {item.time ? (() => {
             const [main, suffix] = formatClock(item.time, !use24h).split(' ');
             return (
               <>
-                <span className={cn('block text-[12px] font-black tabular-nums leading-none', item.done ? 'text-white/25' : 'text-white/80')}>{main}</span>
+                <span className={cn('block text-[11px] font-black tabular-nums leading-none tracking-tight', item.done ? 'text-white/25' : 'text-white/80')}>{main}</span>
                 {suffix && <span className={cn('block text-[8px] font-black tracking-wider mt-0.5', item.done ? 'text-white/15' : 'text-white/35')}>{suffix}</span>}
               </>
             );
@@ -263,6 +266,7 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
   const [config, setConfig] = useState<RoutineConfig>(() => loadRoutineConfig(userId));
   const [date, setDate] = useState(() => new Date());
   const [filter, setFilter] = useState<string>('ALL');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const [configOpen, setConfigOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -408,6 +412,7 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
   }, [next, isToday, nowMinutes, config.use24h, es]);
 
   const fullDate = date.toLocaleDateString(es ? 'es-ES' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' });
+  const shortDate = date.toLocaleDateString(es ? 'es-ES' : 'en-US', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\./g, '');
   const fmt = (t: string) => formatClock(t, !config.use24h);
 
   const toggleItem = useCallback((e: React.MouseEvent, item: RoutineItem) => {
@@ -461,6 +466,14 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
     { id: 'AFTERNOON', label: tr('Tarde', 'Afternoon'), icon: Sunset },
     { id: 'NIGHT', label: tr('Noche', 'Night'), icon: Moon },
   ];
+
+  const filterLabel = (() => {
+    if (filter.startsWith('H')) {
+      const b = hourBlocks.find(x => `H${x.startHour}` === filter);
+      return b ? formatHourRange(b.startHour, b.endHour, config.use24h) : tr('Todo', 'All');
+    }
+    return filters.find(f => f.id === filter)?.label ?? tr('Todo', 'All');
+  })();
 
   const sectionMeta = (s: RoutineSection): { label: string; icon: React.ElementType; tint: string } => {
     switch (s.kind) {
@@ -535,7 +548,7 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
 
       {/* Hero */}
       <motion.section
-        className="relative overflow-hidden rounded-[30px] p-4 mb-4 border border-white/10"
+        className="relative overflow-hidden rounded-[24px] p-3 mb-3 border border-white/10"
         style={{ background: 'linear-gradient(135deg, rgba(56,189,248,0.16) 0%, rgba(99,102,241,0.14) 48%, rgba(168,85,247,0.12) 100%)' }}
         initial={reduce ? false : { opacity: 0, y: 14, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -543,48 +556,76 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
       >
         <div className="absolute -top-16 -right-10 w-52 h-52 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(56,189,248,0.22), transparent 68%)' }} />
         <div className="absolute -bottom-20 -left-10 w-52 h-52 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.18), transparent 68%)' }} />
-        <div className="relative flex items-center gap-4">
+        <div className="relative flex items-center gap-3">
           <ProgressRing pct={pct} reduce={reduce} />
           <div className="flex-1 min-w-0">
             {next ? (
               <>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-200/70">{tr('Siguiente', 'Up next')}</p>
-                <p className="text-[17px] font-black text-white leading-tight truncate mt-1">{next.title}</p>
-                <span className="inline-flex items-center gap-1 mt-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-black text-white/85 tabular-nums">
-                  <Clock size={11} strokeWidth={3} /> {nextWhen}
-                </span>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-sky-200/70">{tr('Siguiente', 'Up next')}</p>
+                <div className="flex items-center gap-2 mt-0.5 min-w-0">
+                  <p className="text-[15px] font-black text-white leading-tight truncate min-w-0">{next.title}</p>
+                  <span className="inline-flex items-center gap-1 shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-black text-white/85 tabular-nums">
+                    <Clock size={10} strokeWidth={3} /> {nextWhen}
+                  </span>
+                </div>
               </>
             ) : (
               <>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-200/70">{allItems.length ? tr('Todo listo', 'All done') : tr('Día libre', 'Free day')}</p>
-                <p className="text-[17px] font-black text-white leading-tight mt-1">
-                  {allItems.length ? tr('Cumpliste tu rutina', 'You nailed your routine') : tr('Nada programado', 'Nothing scheduled')}
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-200/70">{allItems.length ? tr('Todo listo', 'All done') : tr('Día libre', 'Free day')}</p>
+                <p className="flex items-center gap-1.5 text-[15px] font-black text-white leading-tight mt-0.5">
+                  <span className="truncate">{allItems.length ? tr('Cumpliste tu rutina', 'You nailed your routine') : tr('Nada programado', 'Nothing scheduled')}</span>
+                  <PartyPopper size={15} className="text-emerald-300 shrink-0" />
                 </p>
-                <PartyPopper size={18} className="text-emerald-300 mt-1.5" />
               </>
             )}
-          </div>
-        </div>
-        <div className="relative grid grid-cols-3 gap-2 mt-4">
-          {[
-            { label: tr('Hechas', 'Done'), value: doneCount, tint: '#34d399' },
-            { label: tr('Pendientes', 'Pending'), value: pendingCount, tint: '#38bdf8' },
-            { label: tr('Atrasadas', 'Overdue'), value: overdueCount, tint: '#fb7185' },
-          ].map(s => (
-            <div key={s.label} className="rounded-2xl bg-black/25 border border-white/[0.06] py-2 text-center">
-              <p className="text-[18px] font-black tabular-nums leading-none" style={{ color: s.tint }}>{s.value}</p>
-              <p className="text-[9px] font-bold uppercase tracking-wider text-white/35 mt-1">{s.label}</p>
+            <div className="flex items-center gap-3 mt-1.5 text-[10px] font-bold uppercase tracking-wider text-white/35">
+              {[
+                { label: tr('Hechas', 'Done'), value: doneCount, tint: '#34d399' },
+                { label: tr('Pend.', 'Pending'), value: pendingCount, tint: '#38bdf8' },
+                { label: tr('Atras.', 'Overdue'), value: overdueCount, tint: '#fb7185' },
+              ].map(s => (
+                <span key={s.label} className="flex items-baseline gap-1">
+                  <span className="text-[13px] font-black tabular-nums" style={{ color: s.tint }}>{s.value}</span>{s.label}
+                </span>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </motion.section>
 
+      {/* Date + day-part + hour filters: folded into one button so the routine gets the screen */}
+      <div className="mb-4">
+        <motion.button
+          type="button"
+          onClick={() => setFiltersOpen(v => !v)}
+          aria-expanded={filtersOpen}
+          whileTap={reduce ? undefined : { scale: 0.98 }}
+          transition={SPRING}
+          initial={reduce ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full flex items-center gap-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.07] pl-3 pr-3 py-2.5 text-left"
+        >
+          <span className="w-7 h-7 rounded-xl bg-sky-400/10 text-sky-300 flex items-center justify-center shrink-0"><SlidersHorizontal size={14} /></span>
+          <span className="flex-1 min-w-0 flex items-center gap-1.5 text-[12px] font-black">
+            <span className="text-white/85 truncate first-letter:uppercase">{shortDate}</span>
+            <span className="text-white/20">·</span>
+            <span className={cn('truncate', filter === 'ALL' ? 'text-white/40' : 'text-sky-300')}>{filterLabel}</span>
+          </span>
+          <motion.span animate={{ rotate: filtersOpen ? 180 : 0 }} transition={SPRING} className="flex text-white/40 shrink-0"><ChevronDown size={16} /></motion.span>
+        </motion.button>
+        <AnimatePresence initial={false}>
+          {filtersOpen && (
+            <motion.div
+              key="filters-panel"
+              className="overflow-hidden"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={reduce ? { duration: 0 } : { duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <div className="pt-3">
       {/* Week strip */}
-      <motion.div
-        className="flex items-center gap-1 mb-4"
-        initial={reduce ? false : { opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ ...SPRING, delay: 0.1 }}
+      <div className="flex items-center gap-1 mb-3"
       >
         <button type="button" onClick={() => setDate(d => addDays(d, -7))} aria-label={tr('Semana anterior', 'Previous week')} className="w-5 h-12 flex items-center justify-center text-white/35 active:text-white active:scale-90 transition-transform"><ChevronLeft size={18} /></button>
         <div className="relative flex-1 grid grid-cols-7">
@@ -617,19 +658,16 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
           })}
         </div>
         <button type="button" onClick={() => setDate(d => addDays(d, 7))} aria-label={tr('Semana siguiente', 'Next week')} className="w-5 h-12 flex items-center justify-center text-white/35 active:text-white active:scale-90 transition-transform"><ChevronRight size={18} /></button>
-      </motion.div>
+      </div>
       {!isToday && (
-        <button type="button" onClick={() => setDate(new Date())} className="mx-auto -mt-1 mb-3 flex items-center gap-1.5 rounded-full bg-sky-400/10 border border-sky-400/20 px-3 py-1.5 text-[11px] font-black text-sky-300 active:scale-95 transition-transform">
+        <button type="button" onClick={() => setDate(new Date())} className="mx-auto mb-3 flex items-center gap-1.5 rounded-full bg-sky-400/10 border border-sky-400/20 px-3 py-1.5 text-[11px] font-black text-sky-300 active:scale-95 transition-transform">
           <CalendarClock size={12} /> {tr('Volver a hoy', 'Back to today')}
         </button>
       )}
 
       {/* Mañana / Tarde / Noche */}
-      <motion.div
-        className={cn('relative flex p-1 rounded-[20px] bg-white/[0.04] border border-white/[0.07]', hourBlocks.length ? 'mb-3' : 'mb-5')}
-        initial={reduce ? false : { opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ ...SPRING, delay: 0.14 }}
+      <div
+        className={cn('relative flex p-1 rounded-[20px] bg-white/[0.04] border border-white/[0.07]', hourBlocks.length ? 'mb-3' : '')}
       >
         <span
           className="absolute top-1 bottom-1 left-1 w-[calc((100%-8px)/4)] rounded-2xl bg-white pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
@@ -652,11 +690,11 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
             </button>
           );
         })}
-      </motion.div>
+      </div>
 
       {/* Hour blocks: same idea as Mañana / Tarde / Noche, but by the block size chosen in settings */}
       {hourBlocks.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 mb-5" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1" style={{ scrollbarWidth: 'none' }}>
           <button
             type="button"
             onClick={() => setFilter('ALL')}
@@ -683,6 +721,11 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
           })}
         </div>
       )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Timeline */}
       {sections.length === 0 ? (
@@ -702,7 +745,7 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
           </p>
         </motion.div>
       ) : (
-        <div key={listKey}>
+        <div key={listKey} className={config.timeLeft ? '-ml-2.5' : undefined}>
           {sections.map(section => {
             const meta = sectionMeta(section);
             const SIcon = meta.icon;
@@ -728,13 +771,13 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
                 )}
                 <div className="relative">
                   {/* Shared rail line for the whole section */}
-                  <span className="absolute top-2 bottom-2 w-px bg-gradient-to-b from-white/[0.14] via-white/[0.07] to-white/[0.02]" style={{ left: (config.timeLeft ? 44 : 0) + 7.5 }} />
+                  <span className="absolute top-2 bottom-2 w-px bg-gradient-to-b from-white/[0.14] via-white/[0.07] to-white/[0.02]" style={{ left: (config.timeLeft ? TIME_COL : 0) + 7.5 }} />
                   {section.items.map(item => {
                     const i = runningIndex++;
                     return (
                       <React.Fragment key={item.id}>
                         {nowBeforeId === item.id && (
-                          <div className="relative flex items-center gap-2 py-1.5" style={{ paddingLeft: (config.timeLeft ? 44 : 0) + 3 }}>
+                          <div className="relative flex items-center gap-2 py-1.5" style={{ paddingLeft: (config.timeLeft ? TIME_COL : 0) + 3 }}>
                             <span className="relative flex w-[18px] h-[18px] items-center justify-center">
                               <span className="absolute w-full h-full rounded-full bg-rose-400/40 animate-ping" />
                               <span className="relative w-2.5 h-2.5 rounded-full bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.9)]" />
