@@ -179,53 +179,68 @@ public class FocusPlugin extends Plugin {
         }
     }
 
+    /** Builds an intent for FocusService marked as coming from JS (so the service won't echo it back). */
+    private Intent serviceIntent(String action) {
+        Intent intent = new Intent(getContext(), FocusService.class);
+        intent.setAction(action);
+        intent.putExtra(FocusService.EXTRA_FROM_JS, true);
+        return intent;
+    }
+
+    private void sendToService(Intent intent, boolean foreground) {
+        try {
+            if (foreground && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                getContext().startForegroundService(intent);
+            } else {
+                getContext().startService(intent);
+            }
+        } catch (Exception e) {
+            android.util.Log.e("FocusPlugin", "Could not reach FocusService (" + intent.getAction() + "): " + e.getMessage());
+        }
+    }
+
     @PluginMethod
     public void start(PluginCall call) {
-        long duration = call.getInt("duration", 25 * 60); // seconds
+        long duration = call.getInt("duration", 25 * 60); // seconds (remaining for POMO, elapsed for STOPWATCH)
         String mode = call.getString("mode", "POMO");
         String projectName = call.getString("projectName", "Focus Session");
         String projectColor = call.getString("projectColor", "#FFFFFF");
         String projectIcon = call.getString("projectIcon", ""); // Optional icon string (emoji or name)
-        
-        // Start Foreground Service
-        Intent intent = new Intent(getContext(), FocusService.class);
-        intent.setAction(FocusService.ACTION_START);
+        String label = call.getString("label", ""); // Optional subtitle, e.g. routine step
+
+        Intent intent = serviceIntent(FocusService.ACTION_START);
         intent.putExtra(FocusService.EXTRA_DURATION, duration);
         intent.putExtra(FocusService.EXTRA_MODE, mode);
         intent.putExtra("projectName", projectName);
         intent.putExtra("projectColor", projectColor);
         intent.putExtra("projectIcon", projectIcon);
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            getContext().startForegroundService(intent);
-        } else {
-            getContext().startService(intent);
-        }
-        
+        intent.putExtra(FocusService.EXTRA_LABEL, label);
+
+        sendToService(intent, true);
         call.resolve();
     }
 
     @PluginMethod
     public void stop(PluginCall call) {
-        Intent intent = new Intent(getContext(), FocusService.class);
-        intent.setAction(FocusService.ACTION_STOP);
-        getContext().startService(intent);
+        sendToService(serviceIntent(FocusService.ACTION_STOP), false);
         call.resolve();
     }
 
     @PluginMethod
     public void pause(PluginCall call) {
-        Intent intent = new Intent(getContext(), FocusService.class);
-        intent.setAction(FocusService.ACTION_PAUSE);
-        getContext().startService(intent);
+        Intent intent = serviceIntent(FocusService.ACTION_PAUSE);
+        Integer timeLeft = call.getInt("timeLeft");
+        intent.putExtra(FocusService.EXTRA_TIME_LEFT, timeLeft != null ? timeLeft.longValue() : -1L);
+        sendToService(intent, false);
         call.resolve();
     }
 
     @PluginMethod
     public void resume(PluginCall call) {
-        Intent intent = new Intent(getContext(), FocusService.class);
-        intent.setAction(FocusService.ACTION_RESUME);
-        getContext().startService(intent);
+        Intent intent = serviceIntent(FocusService.ACTION_RESUME);
+        Integer timeLeft = call.getInt("timeLeft");
+        intent.putExtra(FocusService.EXTRA_TIME_LEFT, timeLeft != null ? timeLeft.longValue() : -1L);
+        sendToService(intent, false);
         call.resolve();
     }
 

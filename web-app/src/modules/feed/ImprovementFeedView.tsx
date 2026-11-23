@@ -1,7 +1,7 @@
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Calendar, Sparkles, CheckCircle2, Clock, Flame, ListChecks, TrendingUp, Coins, Star, Info, X } from 'lucide-react';
+import { Activity, Calendar, Sparkles, CheckCircle2, Clock, Flame, ListChecks, TrendingUp, Coins, Star, Info, X, Share2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useDailyFeed } from '../../hooks/useDailyFeed';
 import { FeedDayCard } from './components/FeedDayCard';
@@ -12,7 +12,13 @@ import { FeedCalendarModal } from './components/FeedCalendarModal';
 import { Quest, Habit, Project } from '../../types';
 import { DailyLimits } from '../../types/User';
 import { toLocalISOString, startOfWeek as utilsStartOfWeek, endOfWeek as utilsEndOfWeek, parseLocalDate } from '../../utils/dateUtils';
-import { isHabitActive, isProjectActive, getDetailedScoreBreakdown } from '../../utils/productivityScore';
+import { isHabitActive, isHabitDoneOn, isProjectActive, getDetailedScoreBreakdown } from '../../utils/productivityScore';
+import { ShareProgressSheet } from './share/ShareProgressSheet';
+import type { ShareData } from './share/shareProgressRenderer';
+import { useProgression } from '../progression/progressionStore';
+import { useTheme } from '../../context/ThemeContext';
+import { THEMES, DEFAULT_UNLOCKED_THEMES, ThemeId } from '../../config/themes';
+import { getAvatarPath } from '../../config/avatars';
 import { useTranslation } from 'react-i18next';
 
 
@@ -25,15 +31,43 @@ interface ImprovementFeedViewProps {
   dailyLimits: DailyLimits;
   player: { level: number; xp: number; gold: number };
   streak: number;
+  health?: number;
+  maxHealth?: number;
 }
 
 export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
-  userId, user, quests, habits, projects, dailyLimits, player, streak
+  userId, user, quests, habits, projects, dailyLimits, player, streak, health, maxHealth
 }) => {
   const { t, i18n } = useTranslation();
   const { feedEntries, todayEntry, isLoading, saveFeedEntry } = useDailyFeed({
     userId, quests, habits, projects, dailyLimits, player, streak
   });
+
+  // ── Share today's progress ──────────────────────────────────────────────
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [shareAvatar, setShareAvatar] = useState<HTMLImageElement | null>(null);
+  const progression = useProgression();
+  const { theme: currentTheme } = useTheme();
+  const isEs = !!i18n.language?.startsWith('es');
+
+  const avatarId: string | undefined = user?.avatar_id ?? user?.avatarId;
+  useEffect(() => {
+    if (!isShareOpen) return;
+    const src = getAvatarPath(avatarId);
+    if (!src) { setShareAvatar(null); return; }
+    let cancelled = false;
+    const img = new Image();
+    img.onload = () => { if (!cancelled) setShareAvatar(img); };
+    img.onerror = () => { if (!cancelled) setShareAvatar(null); };
+    img.src = src; // same-origin asset, so the export canvas is never tainted
+    return () => { cancelled = true; };
+  }, [isShareOpen, avatarId]);
+
+  const ownedThemes = useMemo<ThemeId[]>(() => {
+    const unlocked: string[] = user?.unlocked_store_items || user?.unlockedStoreItems || [];
+    return Array.from(new Set<string>([...DEFAULT_UNLOCKED_THEMES, ...unlocked]))
+      .filter((id): id is ThemeId => !!THEMES[id as ThemeId]);
+  }, [user?.unlocked_store_items, user?.unlockedStoreItems]);
 
   const [customCircleColor, setCustomCircleColor] = useState<string>(() => {
     return (typeof window !== 'undefined' && localStorage.getItem('feed_circle_color')) || '';
@@ -276,6 +310,36 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
   // Overall productivity score (0-100)
   const productivityScore = Math.round(todayEntry.score ?? 0);
 
+  const shareData = useMemo<ShareData>(() => {
+    const todayKey = toLocalISOString(new Date());
+    const habitRows = (habits || [])
+      .filter(h => !h.archived)
+      .map(h => ({ name: h.title, done: isHabitDoneOn(h, todayKey) }));
+    const standing = progression.standing;
+    const hp = Number(health ?? user?.stats?.hp ?? 0);
+    return {
+      dateLabel: new Date().toLocaleDateString(isEs ? 'es-ES' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' }),
+      focusMinutes: todayEntry.focusMinutes,
+      projects: (todayEntry.topProjects || []).map(p => ({ name: p.name, minutes: p.minutes, color: p.color || '#818cf8' })),
+      habits: habitRows,
+      habitsDone: habitRows.filter(h => h.done).length,
+      habitsTotal: habitRows.length,
+      tasksDone: todayEntry.tasksCompleted,
+      score: productivityScore,
+      hud: user ? {
+        name: user.display_name || user.displayName || '',
+        avatar: shareAvatar,
+        rankLabel: standing.label,
+        rankGradient: [...standing.rank.gradient] as [string, string],
+        rankColor: standing.rank.color,
+        division: standing.division,
+        level: player.level,
+        hp,
+        maxHp: Number(maxHealth ?? user?.stats?.maxHp ?? 100) || 100,
+      } : null,
+    };
+  }, [habits, todayEntry, productivityScore, progression.standing, user, shareAvatar, player.level, health, maxHealth, isEs]);
+
   const liveCardStyle = useMemo(() => {
     if (productivityScore >= 75) {
       return {
@@ -431,17 +495,32 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
             </div>
           </div>
           
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setShowFormulaModal(true);
-            }}
-            className="w-9 h-9 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/35 hover:text-white/80 hover:bg-white/[0.08] hover:border-white/[0.12] transition-all duration-300 backdrop-blur-sm shadow-[0_2px_8px_rgba(0,0,0,0.2)] clickable active:scale-95"
-            title={t('feed.viewFormulaTooltip')}
-          >
-            <Info size={16} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsShareOpen(true);
+              }}
+              className="h-9 px-3 rounded-xl bg-white/[0.06] border border-white/[0.1] flex items-center justify-center gap-1.5 text-white/70 hover:text-white hover:bg-white/[0.1] transition-all duration-300 backdrop-blur-sm shadow-[0_2px_8px_rgba(0,0,0,0.2)] clickable active:scale-95"
+              title={isEs ? 'Compartir progreso del día' : "Share today's progress"}
+              aria-label={isEs ? 'Compartir progreso del día' : "Share today's progress"}
+            >
+              <Share2 size={15} />
+              <span className="text-[10px] font-black uppercase tracking-wider">{isEs ? 'Compartir' : 'Share'}</span>
+            </button>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowFormulaModal(true);
+              }}
+              className="w-9 h-9 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-white/35 hover:text-white/80 hover:bg-white/[0.08] hover:border-white/[0.12] transition-all duration-300 backdrop-blur-sm shadow-[0_2px_8px_rgba(0,0,0,0.2)] clickable active:scale-95"
+              title={t('feed.viewFormulaTooltip')}
+            >
+              <Info size={16} />
+            </button>
+          </div>
         </div>
       </motion.div>
 
@@ -1282,6 +1361,14 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
         </div>,
         document.body
       )}
+      <ShareProgressSheet
+        open={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        data={shareData}
+        ownedThemes={ownedThemes}
+        currentTheme={currentTheme}
+        hudAvailable={!!user}
+      />
     </div>
   );
 };

@@ -37,14 +37,19 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+    /** True while the app is on screen. FocusService uses it to avoid double-alarming a visible app. */
+    public static volatile boolean isInForeground = false;
+
     @Override
     public void onResume() {
         super.onResume();
+        isInForeground = true;
         sendWidgetRefreshBroadcast();
     }
 
     @Override
     public void onPause() {
+        isInForeground = false;
         super.onPause();
         sendWidgetRefreshBroadcast();
     }

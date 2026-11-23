@@ -2128,6 +2128,8 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  dailyLimits={dailyLimits}
  player={player}
  streak={displayStreak}
+ health={health}
+ maxHealth={maxHealth}
  />
  </Suspense>
  </ViewContainer>

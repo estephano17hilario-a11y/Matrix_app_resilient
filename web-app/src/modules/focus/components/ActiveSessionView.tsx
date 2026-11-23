@@ -602,6 +602,8 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
 
  const themeColor = project.color || attribute?.color || '#3b82f6';
 
+  const handleStopRef = useRef<() => void>(() => {});
+
   const {
     mode,
     setMode,
@@ -616,7 +618,10 @@ export const ActiveSessionView: React.FC<ActiveSessionViewProps> = ({
     routineSteps,
     currentStepIdx,
     changeStep
-  } = useFocusSession(project, handleSessionEnd, getTraitEmoji(project.attribute));
+  } = useFocusSession(project, handleSessionEnd, getTraitEmoji(project.attribute), {
+    // The notification's Stop button behaves exactly like the in-app Stop button (saves the time).
+    onNativeStop: () => handleStopRef.current(),
+  });
 
   const [isCustomDurationOverride, setIsCustomDurationOverride] = useState(false);
 
@@ -815,9 +820,10 @@ toggleTimer();
     if (elapsed >= 5) {
       handleSessionEnd(elapsed, currentMode, true);
     }
-    
+
     stopSession();
   };
+  handleStopRef.current = handleStop;
 
   const handleCancelAsFlow = () => {
     setShowEarlyPomodoroStopModal(false);

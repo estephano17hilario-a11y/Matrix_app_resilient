@@ -23,7 +23,27 @@ const STORAGE_PREFIX = 'matrix_focus_session_';
 const NOTIFICATION_ID = 9999; // Fixed ID to easily cancel the focus notification
 const QUICK_FOCUS_PROJECT_ID = 'quick-focus-v1';
 
-export const useFocusSession = (project: Project, onComplete?: (duration: number, mode: 'POMO' | 'STOPWATCH', subTraitId?: string) => void, projectIcon?: string) => {
+export interface UseFocusSessionOptions {
+    /** Called when the user presses Stop on the native notification, so the view can save progress. */
+    onNativeStop?: () => void;
+}
+
+/** True if any project still has a live (active) session persisted. */
+const hasAnyActiveSavedSession = (): boolean => {
+    try {
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (!key || !key.startsWith(STORAGE_PREFIX)) continue;
+            const parsed = JSON.parse(localStorage.getItem(key) || 'null');
+            if (parsed && parsed.isActive) return true;
+        }
+    } catch {
+        /* unreadable storage: assume nothing is active */
+    }
+    return false;
+};
+
+export const useFocusSession = (project: Project, onComplete?: (duration: number, mode: 'POMO' | 'STOPWATCH', subTraitId?: string) => void, projectIcon?: string, options?: UseFocusSessionOptions) => {
     const [mode, setMode] = useState<'POMO' | 'STOPWATCH'>('POMO');
 
     // Resolve active routine steps based on active settings (TEMP -> WEEKDAY -> DEFAULT)
@@ -503,72 +523,79 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
     }, [isActive, isPaused, mode, totalDuration, project.id, projectIcon, currentStepIdx]);
 
     // 4. Timer Logic
+    // The clock is anchored to an absolute instant (end time for POMO, start time for STOPWATCH)
+    // instead of being decremented tick by tick, so throttled timers or a slow tick can never drift.
+    const anchorRef = useRef<number>(0);
+    const finishedRef = useRef(false);
+
     useEffect(() => {
         let intervalId: NodeJS.Timeout | null = null;
 
         if (isActive && !isPaused) {
-            lastTickRef.current = Date.now();
-            
+            const startedAt = Date.now();
+            lastTickRef.current = startedAt;
+            anchorRef.current = mode === 'POMO'
+                ? startedAt + timeLeftRef.current * 1000
+                : startedAt - timeLeftRef.current * 1000;
+            const hasRoutine = resolveActiveRoutineSteps(project).length > 0;
+
             intervalId = setInterval(() => {
                 const now = Date.now();
-                const delta = Math.floor((now - lastTickRef.current) / 1000);
-                
-                if (delta >= 1) {
-                    setTimeLeft(prev => {
-                        if (mode === 'POMO') {
-                            const next = prev - delta;
-                            if (next <= 0) {
-                                console.log("✅ Timer Finished (0s reached)", { currentStepIdx, mode });
-                                
-                                const steps = resolveActiveRoutineSteps(project);
-                                const currentStep = steps[currentStepIdx];
-                                
-                                // Complete segment: If it's a FOCUS step, log it and earn XP
-                                if (currentStep && currentStep.type === 'FOCUS') {
-                                    if (onCompleteRef.current) {
-                                        onCompleteRef.current(currentStep.duration * 60, 'POMO', currentStep.subAttribute);
-                                    }
-                                }
-
-                                // Transition to next step if available
-                                if (steps.length > 0 && currentStepIdx < steps.length - 1) {
-                                    const nextIdx = currentStepIdx + 1;
-                                    setCurrentStepIdx(nextIdx);
-                                    const nextStep = steps[nextIdx];
-                                    const nextDuration = nextStep.duration * 60;
-                                    
-                                    setTimeLeft(nextDuration);
-                                    setTotalDuration(nextDuration);
-                                    setIsActive(true);
-                                    setIsPaused(false);
-                                    
-                                    // Return next duration to continue the countdown timer
-                                    return nextDuration;
-                                } else {
-                                    // Finished entire routine
-                                    setIsActive(false);
-                                    setIsPaused(false);
-                                    
-                                    if (steps.length === 0 && onCompleteRef.current) {
-                                        onCompleteRef.current(totalDuration, 'POMO');
-                                    }
-                                    return 0;
-                                }
-                            }
-                            return next;
-                        } else {
-                            return prev + delta;
-                        }
-                    });
-                    lastTickRef.current += delta * 1000; 
+                // We were suspended (app in background). With a routine, the foreground catch-up walks
+                // through every step that elapsed; don't race it with a single-step update.
+                if (hasRoutine && now - lastTickRef.current > 5000) {
+                    lastTickRef.current = now;
+                    return;
                 }
-            }, 1000);
+                lastTickRef.current = now;
+
+                const next = mode === 'POMO'
+                    ? Math.max(0, Math.ceil((anchorRef.current - now) / 1000))
+                    : Math.max(0, Math.floor((now - anchorRef.current) / 1000));
+                setTimeLeft(prev => (prev === next ? prev : next));
+            }, 250);
         }
 
         return () => {
             if (intervalId) clearInterval(intervalId);
         };
     }, [isActive, isPaused, mode, totalDuration, project.id, currentStepIdx, routineSteps]);
+
+    // 4b. Completion. Kept out of the state updater so side effects (logging XP, advancing the
+    // routine) run exactly once per finished step, even in StrictMode.
+    useEffect(() => {
+        if (!isActive || isPaused || mode !== 'POMO' || timeLeft > 0) {
+            if (!isActive || timeLeft > 0) finishedRef.current = false;
+            return;
+        }
+        if (finishedRef.current) return;
+        finishedRef.current = true;
+        console.log("✅ Timer Finished (0s reached)", { currentStepIdx, mode });
+
+        const steps = resolveActiveRoutineSteps(project);
+        const currentStep = steps[currentStepIdx];
+
+        // Complete segment: if it's a FOCUS step, log it and earn XP
+        if (currentStep && currentStep.type === 'FOCUS') {
+            onCompleteRef.current?.(currentStep.duration * 60, 'POMO', currentStep.subAttribute);
+        }
+
+        if (steps.length > 0 && currentStepIdx < steps.length - 1) {
+            // Roll into the next step of the routine.
+            const nextIdx = currentStepIdx + 1;
+            const nextDuration = steps[nextIdx].duration * 60;
+            setCurrentStepIdx(nextIdx);
+            setTotalDuration(nextDuration);
+            setTimeLeft(nextDuration);
+        } else {
+            // Finished the entire routine / single pomodoro.
+            setIsActive(false);
+            setIsPaused(false);
+            if (steps.length === 0) {
+                onCompleteRef.current?.(totalDuration, 'POMO');
+            }
+        }
+    }, [timeLeft, isActive, isPaused, mode, currentStepIdx, totalDuration]);
 
     // Sync ongoing notification on tick/state change (Web only)
     useEffect(() => {
@@ -587,96 +614,123 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
     }, [timeLeft, isActive, isPaused, mode, project.title, project.color]);
 
     // Sync React state to Native Focus Service
-    const isFirstMountRef = useRef(true);
-    const lastSyncedStateRef = useRef<{ isActive: boolean, isPaused: boolean }>({ isActive: false, isPaused: false });
+    const nativeStateRef = useRef<{ active: boolean; paused: boolean; stepKey: string }>({ active: false, paused: false, stepKey: '' });
+
+    const nativeLabel = useCallback(() => {
+        const steps = resolveActiveRoutineSteps(project);
+        const step = steps[currentStepIdx];
+        if (steps.length === 0 || !step) return '';
+        return `${step.type === 'FOCUS' ? 'Enfoque' : 'Descanso'} · Paso ${currentStepIdx + 1}/${steps.length}`;
+    }, [project, currentStepIdx, resolveActiveRoutineSteps]);
+
+    // On mount: if no project has a live session, any leftover native notification is a ghost
+    // from an old session (app killed, crash, finished while closed). Clear it silently.
+    useEffect(() => {
+        if (!Capacitor.isNativePlatform()) return;
+        if (!hasAnyActiveSavedSession()) {
+            FocusSession.stop().catch(() => { /* service may simply not exist */ });
+        }
+    }, []);
 
     useEffect(() => {
         if (!Capacitor.isNativePlatform()) return;
 
-        if (isFirstMountRef.current) {
-            isFirstMountRef.current = false;
-            lastSyncedStateRef.current = { isActive, isPaused };
-            return;
-        }
+        const prev = nativeStateRef.current;
+        const stepKey = `${currentStepIdx}:${mode}:${totalDuration}`;
+        nativeStateRef.current = { active: isActive, paused: isPaused, stepKey };
 
-        const syncNative = async () => {
+        const startNative = async () => {
             try {
-                const prev = lastSyncedStateRef.current;
-                if (prev.isActive !== isActive || prev.isPaused !== isPaused) {
-                    if (isActive) {
-                        if (prev.isActive !== isActive) {
-                            console.log("Starting native FocusSession...", { timeLeft: timeLeftRef.current, mode });
-                            if (Capacitor.isNativePlatform()) {
-                                try {
-                                    const perm = await LocalNotifications.checkPermissions();
-                                    if (perm.display !== 'granted') {
-                                        await LocalNotifications.requestPermissions();
-                                    }
-                                } catch (err) {
-                                    console.error("Failed to check/request notifications permissions", err);
-                                }
-                            }
-                            await FocusSession.start({
-                                duration: mode === 'POMO' ? timeLeftRef.current : 0,
-                                mode: mode,
-                                projectName: project.title,
-                                projectColor: project.color,
-                                projectIcon: projectIcon || '✨'
-                            });
-                        } else if (prev.isPaused !== isPaused) {
-                            if (isPaused) {
-                                console.log("Pausing native FocusSession...");
-                                await FocusSession.pause();
-                            } else {
-                                console.log("Resuming native FocusSession...");
-                                await FocusSession.resume();
-                            }
-                        }
+                const perm = await LocalNotifications.checkPermissions();
+                if (perm.display !== 'granted') {
+                    await LocalNotifications.requestPermissions();
+                }
+            } catch (err) {
+                console.error("Failed to check/request notifications permissions", err);
+            }
+            await FocusSession.start({
+                duration: timeLeftRef.current,
+                mode,
+                projectName: project.title,
+                projectColor: project.color,
+                projectIcon: projectIcon || '✨',
+                label: nativeLabel()
+            });
+        };
+
+        const run = async () => {
+            try {
+                if (isActive && !prev.active) {
+                    console.log("Starting native FocusSession...", { timeLeft: timeLeftRef.current, mode });
+                    await startNative();
+                } else if (isActive && prev.active && prev.paused !== isPaused) {
+                    if (isPaused) {
+                        console.log("Pausing native FocusSession...");
+                        await FocusSession.pause({ timeLeft: timeLeftRef.current });
                     } else {
-                        if (prev.isActive !== isActive) {
-                            console.log("Stopping native FocusSession...");
-                            await FocusSession.stop();
-                        }
+                        console.log("Resuming native FocusSession...");
+                        await FocusSession.resume({ timeLeft: timeLeftRef.current });
                     }
-                    lastSyncedStateRef.current = { isActive, isPaused };
+                } else if (isActive && prev.active && !isPaused && prev.stepKey !== stepKey) {
+                    // Next routine step (or edited duration): re-arm the native clock and alarm so the
+                    // notification never keeps showing the previous step.
+                    console.log("Re-syncing native FocusSession for new step...", { stepKey });
+                    await startNative();
+                } else if (!isActive && prev.active) {
+                    console.log("Stopping native FocusSession...");
+                    await FocusSession.stop();
                 }
             } catch (e) {
                 console.error("Failed to sync state with native FocusSession", e);
             }
         };
 
-        syncNative();
-    }, [isActive, isPaused, mode, project.title, project.color, projectIcon]);
+        run();
+    }, [isActive, isPaused, mode, totalDuration, currentStepIdx, project.title, project.color, projectIcon]);
 
-    // Native Focus Service Action Listeners
+    // Native Focus Service Action Listeners (only the notification buttons echo back to JS)
+    const onNativeStopRef = useRef(options?.onNativeStop);
+    useEffect(() => {
+        onNativeStopRef.current = options?.onNativeStop;
+    }, [options?.onNativeStop]);
+    const stopSessionRef = useRef(stopSession);
+    useEffect(() => {
+        stopSessionRef.current = stopSession;
+    }, [stopSession]);
+
     useEffect(() => {
         if (!Capacitor.isNativePlatform()) return;
 
         let pauseListener: any = null;
         let resumeListener: any = null;
         let stopListener: any = null;
+        let cancelled = false;
 
         const setupListeners = async () => {
             try {
-                pauseListener = await FocusSession.addListener('onPause', () => {
+                const pl = await FocusSession.addListener('onPause', () => {
                     console.log("Native event: onPause");
+                    nativeStateRef.current = { ...nativeStateRef.current, paused: true };
                     setIsPaused(true);
-                    lastSyncedStateRef.current = { isActive: true, isPaused: true };
                 });
-
-                resumeListener = await FocusSession.addListener('onResume', () => {
+                const rl = await FocusSession.addListener('onResume', () => {
                     console.log("Native event: onResume");
+                    nativeStateRef.current = { ...nativeStateRef.current, paused: false };
                     setIsPaused(false);
-                    lastSyncedStateRef.current = { isActive: true, isPaused: false };
                 });
-
-                stopListener = await FocusSession.addListener('onStop', () => {
+                const sl = await FocusSession.addListener('onStop', () => {
                     console.log("Native event: onStop");
-                    setIsActive(false);
-                    setIsPaused(false);
-                    lastSyncedStateRef.current = { isActive: false, isPaused: false };
-                    stopSession();
+                    // Same path as the in-app Stop button, so the time already focused is saved.
+                    if (onNativeStopRef.current) onNativeStopRef.current();
+                    else stopSessionRef.current();
                 });
+                if (cancelled) {
+                    [pl, rl, sl].forEach(l => { try { l.remove(); } catch { /* noop */ } });
+                    return;
+                }
+                pauseListener = pl;
+                resumeListener = rl;
+                stopListener = sl;
             } catch (e) {
                 console.error("Failed to register native listeners", e);
             }
@@ -687,11 +741,12 @@ export const useFocusSession = (project: Project, onComplete?: (duration: number
         // These are already-resolved PluginListenerHandles (we `await`ed addListener above),
         // not promises — calling `.then` on them threw "m.then is not a function" on exit.
         return () => {
+            cancelled = true;
             [pauseListener, resumeListener, stopListener].forEach((l) => {
                 try { l?.remove(); } catch (e) { console.error(e); }
             });
         };
-    }, [stopSession]);
+    }, []);
 
     // Listen to custom window routine updates to refresh steps dynamically
     useEffect(() => {
