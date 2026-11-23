@@ -73,38 +73,54 @@ export const BarChart = React.memo(({
         return datasets.reduce((acc, ds) => acc + (ds.data[index] || 0), 0);
     }, [datasets]);
 
-    // Default time formatter
+    // Default time formatter (always hours + minutes)
     const defaultFormatter = useCallback((mins: number) => {
-        if (!mins || mins <= 0) return '0m';
-        const h = Math.floor(mins / 60);
-        const m = Math.round(mins % 60);
-        if (h === 0) return `${m}m`;
-        if (m === 0) return `${h}h`;
-        return `${h}h ${m}m`;
+        if (!mins || mins <= 0) return '0h 0m';
+        const total = Math.round(mins);
+        return `${Math.floor(total / 60)}h ${total % 60}m`;
     }, []);
 
     const formatValue = tooltipValueFormatter || defaultFormatter;
     const formatLabel = tooltipLabelFormatter || ((l: string) => l);
 
-    // Activate tooltip for a given bar index using pixel math
+    // Real column elements: the source of truth for hit-testing. The bars area has
+    // left padding (y-axis gutter) and gaps, so dividing its full width by the bar
+    // count shifts the touched index relative to the bar that is actually drawn.
+    const colRefs = useRef<(HTMLDivElement | null)[]>([]);
+    const colRectsRef = useRef<{ left: number; right: number }[]>([]);
+    const activeIdxRef = useRef<number | null>(null);
+    const lastTouchRef = useRef(0);
+
+    const measureColumns = useCallback(() => {
+        const rects: { left: number; right: number }[] = [];
+        for (let i = 0; i < labels.length; i++) {
+            const el = colRefs.current[i];
+            if (!el) { rects.push({ left: 0, right: 0 }); continue; }
+            const r = el.getBoundingClientRect();
+            rects.push({ left: r.left, right: r.right });
+        }
+        colRectsRef.current = rects;
+    }, [labels.length]);
+
+    // Activate tooltip for a given bar index, anchored on the real column element
     const activateBar = useCallback((index: number) => {
         if (index < 0 || index >= labels.length) return;
         if (!barsAreaRef.current || !containerRef.current) return;
+        const colEl = colRefs.current[index];
+        if (!colEl) return;
 
         clearTimer();
-        
+        if (activeIdxRef.current === index) return;
+        activeIdxRef.current = index;
+
         const containerRect = containerRef.current.getBoundingClientRect();
         const barsRect = barsAreaRef.current.getBoundingClientRect();
-        
-        // Each bar column is an equal fraction of barsArea width
-        const colWidth = barsRect.width / labels.length;
-        const colCenterX = barsRect.left - containerRect.left + (index + 0.5) * colWidth;
-        
-        // Calculate bar top position: bar area goes from barsRect.top to barsRect.bottom
+        const colRect = colEl.getBoundingClientRect();
+
+        const colCenterX = colRect.left - containerRect.left + colRect.width / 2;
         const total = getBarTotal(index);
         const barHeightFraction = Math.min(total / maxValue, 1);
-        const barsAreaHeight = barsRect.height;
-        const barTopY = barsRect.top - containerRect.top + barsAreaHeight * (1 - barHeightFraction);
+        const barTopY = barsRect.top - containerRect.top + barsRect.height * (1 - barHeightFraction);
 
         setActiveBar(index);
         setTooltipPos({ x: colCenterX, y: barTopY });
@@ -114,6 +130,7 @@ export const BarChart = React.memo(({
     const scheduleHide = useCallback(() => {
         clearTimer();
         hideTimerRef.current = setTimeout(() => {
+            activeIdxRef.current = null;
             setActiveBar(null);
             setTooltipPos(null);
         }, 2500);
@@ -122,52 +139,64 @@ export const BarChart = React.memo(({
     // Immediate hide
     const hideNow = useCallback(() => {
         clearTimer();
+        activeIdxRef.current = null;
         setActiveBar(null);
         setTooltipPos(null);
     }, [clearTimer]);
 
     // ─── Touch handlers on the container for drag-across ───
     const getBarIndexFromTouch = useCallback((clientX: number): number | null => {
-        if (!barsAreaRef.current) return null;
-        const rect = barsAreaRef.current.getBoundingClientRect();
-        const relX = clientX - rect.left;
-        if (relX < 0 || relX > rect.width) return null;
-        const idx = Math.floor((relX / rect.width) * labels.length);
-        return Math.max(0, Math.min(labels.length - 1, idx));
-    }, [labels.length]);
+        const rects = colRectsRef.current;
+        if (!rects.length) return null;
+        if (clientX < rects[0].left - 8 || clientX > rects[rects.length - 1].right + 8) return null;
+        for (let i = 0; i < rects.length; i++) {
+            // right edge + half gap so taps between columns still resolve to the nearest one
+            if (clientX <= rects[i].right) return i;
+        }
+        return rects.length - 1;
+    }, []);
 
     const onContainerTouchStart = useCallback((e: React.TouchEvent) => {
-        const touch = e.touches[0];
-        const idx = getBarIndexFromTouch(touch.clientX);
+        lastTouchRef.current = Date.now();
+        measureColumns();
+        const idx = getBarIndexFromTouch(e.touches[0].clientX);
         if (idx !== null) activateBar(idx);
-    }, [getBarIndexFromTouch, activateBar]);
+    }, [measureColumns, getBarIndexFromTouch, activateBar]);
 
     const onContainerTouchMove = useCallback((e: React.TouchEvent) => {
-        const touch = e.touches[0];
-        const idx = getBarIndexFromTouch(touch.clientX);
+        lastTouchRef.current = Date.now();
+        const idx = getBarIndexFromTouch(e.touches[0].clientX);
         if (idx !== null) activateBar(idx);
     }, [getBarIndexFromTouch, activateBar]);
 
     const onContainerTouchEnd = useCallback(() => {
+        lastTouchRef.current = Date.now();
         scheduleHide();
     }, [scheduleHide]);
 
+    // Browsers synthesize mouseenter/click after a tap; ignore them so they can't
+    // re-activate (or toggle off) a bar the touch handlers already resolved.
+    const isSyntheticMouse = () => Date.now() - lastTouchRef.current < 800;
+
     // ─── Click handler for desktop ───
     const onBarClick = useCallback((index: number) => {
-        if (activeBar === index) {
+        if (isSyntheticMouse()) return;
+        if (activeIdxRef.current === index) {
             hideNow();
         } else {
             activateBar(index);
             scheduleHide();
         }
-    }, [activeBar, activateBar, hideNow, scheduleHide]);
+    }, [activateBar, hideNow, scheduleHide]);
 
     // ─── Mouse hover for desktop ───
     const onBarMouseEnter = useCallback((index: number) => {
+        if (isSyntheticMouse()) return;
         activateBar(index);
     }, [activateBar]);
 
     const onBarMouseLeave = useCallback(() => {
+        if (isSyntheticMouse()) return;
         hideNow();
     }, [hideNow]);
 
@@ -282,8 +311,9 @@ export const BarChart = React.memo(({
                     const isActive = activeBar === i;
 
                     return (
-                    <div 
-                        key={i} 
+                    <div
+                        key={i}
+                        ref={(el) => { colRefs.current[i] = el; }}
                         className="flex-1 h-full relative group z-10 min-w-0 cursor-pointer"
                         onClick={() => onBarClick(i)}
                         onMouseEnter={() => onBarMouseEnter(i)}

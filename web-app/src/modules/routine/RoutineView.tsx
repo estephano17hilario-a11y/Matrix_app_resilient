@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import * as LucideIcons from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   BookOpen, CalendarClock, Check, CheckSquare, ChevronLeft, ChevronRight, Clock, Flame, Moon, PenLine,
@@ -89,6 +90,7 @@ const ProgressRing: React.FC<{ pct: number; reduce: boolean }> = ({ pct, reduce 
 
 interface CardProps {
   item: RoutineItem;
+  Icon: React.ElementType;
   index: number;
   exactTime: boolean;
   timeLeft: boolean;
@@ -101,8 +103,7 @@ interface CardProps {
   onOpen: (item: RoutineItem) => void;
 }
 
-const RoutineCard: React.FC<CardProps> = React.memo(({ item, index, exactTime, timeLeft, use24h, isNext, burst, reduce, es, onToggle, onOpen }) => {
-  const Icon = KIND_ICON[item.kind];
+const RoutineCard: React.FC<CardProps> = React.memo(({ item, Icon, index, exactTime, timeLeft, use24h, isNext, burst, reduce, es, onToggle, onOpen }) => {
   const ActionIcon = item.kind === 'PROJECT' ? Play : item.kind === 'JOURNAL' ? PenLine : Check;
   const showCheck = item.done || item.kind === 'PROJECT' || item.kind === 'JOURNAL';
   const c = item.color;
@@ -116,7 +117,7 @@ const RoutineCard: React.FC<CardProps> = React.memo(({ item, index, exactTime, t
     >
       {/* Time column (optional): the time of each item, beside the timeline */}
       {timeLeft && (
-        <div className="w-[56px] shrink-0 pt-[22px] pr-2 text-right">
+        <div className="w-[44px] shrink-0 pt-[22px] pr-1.5 text-right">
           {item.time ? (() => {
             const [main, suffix] = formatClock(item.time, !use24h).split(' ');
             return (
@@ -130,13 +131,13 @@ const RoutineCard: React.FC<CardProps> = React.memo(({ item, index, exactTime, t
       )}
 
       {/* Rail: the dot sits on the shared line drawn by the section */}
-      <div className="relative w-7 shrink-0">
+      <div className="relative w-4 shrink-0">
         <span
-          className="absolute left-1/2 top-[26px] -translate-x-1/2 w-[13px] h-[13px] rounded-full border-[2.5px] transition-colors duration-300"
+          className="absolute left-1/2 top-[26px] -translate-x-1/2 w-[12px] h-[12px] rounded-full border-[2.5px] transition-colors duration-300"
           style={{ borderColor: c, backgroundColor: item.done ? c : '#07070b', boxShadow: item.done ? `0 0 12px ${c}99` : 'none' }}
         />
         {isNext && !item.done && (
-          <span className="absolute left-1/2 top-[26px] -translate-x-1/2 w-[13px] h-[13px] rounded-full animate-ping" style={{ backgroundColor: c, opacity: 0.5 }} />
+          <span className="absolute left-1/2 top-[26px] -translate-x-1/2 w-[12px] h-[12px] rounded-full animate-ping" style={{ backgroundColor: c, opacity: 0.5 }} />
         )}
       </div>
 
@@ -147,7 +148,7 @@ const RoutineCard: React.FC<CardProps> = React.memo(({ item, index, exactTime, t
         transition={SPRING}
         onClick={() => onOpen(item)}
         onKeyDown={e => { if (e.key === 'Enter') onOpen(item); }}
-        className="relative flex-1 min-w-0 my-1.5 rounded-[22px] overflow-hidden cursor-pointer select-none"
+        className="relative flex-1 min-w-0 my-1.5 ml-1 rounded-[22px] overflow-hidden cursor-pointer select-none"
         style={{
           background: item.done
             ? 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015))'
@@ -186,7 +187,7 @@ const RoutineCard: React.FC<CardProps> = React.memo(({ item, index, exactTime, t
                   {item.subtitle}
                 </span>
               )}
-              {!exactTime && !item.subtitle && item.time && <span className="text-[10px] font-bold text-white/30 tabular-nums">{formatClock(item.time, !use24h)}</span>}
+              {!exactTime && !timeLeft && !item.subtitle && item.time && <span className="text-[10px] font-bold text-white/30 tabular-nums">{formatClock(item.time, !use24h)}</span>}
             </div>
           </div>
 
@@ -300,8 +301,21 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
 
   const attrColor = useMemo(() => {
     const map = new Map(attributes.map(a => [a.id, a.color]));
-    return (id: string) => map.get(id) || '#6366f1';
+    return (id: string) => map.get(id) || '';
   }, [attributes]);
+
+  const attrMap = useMemo(() => new Map(attributes.map(a => [a.id, a])), [attributes]);
+
+  // Habits: their own icon (or their trait's) like the chronological habits view. Everything else: its kind icon.
+  const iconFor = useCallback((item: RoutineItem): React.ElementType => {
+    if (config.habitIcons && (item.kind === 'HABIT' || item.kind === 'SUBHABIT') && item.habit) {
+      const named = item.habit.iconName ? (LucideIcons as unknown as Record<string, React.ElementType>)[item.habit.iconName] : undefined;
+      if (named) return named;
+      const fromAttribute = attrMap.get(item.habit.attribute)?.icon as React.ElementType | undefined;
+      if (fromAttribute) return fromAttribute;
+    }
+    return KIND_ICON[item.kind];
+  }, [config.habitIcons, attrMap]);
 
   const writtenDays = useMemo(() => {
     const set = new Set<string>();
@@ -473,7 +487,7 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
   let runningIndex = 0;
 
   return (
-    <div className="pb-36 pt-2 h-full overflow-y-auto overflow-x-hidden no-scrollbar overscroll-contain" style={{ scrollbarWidth: 'none' }}>
+    <div className="pb-36 pt-2 w-full">
       {/* Header */}
       <motion.div
         className="flex items-center justify-between mb-4 px-1"
@@ -572,7 +586,7 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...SPRING, delay: 0.1 }}
       >
-        <button type="button" onClick={() => setDate(d => addDays(d, -7))} aria-label={tr('Semana anterior', 'Previous week')} className="w-7 h-12 flex items-center justify-center text-white/35 active:text-white active:scale-90 transition-transform"><ChevronLeft size={18} /></button>
+        <button type="button" onClick={() => setDate(d => addDays(d, -7))} aria-label={tr('Semana anterior', 'Previous week')} className="w-5 h-12 flex items-center justify-center text-white/35 active:text-white active:scale-90 transition-transform"><ChevronLeft size={18} /></button>
         <div className="relative flex-1 grid grid-cols-7">
           <span
             className="absolute inset-y-0 left-0 w-[calc(100%/7)] p-0.5 pointer-events-none transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
@@ -602,7 +616,7 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
             );
           })}
         </div>
-        <button type="button" onClick={() => setDate(d => addDays(d, 7))} aria-label={tr('Semana siguiente', 'Next week')} className="w-7 h-12 flex items-center justify-center text-white/35 active:text-white active:scale-90 transition-transform"><ChevronRight size={18} /></button>
+        <button type="button" onClick={() => setDate(d => addDays(d, 7))} aria-label={tr('Semana siguiente', 'Next week')} className="w-5 h-12 flex items-center justify-center text-white/35 active:text-white active:scale-90 transition-transform"><ChevronRight size={18} /></button>
       </motion.div>
       {!isToday && (
         <button type="button" onClick={() => setDate(new Date())} className="mx-auto -mt-1 mb-3 flex items-center gap-1.5 rounded-full bg-sky-400/10 border border-sky-400/20 px-3 py-1.5 text-[11px] font-black text-sky-300 active:scale-95 transition-transform">
@@ -714,13 +728,13 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
                 )}
                 <div className="relative">
                   {/* Shared rail line for the whole section */}
-                  <span className="absolute top-2 bottom-2 w-px bg-gradient-to-b from-white/[0.14] via-white/[0.07] to-white/[0.02]" style={{ left: (config.timeLeft ? 56 : 0) + 13.5 }} />
+                  <span className="absolute top-2 bottom-2 w-px bg-gradient-to-b from-white/[0.14] via-white/[0.07] to-white/[0.02]" style={{ left: (config.timeLeft ? 44 : 0) + 7.5 }} />
                   {section.items.map(item => {
                     const i = runningIndex++;
                     return (
                       <React.Fragment key={item.id}>
                         {nowBeforeId === item.id && (
-                          <div className="relative flex items-center gap-2 py-1.5" style={{ paddingLeft: (config.timeLeft ? 56 : 0) + 5 }}>
+                          <div className="relative flex items-center gap-2 py-1.5" style={{ paddingLeft: (config.timeLeft ? 44 : 0) + 3 }}>
                             <span className="relative flex w-[18px] h-[18px] items-center justify-center">
                               <span className="absolute w-full h-full rounded-full bg-rose-400/40 animate-ping" />
                               <span className="relative w-2.5 h-2.5 rounded-full bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.9)]" />
@@ -731,6 +745,7 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
                         )}
                         <RoutineCard
                           item={item}
+                          Icon={iconFor(item)}
                           index={i}
                           exactTime={config.exactTime}
                           timeLeft={config.timeLeft}

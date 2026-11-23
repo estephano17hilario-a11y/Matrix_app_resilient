@@ -1,5 +1,5 @@
 import React from 'react';
-import { Crosshair, Plus, ChevronDown, Swords } from 'lucide-react';
+import { Crosshair, Plus, ChevronDown, Swords, Settings2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { DockConfig, DockItemConfig, DOCK_ITEMS, DockItemId } from '@/components/ui/DockConfigModal';
@@ -94,6 +94,58 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
     onOpenModal(m);
     onToggle(false);
   };
+
+ // Opens the "which sections show in the dock and the + menu" editor.
+ const openDockConfig = () => {
+   onToggle(false);
+   window.dispatchEvent(new CustomEvent('open-dock-config'));
+ };
+
+ // Holding "+" for 1.7 s opens that editor. The tap itself still toggles the menu as usual.
+ const LONG_PRESS_MS = 1700;
+ const longTimer = React.useRef<number | null>(null);
+ const longFired = React.useRef(false);
+ const clearLong = () => { if (longTimer.current !== null) { window.clearTimeout(longTimer.current); longTimer.current = null; } };
+ React.useEffect(() => clearLong, []);
+ const plusPress = onPress(() => onToggle(!isOpen));
+ const plusProps = {
+   ...plusPress,
+   onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
+     longFired.current = false;
+     clearLong();
+     if (e.isPrimary && e.button === 0) {
+       longTimer.current = window.setTimeout(() => {
+         longTimer.current = null;
+         longFired.current = true;
+         try { navigator.vibrate?.(40); } catch { /* no haptics */ }
+         openDockConfig();
+       }, LONG_PRESS_MS);
+     }
+     plusPress.onPointerDown(e);
+   },
+   onPointerUp: clearLong,
+   onPointerLeave: clearLong,
+   onPointerCancel: clearLong,
+   onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+   onClick: (e: React.MouseEvent<HTMLElement>) => {
+     // The release after a long press must not toggle the menu again.
+     if (longFired.current) { longFired.current = false; return; }
+     plusPress.onClick(e);
+   },
+ };
+
+ const configGear = (
+   <button
+     type="button"
+     aria-label={t('dock.configureSections', 'Configurar secciones')}
+     title={t('dock.configureSections', 'Configurar secciones')}
+     onClick={(e) => { e.stopPropagation(); openDockConfig(); }}
+     style={{ opacity: isOpen ? 1 : 0, pointerEvents: isOpen ? 'auto' : 'none', transition: 'opacity 0.2s ease 0.1s' }}
+     className="absolute top-1.5 right-3 z-[40] w-7 h-7 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-white/60 hover:text-white active:scale-90"
+   >
+     <Settings2 size={14} />
+   </button>
+ );
 
  const isLiquid = dashboardStyle === 'LIQUID';
  const isGlass = dashboardStyle === 'GLASS';
@@ -406,6 +458,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   {/* Fake-glass: subtle sheen overlay */}
   <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] via-transparent to-black/[0.04] pointer-events-none z-0" />
 
+ {configGear}
  <div
  className="absolute inset-x-0 top-0 p-4 grid grid-cols-2 gap-2"
  style={{
@@ -446,7 +499,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  <div className="px-0 relative z-10 shrink-0 flex items-center justify-center">
  <button
  data-tour="dock-main-btn"
- {...onPress(() => onToggle(!isOpen))}
+ {...plusProps}
  style={{ transform: `rotate(${isOpen ? 45 : 0}deg)`, transition: 'transform 0.3s cubic-bezier(0.22, 1, 0.36, 1)' }}
  className={`
  w-12 h-12 rounded-full flex items-center justify-center ${isOpen
@@ -507,6 +560,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] via-transparent to-black/[0.04] pointer-events-none z-0" />
   <div className="relative w-full h-full z-10"> 
  
+ {configGear}
  {/* ELEMENTOS INTERNOS (Aparecen al expandir) */} 
  <div className={` 
  absolute bottom-[80px] left-0 right-0 px-4 grid grid-cols-2 gap-2 
@@ -541,7 +595,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  <div className="col-span-1 flex items-center justify-center h-full z-20"> 
  <button 
  data-tour="dock-main-btn"
- {...onPress(() => onToggle(!isOpen))}
+ {...plusProps}
  className={` 
  relative transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.19,1,0.22,1)]
  flex items-center justify-center gap-2 rounded-full font-bold shadow-2xl z-20 overflow-hidden btn-orb-glow transform-gpu
@@ -632,6 +686,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
       {/* Fake-glass: sheen overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] via-transparent to-black/[0.04] pointer-events-none z-0" />
       <div className="relative w-full h-full pointer-events-auto">
+  {configGear}
   <div
   className="absolute bottom-[80px] left-0 right-0 px-4 grid grid-cols-2 gap-2"
   style={{
@@ -662,7 +717,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   <div className="col-span-1 flex items-center justify-center h-full z-30">
   <button 
  data-tour="dock-main-btn"
- {...onPress(() => onToggle(!isOpen))}
+ {...plusProps}
   className={` 
  relative transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.19,1,0.22,1)]
  flex items-center justify-center gap-2 rounded-full font-bold shadow-2xl z-[450] overflow-hidden btn-orb-glow pointer-events-auto transform-gpu

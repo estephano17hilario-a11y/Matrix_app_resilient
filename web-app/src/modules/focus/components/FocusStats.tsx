@@ -369,13 +369,11 @@ export const FocusStats = React.memo(({
         return `${h}h ${m}m`;
     };
 
+    // Always "Xh Ym" (hours - minutes), rounding the total first so 59.6m never shows as "60m"
     const formatMinutes = (mins: number) => {
         if (!mins || mins <= 0) return '0h 0m';
-        const h = Math.floor(mins / 60);
-        const m = Math.round(mins % 60);
-        if (m === 0) return `${h}h 0m`;
-        if (h === 0) return `${m}m`;
-        return `${h}h ${m}m`;
+        const total = Math.round(mins);
+        return `${Math.floor(total / 60)}h ${total % 60}m`;
     };
 
     return (

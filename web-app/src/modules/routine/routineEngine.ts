@@ -55,6 +55,8 @@ export interface RoutineConfig {
   exactTime: boolean;
   /** Show each item's time in a column on the left, beside the timeline. */
   timeLeft: boolean;
+  /** Habits show their own icon (like the habits chronological view); tasks keep the task icon in their trait colour. */
+  habitIcons: boolean;
   /** 24h clock instead of AM/PM. */
   use24h: boolean;
 }
@@ -72,6 +74,7 @@ export const DEFAULT_ROUTINE_CONFIG: RoutineConfig = {
   hourBlock: 2,
   exactTime: false,
   timeLeft: true,
+  habitIcons: true,
   use24h: false,
 };
 
@@ -140,6 +143,7 @@ export interface BuildRoutineInput {
   /** A journal entry already exists for `date`. */
   journalDone: boolean;
   config: RoutineConfig;
+  /** Colour of a trait, or '' when unknown. */
   colorForAttribute: (attributeId: string) => string;
   labels: { journal: string; journalSub: string; overdue: string; project: string };
 }
@@ -154,7 +158,7 @@ export const buildRoutineItems = (input: BuildRoutineInput): RoutineItem[] => {
   if (config.showHabits) {
     for (const habit of habits) {
       if (habit.archived || !isHabitDueOn(habit, date)) continue;
-      const color = habit.customColor || habit.color || colorForAttribute(habit.attribute);
+      const color = habit.customColor || colorForAttribute(habit.attribute) || habit.color || '#6366f1';
       const habitDone = isHabitDoneOn(habit, key);
 
       if (habit.type === 'CHECKLIST' && habit.checklist && habit.checklist.length > 0) {
@@ -235,7 +239,8 @@ export const buildRoutineItems = (input: BuildRoutineInput): RoutineItem[] => {
         subtitle: overdue ? labels.overdue : undefined,
         time: sameDay ? (quest.deadlineTime || null) : null,
         done: !!quest.completed,
-        color: quest.color || colorForAttribute(quest.attribute),
+        // Tasks wear the colour of the trait they belong to.
+        color: colorForAttribute(quest.attribute) || quest.color || '#6366f1',
         overdue,
         quest,
       }));

@@ -2,7 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import {
-  BellRing, BookOpen, CheckCheck, CheckSquare, Clock, Flame, Layers, Target, Timer, X, Hourglass, EyeOff, CalendarClock, PanelLeft,
+  BellRing, BookOpen, Shapes, CheckCheck, CheckSquare, Clock, Flame, Layers, Target, Timer, X, Hourglass, EyeOff, CalendarClock, PanelLeft,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useMountTransition } from '../../hooks/useMountTransition';
@@ -177,6 +177,16 @@ export const RoutineConfigSheet: React.FC<RoutineConfigSheetProps> = ({ open, on
           />
           <Row icon={Timer} tint="#a78bfa" label={tr('Reloj de 24 horas', '24-hour clock')} on={config.use24h} onChange={v => onChange({ use24h: v })} />
         </div>
+
+        <Title>{tr('Iconos', 'Icons')}</Title>
+        <Row
+          icon={Shapes}
+          tint="#f472b6"
+          label={tr('Iconos de tus hábitos', 'Your habits\' icons')}
+          hint={tr('Cada hábito con su icono, como en la vista cronológica. Las tareas llevan el icono de tarea con el color de su rasgo.', 'Each habit with its own icon, like the chronological view. Tasks use the task icon in their trait colour.')}
+          on={config.habitIcons}
+          onChange={v => onChange({ habitIcons: v })}
+        />
 
         {/* ── What to show ─────────────────────────────────────────── */}
         <Title>{tr('Qué mostrar', 'What to show')}</Title>

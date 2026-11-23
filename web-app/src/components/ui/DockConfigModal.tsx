@@ -71,6 +71,27 @@ const sanitizeDockIds = (ids: DockItemId[] | undefined, fallback: DockItemId[]):
   return out;
 };
 
+/** Quick actions of the top HUD (header). Settings sits there by default, so it is always reachable. */
+const settingsInTopHud = (): boolean => {
+  try {
+    const raw = localStorage.getItem('matrix_top_quick_actions');
+    const list = raw ? JSON.parse(raw) : ['SETTINGS', 'STORE'];
+    return Array.isArray(list) ? list.includes('SETTINGS') : true;
+  } catch {
+    return true;
+  }
+};
+
+/**
+ * Settings must be reachable somewhere: the top HUD, the dock's main bar or the "+" menu.
+ * The old check ignored the top HUD, so removing Settings from "+" was refused even when the HUD
+ * had it.
+ */
+const isSettingsReachable = (c: DockConfig): boolean =>
+  c.order.slice(0, 4).includes('SETTINGS') || (c.expandedItems || DEFAULT_DOCK_CONFIG.expandedItems!).includes('SETTINGS') || settingsInTopHud();
+
+const SETTINGS_WARNING = 'Configuraciones debe estar en el HUD de arriba, en la barra principal o en el menú (+). Activa uno antes de quitarlo.';
+
 export const sanitizeDockConfig = (config: DockConfig): DockConfig => {
   const order = sanitizeDockIds(config?.order, DEFAULT_DOCK_CONFIG.order);
   // The main bar always has 4 slots: top it up from the defaults when ids were dropped.
@@ -126,29 +147,20 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
   };
 
   const handleToggleExpandedItem = (id: DockItemId) => {
-    setLocalConfig(prev => {
-      const items = prev.expandedItems || DEFAULT_DOCK_CONFIG.expandedItems!;
-      const isEnabled = items.includes(id);
-
-      if (isEnabled) {
-        // Enforce SETTINGS mandatory rule: if removing SETTINGS from expanded, it MUST be present in main bar
-        if (id === 'SETTINGS' && !prev.order.slice(0, 4).includes('SETTINGS')) {
-          setWarningMessage(t('dockConfig.settingsRequiredWarning', 'Configuraciones debe estar activo al menos en la barra principal (HUD) o en el Menú (+).'));
-          return prev;
-        }
-        setWarningMessage(null);
-        return {
-          ...prev,
-          expandedItems: items.filter(i => i !== id)
-        };
-      } else {
-        setWarningMessage(null);
-        return {
-          ...prev,
-          expandedItems: [...items, id]
-        };
+    const items = localConfig.expandedItems || DEFAULT_DOCK_CONFIG.expandedItems!;
+    if (items.includes(id)) {
+      const next = { ...localConfig, expandedItems: items.filter(i => i !== id) };
+      // Settings may only leave the "+" menu if it is still reachable from the HUD / main bar.
+      if (id === 'SETTINGS' && !isSettingsReachable(next)) {
+        setWarningMessage(SETTINGS_WARNING);
+        return;
       }
-    });
+      setWarningMessage(null);
+      setLocalConfig(next);
+    } else {
+      setWarningMessage(null);
+      setLocalConfig({ ...localConfig, expandedItems: [...items, id] });
+    }
   };
 
   const handleReorderExpanded = (newOrder: DockItemId[]) => {
@@ -160,12 +172,9 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
     const activeOrder = localConfig.order.slice(0, 4);
     const expanded = localConfig.expandedItems || DEFAULT_DOCK_CONFIG.expandedItems!;
 
-    // Mandatory Rule: SETTINGS MUST be present in either active HUD bar (first 4) OR expanded Plus menu
-    const isSettingsInMain = activeOrder.includes('SETTINGS');
-    const isSettingsInExpanded = expanded.includes('SETTINGS');
-
-    if (!isSettingsInMain && !isSettingsInExpanded) {
-      setWarningMessage(t('dockConfig.settingsRequiredWarning', 'Configuraciones debe estar activo al menos en la barra principal (HUD) o en el Menú (+).'));
+    // Mandatory rule: Settings reachable from the top HUD, the main bar or the "+" menu.
+    if (!isSettingsReachable({ ...localConfig, order: activeOrder, expandedItems: expanded })) {
+      setWarningMessage(SETTINGS_WARNING);
       return;
     }
 
