@@ -31,6 +31,8 @@ export interface RoutineItem {
   project?: Project;
   /** Habit with a quantity target: tapping opens the quantity sheet instead of toggling. */
   isQuantity?: boolean;
+  /** 0..1 when the item has measurable progress (quantity habit, project goal). */
+  progress?: number;
 }
 
 export interface RoutineConfig {
@@ -43,9 +45,15 @@ export interface RoutineConfig {
   /** Items with no time of day, listed after the timed ones. */
   showUntimed: boolean;
   showOverdue: boolean;
-  /** "Todo" view draws Mañana / Tarde / Noche dividers (still chronological). */
+  /** Without hour blocks, "Todo" can still draw Mañana / Tarde / Noche dividers (still chronological). */
   groupByPart: boolean;
-  /** Habits' "next due" markers etc. use 24h clock instead of AM/PM. */
+  /** Divide the day into blocks of `hourBlock` hours (08:00 – 10:00 …). Off = no hour division. */
+  divideByHour: boolean;
+  /** Block length in hours when dividing by hour: 1–6. */
+  hourBlock: number;
+  /** Put each item's exact scheduled time inside its card. */
+  exactTime: boolean;
+  /** 24h clock instead of AM/PM. */
   use24h: boolean;
 }
 
@@ -58,6 +66,9 @@ export const DEFAULT_ROUTINE_CONFIG: RoutineConfig = {
   showUntimed: true,
   showOverdue: true,
   groupByPart: true,
+  divideByHour: false,
+  hourBlock: 2,
+  exactTime: true,
   use24h: false,
 };
 
@@ -66,7 +77,11 @@ const configKey = (uid?: string | null) => `routine_config_v1_${uid || 'anon'}`;
 export const loadRoutineConfig = (uid?: string | null): RoutineConfig => {
   try {
     const raw = localStorage.getItem(configKey(uid));
-    if (raw) return { ...DEFAULT_ROUTINE_CONFIG, ...JSON.parse(raw) };
+    if (raw) {
+      const merged = { ...DEFAULT_ROUTINE_CONFIG, ...JSON.parse(raw) } as RoutineConfig;
+      merged.hourBlock = Math.min(6, Math.max(1, Math.round(Number(merged.hourBlock)) || DEFAULT_ROUTINE_CONFIG.hourBlock));
+      return merged;
+    }
   } catch { /* unreadable: defaults */ }
   return { ...DEFAULT_ROUTINE_CONFIG };
 };
@@ -193,6 +208,9 @@ export const buildRoutineItems = (input: BuildRoutineInput): RoutineItem[] => {
           color,
           habit,
           isQuantity,
+          progress: isQuantity && habit.targetValue
+            ? Math.max(0, Math.min(1, (habitDone && !isToday ? habit.targetValue : (isToday ? habit.currentValue || 0 : 0)) / habit.targetValue))
+            : undefined,
         }));
       }
     }
@@ -241,6 +259,7 @@ export const buildRoutineItems = (input: BuildRoutineInput): RoutineItem[] => {
         done: minutes >= Math.max(1, target),
         color: project.color || '#8b5cf6',
         project,
+        progress: target > 0 ? Math.max(0, Math.min(1, minutes / target)) : undefined,
       }));
     }
   }
@@ -275,21 +294,76 @@ export const sortRoutineItems = (items: RoutineItem[]): RoutineItem[] =>
     return a.title.localeCompare(b.title);
   });
 
+export type SectionKind = 'OVERDUE' | 'PART' | 'HOUR' | 'ANYTIME' | 'ALL';
+
 export interface RoutineSection {
-  /** null = overdue block, 'ANYTIME' = untimed. */
-  part: DayPart | 'OVERDUE' | 'ANYTIME';
+  /** Stable key for React and animations. */
+  id: string;
+  kind: SectionKind;
+  /** Set for PART sections (and the day part an HOUR block starts in, for its icon). */
+  part?: DayPart;
+  /** First hour (0–23) of an HOUR block, and the hour it ends at (up to 24). */
+  startHour?: number;
+  endHour?: number;
   items: RoutineItem[];
 }
 
-/** Splits an already-sorted list into overdue / Mañana / Tarde / Noche / sin hora, keeping order. */
-export const sectionize = (items: RoutineItem[]): RoutineSection[] => {
-  const order: RoutineSection['part'][] = ['OVERDUE', 'MORNING', 'AFTERNOON', 'NIGHT', 'ANYTIME'];
-  const buckets = new Map<RoutineSection['part'], RoutineItem[]>(order.map(p => [p, []]));
-  for (const it of items) {
-    const part: RoutineSection['part'] = it.overdue ? 'OVERDUE' : it.minutes === null ? 'ANYTIME' : dayPartOf(it.minutes);
-    buckets.get(part)!.push(it);
+const HOURS_IN_DAY = 24;
+
+/** Block that contains `minutes` when the day is cut every `block` hours from midnight. */
+export const hourBlockOf = (minutes: number, block: number): { startHour: number; endHour: number } => {
+  const size = Math.min(6, Math.max(1, Math.round(block)));
+  const startHour = Math.floor(minutes / 60 / size) * size;
+  return { startHour, endHour: Math.min(HOURS_IN_DAY, startHour + size) };
+};
+
+/** "8 AM – 10 AM" / "08:00 – 10:00" (24:00 is shown as 00:00). */
+export const formatHourRange = (startHour: number, endHour: number, use24h: boolean): string => {
+  const f = (h: number) => {
+    const hh = h % HOURS_IN_DAY;
+    if (use24h) return `${String(hh).padStart(2, '0')}:00`;
+    return `${hh % 12 || 12} ${hh >= 12 ? 'PM' : 'AM'}`;
+  };
+  return endHour - startHour === 1 ? f(startHour) : `${f(startHour)} – ${f(endHour)}`;
+};
+
+/**
+ * Splits an already-sorted list into sections, always keeping chronological order:
+ *  - overdue tasks first, untimed items last;
+ *  - between them either hour blocks (divideByHour), Mañana/Tarde/Noche (groupByPart) or one flat run.
+ */
+export const sectionize = (items: RoutineItem[], config: Pick<RoutineConfig, 'divideByHour' | 'hourBlock' | 'groupByPart'>): RoutineSection[] => {
+  const overdue = items.filter(i => i.overdue);
+  const timed = items.filter(i => !i.overdue && i.minutes !== null);
+  const anytime = items.filter(i => !i.overdue && i.minutes === null);
+
+  const out: RoutineSection[] = [];
+  if (overdue.length) out.push({ id: 'overdue', kind: 'OVERDUE', items: overdue });
+
+  if (config.divideByHour) {
+    const byBlock = new Map<number, RoutineSection>();
+    for (const it of timed) {
+      const { startHour, endHour } = hourBlockOf(it.minutes!, config.hourBlock);
+      let sec = byBlock.get(startHour);
+      if (!sec) {
+        sec = { id: `hour-${startHour}-${endHour}`, kind: 'HOUR', part: dayPartOf(startHour * 60), startHour, endHour, items: [] };
+        byBlock.set(startHour, sec);
+        out.push(sec);
+      }
+      sec.items.push(it);
+    }
+  } else if (config.groupByPart) {
+    const parts: DayPart[] = ['MORNING', 'AFTERNOON', 'NIGHT'];
+    for (const part of parts) {
+      const inPart = timed.filter(i => dayPartOf(i.minutes!) === part);
+      if (inPart.length) out.push({ id: `part-${part}`, kind: 'PART', part, items: inPart });
+    }
+  } else if (timed.length) {
+    out.push({ id: 'all', kind: 'ALL', items: timed });
   }
-  return order.map(part => ({ part, items: buckets.get(part)! })).filter(s => s.items.length > 0);
+
+  if (anytime.length) out.push({ id: 'anytime', kind: 'ANYTIME', items: anytime });
+  return out;
 };
 
 export const countByPart = (items: RoutineItem[]): Record<DayPartFilter, number> => {

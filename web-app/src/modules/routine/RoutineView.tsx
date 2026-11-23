@@ -1,20 +1,20 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import {
-  BookOpen, CalendarClock, Check, CheckSquare, ChevronLeft, ChevronRight, Flame, Moon, PenLine,
-  Play, Plus, Settings2, Sparkles, Sun, Sunset, Target, X,
+  BookOpen, CalendarClock, Check, CheckSquare, ChevronLeft, ChevronRight, Clock, Flame, Moon, PenLine,
+  Play, Plus, Settings2, Sparkles, Sun, Sunset, Target, AlertCircle, PartyPopper,
 } from 'lucide-react';
 import type { Attribute, Habit, Project, Quest } from '../../types';
 import { JournalRemindersModal } from '../notes/components/JournalRemindersModal';
 import { getJournalReminders, saveJournalReminders } from '../../services/journalReminders';
 import { notificationService } from '../../services/notificationService';
 import { QuantityUpdateModal } from '../dashboard/components/QuantityUpdateModal';
-import { addDays, formatClock, getHistoryDateKey, toLocalISOString } from '../../utils/dateUtils';
+import { addDays, formatClock, getHistoryDateKey, startOfWeek, toLocalISOString } from '../../utils/dateUtils';
 import { cn } from '../../utils/cn';
+import { RoutineConfigSheet } from './RoutineConfigSheet';
 import {
-  buildRoutineItems, countByPart, dayPartOf, loadRoutineConfig, saveRoutineConfig, sectionize,
+  buildRoutineItems, countByPart, dayPartOf, formatHourRange, loadRoutineConfig, saveRoutineConfig, sectionize,
   type DayPart, type DayPartFilter, type RoutineConfig, type RoutineItem, type RoutineSection,
 } from './routineEngine';
 
@@ -38,33 +38,201 @@ interface RoutineViewProps {
   onOpenJournal?: (dateStr: string) => void;
 }
 
-const PART_META: Record<DayPart | 'OVERDUE' | 'ANYTIME', { es: string; en: string; icon: React.ElementType; tint: string }> = {
-  OVERDUE: { es: 'Atrasadas', en: 'Overdue', icon: CalendarClock, tint: 'text-rose-300' },
-  MORNING: { es: 'Mañana', en: 'Morning', icon: Sun, tint: 'text-amber-300' },
-  AFTERNOON: { es: 'Tarde', en: 'Afternoon', icon: Sunset, tint: 'text-orange-300' },
-  NIGHT: { es: 'Noche', en: 'Night', icon: Moon, tint: 'text-indigo-300' },
-  ANYTIME: { es: 'Sin hora', en: 'Anytime', icon: Sparkles, tint: 'text-white/50' },
+// One spring for everything interactive, so the whole screen moves with the same feel.
+const SPRING = { type: 'spring', stiffness: 420, damping: 34, mass: 0.8 } as const;
+
+const PART_STYLE: Record<DayPart, { es: string; en: string; icon: React.ElementType; tint: string }> = {
+  MORNING: { es: 'Mañana', en: 'Morning', icon: Sun, tint: '#fbbf24' },
+  AFTERNOON: { es: 'Tarde', en: 'Afternoon', icon: Sunset, tint: '#fb923c' },
+  NIGHT: { es: 'Noche', en: 'Night', icon: Moon, tint: '#818cf8' },
 };
 
 const KIND_ICON: Record<RoutineItem['kind'], React.ElementType> = {
   HABIT: Flame, SUBHABIT: Flame, TASK: CheckSquare, PROJECT: Target, JOURNAL: BookOpen,
 };
 
-const Toggle: React.FC<{ on: boolean; label: string; hint?: string; onChange: (v: boolean) => void }> = ({ on, label, hint, onChange }) => (
-  <button
-    type="button"
-    onClick={() => onChange(!on)}
-    className="w-full flex items-center justify-between gap-3 rounded-2xl bg-white/[0.04] border border-white/[0.07] px-4 py-3 text-left active:scale-[0.99] transition-transform"
-  >
-    <span className="min-w-0">
-      <span className="block text-[13px] font-bold text-white">{label}</span>
-      {hint && <span className="block text-[11px] text-white/40 font-medium leading-snug">{hint}</span>}
-    </span>
-    <span className={cn('w-10 h-6 rounded-full relative shrink-0 transition-colors border border-white/10', on ? 'bg-emerald-500' : 'bg-white/10')}>
-      <span className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all', on ? 'left-[18px]' : 'left-0.5')} />
-    </span>
-  </button>
-);
+const pad = (n: number) => String(n).padStart(2, '0');
+const hhmm = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+// ── Progress ring ───────────────────────────────────────────────────────────
+
+const ProgressRing: React.FC<{ pct: number; reduce: boolean }> = ({ pct, reduce }) => {
+  const r = 38;
+  const c = 2 * Math.PI * r;
+  return (
+    <div className="relative w-[92px] h-[92px] shrink-0">
+      <svg viewBox="0 0 92 92" className="w-full h-full -rotate-90">
+        <defs>
+          <linearGradient id="routine-ring" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#38bdf8" />
+            <stop offset="55%" stopColor="#818cf8" />
+            <stop offset="100%" stopColor="#34d399" />
+          </linearGradient>
+        </defs>
+        <circle cx="46" cy="46" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
+        <motion.circle
+          cx="46" cy="46" r={r} fill="none" stroke="url(#routine-ring)" strokeWidth="8" strokeLinecap="round"
+          strokeDasharray={c}
+          initial={{ strokeDashoffset: c }}
+          animate={{ strokeDashoffset: c * (1 - pct / 100) }}
+          transition={reduce ? { duration: 0 } : { duration: 1, ease: [0.16, 1, 0.3, 1] }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-[24px] font-black text-white leading-none tabular-nums">{pct}<span className="text-[12px] text-white/50">%</span></span>
+      </div>
+    </div>
+  );
+};
+
+// ── Timeline card ───────────────────────────────────────────────────────────
+
+interface CardProps {
+  item: RoutineItem;
+  index: number;
+  exactTime: boolean;
+  use24h: boolean;
+  isNext: boolean;
+  burst: boolean;
+  reduce: boolean;
+  es: boolean;
+  onToggle: (e: React.MouseEvent, item: RoutineItem) => void;
+  onOpen: (item: RoutineItem) => void;
+}
+
+const RoutineCard: React.FC<CardProps> = React.memo(({ item, index, exactTime, use24h, isNext, burst, reduce, es, onToggle, onOpen }) => {
+  const Icon = KIND_ICON[item.kind];
+  const ActionIcon = item.kind === 'PROJECT' ? Play : item.kind === 'JOURNAL' ? PenLine : Check;
+  const showCheck = item.done || item.kind === 'PROJECT' || item.kind === 'JOURNAL';
+  const c = item.color;
+
+  return (
+    <motion.div
+      className="relative flex items-stretch"
+      initial={reduce ? false : { opacity: 0, y: 18, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={reduce ? { duration: 0 } : { ...SPRING, delay: Math.min(index * 0.04, 0.4) }}
+    >
+      {/* Rail: the dot sits on the shared line drawn by the section */}
+      <div className="relative w-7 shrink-0">
+        <span
+          className="absolute left-1/2 top-[26px] -translate-x-1/2 w-[13px] h-[13px] rounded-full border-[2.5px] transition-colors duration-300"
+          style={{ borderColor: c, backgroundColor: item.done ? c : '#07070b', boxShadow: item.done ? `0 0 12px ${c}99` : 'none' }}
+        />
+        {isNext && !item.done && (
+          <span className="absolute left-1/2 top-[26px] -translate-x-1/2 w-[13px] h-[13px] rounded-full animate-ping" style={{ backgroundColor: c, opacity: 0.5 }} />
+        )}
+      </div>
+
+      <motion.div
+        role="button"
+        tabIndex={0}
+        whileTap={reduce ? undefined : { scale: 0.982 }}
+        transition={SPRING}
+        onClick={() => onOpen(item)}
+        onKeyDown={e => { if (e.key === 'Enter') onOpen(item); }}
+        className="relative flex-1 min-w-0 my-1.5 rounded-[22px] overflow-hidden cursor-pointer select-none"
+        style={{
+          background: item.done
+            ? 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015))'
+            : `linear-gradient(135deg, ${c}26 0%, rgba(11,11,17,0.94) 58%)`,
+          border: `1px solid ${item.done ? 'rgba(255,255,255,0.05)' : `${c}38`}`,
+          boxShadow: item.done ? 'none' : `0 8px 24px -14px ${c}80`,
+          willChange: 'transform',
+        }}
+      >
+        {/* Accent bar */}
+        <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full" style={{ background: `linear-gradient(180deg, ${c}, ${c}33)`, opacity: item.done ? 0.35 : 1 }} />
+
+        <div className="flex items-center gap-3 pl-4 pr-3 py-3">
+          <div
+            className="w-11 h-11 rounded-[16px] flex items-center justify-center shrink-0"
+            style={{ background: `linear-gradient(145deg, ${c}38, ${c}12)`, boxShadow: item.done ? 'none' : `inset 0 0 0 1px ${c}30` }}
+          >
+            <Icon size={19} style={{ color: c, opacity: item.done ? 0.5 : 1 }} />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <p className={cn('text-[15px] font-bold truncate leading-tight transition-colors duration-300', item.done ? 'text-white/30 line-through decoration-white/20' : 'text-white')}>
+              {item.title}
+            </p>
+            <div className="flex items-center gap-1.5 mt-1.5 min-w-0">
+              {exactTime && item.time && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-[3px] text-[10px] font-black tabular-nums shrink-0"
+                  style={{ background: item.done ? 'rgba(255,255,255,0.05)' : `${c}26`, color: item.done ? 'rgba(255,255,255,0.3)' : c }}
+                >
+                  <Clock size={10} strokeWidth={3} /> {formatClock(item.time, !use24h)}
+                </span>
+              )}
+              {item.subtitle && (
+                <span className={cn('text-[10px] font-bold uppercase tracking-wider truncate', item.overdue ? 'text-rose-300' : 'text-white/35')}>
+                  {item.subtitle}
+                </span>
+              )}
+              {!exactTime && !item.subtitle && item.time && <span className="text-[10px] font-bold text-white/30 tabular-nums">{formatClock(item.time, !use24h)}</span>}
+            </div>
+          </div>
+
+          <motion.button
+            type="button"
+            onClick={e => onToggle(e, item)}
+            whileTap={reduce ? undefined : { scale: 0.82 }}
+            transition={SPRING}
+            aria-label={item.done ? (es ? 'Hecho' : 'Done') : (es ? 'Marcar' : 'Mark')}
+            className="relative w-[42px] h-[42px] rounded-full flex items-center justify-center shrink-0"
+            style={{
+              backgroundColor: item.done ? c : 'rgba(0,0,0,0.35)',
+              border: `2px solid ${item.done ? c : `${c}80`}`,
+              boxShadow: item.done ? `0 0 18px ${c}66` : 'none',
+              transition: 'background-color .25s, border-color .25s, box-shadow .25s',
+            }}
+          >
+            <AnimatePresence initial={false}>
+              {showCheck && (
+                <motion.span
+                  key="icon"
+                  className="absolute inset-0 flex items-center justify-center"
+                  initial={reduce ? false : { scale: 0, rotate: -50 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  exit={{ scale: 0 }}
+                  transition={{ type: 'spring', stiffness: 560, damping: 22 }}
+                  style={{ color: item.done ? '#fff' : c }}
+                >
+                  <ActionIcon size={item.kind === 'PROJECT' ? 16 : 19} strokeWidth={item.kind === 'PROJECT' ? 2.5 : 3.2} />
+                </motion.span>
+              )}
+            </AnimatePresence>
+            {burst && !reduce && (
+              <motion.span
+                className="absolute inset-0 rounded-full pointer-events-none"
+                style={{ border: `2px solid ${c}` }}
+                initial={{ scale: 0.8, opacity: 0.8 }}
+                animate={{ scale: 2.3, opacity: 0 }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+              />
+            )}
+          </motion.button>
+        </div>
+
+        {item.progress !== undefined && !item.done && (
+          <div className="absolute left-0 right-0 bottom-0 h-[3px] bg-white/[0.05]">
+            <motion.div
+              className="h-full origin-left"
+              style={{ background: `linear-gradient(90deg, ${c}, ${c}aa)`, width: '100%' }}
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: item.progress }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            />
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+});
+RoutineCard.displayName = 'RoutineCard';
+
+// ── Main view ───────────────────────────────────────────────────────────────
 
 export const RoutineView: React.FC<RoutineViewProps> = ({
   userId, habits, quests, projects, attributes, isActive = true, journalEntries = [],
@@ -73,6 +241,7 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
   const { i18n } = useTranslation();
   const es = !!i18n.language?.startsWith('es');
   const tr = (a: string, b: string) => (es ? a : b);
+  const reduce = !!useReducedMotion();
 
   const [config, setConfig] = useState<RoutineConfig>(() => loadRoutineConfig(userId));
   const [date, setDate] = useState(() => new Date());
@@ -83,15 +252,15 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
   const [quantityHabit, setQuantityHabit] = useState<Habit | null>(null);
   const [journalTimes, setJournalTimes] = useState<string[]>(() => getJournalReminders(userId).times);
   const [journalModalOpen, setJournalModalOpen] = useState(false);
+  const [burstId, setBurstId] = useState<string | null>(null);
 
   useEffect(() => { setConfig(loadRoutineConfig(userId)); setJournalTimes(getJournalReminders(userId).times); }, [userId]);
 
-  // Keep "now" fresh (marker + overdue split) and snap back to today when the day rolls over.
+  // The clock only matters while the section is on screen.
   useEffect(() => {
     if (!isActive) return;
-    const tick = () => setNow(new Date());
-    tick();
-    const id = window.setInterval(tick, 30_000);
+    setNow(new Date());
+    const id = window.setInterval(() => setNow(new Date()), 30_000);
     return () => window.clearInterval(id);
   }, [isActive]);
 
@@ -118,52 +287,83 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
     return (id: string) => map.get(id) || '#6366f1';
   }, [attributes]);
 
-  const journalDone = useMemo(
-    () => (journalEntries || []).some(e => e.date && getHistoryDateKey(e.date) === dayKey && (e.blocks?.length ?? 0) > 0),
-    [journalEntries, dayKey],
-  );
+  const writtenDays = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of journalEntries) if (e.date && (e.blocks?.length ?? 0) > 0) set.add(getHistoryDateKey(e.date));
+    return set;
+  }, [journalEntries]);
 
-  const allItems = useMemo(() => buildRoutineItems({
-    date, habits, quests, projects, journalTimes, journalDone, config,
-    colorForAttribute: attrColor,
-    labels: {
-      journal: tr('Escribir en el journal', 'Write in your journal'),
-      journalSub: tr('Recordatorio', 'Reminder'),
-      overdue: tr('Atrasada', 'Overdue'),
-      project: tr('Sesión de enfoque', 'Focus session'),
-    },
-  // `now` is intentionally not a dependency: items only change with data, not the clock.
+  const labels = useMemo(() => ({
+    journal: tr('Escribir en el journal', 'Write in your journal'),
+    journalSub: tr('Recordatorio', 'Reminder'),
+    overdue: tr('Atrasada', 'Overdue'),
+    project: tr('Sesión de enfoque', 'Focus session'),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [date, habits, quests, projects, journalTimes, journalDone, config, attrColor, es]);
+  }), [es]);
+
+  const itemsFor = useCallback((d: Date) => buildRoutineItems({
+    date: d, habits, quests, projects, journalTimes, journalDone: writtenDays.has(toLocalISOString(d)), config,
+    colorForAttribute: attrColor, labels,
+  }), [habits, quests, projects, journalTimes, writtenDays, config, attrColor, labels]);
+
+  const allItems = useMemo(() => itemsFor(date), [itemsFor, date]);
+
+  // Week strip: the 7 days around the selected date, with a pending/done hint each.
+  const weekDays = useMemo(() => {
+    const start = startOfWeek(date);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = addDays(start, i);
+      const items = itemsFor(d);
+      const pending = items.filter(x => !x.done).length;
+      return { date: d, key: toLocalISOString(d), pending, total: items.length };
+    });
+  }, [date, itemsFor]);
 
   const counts = useMemo(() => countByPart(allItems), [allItems]);
   const visible = useMemo(
     () => (filter === 'ALL' ? allItems : allItems.filter(it => it.minutes !== null && !it.overdue && dayPartOf(it.minutes) === filter)),
     [allItems, filter],
   );
-  const sections: RoutineSection[] = useMemo(
-    () => (filter === 'ALL' && config.groupByPart ? sectionize(visible) : [{ part: 'ANYTIME' as const, items: visible }]),
-    [visible, filter, config.groupByPart],
-  );
+  const sections: RoutineSection[] = useMemo(() => sectionize(visible, config), [visible, config]);
 
   const doneCount = allItems.filter(i => i.done).length;
+  const overdueCount = allItems.filter(i => i.overdue && !i.done).length;
+  const pendingCount = allItems.length - doneCount;
   const pct = allItems.length ? Math.round((doneCount / allItems.length) * 100) : 0;
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
-  const dateLabel = useMemo(() => {
-    const diff = Math.round((new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / 86_400_000);
-    if (diff === 0) return tr('Hoy', 'Today');
-    if (diff === -1) return tr('Ayer', 'Yesterday');
-    if (diff === 1) return tr('Mañana', 'Tomorrow');
-    return date.toLocaleDateString(es ? 'es-ES' : 'en-US', { weekday: 'short', day: 'numeric', month: 'short' });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, now, es]);
-  const fullDate = date.toLocaleDateString(es ? 'es-ES' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' });
+  // What to do next: the first pending timed item still ahead (or just passed), else any pending.
+  const next = useMemo(() => {
+    const pending = allItems.filter(i => !i.done);
+    if (!pending.length) return null;
+    if (isToday) {
+      const upcoming = pending.find(i => !i.overdue && i.minutes !== null && i.minutes >= nowMinutes - 30);
+      return upcoming || pending.find(i => i.overdue) || pending[0];
+    }
+    return pending[0];
+  }, [allItems, isToday, nowMinutes]);
 
+  const nextWhen = useMemo(() => {
+    if (!next) return '';
+    if (next.overdue) return tr('Atrasada', 'Overdue');
+    if (!isToday || next.minutes === null) return next.time ? formatClock(next.time, !config.use24h) : tr('Sin hora', 'Anytime');
+    const diff = next.minutes - nowMinutes;
+    if (Math.abs(diff) <= 1) return tr('Ahora', 'Now');
+    const abs = Math.abs(diff);
+    const txt = abs >= 60 ? `${Math.floor(abs / 60)} h${abs % 60 ? ` ${abs % 60} min` : ''}` : `${abs} min`;
+    return diff > 0 ? tr(`en ${txt}`, `in ${txt}`) : tr(`hace ${txt}`, `${txt} ago`);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [next, isToday, nowMinutes, config.use24h, es]);
+
+  const fullDate = date.toLocaleDateString(es ? 'es-ES' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' });
   const fmt = (t: string) => formatClock(t, !config.use24h);
 
-  const toggleItem = (e: React.MouseEvent, item: RoutineItem) => {
+  const toggleItem = useCallback((e: React.MouseEvent, item: RoutineItem) => {
     e.stopPropagation();
+    if (!item.done && item.kind !== 'PROJECT' && item.kind !== 'JOURNAL') {
+      setBurstId(item.id);
+      window.setTimeout(() => setBurstId(cur => (cur === item.id ? null : cur)), 700);
+    }
     switch (item.kind) {
       case 'HABIT':
         if (item.isQuantity && item.habit && onUpdateHabit) setQuantityHabit(item.habit);
@@ -185,85 +385,15 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
         onOpenJournal?.(dayKey);
         break;
     }
-  };
+  }, [date, dayKey, onCompleteHabit, onUpdateHabit, onCompleteQuest, onFocusProject, onOpenJournal]);
 
-  const openItem = (item: RoutineItem) => {
+  const openItem = useCallback((item: RoutineItem) => {
     if (item.kind === 'TASK' && item.quest) onEditQuest?.(item.quest);
     else if ((item.kind === 'HABIT' || item.kind === 'SUBHABIT') && item.habit) {
       onEditHabit?.({ ...item.habit, _initialTab: item.kind === 'SUBHABIT' ? 'checklist' : 'alarm', _targetSubtaskId: item.subtaskId });
     } else if (item.kind === 'PROJECT' && item.project) onFocusProject?.(item.project.id);
     else if (item.kind === 'JOURNAL') onOpenJournal?.(dayKey);
-  };
-
-  const renderItem = (item: RoutineItem) => {
-    const Icon = KIND_ICON[item.kind];
-    const ActionIcon = item.kind === 'PROJECT' ? Play : item.kind === 'JOURNAL' ? PenLine : Check;
-    return (
-      <div key={item.id} className="flex items-stretch gap-3">
-        <div className="w-[58px] shrink-0 pt-3.5 text-right">
-          {item.time ? (
-            <span className={cn('text-[11px] font-black tabular-nums tracking-tight', item.done ? 'text-white/25' : 'text-white/70')}>{fmt(item.time)}</span>
-          ) : (
-            <span className="text-[10px] font-bold text-white/20">—</span>
-          )}
-        </div>
-        <div className="relative flex flex-col items-center shrink-0 w-3">
-          <span className="w-px flex-1 bg-white/[0.07]" />
-          <span className="absolute top-[18px] w-2.5 h-2.5 rounded-full border-2" style={{ borderColor: item.color, backgroundColor: item.done ? item.color : '#08080c' }} />
-        </div>
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => openItem(item)}
-          onKeyDown={e => { if (e.key === 'Enter') openItem(item); }}
-          className={cn(
-            'flex-1 min-w-0 my-1 flex items-center gap-3 rounded-2xl border px-3 py-2.5 relative overflow-hidden cursor-pointer transition-colors active:scale-[0.99]',
-            item.done ? 'bg-white/[0.02] border-white/[0.05]' : 'bg-[#07070a]/90 hover:bg-[#0b0b10]',
-          )}
-          style={{ borderColor: item.done ? undefined : `${item.color}40` }}
-        >
-          <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: item.color, opacity: item.done ? 0.03 : 0.09 }} />
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border border-white/5 relative z-10" style={{ backgroundColor: `${item.color}1f` }}>
-            <Icon size={17} style={{ color: item.color }} />
-          </div>
-          <div className="flex-1 min-w-0 relative z-10">
-            <p className={cn('text-[14px] font-semibold truncate', item.done ? 'text-white/30 line-through' : 'text-white/85')}>{item.title}</p>
-            {item.subtitle && (
-              <p className={cn('text-[10px] font-bold uppercase tracking-wider truncate mt-0.5', item.overdue ? 'text-rose-300/80' : 'text-white/30')}>{item.subtitle}</p>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={e => toggleItem(e, item)}
-            aria-label={item.done ? tr('Hecho', 'Done') : tr('Marcar', 'Mark')}
-            className={cn('w-[38px] h-[38px] rounded-full border flex items-center justify-center shrink-0 relative z-10 transition-all active:scale-90', item.done ? 'text-white border-transparent' : 'bg-black/30 text-white/40')}
-            style={{ backgroundColor: item.done ? item.color : undefined, borderColor: item.done ? item.color : `${item.color}78` }}
-          >
-            {(item.done || item.kind === 'PROJECT' || item.kind === 'JOURNAL') && <ActionIcon size={item.kind === 'PROJECT' ? 15 : 17} strokeWidth={item.kind === 'PROJECT' ? 2.5 : 3} />}
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  // The "now" line sits before the first timed item that is still ahead of the clock.
-  const nowLineBefore = isToday && filter === 'ALL'
-    ? allItems.find(it => !it.overdue && it.minutes !== null && it.minutes > nowMinutes)?.id ?? null
-    : null;
-  const nowLine = (
-    <div key="now-line" className="flex items-center gap-3 pl-[70px] py-1">
-      <span className="w-2 h-2 rounded-full bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.9)]" />
-      <span className="text-[10px] font-black tabular-nums text-rose-300">{fmt(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`)}</span>
-      <span className="flex-1 h-px bg-gradient-to-r from-rose-400/60 to-transparent" />
-    </div>
-  );
-
-  const filters: { id: DayPartFilter; label: string; icon: React.ElementType }[] = [
-    { id: 'ALL', label: tr('Todo', 'All'), icon: CalendarClock },
-    { id: 'MORNING', label: tr('Mañana', 'Morning'), icon: Sun },
-    { id: 'AFTERNOON', label: tr('Tarde', 'Afternoon'), icon: Sunset },
-    { id: 'NIGHT', label: tr('Noche', 'Night'), icon: Moon },
-  ];
+  }, [dayKey, onEditQuest, onEditHabit, onFocusProject, onOpenJournal]);
 
   const onSaveJournalTimes = (times: string[]) => {
     if (userId) {
@@ -273,164 +403,296 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
     setJournalModalOpen(false);
   };
 
-  const totalShown = sections.reduce((a, s) => a + s.items.length, 0);
+  const filters: { id: DayPartFilter; label: string; icon: React.ElementType }[] = [
+    { id: 'ALL', label: tr('Todo', 'All'), icon: CalendarClock },
+    { id: 'MORNING', label: tr('Mañana', 'Morning'), icon: Sun },
+    { id: 'AFTERNOON', label: tr('Tarde', 'Afternoon'), icon: Sunset },
+    { id: 'NIGHT', label: tr('Noche', 'Night'), icon: Moon },
+  ];
+
+  const sectionMeta = (s: RoutineSection): { label: string; icon: React.ElementType; tint: string } => {
+    switch (s.kind) {
+      case 'OVERDUE': return { label: tr('Atrasadas', 'Overdue'), icon: AlertCircle, tint: '#fb7185' };
+      case 'ANYTIME': return { label: tr('Sin hora', 'Anytime'), icon: Sparkles, tint: '#94a3b8' };
+      case 'HOUR': {
+        const p = PART_STYLE[s.part || 'MORNING'];
+        return { label: formatHourRange(s.startHour!, s.endHour!, config.use24h), icon: p.icon, tint: p.tint };
+      }
+      case 'PART': {
+        const p = PART_STYLE[s.part!];
+        return { label: es ? p.es : p.en, icon: p.icon, tint: p.tint };
+      }
+      default: return { label: '', icon: CalendarClock, tint: '#94a3b8' };
+    }
+  };
+
+  // Where the "now" marker goes: right before the first timed item still ahead of the clock.
+  const nowBeforeId = isToday && filter === 'ALL'
+    ? visible.find(it => !it.overdue && it.minutes !== null && it.minutes > nowMinutes)?.id ?? null
+    : null;
+
+  const listKey = `${dayKey}|${filter}|${config.divideByHour}|${config.hourBlock}|${config.groupByPart}`;
+  let runningIndex = 0;
 
   return (
-    <div className="pb-32 pt-2 h-full overflow-y-auto no-scrollbar">
+    <div className="pb-36 pt-2 h-full overflow-y-auto overflow-x-hidden no-scrollbar overscroll-contain" style={{ scrollbarWidth: 'none' }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4 px-1">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-sky-500/20 to-indigo-500/15 border border-sky-500/25 flex items-center justify-center shrink-0">
-            <CalendarClock size={20} className="text-sky-300" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-2xl font-black text-white tracking-tight leading-none">{tr('Rutina', 'Routine')}</h1>
-            <p className="text-[11px] font-medium text-white/40 first-letter:uppercase truncate mt-1">{fullDate}</p>
-          </div>
+      <motion.div
+        className="flex items-center justify-between mb-4 px-1"
+        initial={reduce ? false : { opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={SPRING}
+      >
+        <div className="min-w-0">
+          <h1 className="text-[28px] font-black text-white tracking-tight leading-none">{tr('Rutina', 'Routine')}</h1>
+          <p className="text-[12px] font-semibold text-white/40 first-letter:uppercase truncate mt-1.5">{fullDate}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0 relative">
-          <button type="button" onClick={() => setAddOpen(v => !v)} aria-label={tr('Añadir', 'Add')} className="w-9 h-9 rounded-xl bg-white text-black flex items-center justify-center active:scale-95">
-            <Plus size={17} strokeWidth={3} />
-          </button>
-          <button type="button" onClick={() => setConfigOpen(true)} aria-label={tr('Personalizar', 'Customize')} className="w-9 h-9 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center text-white/60 active:scale-95">
-            <Settings2 size={16} />
-          </button>
+          <motion.button
+            type="button" whileTap={{ scale: 0.88 }} transition={SPRING}
+            onClick={() => setAddOpen(v => !v)} aria-label={tr('Añadir', 'Add')}
+            className="w-10 h-10 rounded-2xl bg-white text-black flex items-center justify-center shadow-[0_6px_20px_-6px_rgba(255,255,255,0.5)]"
+          >
+            <motion.span animate={{ rotate: addOpen ? 45 : 0 }} transition={SPRING} className="flex"><Plus size={19} strokeWidth={3} /></motion.span>
+          </motion.button>
+          <motion.button
+            type="button" whileTap={{ scale: 0.88 }} transition={SPRING}
+            onClick={() => setConfigOpen(true)} aria-label={tr('Personalizar', 'Customize')}
+            className="w-10 h-10 rounded-2xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-white/70"
+          >
+            <Settings2 size={17} />
+          </motion.button>
           <AnimatePresence>
             {addOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setAddOpen(false)} />
                 <motion.div
-                  initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                  initial={{ opacity: 0, y: -8, scale: 0.94 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -6, scale: 0.97 }}
-                  className="absolute right-0 top-11 z-50 w-48 rounded-2xl bg-[#14141c] border border-white/10 shadow-2xl p-1.5"
+                  exit={{ opacity: 0, y: -8, scale: 0.94 }}
+                  transition={{ type: 'spring', stiffness: 520, damping: 34 }}
+                  style={{ transformOrigin: 'top right' }}
+                  className="absolute right-0 top-12 z-50 w-52 rounded-[20px] bg-[#14141d] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.6)] p-1.5"
                 >
-                  <button type="button" onClick={() => { setAddOpen(false); onAddQuest?.(); }} className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-bold text-white hover:bg-white/5">
-                    <CheckSquare size={15} className="text-cyan-300" /> {tr('Nueva tarea', 'New task')}
+                  <button type="button" onClick={() => { setAddOpen(false); onAddQuest?.(); }} className="w-full flex items-center gap-3 rounded-2xl px-3 py-3 text-[13px] font-bold text-white active:bg-white/10">
+                    <span className="w-8 h-8 rounded-xl bg-cyan-400/15 text-cyan-300 flex items-center justify-center"><CheckSquare size={16} /></span> {tr('Nueva tarea', 'New task')}
                   </button>
-                  <button type="button" onClick={e => { setAddOpen(false); onAddHabit?.(e); }} className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-bold text-white hover:bg-white/5">
-                    <Flame size={15} className="text-orange-300" /> {tr('Nuevo hábito', 'New habit')}
+                  <button type="button" onClick={e => { setAddOpen(false); onAddHabit?.(e); }} className="w-full flex items-center gap-3 rounded-2xl px-3 py-3 text-[13px] font-bold text-white active:bg-white/10">
+                    <span className="w-8 h-8 rounded-xl bg-orange-400/15 text-orange-300 flex items-center justify-center"><Flame size={16} /></span> {tr('Nuevo hábito', 'New habit')}
                   </button>
                 </motion.div>
               </>
             )}
           </AnimatePresence>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Day navigation + progress */}
-      <div className="rounded-3xl bg-white/[0.03] border border-white/[0.07] p-3.5 mb-4">
-        <div className="flex items-center justify-between">
-          <button type="button" onClick={() => setDate(d => addDays(d, -1))} aria-label={tr('Día anterior', 'Previous day')} className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-white/70 active:scale-90"><ChevronLeft size={17} /></button>
-          <button type="button" onClick={() => setDate(new Date())} className="text-center px-3">
-            <span className="block text-base font-black text-white capitalize">{dateLabel}</span>
-            {!isToday && <span className="block text-[10px] font-bold text-sky-300 uppercase tracking-wider">{tr('Volver a hoy', 'Back to today')}</span>}
-          </button>
-          <button type="button" onClick={() => setDate(d => addDays(d, 1))} aria-label={tr('Día siguiente', 'Next day')} className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-white/70 active:scale-90"><ChevronRight size={17} /></button>
-        </div>
-        <div className="mt-3 flex items-center gap-3">
-          <div className="flex-1 h-2 rounded-full bg-white/[0.08] overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-sky-400 to-emerald-400 transition-all duration-500" style={{ width: `${pct}%` }} />
+      {/* Hero */}
+      <motion.section
+        className="relative overflow-hidden rounded-[30px] p-4 mb-4 border border-white/10"
+        style={{ background: 'linear-gradient(135deg, rgba(56,189,248,0.16) 0%, rgba(99,102,241,0.14) 48%, rgba(168,85,247,0.12) 100%)' }}
+        initial={reduce ? false : { opacity: 0, y: 14, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ ...SPRING, delay: 0.05 }}
+      >
+        <div className="absolute -top-16 -right-10 w-52 h-52 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(56,189,248,0.22), transparent 68%)' }} />
+        <div className="absolute -bottom-20 -left-10 w-52 h-52 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.18), transparent 68%)' }} />
+        <div className="relative flex items-center gap-4">
+          <ProgressRing pct={pct} reduce={reduce} />
+          <div className="flex-1 min-w-0">
+            {next ? (
+              <>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-200/70">{tr('Siguiente', 'Up next')}</p>
+                <p className="text-[17px] font-black text-white leading-tight truncate mt-1">{next.title}</p>
+                <span className="inline-flex items-center gap-1 mt-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-black text-white/85 tabular-nums">
+                  <Clock size={11} strokeWidth={3} /> {nextWhen}
+                </span>
+              </>
+            ) : (
+              <>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-200/70">{allItems.length ? tr('Todo listo', 'All done') : tr('Día libre', 'Free day')}</p>
+                <p className="text-[17px] font-black text-white leading-tight mt-1">
+                  {allItems.length ? tr('Cumpliste tu rutina', 'You nailed your routine') : tr('Nada programado', 'Nothing scheduled')}
+                </p>
+                <PartyPopper size={18} className="text-emerald-300 mt-1.5" />
+              </>
+            )}
           </div>
-          <span className="text-[11px] font-black text-white/70 tabular-nums">{doneCount}/{allItems.length}</span>
         </div>
-      </div>
+        <div className="relative grid grid-cols-3 gap-2 mt-4">
+          {[
+            { label: tr('Hechas', 'Done'), value: doneCount, tint: '#34d399' },
+            { label: tr('Pendientes', 'Pending'), value: pendingCount, tint: '#38bdf8' },
+            { label: tr('Atrasadas', 'Overdue'), value: overdueCount, tint: '#fb7185' },
+          ].map(s => (
+            <div key={s.label} className="rounded-2xl bg-black/25 border border-white/[0.06] py-2 text-center">
+              <p className="text-[18px] font-black tabular-nums leading-none" style={{ color: s.tint }}>{s.value}</p>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-white/35 mt-1">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </motion.section>
+
+      {/* Week strip */}
+      <motion.div
+        className="flex items-center gap-1 mb-4"
+        initial={reduce ? false : { opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...SPRING, delay: 0.1 }}
+      >
+        <button type="button" onClick={() => setDate(d => addDays(d, -7))} aria-label={tr('Semana anterior', 'Previous week')} className="w-7 h-12 flex items-center justify-center text-white/35 active:text-white active:scale-90 transition-transform"><ChevronLeft size={18} /></button>
+        <div className="flex-1 grid grid-cols-7 gap-1">
+          {weekDays.map(d => {
+            const selected = d.key === dayKey;
+            const today = d.key === todayKey;
+            return (
+              <button
+                key={d.key}
+                type="button"
+                onClick={() => { setDate(d.date); setFilter('ALL'); }}
+                className="relative h-[58px] rounded-2xl flex flex-col items-center justify-center gap-0.5 active:scale-90 transition-transform duration-150"
+              >
+                {selected && (
+                  <motion.span
+                    layoutId="routine-day-pill"
+                    className="absolute inset-0 rounded-2xl"
+                    style={{ background: 'linear-gradient(160deg,#ffffff,#dbeafe)', boxShadow: '0 8px 22px -8px rgba(125,211,252,0.7)' }}
+                    transition={SPRING}
+                  />
+                )}
+                <span className={cn('relative text-[9px] font-black uppercase tracking-wider', selected ? 'text-black/55' : 'text-white/35')}>
+                  {d.date.toLocaleDateString(es ? 'es-ES' : 'en-US', { weekday: 'short' }).replace('.', '').slice(0, 3)}
+                </span>
+                <span className={cn('relative text-[17px] font-black leading-none tabular-nums', selected ? 'text-black' : today ? 'text-sky-300' : 'text-white/80')}>{d.date.getDate()}</span>
+                <span
+                  className="relative w-1.5 h-1.5 rounded-full mt-0.5"
+                  style={{ backgroundColor: d.total === 0 ? 'transparent' : d.pending === 0 ? '#34d399' : selected ? '#0ea5e9' : '#38bdf8', opacity: d.total === 0 ? 0 : d.pending === 0 ? 1 : 0.85 }}
+                />
+              </button>
+            );
+          })}
+        </div>
+        <button type="button" onClick={() => setDate(d => addDays(d, 7))} aria-label={tr('Semana siguiente', 'Next week')} className="w-7 h-12 flex items-center justify-center text-white/35 active:text-white active:scale-90 transition-transform"><ChevronRight size={18} /></button>
+      </motion.div>
+      {!isToday && (
+        <button type="button" onClick={() => setDate(new Date())} className="mx-auto -mt-1 mb-3 flex items-center gap-1.5 rounded-full bg-sky-400/10 border border-sky-400/20 px-3 py-1.5 text-[11px] font-black text-sky-300 active:scale-95 transition-transform">
+          <CalendarClock size={12} /> {tr('Volver a hoy', 'Back to today')}
+        </button>
+      )}
 
       {/* Mañana / Tarde / Noche */}
-      <div className="flex gap-1.5 mb-5 p-1 rounded-2xl bg-white/[0.04] border border-white/[0.07]">
+      <motion.div
+        className="flex p-1 mb-5 rounded-[20px] bg-white/[0.04] border border-white/[0.07]"
+        initial={reduce ? false : { opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...SPRING, delay: 0.14 }}
+      >
         {filters.map(f => {
           const active = filter === f.id;
           const FIcon = f.icon;
           return (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setFilter(f.id)}
-              className={cn('flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-[11px] font-black transition-all', active ? 'bg-white text-black' : 'text-white/45 hover:text-white/75')}
-            >
-              <FIcon size={13} />
-              <span>{f.label}</span>
-              <span className={cn('text-[9px] tabular-nums', active ? 'text-black/50' : 'text-white/25')}>{counts[f.id]}</span>
+            <button key={f.id} type="button" onClick={() => setFilter(f.id)} className="relative flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-[11px] font-black active:scale-95 transition-transform duration-150">
+              {active && <motion.span layoutId="routine-seg-pill" className="absolute inset-0 rounded-2xl bg-white" style={{ boxShadow: '0 6px 18px -8px rgba(255,255,255,0.6)' }} transition={SPRING} />}
+              <span className={cn('relative flex items-center gap-1.5 transition-colors duration-200', active ? 'text-black' : 'text-white/45')}>
+                <FIcon size={13} />
+                <span>{f.label}</span>
+                <span className={cn('text-[9px] tabular-nums', active ? 'text-black/45' : 'text-white/25')}>{counts[f.id]}</span>
+              </span>
             </button>
           );
         })}
-      </div>
+      </motion.div>
 
       {/* Timeline */}
-      {totalShown === 0 ? (
-        <div className="rounded-3xl border border-dashed border-white/10 p-8 text-center">
-          <CalendarClock size={28} className="mx-auto text-white/20 mb-3" />
-          <p className="text-sm font-bold text-white/60">{tr('Nada programado', 'Nothing scheduled')}</p>
-          <p className="text-[12px] text-white/35 mt-1 leading-snug">
+      {sections.length === 0 ? (
+        <motion.div
+          key={`empty-${listKey}`}
+          className="rounded-[28px] border border-dashed border-white/10 bg-white/[0.02] p-9 text-center"
+          initial={reduce ? false : { opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={SPRING}
+        >
+          <motion.div animate={reduce ? undefined : { y: [0, -7, 0] }} transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }} className="mx-auto w-14 h-14 rounded-3xl bg-sky-400/10 border border-sky-400/20 flex items-center justify-center mb-4">
+            <CalendarClock size={26} className="text-sky-300" />
+          </motion.div>
+          <p className="text-[15px] font-black text-white/80">{tr('Nada programado', 'Nothing scheduled')}</p>
+          <p className="text-[12px] text-white/35 mt-1.5 leading-relaxed">
             {tr('Ponle hora a tus hábitos y tareas, o activa más cosas en el engranaje.', 'Give your habits and tasks a time, or turn more things on with the gear.')}
           </p>
-        </div>
+        </motion.div>
       ) : (
-        <div>
+        <div key={listKey}>
           {sections.map(section => {
-            const meta = PART_META[section.part];
+            const meta = sectionMeta(section);
             const SIcon = meta.icon;
-            const showHeader = filter === 'ALL' && config.groupByPart;
+            const showHeader = section.kind !== 'ALL';
+            const sectionDone = section.items.filter(i => i.done).length;
             return (
-              <div key={section.part} className="mb-2">
+              <section key={section.id} className="mb-3">
                 {showHeader && (
-                  <div className="flex items-center gap-2 pl-[70px] pt-3 pb-1.5">
-                    <SIcon size={13} className={meta.tint} />
-                    <span className={cn('text-[10px] font-black uppercase tracking-[0.18em]', meta.tint)}>{es ? meta.es : meta.en}</span>
-                    <span className="text-[10px] font-bold text-white/20 tabular-nums">{section.items.length}</span>
-                  </div>
+                  <motion.div
+                    className="sticky top-0 z-20 flex items-center gap-2.5 py-2 pl-0.5"
+                    style={{ background: 'linear-gradient(180deg, #05050a 70%, rgba(5,5,10,0))' }}
+                    initial={reduce ? false : { opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ ...SPRING, delay: Math.min(runningIndex * 0.04, 0.4) }}
+                  >
+                    <span className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: `${meta.tint}1f`, color: meta.tint }}>
+                      <SIcon size={14} />
+                    </span>
+                    <span className="text-[11px] font-black uppercase tracking-[0.16em] tabular-nums" style={{ color: meta.tint }}>{meta.label}</span>
+                    <span className="flex-1 h-px" style={{ background: `linear-gradient(90deg, ${meta.tint}40, transparent)` }} />
+                    <span className="text-[10px] font-black text-white/30 tabular-nums">{sectionDone}/{section.items.length}</span>
+                  </motion.div>
                 )}
-                {section.items.map(item => (
-                  <React.Fragment key={item.id}>
-                    {nowLineBefore === item.id && nowLine}
-                    {renderItem(item)}
-                  </React.Fragment>
-                ))}
-              </div>
+                <div className="relative">
+                  {/* Shared rail line for the whole section */}
+                  <span className="absolute left-[13.5px] top-2 bottom-2 w-px bg-gradient-to-b from-white/[0.14] via-white/[0.07] to-white/[0.02]" />
+                  {section.items.map(item => {
+                    const i = runningIndex++;
+                    return (
+                      <React.Fragment key={item.id}>
+                        {nowBeforeId === item.id && (
+                          <div className="relative flex items-center gap-2 pl-[5px] py-1.5">
+                            <span className="relative flex w-[18px] h-[18px] items-center justify-center">
+                              <span className="absolute w-full h-full rounded-full bg-rose-400/40 animate-ping" />
+                              <span className="relative w-2.5 h-2.5 rounded-full bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.9)]" />
+                            </span>
+                            <span className="text-[10px] font-black tabular-nums text-rose-300">{fmt(hhmm(now))}</span>
+                            <span className="flex-1 h-px bg-gradient-to-r from-rose-400/60 to-transparent" />
+                          </div>
+                        )}
+                        <RoutineCard
+                          item={item}
+                          index={i}
+                          exactTime={config.exactTime}
+                          use24h={config.use24h}
+                          isNext={next?.id === item.id && isToday}
+                          burst={burstId === item.id}
+                          reduce={reduce}
+                          es={es}
+                          onToggle={toggleItem}
+                          onOpen={openItem}
+                        />
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </section>
             );
           })}
         </div>
       )}
 
-      {/* Customize sheet */}
-      {typeof document !== 'undefined' && createPortal(
-        <AnimatePresence>
-          {configOpen && (
-            <motion.div className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setConfigOpen(false)}>
-              <motion.div
-                className="w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-t-[28px] sm:rounded-[28px] bg-[#0b0b10] border border-white/10 p-5 pb-[calc(env(safe-area-inset-bottom,0px)+20px)]"
-                initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }} transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-                onClick={e => e.stopPropagation()}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-lg font-black text-white">{tr('Personalizar rutina', 'Customize routine')}</h2>
-                    <p className="text-[11px] text-white/40 font-medium">{tr('Elige qué aparece en tu línea del día', 'Choose what shows on your day line')}</p>
-                  </div>
-                  <button type="button" onClick={() => setConfigOpen(false)} aria-label="Close" className="w-8 h-8 rounded-xl bg-white/5 text-white/50 flex items-center justify-center"><X size={15} /></button>
-                </div>
-                <div className="space-y-2">
-                  <Toggle on={config.showHabits} label={tr('Hábitos', 'Habits')} hint={tr('Con su hora de alarma y subtareas', 'With their alarm time and subtasks')} onChange={v => updateConfig({ showHabits: v })} />
-                  <Toggle on={config.showTasks} label={tr('Tareas', 'Tasks')} hint={tr('Con hora límite si la tienen', 'With a due time when they have one')} onChange={v => updateConfig({ showTasks: v })} />
-                  <Toggle on={config.showProjects} label={tr('Proyectos', 'Projects')} hint={tr('Los que tienen un aviso programado', 'Those with a scheduled reminder')} onChange={v => updateConfig({ showProjects: v })} />
-                  <Toggle on={config.showJournal} label={tr('Journaling', 'Journaling')} hint={tr('Tus horarios de recordatorio', 'Your reminder times')} onChange={v => updateConfig({ showJournal: v })} />
-                  <button type="button" onClick={() => setJournalModalOpen(true)} className="w-full flex items-center justify-between rounded-2xl bg-indigo-500/10 border border-indigo-500/20 px-4 py-3 text-left active:scale-[0.99]">
-                    <span className="text-[13px] font-bold text-indigo-200">{tr('Horarios de journaling', 'Journaling times')}</span>
-                    <span className="text-[11px] font-black text-indigo-300 tabular-nums">{journalTimes.join(' · ') || tr('Configurar', 'Set up')}</span>
-                  </button>
-                  <div className="h-px bg-white/[0.06] my-3" />
-                  <Toggle on={config.groupByPart} label={tr('Separar mañana / tarde / noche', 'Split morning / afternoon / night')} hint={tr('Sigue siendo cronológico', 'Still chronological')} onChange={v => updateConfig({ groupByPart: v })} />
-                  <Toggle on={config.showCompleted} label={tr('Mostrar completados', 'Show completed')} onChange={v => updateConfig({ showCompleted: v })} />
-                  <Toggle on={config.showUntimed} label={tr('Mostrar elementos sin hora', 'Show items without a time')} onChange={v => updateConfig({ showUntimed: v })} />
-                  <Toggle on={config.showOverdue} label={tr('Mostrar tareas atrasadas', 'Show overdue tasks')} onChange={v => updateConfig({ showOverdue: v })} />
-                  <Toggle on={config.use24h} label={tr('Reloj de 24 horas', '24-hour clock')} onChange={v => updateConfig({ use24h: v })} />
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>,
-        document.body,
-      )}
+      <RoutineConfigSheet
+        open={configOpen}
+        onClose={() => setConfigOpen(false)}
+        config={config}
+        onChange={updateConfig}
+        journalTimes={journalTimes}
+        onEditJournalTimes={() => setJournalModalOpen(true)}
+        es={es}
+      />
 
       <JournalRemindersModal
         isOpen={journalModalOpen}
