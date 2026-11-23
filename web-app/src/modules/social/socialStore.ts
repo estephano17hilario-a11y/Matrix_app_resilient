@@ -25,6 +25,8 @@ export interface SocialSnapshot {
   userId: string | null;
   /** False when the server tables are missing (migration not applied) or offline. */
   available: boolean;
+  /** Why the last load failed (null when it did not). */
+  error: string | null;
   loading: boolean;
   loadedAt: number;
   myCode: string | null;
@@ -45,7 +47,7 @@ export interface RewardEvent extends Prize { reason: string }
 type Listener = () => void;
 
 const initial = (): SocialSnapshot => ({
-  userId: null, available: true, loading: false, loadedAt: 0, myCode: null, friends: [], incoming: [], outgoing: [],
+  userId: null, available: true, error: null, loading: false, loadedAt: 0, myCode: null, friends: [], incoming: [], outgoing: [],
   profiles: {}, duels: [], claims: [], streaks: [], stats: {}, messages: [], unread: 0,
 });
 
@@ -64,6 +66,8 @@ let profileExtras: () => Partial<PublicProfile> = () => ({});
 
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 let unsubscribe: (() => void) | null = null;
+let stopAuthWatch: (() => void) | null = null;
+let stopOnlineWatch: (() => void) | null = null;
 let settling = false;
 
 const today = () => localDayKey();
@@ -117,9 +121,15 @@ const refreshNow = async () => {
   const me = snap.userId;
   if (!me) return;
   set({ loading: true });
-  const friendships = await socialService.friendships();
+  // Never query before the login is restored, and retry transient failures a couple of times.
+  await socialService.whenSessionReady();
+  let friendships = await socialService.friendships();
+  for (let attempt = 1; friendships === null && attempt <= 2; attempt++) {
+    await new Promise(r => setTimeout(r, 900 * attempt));
+    friendships = await socialService.friendships();
+  }
   if (friendships === null) {
-    set({ loading: false, available: false });
+    set({ loading: false, available: false, error: socialService.lastError() });
     return;
   }
   const [duels, streaks] = await Promise.all([socialService.duels(), socialService.streaks()]);
@@ -142,6 +152,7 @@ const refreshNow = async () => {
 
   set({
     available: true,
+    error: null,
     loading: false,
     loadedAt: Date.now(),
     myCode: profiles[me]?.invite_code ?? snap.myCode,
@@ -261,6 +272,15 @@ export const socialStore = {
     snap = { ...initial(), userId };
     listeners.forEach(l => l());
     refreshNow().catch(e => console.warn('[Social] init', e));
+    // If it failed (offline, login not ready), retry by itself when the login or the network comes back.
+    const retryIfDown = () => { if (snap.userId === userId && !snap.available && !snap.loading) scheduleRefresh(400); };
+    stopAuthWatch?.();
+    stopAuthWatch = socialService.onSessionAvailable(retryIfDown);
+    stopOnlineWatch?.();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', retryIfDown);
+      stopOnlineWatch = () => window.removeEventListener('online', retryIfDown);
+    }
     unsubscribe = socialService.subscribe(userId, (table, row) => {
       if (table === 'friend_messages' && row.to_user === userId) {
         const from = snap.profiles[row.from_user as string]?.display_name ?? 'Un amigo';
@@ -273,6 +293,10 @@ export const socialStore = {
   reset() {
     unsubscribe?.();
     unsubscribe = null;
+    stopAuthWatch?.();
+    stopAuthWatch = null;
+    stopOnlineWatch?.();
+    stopOnlineWatch = null;
     snap = initial();
     listeners.forEach(l => l());
   },
@@ -301,7 +325,9 @@ export const socialStore = {
     if (!me) return null;
     if (snap.myCode) return snap.myCode;
     const existing = await socialService.myInviteCode(me);
-    if (existing === undefined) { set({ available: false }); return null; }
+    // Not being able to create the invite code must not take the whole Friends zone down:
+    // the friends list loaded fine, only the "share my code" action is unavailable.
+    if (existing === undefined) { set({ error: socialService.lastError() ?? 'No se pudo crear tu código de invitación' }); return null; }
     if (existing) {
       set({ myCode: existing });
       // The server created the row if it was missing: fill in name/avatar/ELO right away.

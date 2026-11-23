@@ -83,7 +83,43 @@ const warn = (what: string, error: { message: string } | null) => {
   if (error) console.warn(`[Social] ${what} failed:`, error.message);
 };
 
+/** Reason of the last failed load, shown on the "unavailable" screen so a failure is diagnosable. */
+let lastLoadError: string | null = null;
+
+const describeError = (error: { message?: string; code?: string } | null): string =>
+  [error?.code, error?.message].filter(Boolean).join(' · ') || 'Error desconocido';
+
 export const socialService = {
+  lastError: (): string | null => lastLoadError,
+
+  /**
+   * Waits until the persisted login is restored. On the phone the session is read from native
+   * storage asynchronously: a request fired before that goes out as "anon" and is rejected, which
+   * used to leave Friends stuck on "unavailable" until the user retried by hand.
+   */
+  async whenSessionReady(timeoutMs = 6000): Promise<boolean> {
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) return true;
+    } catch { /* fall through to waiting for the auth event */ }
+    return new Promise<boolean>(resolve => {
+      let stop: () => void = () => {};
+      let done = false;
+      const finish = (ok: boolean) => { if (done) return; done = true; clearTimeout(timer); stop(); resolve(ok); };
+      const timer = setTimeout(() => finish(false), timeoutMs);
+      const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => { if (session) finish(true); });
+      stop = () => sub.subscription.unsubscribe();
+      if (done) stop();
+    });
+  },
+
+  /** Calls `cb` whenever the login becomes (or is refreshed to) valid. Returns an unsubscribe. */
+  onSessionAvailable(cb: () => void): () => void {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) cb();
+    });
+    return () => data.subscription.unsubscribe();
+  },
   // ── Profiles ──
   async upsertProfile(row: Partial<PublicProfile> & { user_id: string }): Promise<boolean> {
     const { error } = await supabase.from('public_profiles').upsert({ ...row, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
@@ -117,7 +153,8 @@ export const socialService = {
   // ── Friendships ──
   async friendships(): Promise<Friendship[] | null> {
     const { data, error } = await supabase.from('friendships').select('id, requester, addressee, status, created_at');
-    if (error) { warn('friendships', error); return null; }
+    if (error) { warn('friendships', error); lastLoadError = describeError(error); return null; }
+    lastLoadError = null;
     return data as Friendship[];
   },
 

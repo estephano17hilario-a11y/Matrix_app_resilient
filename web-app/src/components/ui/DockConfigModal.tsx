@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import { motion, Reorder } from 'framer-motion';
+import { useMountTransition } from '../../hooks/useMountTransition';
 import { X, GripVertical, Check, ClipboardList, Flame, Target, Brain, Map, Trophy, Plus, Settings2, PenLine, Activity, AlertCircle, Medal, Users, CalendarClock } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -52,21 +53,51 @@ interface DockConfigModalProps {
   onSave: (config: DockConfig) => void;
 }
 
+const KNOWN_DOCK_IDS = new Set<string>(DOCK_ITEMS.map(i => i.id));
+
+/**
+ * A stored config can hold ids that no longer exist or repeat an id. Either one crashes the
+ * reorder lists (an unknown id has no icon; duplicate values freeze framer's Reorder), so every
+ * config is cleaned before it is edited.
+ */
+const sanitizeDockIds = (ids: DockItemId[] | undefined, fallback: DockItemId[]): DockItemId[] => {
+  const seen = new Set<string>();
+  const out: DockItemId[] = [];
+  for (const id of ids && ids.length ? ids : fallback) {
+    if (!KNOWN_DOCK_IDS.has(id) || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+};
+
+export const sanitizeDockConfig = (config: DockConfig): DockConfig => {
+  const order = sanitizeDockIds(config?.order, DEFAULT_DOCK_CONFIG.order);
+  // The main bar always has 4 slots: top it up from the defaults when ids were dropped.
+  for (const id of DEFAULT_DOCK_CONFIG.order) if (order.length < 4 && !order.includes(id)) order.push(id);
+  const expanded = sanitizeDockIds(config?.expandedItems, DEFAULT_DOCK_CONFIG.expandedItems!);
+  return { ...config, order, enabledItems: order.slice(0, 4), expandedItems: expanded };
+};
+
 export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigModalProps) => {
   const { t } = useTranslation();
-  const [localConfig, setLocalConfig] = useState<DockConfig>(config);
+  const mounted = useMountTransition(isOpen, 300);
+  const [localConfig, setLocalConfig] = useState<DockConfig>(() => sanitizeDockConfig(config));
   const [activeTab, setActiveTab] = useState<'organize' | 'expanded'>('organize');
   const [replacingIndex, setReplacingIndex] = useState<number | null>(null);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
 
+  // Load the saved config only when the modal OPENS. Depending on `config` itself reset the edits
+  // in progress every time the parent re-rendered with a new object, so a section the user had just
+  // added (e.g. Settings in the "+" menu) vanished before saving and was reported as missing.
+  const configRef = React.useRef(config);
+  configRef.current = config;
   useEffect(() => {
-    setLocalConfig({
-      ...config,
-      expandedItems: config.expandedItems || DEFAULT_DOCK_CONFIG.expandedItems
-    });
+    if (!isOpen) return;
+    setLocalConfig(sanitizeDockConfig(configRef.current));
     setReplacingIndex(null);
     setWarningMessage(null);
-  }, [config, isOpen]);
+  }, [isOpen]);
 
   const handleToggleItem = (id: DockItemId) => {
     if (replacingIndex !== null) {
@@ -138,11 +169,11 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
       return;
     }
 
-    const finalConfig: DockConfig = {
+    const finalConfig: DockConfig = sanitizeDockConfig({
       ...localConfig,
       order: activeOrder,
       enabledItems: activeOrder
-    };
+    });
     onSave(finalConfig);
     onClose();
   };
@@ -152,13 +183,16 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
     setWarningMessage(null);
   };
 
+  if (!mounted) return null;
+
   return createPortal(
-    <AnimatePresence>
-      {isOpen && (
+    <>
+      {(
         <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          animate={{ opacity: isOpen ? 1 : 0 }}
+          transition={{ duration: 0.2 }}
+          style={{ pointerEvents: isOpen ? 'auto' : 'none' }}
           className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
         >
           <div
@@ -168,8 +202,8 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
           
           <motion.div
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: isOpen ? 1 : 0.9, opacity: isOpen ? 1 : 0, y: isOpen ? 0 : 20 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
             className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-3xl shadow-md overflow-hidden max-h-[85vh] flex flex-col"
           >
             <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/5">
@@ -244,7 +278,8 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
                       className="space-y-2"
                     >
                       {localConfig.order.slice(0, 4).map((id, index) => {
-                        const item = DOCK_ITEMS.find(i => i.id === id)!;
+                        const item = DOCK_ITEMS.find(i => i.id === id);
+                        if (!item) return null;
                         const Icon = item.icon;
                         const isReplacing = replacingIndex === index;
                         return (
@@ -351,7 +386,8 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
                         className="space-y-2"
                       >
                         {currentExpandedItems.map((id) => {
-                          const item = DOCK_ITEMS.find(i => i.id === id)!;
+                          const item = DOCK_ITEMS.find(i => i.id === id);
+                          if (!item) return null;
                           const Icon = item.icon;
                           return (
                             <Reorder.Item 
@@ -430,7 +466,7 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>,
+    </>,
     document.body
   );
 };

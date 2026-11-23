@@ -53,6 +53,8 @@ export interface RoutineConfig {
   hourBlock: number;
   /** Put each item's exact scheduled time inside its card. */
   exactTime: boolean;
+  /** Show each item's time in a column on the left, beside the timeline. */
+  timeLeft: boolean;
   /** 24h clock instead of AM/PM. */
   use24h: boolean;
 }
@@ -68,7 +70,8 @@ export const DEFAULT_ROUTINE_CONFIG: RoutineConfig = {
   groupByPart: true,
   divideByHour: false,
   hourBlock: 2,
-  exactTime: true,
+  exactTime: false,
+  timeLeft: true,
   use24h: false,
 };
 

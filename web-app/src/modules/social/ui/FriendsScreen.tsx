@@ -95,7 +95,7 @@ const Screen: React.FC<{ open: boolean; onClose: () => void; gold: number }> = (
       <main className="relative z-10 flex-1 min-h-0 prog-scroll px-4 pb-[calc(env(safe-area-inset-bottom)+108px)]">
         <div className="mx-auto max-w-[640px] pt-3">
           {!snap.available ? (
-            <EmptyState icon={<WifiOff size={26} />} title="Amigos no disponible" text="No se pudo conectar con el servidor de amigos. Revisa tu conexión e inténtalo de nuevo.">
+            <EmptyState icon={<WifiOff size={26} />} title="Amigos no disponible" text={`No se pudo conectar con el servidor de amigos. Revisa tu conexión e inténtalo de nuevo.${snap.error ? `\n\nDetalle: ${snap.error}` : ''}`}>
               <PrimaryButton className="w-full h-12" onClick={() => socialStore.refresh()}>Reintentar</PrimaryButton>
             </EmptyState>
           ) : (

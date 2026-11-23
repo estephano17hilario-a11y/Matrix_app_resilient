@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useMountTransition } from '../../../hooks/useMountTransition';
 import { BellRing, Plus, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DEFAULT_JOURNAL_TIME, MAX_JOURNAL_REMINDERS, normalizeJournalTimes } from '../../../services/journalReminders';
@@ -19,6 +20,7 @@ export const JournalRemindersModal: React.FC<JournalRemindersModalProps> = ({ is
   const { i18n } = useTranslation();
   const es = !!i18n.language?.startsWith('es');
   const [times, setTimes] = useState<string[]>([]);
+  const mounted = useMountTransition(isOpen, 300);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -32,23 +34,23 @@ export const JournalRemindersModal: React.FC<JournalRemindersModalProps> = ({ is
 
   const valid = normalizeJournalTimes(times);
 
-  if (typeof document === 'undefined') return null;
+  if (!mounted || typeof document === 'undefined') return null;
 
   return createPortal(
-    <AnimatePresence>
-      {isOpen && (
+    <>
+      {(
         <motion.div
           className="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm p-0 sm:p-4"
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          animate={{ opacity: isOpen ? 1 : 0 }}
+          transition={{ duration: 0.2 }}
+          style={{ pointerEvents: isOpen ? 'auto' : 'none' }}
           onClick={onSkip}
         >
           <motion.div
             className="w-full max-w-sm rounded-t-[28px] sm:rounded-[28px] bg-[#0c0c12] border border-white/10 shadow-2xl p-5 pb-[calc(env(safe-area-inset-bottom,0px)+20px)]"
             initial={{ y: 40, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 40, opacity: 0 }}
+            animate={{ y: isOpen ? 0 : 40, opacity: isOpen ? 1 : 0 }}
             transition={{ type: 'spring', stiffness: 320, damping: 30 }}
             onClick={e => e.stopPropagation()}
           >
@@ -120,7 +122,7 @@ export const JournalRemindersModal: React.FC<JournalRemindersModalProps> = ({ is
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>,
+    </>,
     document.body,
   );
 };

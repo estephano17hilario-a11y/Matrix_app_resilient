@@ -225,6 +225,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
 
  const { t, i18n } = useTranslation();
  const { journalEntries } = useNotesContext();
+ // Routine mounts on first visit and then stays alive like the other sections
  // ⚡ PERFORMANCE: Track loaded views to keep them alive (Cache)
  const [loadedViews, setLoadedViews] = useState<Set<string>>(new Set(['TASKS', 'HABITS', 'FOCUS', 'NOTES', 'ACHIEVEMENTS', 'STORE', 'FEED']));
  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -677,6 +678,11 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  setIsNotesStatsOpen(false);
  }
  }, [currentView, isNotesStatsOpen]);
+
+ // Routine mounts on the first visit and then stays alive, like the other sections.
+ useEffect(() => {
+   if (currentView === 'ROUTINE') setLoadedViews(prev => (prev.has('ROUTINE') ? prev : new Set(prev).add('ROUTINE')));
+ }, [currentView]);
 
  // SMART PROJECT SELECTION
  // FIX: Do not default to the first project if activeSmartProjectId is null
@@ -2119,7 +2125,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  )}
 
  {/* RUTINA: habits + tasks (+ projects, journaling) in one chronological day */}
- {currentView === 'ROUTINE' && (
+ {(loadedViews.has('ROUTINE') || currentView === 'ROUTINE') && (
   <ViewContainer isActive={currentView === 'ROUTINE'} id="ROUTINE" className={cn("h-full pt-0 flex-1 px-4 sm:px-6 mx-auto w-full", APP_MAX_WIDTH)}>
  <Suspense fallback={<SuspenseFallback />}>
  <RoutineView

@@ -14,7 +14,7 @@ import { addDays, formatClock, getHistoryDateKey, startOfWeek, toLocalISOString 
 import { cn } from '../../utils/cn';
 import { RoutineConfigSheet } from './RoutineConfigSheet';
 import {
-  buildRoutineItems, countByPart, dayPartOf, formatHourRange, loadRoutineConfig, saveRoutineConfig, sectionize,
+  buildRoutineItems, countByPart, dayPartOf, formatHourRange, hourBlockOf, loadRoutineConfig, saveRoutineConfig, sectionize,
   type DayPart, type DayPartFilter, type RoutineConfig, type RoutineItem, type RoutineSection,
 } from './routineEngine';
 
@@ -91,6 +91,7 @@ interface CardProps {
   item: RoutineItem;
   index: number;
   exactTime: boolean;
+  timeLeft: boolean;
   use24h: boolean;
   isNext: boolean;
   burst: boolean;
@@ -100,7 +101,7 @@ interface CardProps {
   onOpen: (item: RoutineItem) => void;
 }
 
-const RoutineCard: React.FC<CardProps> = React.memo(({ item, index, exactTime, use24h, isNext, burst, reduce, es, onToggle, onOpen }) => {
+const RoutineCard: React.FC<CardProps> = React.memo(({ item, index, exactTime, timeLeft, use24h, isNext, burst, reduce, es, onToggle, onOpen }) => {
   const Icon = KIND_ICON[item.kind];
   const ActionIcon = item.kind === 'PROJECT' ? Play : item.kind === 'JOURNAL' ? PenLine : Check;
   const showCheck = item.done || item.kind === 'PROJECT' || item.kind === 'JOURNAL';
@@ -113,6 +114,21 @@ const RoutineCard: React.FC<CardProps> = React.memo(({ item, index, exactTime, u
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={reduce ? { duration: 0 } : { ...SPRING, delay: Math.min(index * 0.04, 0.4) }}
     >
+      {/* Time column (optional): the time of each item, beside the timeline */}
+      {timeLeft && (
+        <div className="w-[56px] shrink-0 pt-[22px] pr-2 text-right">
+          {item.time ? (() => {
+            const [main, suffix] = formatClock(item.time, !use24h).split(' ');
+            return (
+              <>
+                <span className={cn('block text-[12px] font-black tabular-nums leading-none', item.done ? 'text-white/25' : 'text-white/80')}>{main}</span>
+                {suffix && <span className={cn('block text-[8px] font-black tracking-wider mt-0.5', item.done ? 'text-white/15' : 'text-white/35')}>{suffix}</span>}
+              </>
+            );
+          })() : <span className="block text-[12px] font-black text-white/20">—</span>}
+        </div>
+      )}
+
       {/* Rail: the dot sits on the shared line drawn by the section */}
       <div className="relative w-7 shrink-0">
         <span
@@ -245,7 +261,7 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
 
   const [config, setConfig] = useState<RoutineConfig>(() => loadRoutineConfig(userId));
   const [date, setDate] = useState(() => new Date());
-  const [filter, setFilter] = useState<DayPartFilter>('ALL');
+  const [filter, setFilter] = useState<string>('ALL');
   const [now, setNow] = useState(() => new Date());
   const [configOpen, setConfigOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -320,10 +336,32 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
   }, [date, itemsFor]);
 
   const counts = useMemo(() => countByPart(allItems), [allItems]);
-  const visible = useMemo(
-    () => (filter === 'ALL' ? allItems : allItems.filter(it => it.minutes !== null && !it.overdue && dayPartOf(it.minutes) === filter)),
-    [allItems, filter],
-  );
+  // Hour blocks present in the day (only used when dividing by hours): the chips above the list.
+  const hourBlocks = useMemo(() => {
+    if (!config.divideByHour) return [];
+    const byStart = new Map<number, { startHour: number; endHour: number; count: number }>();
+    for (const it of allItems) {
+      if (it.overdue || it.minutes === null) continue;
+      const b = hourBlockOf(it.minutes, config.hourBlock);
+      const cur = byStart.get(b.startHour);
+      if (cur) cur.count += 1; else byStart.set(b.startHour, { ...b, count: 1 });
+    }
+    return Array.from(byStart.values()).sort((a, b) => a.startHour - b.startHour);
+  }, [allItems, config.divideByHour, config.hourBlock]);
+
+  // A filter that no longer exists (block size changed, mode switched) falls back to "Todo".
+  useEffect(() => {
+    if (filter.startsWith('H') && !hourBlocks.some(b => `H${b.startHour}` === filter)) setFilter('ALL');
+  }, [filter, hourBlocks]);
+
+  const visible = useMemo(() => {
+    if (filter === 'ALL') return allItems;
+    if (filter.startsWith('H')) {
+      const start = Number(filter.slice(1));
+      return allItems.filter(it => it.minutes !== null && !it.overdue && hourBlockOf(it.minutes, config.hourBlock).startHour === start);
+    }
+    return allItems.filter(it => it.minutes !== null && !it.overdue && dayPartOf(it.minutes) === filter);
+  }, [allItems, filter, config.hourBlock]);
   const sections: RoutineSection[] = useMemo(() => sectionize(visible, config), [visible, config]);
 
   const doneCount = allItems.filter(i => i.done).length;
@@ -462,28 +500,22 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
           >
             <Settings2 size={17} />
           </motion.button>
-          <AnimatePresence>
-            {addOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setAddOpen(false)} />
-                <motion.div
-                  initial={{ opacity: 0, y: -8, scale: 0.94 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.94 }}
-                  transition={{ type: 'spring', stiffness: 520, damping: 34 }}
-                  style={{ transformOrigin: 'top right' }}
-                  className="absolute right-0 top-12 z-50 w-52 rounded-[20px] bg-[#14141d] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.6)] p-1.5"
-                >
-                  <button type="button" onClick={() => { setAddOpen(false); onAddQuest?.(); }} className="w-full flex items-center gap-3 rounded-2xl px-3 py-3 text-[13px] font-bold text-white active:bg-white/10">
-                    <span className="w-8 h-8 rounded-xl bg-cyan-400/15 text-cyan-300 flex items-center justify-center"><CheckSquare size={16} /></span> {tr('Nueva tarea', 'New task')}
-                  </button>
-                  <button type="button" onClick={e => { setAddOpen(false); onAddHabit?.(e); }} className="w-full flex items-center gap-3 rounded-2xl px-3 py-3 text-[13px] font-bold text-white active:bg-white/10">
-                    <span className="w-8 h-8 rounded-xl bg-orange-400/15 text-orange-300 flex items-center justify-center"><Flame size={16} /></span> {tr('Nuevo hábito', 'New habit')}
-                  </button>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
+          {addOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setAddOpen(false)} />
+              <div
+                className="absolute right-0 top-12 z-50 w-52 rounded-[20px] bg-[#14141d] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.6)] p-1.5 animate-in fade-in zoom-in-95 duration-150"
+                style={{ transformOrigin: 'top right' }}
+              >
+                <button type="button" onClick={() => { setAddOpen(false); onAddQuest?.(); }} className="w-full flex items-center gap-3 rounded-2xl px-3 py-3 text-[13px] font-bold text-white active:bg-white/10">
+                  <span className="w-8 h-8 rounded-xl bg-cyan-400/15 text-cyan-300 flex items-center justify-center"><CheckSquare size={16} /></span> {tr('Nueva tarea', 'New task')}
+                </button>
+                <button type="button" onClick={e => { setAddOpen(false); onAddHabit?.(e); }} className="w-full flex items-center gap-3 rounded-2xl px-3 py-3 text-[13px] font-bold text-white active:bg-white/10">
+                  <span className="w-8 h-8 rounded-xl bg-orange-400/15 text-orange-300 flex items-center justify-center"><Flame size={16} /></span> {tr('Nuevo hábito', 'New habit')}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </motion.div>
 
@@ -541,7 +573,13 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
         transition={{ ...SPRING, delay: 0.1 }}
       >
         <button type="button" onClick={() => setDate(d => addDays(d, -7))} aria-label={tr('Semana anterior', 'Previous week')} className="w-7 h-12 flex items-center justify-center text-white/35 active:text-white active:scale-90 transition-transform"><ChevronLeft size={18} /></button>
-        <div className="flex-1 grid grid-cols-7 gap-1">
+        <div className="relative flex-1 grid grid-cols-7">
+          <span
+            className="absolute inset-y-0 left-0 w-[calc(100%/7)] p-0.5 pointer-events-none transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            style={{ transform: `translateX(${Math.max(0, weekDays.findIndex(d => d.key === dayKey)) * 100}%)` }}
+          >
+            <span className="block w-full h-full rounded-2xl" style={{ background: 'linear-gradient(160deg,#ffffff,#dbeafe)', boxShadow: '0 8px 22px -8px rgba(125,211,252,0.7)' }} />
+          </span>
           {weekDays.map(d => {
             const selected = d.key === dayKey;
             const today = d.key === todayKey;
@@ -552,18 +590,10 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
                 onClick={() => { setDate(d.date); setFilter('ALL'); }}
                 className="relative h-[58px] rounded-2xl flex flex-col items-center justify-center gap-0.5 active:scale-90 transition-transform duration-150"
               >
-                {selected && (
-                  <motion.span
-                    layoutId="routine-day-pill"
-                    className="absolute inset-0 rounded-2xl"
-                    style={{ background: 'linear-gradient(160deg,#ffffff,#dbeafe)', boxShadow: '0 8px 22px -8px rgba(125,211,252,0.7)' }}
-                    transition={SPRING}
-                  />
-                )}
-                <span className={cn('relative text-[9px] font-black uppercase tracking-wider', selected ? 'text-black/55' : 'text-white/35')}>
+                <span className={cn('relative text-[9px] font-black uppercase tracking-wider transition-colors', selected ? 'text-black/55' : 'text-white/35')}>
                   {d.date.toLocaleDateString(es ? 'es-ES' : 'en-US', { weekday: 'short' }).replace('.', '').slice(0, 3)}
                 </span>
-                <span className={cn('relative text-[17px] font-black leading-none tabular-nums', selected ? 'text-black' : today ? 'text-sky-300' : 'text-white/80')}>{d.date.getDate()}</span>
+                <span className={cn('relative text-[17px] font-black leading-none tabular-nums transition-colors', selected ? 'text-black' : today ? 'text-sky-300' : 'text-white/80')}>{d.date.getDate()}</span>
                 <span
                   className="relative w-1.5 h-1.5 rounded-full mt-0.5"
                   style={{ backgroundColor: d.total === 0 ? 'transparent' : d.pending === 0 ? '#34d399' : selected ? '#0ea5e9' : '#38bdf8', opacity: d.total === 0 ? 0 : d.pending === 0 ? 1 : 0.85 }}
@@ -582,26 +612,63 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
 
       {/* Mañana / Tarde / Noche */}
       <motion.div
-        className="flex p-1 mb-5 rounded-[20px] bg-white/[0.04] border border-white/[0.07]"
+        className={cn('relative flex p-1 rounded-[20px] bg-white/[0.04] border border-white/[0.07]', hourBlocks.length ? 'mb-3' : 'mb-5')}
         initial={reduce ? false : { opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...SPRING, delay: 0.14 }}
       >
+        <span
+          className="absolute top-1 bottom-1 left-1 w-[calc((100%-8px)/4)] rounded-2xl bg-white pointer-events-none transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          style={{
+            transform: `translateX(${Math.max(0, filters.findIndex(f => f.id === filter)) * 100}%)`,
+            opacity: filters.some(f => f.id === filter) ? 1 : 0,
+            boxShadow: '0 6px 18px -8px rgba(255,255,255,0.6)',
+          }}
+        />
         {filters.map(f => {
           const active = filter === f.id;
           const FIcon = f.icon;
           return (
-            <button key={f.id} type="button" onClick={() => setFilter(f.id)} className="relative flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-[11px] font-black active:scale-95 transition-transform duration-150">
-              {active && <motion.span layoutId="routine-seg-pill" className="absolute inset-0 rounded-2xl bg-white" style={{ boxShadow: '0 6px 18px -8px rgba(255,255,255,0.6)' }} transition={SPRING} />}
-              <span className={cn('relative flex items-center gap-1.5 transition-colors duration-200', active ? 'text-black' : 'text-white/45')}>
+            <button key={f.id} type="button" onClick={() => setFilter(f.id)} className="relative z-10 flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl text-[11px] font-black active:scale-95 transition-transform duration-150">
+              <span className={cn('flex items-center gap-1.5 transition-colors duration-200', active ? 'text-black' : 'text-white/45')}>
                 <FIcon size={13} />
                 <span>{f.label}</span>
-                <span className={cn('text-[9px] tabular-nums', active ? 'text-black/45' : 'text-white/25')}>{counts[f.id]}</span>
+                <span className={cn('text-[9px] tabular-nums', active ? 'text-black/45' : 'text-white/25')}>{counts[f.id as DayPartFilter]}</span>
               </span>
             </button>
           );
         })}
       </motion.div>
+
+      {/* Hour blocks: same idea as Mañana / Tarde / Noche, but by the block size chosen in settings */}
+      {hourBlocks.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 mb-5" style={{ scrollbarWidth: 'none' }}>
+          <button
+            type="button"
+            onClick={() => setFilter('ALL')}
+            className={cn('shrink-0 rounded-full px-3.5 py-2 text-[11px] font-black border active:scale-95 transition-all duration-200', filter === 'ALL' ? 'text-white border-transparent' : 'text-white/45 bg-white/[0.04] border-white/[0.07]')}
+            style={filter === 'ALL' ? { background: 'linear-gradient(135deg,#38bdf8,#818cf8)' } : undefined}
+          >
+            {tr('Todo', 'All')}
+          </button>
+          {hourBlocks.map(b => {
+            const id = `H${b.startHour}`;
+            const active = filter === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setFilter(id)}
+                className={cn('shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[11px] font-black border tabular-nums active:scale-95 transition-all duration-200', active ? 'text-white border-transparent' : 'text-white/45 bg-white/[0.04] border-white/[0.07]')}
+                style={active ? { background: 'linear-gradient(135deg,#38bdf8,#818cf8)' } : undefined}
+              >
+                <Clock size={11} strokeWidth={3} /> {formatHourRange(b.startHour, b.endHour, config.use24h)}
+                <span className={cn('text-[9px]', active ? 'text-white/70' : 'text-white/25')}>{b.count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Timeline */}
       {sections.length === 0 ? (
@@ -647,13 +714,13 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
                 )}
                 <div className="relative">
                   {/* Shared rail line for the whole section */}
-                  <span className="absolute left-[13.5px] top-2 bottom-2 w-px bg-gradient-to-b from-white/[0.14] via-white/[0.07] to-white/[0.02]" />
+                  <span className="absolute top-2 bottom-2 w-px bg-gradient-to-b from-white/[0.14] via-white/[0.07] to-white/[0.02]" style={{ left: (config.timeLeft ? 56 : 0) + 13.5 }} />
                   {section.items.map(item => {
                     const i = runningIndex++;
                     return (
                       <React.Fragment key={item.id}>
                         {nowBeforeId === item.id && (
-                          <div className="relative flex items-center gap-2 pl-[5px] py-1.5">
+                          <div className="relative flex items-center gap-2 py-1.5" style={{ paddingLeft: (config.timeLeft ? 56 : 0) + 5 }}>
                             <span className="relative flex w-[18px] h-[18px] items-center justify-center">
                               <span className="absolute w-full h-full rounded-full bg-rose-400/40 animate-ping" />
                               <span className="relative w-2.5 h-2.5 rounded-full bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.9)]" />
@@ -666,6 +733,7 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
                           item={item}
                           index={i}
                           exactTime={config.exactTime}
+                          timeLeft={config.timeLeft}
                           use24h={config.use24h}
                           isNext={next?.id === item.id && isToday}
                           burst={burstId === item.id}

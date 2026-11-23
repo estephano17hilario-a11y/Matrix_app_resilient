@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useMountTransition } from '../../../hooks/useMountTransition';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
@@ -110,6 +111,7 @@ export const ShareProgressSheet: React.FC<ShareProgressSheetProps> = ({
     return currentTheme;
   });
   const [busy, setBusy] = useState(false);
+  const mounted = useMountTransition(open, 300);
 
   // A saved theme the user no longer owns falls back to the equipped one.
   const owned = useMemo(() => {
@@ -221,23 +223,23 @@ export const ShareProgressSheet: React.FC<ShareProgressSheetProps> = ({
 
   const hasAnyBlock = opts.focus || opts.tasks || opts.habits || opts.accuracy || opts.score || opts.projects || opts.hud || options.quote.trim().length > 0;
 
-  if (typeof document === 'undefined') return null;
+  if (!mounted || typeof document === 'undefined') return null;
 
   return createPortal(
-    <AnimatePresence>
-      {open && (
+    <>
+      {(
         <motion.div
           className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm"
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          animate={{ opacity: open ? 1 : 0 }}
+          transition={{ duration: 0.2 }}
+          style={{ pointerEvents: open ? 'auto' : 'none' }}
           onClick={onClose}
         >
           <motion.div
             className="relative w-full max-w-md max-h-[94dvh] flex flex-col rounded-t-[28px] sm:rounded-[28px] bg-[#0b0b10] border border-white/10 shadow-2xl overflow-hidden"
             initial={{ y: 60, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 60, opacity: 0 }}
+            animate={{ y: open ? 0 : 60, opacity: open ? 1 : 0 }}
             transition={{ type: 'spring', stiffness: 320, damping: 32 }}
             onClick={e => e.stopPropagation()}
           >
@@ -352,7 +354,7 @@ export const ShareProgressSheet: React.FC<ShareProgressSheetProps> = ({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>,
+    </>,
     document.body,
   );
 };
