@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { touchFeedback, WinkKind } from './engine';
+import { getSceneAccent, touchFeedback, WinkKind } from './engine';
 import { immersionActive } from './immersionPrefs';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -216,6 +216,7 @@ export const TouchLight = () => {
     layer = document.createElement('div');
     layer.className = 'lux-touch-layer';
     layer.setAttribute('aria-hidden', 'true');
+    if (getSceneAccent()) layer.style.setProperty('--lux-accent', getSceneAccent());
     document.body.appendChild(layer);
 
     let timer = 0;

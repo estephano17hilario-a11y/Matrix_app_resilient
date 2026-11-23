@@ -8,10 +8,10 @@ import { RefObject, useCallback, useEffect, useLayoutEffect, useRef } from 'reac
 // affected by the transform. Each layer scales around the center of the
 // viewport rather than its own box, so they recede together as one plane.
 //
-// The dock announces itself (`lux:dock`) the moment it opens, so the recede
-// starts on the same frame; the dashboard state catches up afterwards.
-export const useDepthRecede = (containerRef: RefObject<HTMLElement>, modal: boolean, dockOpen: boolean) => {
-  const state = useRef({ modal, dock: dockOpen, on: false });
+// The dock announces itself (`lux:dock`) the moment it opens or closes, so the
+// recede starts on the same frame; the Dashboard never needs to re-render for it.
+export const useDepthRecede = (containerRef: RefObject<HTMLElement>, modal: boolean) => {
+  const state = useRef({ modal, dock: false, on: false });
 
   const apply = useCallback(() => {
     const container = containerRef.current;
@@ -32,9 +32,8 @@ export const useDepthRecede = (containerRef: RefObject<HTMLElement>, modal: bool
 
   useLayoutEffect(() => {
     state.current.modal = modal;
-    state.current.dock = dockOpen;
     apply();
-  }, [modal, dockOpen, apply]);
+  }, [modal, apply]);
 
   useEffect(() => {
     const onDock = (e: Event) => {

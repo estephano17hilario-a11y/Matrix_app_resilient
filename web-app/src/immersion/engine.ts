@@ -290,6 +290,13 @@ export const startImmersion = () => {
     wake();
   });
   window.addEventListener('resize', () => { render(); }, { passive: true });
+  // Typing carries the section's colour: set on the field that gets focus,
+  // instead of through a variable inherited from <html> (see setSceneAccent).
+  document.addEventListener('focusin', (e) => {
+    const t = e.target as HTMLElement | null;
+    if (!accent || !t || !t.matches || !document.documentElement.classList.contains('lux-immersive')) return;
+    if (t.matches('input, textarea, [contenteditable="true"]')) t.style.caretColor = `rgb(${accent})`;
+  }, true);
 };
 
 // ── Registration (used by the world + sheen components) ──────────────────────
@@ -358,10 +365,12 @@ export const setSceneAccent = (scene: string) => {
   if (rgb === accent) return;
   const apply = () => {
     accent = rgb;
-    // One style recalc per navigation (never per frame). It restyles the whole
-    // document, so after boot it lands once the scene has glided in, not in
-    // the frame that has to render the new section.
-    document.documentElement.style.setProperty('--lux-accent', rgb);
+    // Custom properties inherit, so setting this on <html> made the browser
+    // restyle every element on the page (a ~1000-element recalculation, ~40ms on
+    // a desktop and several times that on a phone) on each section change. Only
+    // the touch layer consumes it (the whisper and the caret get it below), so
+    // it is set there and nowhere else.
+    document.querySelectorAll<HTMLElement>('.lux-touch-layer').forEach(el => el.style.setProperty('--lux-accent', rgb));
     accentListeners.forEach(l => l(rgb));
   };
   if (!accent) apply();

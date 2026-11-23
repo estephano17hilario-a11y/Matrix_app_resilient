@@ -62,6 +62,7 @@ import { onPress } from './immersion/press';
 import { preloadable } from './utils/preloadable';
 import { availableUses } from './modules/store/market/viceMarket';
 import { useDepthRecede } from './immersion/useDepthRecede';
+import { isDockOpenNow, requestDockClose } from './modules/dashboard/dockState';
 import { useLifeSync } from './immersion/useLifeSync';
 import { carriedDailyStreak, displayDailyStreak, habitStreakRecovery, isDailyStreakMet, todayTaskCounts } from './utils/streakRules';
 import { announceArea } from './immersion/WorldWhisper';
@@ -1426,7 +1427,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  }, [taskViewMode]);
 
  // Depth: the interface recedes while a modal or the expanded dock is in front.
- useDepthRecede(scrollContainerRef, !!activeModal, isDockOpen);
+ useDepthRecede(scrollContainerRef, !!activeModal);
 
  // The sky behind follows the content scroll with parallax.
  useEffect(() => {
@@ -1599,8 +1600,8 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
        state.setIsNotesStatsOpen(false);
        return;
      }
-     if (state.isDockOpen) {
-       state.setIsDockOpen(false);
+     if (isDockOpenNow()) {
+       requestDockClose();
        return;
      }
 
@@ -2231,8 +2232,6 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  currentView={currentView} 
  onChangeView={handleDockViewChange} 
  onOpenModal={handleOpenModal} 
- isOpen={isDockOpen} 
- onToggle={setIsDockOpen} 
  isHidden={isSettingsOpen || isFocusMode || isNoteTaking || isWizardOpen || isFullScreenFocus || isProjectDetailOpen || isPomodoroActive || !!activeModal || currentView === 'STREAK' || isProgressOpen || isAppLoading}
  pointerEvents={isSettingsOpen || isDockConfigOpen ? 'none' : 'auto'}
  dashboardStyle={dashboardStyle}

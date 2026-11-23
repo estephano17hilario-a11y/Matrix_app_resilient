@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { accentFor, hasArrived } from './engine';
+import { accentFor, getSceneAccent, hasArrived } from './engine';
 import { getImmersionPrefs, immersionActive } from './immersionPrefs';
 import { getLifeReading, subscribeLife } from './lifeStore';
 import { lifeParams, LifeMood } from './lifeState';
@@ -154,7 +154,7 @@ export const WorldWhisper = () => {
   }
 
   return (
-    <div className="lux-whisper-dock">
+    <div className="lux-whisper-dock" style={getSceneAccent() ? { ['--lux-accent' as any]: getSceneAccent() } : undefined}>
       <AnimatePresence mode="wait">{body}</AnimatePresence>
     </div>
   );

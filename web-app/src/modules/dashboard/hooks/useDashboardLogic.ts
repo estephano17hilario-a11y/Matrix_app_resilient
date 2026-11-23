@@ -1,4 +1,5 @@
 import { applyWeeklyBoost } from '@/modules/progression/progressionStore';
+import { requestDockClose } from '@/modules/dashboard/dockState';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useLux } from '@/context/LuxContext';
 import { useAuth } from '@/context/AuthContext';
@@ -218,7 +219,10 @@ export const useDashboardLogic = () => {
         }
     }, [currentView]);
 
-    const [isDockOpen, setIsDockOpen] = useState(false);
+    // The dock owns its open state (see dockState.ts): reporting it here re-rendered
+    // the whole Dashboard in the middle of the dock's animation.
+    const isDockOpen = false;
+    const setIsDockOpen = useCallback((open: boolean) => { if (!open) requestDockClose(); }, []);
     const [isFocusMode, setIsFocusMode] = useState(false); 
     const [isPomodoroActive, setIsPomodoroActive] = useState(() => {
         if (typeof window !== 'undefined') {

@@ -5,13 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { DockConfig, DockItemConfig, DOCK_ITEMS, DockItemId } from '@/components/ui/DockConfigModal';
 import { onPress } from '@/immersion/press';
 import { LuxSheen } from '@/immersion/LuxSheen';
+import { publishDockOpen } from '../dockState';
 
 interface DockProps {
  currentView: string;
  onChangeView: (v: string) => void;
  onOpenModal: (m: string) => void;
- isOpen: boolean;
- onToggle: (open: boolean) => void;
  isHidden: boolean;
  dashboardStyle?: 'BORDER' | 'LIQUID' | 'GLASS' | 'AURA';
  taskViewMode: 'LIST' | 'STRATEGY';
@@ -21,43 +20,32 @@ interface DockProps {
  pointerEvents?: 'none' | 'auto';
 }
 
-export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen: propIsOpen, onToggle: propOnToggle, isHidden, dashboardStyle = 'BORDER', taskViewMode, habitViewMode, noteViewMode, dockConfig, pointerEvents = 'auto' }: DockProps) => {
+export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidden, dashboardStyle = 'BORDER', taskViewMode, habitViewMode, noteViewMode, dockConfig, pointerEvents = 'auto' }: DockProps) => {
  const { t } = useTranslation();
 
- const [localIsOpen, setLocalIsOpen] = React.useState(false);
- const isOpen = localIsOpen;
-
- // Opening/closing only re-renders the dock. The interface recedes on the
- // same frame (lux:dock event → useDepthRecede), and the parent learns about
- // it once the animation is over, so its (much bigger) render never lands in
- // the middle of the motion.
- const propagateTimer = React.useRef(0);
+ // The dock owns its open state. Opening/closing re-renders only the dock; the
+ // interface recedes on the same frame through the `lux:dock` event
+ // (useDepthRecede). The Dashboard is never re-rendered for it (see dockState.ts).
+ const [isOpen, setLocalIsOpen] = React.useState(false);
+ const openRef = React.useRef(false);
  const onToggle = React.useCallback((open: boolean) => {
+   if (openRef.current === open) return;
+   openRef.current = open;
    setLocalIsOpen(open);
-   window.dispatchEvent(new CustomEvent('lux:dock', { detail: open }));
-   if (propOnToggle) {
-     window.clearTimeout(propagateTimer.current);
-     propagateTimer.current = window.setTimeout(() => propOnToggle(open), 320);
-   }
- }, [propOnToggle]);
- React.useEffect(() => () => window.clearTimeout(propagateTimer.current), []);
+   publishDockOpen(open);
+ }, []);
 
-  React.useEffect(() => {
-    if (propIsOpen !== undefined) {
-      console.log(`➕ [Dock UI] propIsOpen updated: ${propIsOpen}. Updating localIsOpen.`);
-      setLocalIsOpen(propIsOpen);
-    }
-  }, [propIsOpen]);
+ // Closed from outside: the back button, a modal opening, a navigation…
+ React.useEffect(() => {
+   const close = () => onToggle(false);
+   window.addEventListener('lux:dock-close', close);
+   return () => window.removeEventListener('lux:dock-close', close);
+ }, [onToggle]);
 
-  React.useEffect(() => {
-    if (isHidden || pointerEvents === 'none' || !propIsOpen) {
-      console.log(`➕ [Dock UI] Dock isHidden, pointerEvents none, or propIsOpen false. Auto-closing Dock.`);
-      setLocalIsOpen(false);
-      if (propOnToggle && propIsOpen) {
-        propOnToggle(false);
-      }
-    }
-  }, [isHidden, pointerEvents, propIsOpen, propOnToggle]);
+ // The dock disappears (a modal, settings, a full-screen mode…): close the menu with it.
+ React.useEffect(() => {
+   if (isHidden || pointerEvents === 'none') onToggle(false);
+ }, [isHidden, pointerEvents, onToggle]);
 
  // Close first: the section change commits synchronously and takes this
  // update with it, so a tap costs one render instead of two.
@@ -84,13 +72,10 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   };
 
  const handleModal = (m: string, e?: React.MouseEvent) => {
-    console.log(`➕ [Dock UI] handleModal called for: "${m}"`);
     if (e) {
-      console.log(`➕ [Dock UI] Stopping propagation and preventing default for click event.`);
       e.preventDefault();
       e.stopPropagation();
     }
-    console.log(`➕ [Dock UI] Invoking onOpenModal("${m}") and closing Dock.`);
     onOpenModal(m);
     onToggle(false);
   };
@@ -265,9 +250,8 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[350] bg-black/55 backdrop-blur-sm pointer-events-auto"
+            className="fixed inset-0 z-[350] bg-black/60 pointer-events-auto"
             onClick={() => {
-              console.log("➕ [Dock UI] Backdrop clicked. Closing Dock.");
               onToggle(false);
             }}
           />
@@ -403,7 +387,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
    }
    action(e);
  }} 
- className={`relative h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm ${isLastOdd ? 'col-span-2' : ''}`}
+ className={`relative h-20 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-[background-color,transform] rounded-[20px] flex flex-col items-center justify-center gap-2 border border-white/5 group shadow-sm ${isLastOdd ? 'col-span-2' : ''}`}
  >
  <div className={`w-8 h-8 rounded-full ${bgColor} border ${borderColor} flex items-center justify-center ${color} group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(255,255,255,0.05)] relative`}>
  <Icon size={18} />
@@ -465,6 +449,8 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  opacity: isOpen ? 1 : 0,
  transform: isOpen ? 'translate3d(0,0,0)' : 'translate3d(0,-16px,0)',
  pointerEvents: isOpen ? 'auto' : 'none',
+ willChange: 'transform, opacity',
+ contain: 'layout paint',
  transition: isOpen
    ? 'opacity 0.22s ease 0.05s, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1) 0.05s'
    : 'opacity 0.1s ease, transform 0.1s ease',
@@ -564,10 +550,10 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
  {/* ELEMENTOS INTERNOS (Aparecen al expandir) */} 
  <div className={` 
  absolute bottom-[80px] left-0 right-0 px-4 grid grid-cols-2 gap-2 
- transition-all duration-300 ease-out transform-gpu
+ transition-[opacity,transform] duration-300 ease-out transform-gpu will-change-[transform,opacity]
  ${isOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'} 
  `}> 
- <button onClick={(e) => { handleModal('QUEST', e); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-md">
+ <button onClick={(e) => { handleModal('QUEST', e); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-[background-color,transform] rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-md">
  <div className="flex items-center gap-3">
  <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-orange-500 to-red-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20 group-hover:scale-110 transition-transform">
  <Crosshair size={18} />
@@ -693,13 +679,15 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isOpen
   opacity: isOpen ? 1 : 0,
   transform: isOpen ? 'translate3d(0,0,0) scale(1)' : 'translate3d(0,15px,0) scale(0.98)',
   pointerEvents: isOpen ? 'auto' : 'none',
+  willChange: 'transform, opacity',
+  contain: 'layout paint',
   transition: isOpen
     ? 'opacity 0.22s ease 0.06s, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1) 0.06s'
     : 'opacity 0.08s ease, transform 0.08s ease',
   }}
   >
   
-  <button onClick={(e) => { handleModal('QUEST', e); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
+  <button onClick={(e) => { handleModal('QUEST', e); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-[background-color,transform] rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
   <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)] group-hover:scale-110 transition-transform"><Crosshair size={18} /></div><div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">{t('dock.newMission')}</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">{t('dock.singleTask')}</span></div></div><Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
   </button>
   {expandedItems.map((id, index) => {

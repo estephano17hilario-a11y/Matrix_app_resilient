@@ -40,6 +40,12 @@ object FocusChartDrawer {
             strokeCap = Paint.Cap.ROUND
         }
 
+        val valuePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textSize = 8 * density
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        }
+
         // 1. Calculate Period Range and Data
         val calendar = Calendar.getInstance()
         val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(calendar.time)
@@ -303,8 +309,8 @@ object FocusChartDrawer {
         val focusedHrs = totalFocusedMins / 60.0
         val percentage = if (targetHrs > 0) minOf(100, ((focusedHrs / targetHrs) * 100).toInt()) else 0
 
-        val goalText = String.format("%.1fh / %.0fh (%d%%)", focusedHrs, targetHrs, percentage)
-        val textWidth = textPaint.measureText(goalText)
+        val goalText = "${formatHm(totalFocusedMins)} / ${formatHm(totalTargetMinutes.toFloat())} ($percentage%)"
+        val textWidth = titlePaint.measureText(goalText)
         canvas.drawText(goalText, width - rightMargin - textWidth, topPadding + 15 * density, titlePaint)
 
         // Draw Progress Track
@@ -418,6 +424,18 @@ object FocusChartDrawer {
                     currentY = segTop
                 }
 
+                // Draw the bar's total time (hours - minutes) above it, if it fits the column
+                val entryTotal = entry.segments.sumOf { it.minutes.toDouble() }.toFloat()
+                if (entryTotal >= 0.5f) {
+                    val valueY = (currentY - 3 * density).coerceAtLeast(chartTop - 2 * density)
+                    val candidates = listOf(formatHm(entryTotal), formatHmCompact(entryTotal))
+                    val fitted = candidates.firstOrNull { valuePaint.measureText(it) <= colWidth - 1 * density }
+                    if (fitted != null) {
+                        val vw = valuePaint.measureText(fitted)
+                        canvas.drawText(fitted, colLeft + singleBarWidth / 2f - vw / 2f, valueY, valuePaint)
+                    }
+                }
+
                 // Draw X-axis label
                 val labelWidth = textPaint.measureText(entry.label)
                 val labelX = colLeft + (singleBarWidth / 2f) - (labelWidth / 2f)
@@ -426,6 +444,20 @@ object FocusChartDrawer {
         }
 
         return bitmap
+    }
+
+    /** "1h 30m" — always hours and minutes. Rounds the total first so 59.6m never becomes "60m". */
+    private fun formatHm(mins: Float): String {
+        val total = Math.round(mins)
+        if (total <= 0) return "0h 0m"
+        return "${total / 60}h ${total % 60}m"
+    }
+
+    /** Narrow variant ("1h30m") for tight columns. */
+    private fun formatHmCompact(mins: Float): String {
+        val total = Math.round(mins)
+        if (total <= 0) return "0h0m"
+        return "${total / 60}h${total % 60}m"
     }
 
     private fun groupSegmentsByTrait(raw: List<Segment>): List<Segment> {
