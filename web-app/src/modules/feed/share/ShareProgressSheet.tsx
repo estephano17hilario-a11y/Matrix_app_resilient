@@ -10,8 +10,8 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { THEMES, ThemeId } from '../../../config/themes';
 import {
-  DEFAULT_SHARE_OPTIONS, QUOTE_MAX, renderShareCard, CARD_H, CARD_W,
-  type ShareCopy, type ShareData, type ShareOptions,
+  DEFAULT_SHARE_OPTIONS, QUOTE_MAX, SHARE_STYLES, renderShareCard, CARD_H, CARD_W,
+  type ShareCopy, type ShareData, type ShareOptions, type ShareStyle,
 } from './shareProgressRenderer';
 
 interface ShareProgressSheetProps {
@@ -37,6 +37,8 @@ const COPY: Record<'es' | 'en', ShareCopy & Record<string, any>> = {
     projects: 'Proyectos', project: 'Proyecto', more: (n: number) => `+${n} más`,
     sheetTitle: 'Compartir progreso', sheetSub: 'Una sola imagen con lo que elijas mostrar',
     show: 'Mostrar', names: 'Nombres', background: 'Fondo', onlyYours: 'Solo tus temas',
+    layout: 'Estilo', transparent: 'Fondo transparente',
+    styleNames: { cards: 'Tarjetas', list: 'Lista', spotlight: 'Destacado' },
     phrase: 'Frase corta', phrasePh: 'Ej: Un paso más cada día', hud: 'HUD (rango, nivel y HP)',
     share: 'Compartir', save: 'Guardar', saved: 'Imagen guardada', failed: 'No se pudo compartir',
     focusT: 'Foco', tasksT: 'Tareas', habitsT: 'Hábitos', accuracyT: '% acierto', scoreT: 'Score', projectsT: 'Proyectos',
@@ -49,6 +51,8 @@ const COPY: Record<'es' | 'en', ShareCopy & Record<string, any>> = {
     projects: 'Projects', project: 'Project', more: (n: number) => `+${n} more`,
     sheetTitle: 'Share progress', sheetSub: 'One image with whatever you choose to show',
     show: 'Show', names: 'Names', background: 'Background', onlyYours: 'Only your themes',
+    layout: 'Style', transparent: 'Transparent background',
+    styleNames: { cards: 'Cards', list: 'List', spotlight: 'Spotlight' },
     phrase: 'Short phrase', phrasePh: 'E.g. One more step every day', hud: 'HUD (rank, level & HP)',
     share: 'Share', save: 'Save', saved: 'Image saved', failed: "Couldn't share",
     focusT: 'Focus', tasksT: 'Tasks', habitsT: 'Habits', accuracyT: '% accuracy', scoreT: 'Score', projectsT: 'Projects',
@@ -156,7 +160,7 @@ export const ShareProgressSheet: React.FC<ShareProgressSheetProps> = ({
 
   const set = <K extends keyof ShareOptions>(key: K, value: ShareOptions[K]) =>
     setOptions(prev => ({ ...prev, [key]: value }));
-  const toggle = (key: Exclude<keyof ShareOptions, 'quote'>) => set(key, !options[key] as any);
+  const toggle = (key: Exclude<keyof ShareOptions, 'quote' | 'style'>) => set(key, !options[key] as any);
 
   const fileName = `lux-progreso-${new Date().toISOString().slice(0, 10)}.png`;
 
@@ -260,9 +264,29 @@ export const ShareProgressSheet: React.FC<ShareProgressSheetProps> = ({
 
             <div className="overflow-y-auto px-5 pb-4 space-y-5">
               {/* Live preview — this is the exact canvas that gets exported */}
-              <div className="mx-auto w-full max-w-[300px] rounded-2xl overflow-hidden border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)]" style={{ aspectRatio: `${CARD_W} / ${CARD_H}` }}>
+              <div
+                className="mx-auto w-full max-w-[300px] rounded-2xl overflow-hidden border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)]"
+                style={{
+                  aspectRatio: `${CARD_W} / ${CARD_H}`,
+                  ...(options.transparent ? {
+                    backgroundColor: '#2a2a33',
+                    backgroundImage: 'conic-gradient(#3a3a45 25%, #23232b 0 50%, #3a3a45 0 75%, #23232b 0)',
+                    backgroundSize: '20px 20px',
+                  } : null),
+                }}
+              >
                 <canvas ref={canvasRef} width={CARD_W} height={CARD_H} className="w-full h-full block" />
               </div>
+
+              {/* Grouping style */}
+              <section>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-white/35 mb-2">{copy.layout}</h3>
+                <div className="flex flex-wrap gap-2">
+                  {SHARE_STYLES.map((id: ShareStyle) => (
+                    <Chip key={id} active={options.style === id} label={copy.styleNames[id]} onClick={() => set('style', id)} />
+                  ))}
+                </div>
+              </section>
 
               {/* What to show */}
               <section>
@@ -308,7 +332,10 @@ export const ShareProgressSheet: React.FC<ShareProgressSheetProps> = ({
                   <h3 className="text-[10px] font-black uppercase tracking-widest text-white/35">{copy.background}</h3>
                   <span className="text-[10px] font-medium text-white/25">{copy.onlyYours}</span>
                 </div>
-                <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+                <div className="mb-3">
+                  <Chip active={options.transparent} label={copy.transparent} onClick={() => toggle('transparent')} />
+                </div>
+                <div className={`flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 transition-opacity ${options.transparent ? 'opacity-30 pointer-events-none' : ''}`}>
                   {owned.map(id => {
                     const t = THEMES[id];
                     const selected = id === activeThemeId;

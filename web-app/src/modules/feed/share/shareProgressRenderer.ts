@@ -42,7 +42,14 @@ export interface ShareData {
   hud: ShareHud | null;
 }
 
+/** How the stat figures (focus, tasks, habits, accuracy, score) are grouped. */
+export type ShareStyle = 'cards' | 'list' | 'spotlight';
+export const SHARE_STYLES: ShareStyle[] = ['cards', 'list', 'spotlight'];
+
 export interface ShareOptions {
+  style: ShareStyle;
+  /** Export without any background (PNG keeps its alpha channel). */
+  transparent: boolean;
   focus: boolean;
   projects: boolean;
   projectNames: boolean;
@@ -62,6 +69,7 @@ export interface ShareCopy {
 }
 
 export const DEFAULT_SHARE_OPTIONS: ShareOptions = {
+  style: 'cards', transparent: false,
   focus: true, projects: true, projectNames: true, habits: true, habitNames: true,
   accuracy: true, tasks: true, score: true, hud: false, quote: '',
 };
@@ -105,18 +113,38 @@ const fitText = (ctx: CanvasRenderingContext2D, text: string, maxW: number) => {
   return `${t.trimEnd()}…`;
 };
 
+// Set once per render. Without a background the panels turn into dark glass so
+// the white text stays readable over whatever the image ends up on.
+let glass = false;
+
 const panel = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r = 30) => {
   roundRect(ctx, x, y, w, h, r);
-  ctx.fillStyle = 'rgba(255,255,255,0.065)';
+  ctx.fillStyle = glass ? 'rgba(8,8,14,0.46)' : 'rgba(255,255,255,0.065)';
   ctx.fill();
   ctx.lineWidth = 2;
-  ctx.strokeStyle = 'rgba(255,255,255,0.11)';
+  ctx.strokeStyle = glass ? 'rgba(255,255,255,0.20)' : 'rgba(255,255,255,0.11)';
   ctx.stroke();
+};
+
+/** Soft drop shadow for text that floats directly on the (maybe transparent) background. */
+const withShadow = (ctx: CanvasRenderingContext2D, draw: () => void) => {
+  ctx.save();
+  if (glass) {
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 14;
+    ctx.shadowOffsetY = 2;
+  }
+  draw();
+  ctx.restore();
 };
 
 // ── background ─────────────────────────────────────────────────────────────
 
 const drawBackground = (ctx: CanvasRenderingContext2D, theme: ThemeConfig) => {
+  if (glass) {
+    ctx.clearRect(0, 0, CARD_W, CARD_H);
+    return;
+  }
   const { bgDepth, primaryGlow, secondaryGlow } = theme.colors;
   ctx.fillStyle = rgb(bgDepth);
   ctx.fillRect(0, 0, CARD_W, CARD_H);
@@ -280,7 +308,7 @@ const hudBlock = (hud: ShareHud): Block => ({
   },
 });
 
-interface Tile { label: string; value: string; sub?: string; accent: string }
+interface Tile { label: string; value: string; sub?: string; accent: string; pct?: number }
 
 const drawTile = (ctx: CanvasRenderingContext2D, t: Tile, x: number, y: number, w: number, h: number) => {
   panel(ctx, x, y, w, h, 28);
@@ -313,10 +341,16 @@ const drawTile = (ctx: CanvasRenderingContext2D, t: Tile, x: number, y: number, 
 const drawScoreRing = (ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number, score: number, theme: ThemeConfig, label: string) => {
   const r = size / 2 - 18;
   const lw = 26;
+  if (glass) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + lw / 2 + 6, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(8,8,14,0.46)';
+    ctx.fill();
+  }
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.lineWidth = lw;
-  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+  ctx.strokeStyle = glass ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.10)';
   ctx.stroke();
 
   const pct = Math.max(0, Math.min(1, score / 100));
@@ -360,13 +394,35 @@ const sectionTitle = (ctx: CanvasRenderingContext2D, text: string, x: number, y:
   }
 };
 
-const statsBlock = (data: ShareData, opts: ShareOptions, theme: ThemeConfig, copy: ShareCopy): Block | null => {
-  const accuracy = data.habitsTotal > 0 ? Math.round((data.habitsDone / data.habitsTotal) * 100) : 0;
+const accuracyOf = (data: ShareData) => (data.habitsTotal > 0 ? Math.round((data.habitsDone / data.habitsTotal) * 100) : 0);
+
+const buildTiles = (data: ShareData, opts: ShareOptions, copy: ShareCopy): Tile[] => {
+  const accuracy = accuracyOf(data);
   const tiles: Tile[] = [];
   if (opts.focus) tiles.push({ label: copy.focus, value: formatFocus(data.focusMinutes), sub: copy.focusSub, accent: '#818cf8' });
   if (opts.tasks) tiles.push({ label: copy.tasks, value: String(data.tasksDone), sub: copy.tasksSub, accent: '#fb923c' });
-  if (opts.habits) tiles.push({ label: copy.habits, value: `${data.habitsDone}/${data.habitsTotal}`, accent: '#34d399' });
-  if (opts.accuracy) tiles.push({ label: copy.accuracy, value: `${accuracy}%`, sub: opts.habits ? undefined : `${data.habitsDone}/${data.habitsTotal} ${copy.habits.toLowerCase()}`, accent: '#22d3ee' });
+  if (opts.habits) tiles.push({ label: copy.habits, value: `${data.habitsDone}/${data.habitsTotal}`, accent: '#34d399', pct: data.habitsTotal > 0 ? data.habitsDone / data.habitsTotal : 0 });
+  if (opts.accuracy) tiles.push({ label: copy.accuracy, value: `${accuracy}%`, sub: opts.habits ? undefined : `${data.habitsDone}/${data.habitsTotal} ${copy.habits.toLowerCase()}`, accent: '#22d3ee', pct: accuracy / 100 });
+  return tiles;
+};
+
+/** Same figures as the tiles plus the score, in a stable priority order (focus first). */
+const buildMetrics = (data: ShareData, opts: ShareOptions, copy: ShareCopy): Tile[] => {
+  const byLabel = new Map(buildTiles(data, opts, copy).map(t => [t.label, t]));
+  const out: Tile[] = [];
+  const focus = byLabel.get(copy.focus);
+  if (focus) out.push(focus);
+  if (opts.score) out.push({ label: copy.score, value: String(Math.round(data.score)), accent: '#f472b6', pct: Math.max(0, Math.min(1, data.score / 100)) });
+  [copy.tasks, copy.habits, copy.accuracy].forEach(l => {
+    const t = byLabel.get(l);
+    if (t) out.push(t);
+  });
+  return out;
+};
+
+/** Style "cards": score ring + a grid of tiles. */
+const cardsStats = (data: ShareData, opts: ShareOptions, theme: ThemeConfig, copy: ShareCopy): Block | null => {
+  const tiles = buildTiles(data, opts, copy);
 
   if (tiles.length === 0 && !opts.score) return null;
 
@@ -412,6 +468,163 @@ const statsBlock = (data: ShareData, opts: ShareOptions, theme: ThemeConfig, cop
       });
     },
   };
+};
+
+/** Style "list": every figure is a row of one single panel, with a mini bar where a percentage makes sense. */
+const listStats = (data: ShareData, opts: ShareOptions, copy: ShareCopy): Block | null => {
+  const rows = buildMetrics(data, opts, copy);
+  if (rows.length === 0) return null;
+  const ROW_H = 96;
+  const PADV = 14;
+  const height = PADV * 2 + rows.length * ROW_H;
+  return {
+    height,
+    draw: (ctx, y) => {
+      panel(ctx, PAD, y, CW, height, 36);
+      const left = PAD + 40;
+      const right = PAD + CW - 40;
+      rows.forEach((r, i) => {
+        const cy = y + PADV + i * ROW_H + ROW_H / 2;
+
+        ctx.fillStyle = r.accent;
+        roundRect(ctx, left, cy - 24, 8, 48, 4);
+        ctx.fill();
+
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(255,255,255,0.78)';
+        ctx.font = `800 25px ${FONT}`;
+        ctx.fillText(fitText(ctx, r.label.toUpperCase(), 300), left + 30, cy + 1);
+
+        if (r.pct !== undefined) {
+          const bw = 270;
+          const bx = right - 200 - bw;
+          roundRect(ctx, bx, cy - 8, bw, 16, 8);
+          ctx.fillStyle = 'rgba(255,255,255,0.14)';
+          ctx.fill();
+          if (r.pct > 0) {
+            roundRect(ctx, bx, cy - 8, Math.max(16, bw * r.pct), 16, 8);
+            ctx.fillStyle = r.accent;
+            ctx.fill();
+          }
+        }
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#ffffff';
+        let size = 46;
+        ctx.font = `900 ${size}px ${FONT}`;
+        while (ctx.measureText(r.value).width > 186 && size > 26) {
+          size -= 2;
+          ctx.font = `900 ${size}px ${FONT}`;
+        }
+        ctx.fillText(r.value, right, cy + 2);
+
+        if (i < rows.length - 1) {
+          const ly = y + PADV + (i + 1) * ROW_H;
+          ctx.beginPath();
+          ctx.moveTo(left, ly);
+          ctx.lineTo(right, ly);
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = 'rgba(255,255,255,0.09)';
+          ctx.stroke();
+        }
+      });
+    },
+  };
+};
+
+/** Style "spotlight": one huge hero figure, the rest in a compact strip underneath. */
+const spotlightStats = (data: ShareData, opts: ShareOptions, copy: ShareCopy): Block | null => {
+  const all = buildMetrics(data, opts, copy);
+  if (all.length === 0) return null;
+  const [main, ...rest] = all;
+  const MAIN_H = main.sub ? 300 : 262;
+  const STRIP_GAP = 22;
+  const STRIP_H = 150;
+  const height = MAIN_H + (rest.length > 0 ? STRIP_GAP + STRIP_H : 0);
+  return {
+    height,
+    draw: (ctx, y) => {
+      const cx = CARD_W / 2;
+      const cy = y + 150;
+
+      // Accent aura behind the hero figure.
+      if (!glass) {
+        const aura = ctx.createRadialGradient(cx, cy, 0, cx, cy, 380);
+        aura.addColorStop(0, `${main.accent}33`);
+        aura.addColorStop(1, `${main.accent}00`);
+        ctx.fillStyle = aura;
+        ctx.fillRect(PAD - 40, y - 40, CW + 80, MAIN_H + 80);
+      }
+
+      withShadow(ctx, () => {
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = main.accent;
+        ctx.font = `800 28px ${FONT}`;
+        ctx.fillText(main.label.toUpperCase(), cx, y + 38);
+
+        ctx.fillStyle = '#ffffff';
+        let size = 230;
+        ctx.font = `900 ${size}px ${FONT}`;
+        while (ctx.measureText(main.value).width > CW - 20 && size > 90) {
+          size -= 6;
+          ctx.font = `900 ${size}px ${FONT}`;
+        }
+        ctx.textBaseline = 'middle';
+        ctx.fillText(main.value, cx, cy + 6);
+
+        if (main.sub) {
+          ctx.textBaseline = 'alphabetic';
+          ctx.fillStyle = 'rgba(255,255,255,0.62)';
+          ctx.font = `700 30px ${FONT}`;
+          ctx.fillText(main.sub, cx, y + MAIN_H - 16);
+        }
+      });
+
+      if (rest.length === 0) return;
+      const sy = y + MAIN_H + STRIP_GAP;
+      panel(ctx, PAD, sy, CW, STRIP_H, 36);
+      const colW = CW / rest.length;
+      rest.forEach((r, i) => {
+        const ccx = PAD + colW * (i + 0.5);
+
+        ctx.fillStyle = r.accent;
+        roundRect(ctx, ccx - 20, sy + 22, 40, 7, 3.5);
+        ctx.fill();
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = '#ffffff';
+        let size = 58;
+        ctx.font = `900 ${size}px ${FONT}`;
+        while (ctx.measureText(r.value).width > colW - 28 && size > 28) {
+          size -= 2;
+          ctx.font = `900 ${size}px ${FONT}`;
+        }
+        ctx.fillText(r.value, ccx, sy + 92);
+
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.font = `800 20px ${FONT}`;
+        ctx.fillText(fitText(ctx, r.label.toUpperCase(), colW - 24), ccx, sy + 128);
+
+        if (i > 0) {
+          ctx.beginPath();
+          ctx.moveTo(PAD + colW * i, sy + 30);
+          ctx.lineTo(PAD + colW * i, sy + STRIP_H - 30);
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+          ctx.stroke();
+        }
+      });
+    },
+  };
+};
+
+const statsBlock = (data: ShareData, opts: ShareOptions, theme: ThemeConfig, copy: ShareCopy): Block | null => {
+  if (opts.style === 'list') return listStats(data, opts, copy);
+  if (opts.style === 'spotlight') return spotlightStats(data, opts, copy);
+  return cardsStats(data, opts, theme, copy);
 };
 
 const projectsBlock = (data: ShareData, opts: ShareOptions, copy: ShareCopy): Block | null => {
@@ -566,7 +779,7 @@ const quoteBlock = (quote: string): Block | null => {
         size -= 2;
         ctx.font = `italic 800 ${size}px ${FONT}`;
       }
-      ctx.fillText(shown, CARD_W / 2, y + 38);
+      withShadow(ctx, () => ctx.fillText(shown, CARD_W / 2, y + 38));
     },
   };
 };
@@ -585,21 +798,24 @@ export const renderShareCard = (
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
+  glass = !!opts.transparent;
   drawBackground(ctx, theme);
 
   // Header
-  ctx.textBaseline = 'alphabetic';
-  ctx.textAlign = 'left';
-  ctx.fillStyle = rgb(theme.colors.textPrimary, 0.95);
-  ctx.font = `900 40px ${FONT}`;
-  ctx.fillText(copy.brand.toUpperCase(), PAD, 118);
-  ctx.textAlign = 'right';
-  ctx.fillStyle = 'rgba(255,255,255,0.65)';
-  ctx.font = `700 28px ${FONT}`;
-  ctx.fillText(data.dateLabel, CARD_W - PAD, 116);
-  ctx.fillStyle = rgb(theme.colors.primaryGlow, 0.9);
-  roundRect(ctx, PAD, 136, 88, 6, 3);
-  ctx.fill();
+  withShadow(ctx, () => {
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = glass ? '#ffffff' : rgb(theme.colors.textPrimary, 0.95);
+    ctx.font = `900 40px ${FONT}`;
+    ctx.fillText(copy.brand.toUpperCase(), PAD, 118);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = glass ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.65)';
+    ctx.font = `700 28px ${FONT}`;
+    ctx.fillText(data.dateLabel, CARD_W - PAD, 116);
+    ctx.fillStyle = rgb(theme.colors.primaryGlow, 0.9);
+    roundRect(ctx, PAD, 136, 88, 6, 3);
+    ctx.fill();
+  });
 
   const blocks: Block[] = [];
   if (opts.hud && data.hud) blocks.push(hudBlock(data.hud));
@@ -642,9 +858,11 @@ export const renderShareCard = (
   ctx.restore();
 
   // Footer
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = 'rgba(255,255,255,0.38)';
-  ctx.font = `700 24px ${FONT}`;
-  ctx.fillText(copy.title.toUpperCase(), CARD_W / 2, CARD_H - 56);
+  withShadow(ctx, () => {
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = glass ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.38)';
+    ctx.font = `700 24px ${FONT}`;
+    ctx.fillText(copy.title.toUpperCase(), CARD_W / 2, CARD_H - 56);
+  });
 };
