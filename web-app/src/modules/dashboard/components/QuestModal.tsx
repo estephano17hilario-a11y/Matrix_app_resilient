@@ -125,6 +125,7 @@ export const QuestModal = React.memo(({
     const [projectId, setProjectId] = useState('');
     const [difficulty, setDifficulty] = useState<Difficulty>('C');
     const [deadline, setDeadline] = useState(toLocalISOString(new Date()));
+    const [deadlineTime, setDeadlineTime] = useState<string>('');
 
     // Recurrence State
     const [recurrenceType, setRecurrenceType] = useState<'NONE' | 'INTERVAL' | 'WEEKLY' | 'MONTHLY'>('NONE');
@@ -210,6 +211,7 @@ export const QuestModal = React.memo(({
                 setProjectId(initialValues.projectId || initialValues.smartProjectId || '');
                 setDifficulty((initialValues.difficulty as Difficulty) || 'C');
                 setDeadline(initialValues.deadline || toLocalISOString(new Date()));
+                setDeadlineTime(initialValues.deadlineTime || '');
                 setEstimatedTime(initialValues.estimatedTime || 0);
                 setPomodoroTarget(initialValues.pomodoroTarget || 0);
                 setPomodoroCompleted(initialValues.pomodoroCompleted || 0);
@@ -311,6 +313,7 @@ export const QuestModal = React.memo(({
                 smartProjectId: finalSmartProjectId,
                 difficulty,
                 deadline,
+                deadlineTime: deadlineTime || undefined,
                 estimatedTime,
                 pomodoroTarget,
                 pomodoroCompleted,
@@ -604,6 +607,32 @@ export const QuestModal = React.memo(({
                                             <div className="flex items-baseline gap-1 pointer-events-none">
                                                 <span className="text-sm font-bold text-white">{parseLocalDate(deadline).getDate()}</span>
                                                 <span className="text-[10px] font-bold text-white/50 uppercase">{parseLocalDate(deadline).toLocaleDateString('en-US', { month: 'short' })}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Optional time of day for the deadline */}
+                                        <div className="rounded-[1.2rem] bg-white/5 border border-white/5 flex items-center justify-between px-4 py-2 relative overflow-hidden">
+                                            <span className="text-[9px] font-black text-white/30 uppercase flex items-center gap-2">
+                                                {t('modals.quest.dueTime', 'Hora límite')}
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="time"
+                                                    value={deadlineTime}
+                                                    onChange={(e) => setDeadlineTime(e.target.value)}
+                                                    className="bg-transparent text-sm font-bold text-white outline-none [color-scheme:dark] min-w-[88px] text-right"
+                                                    aria-label={t('modals.quest.dueTime', 'Hora límite')}
+                                                />
+                                                {deadlineTime && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setDeadlineTime('')}
+                                                        className="w-5 h-5 rounded-full bg-white/10 text-white/60 text-[11px] leading-none flex items-center justify-center hover:bg-white/20"
+                                                        aria-label={t('common.clear', 'Quitar')}
+                                                    >
+                                                        ×
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
 

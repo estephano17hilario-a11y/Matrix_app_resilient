@@ -11,6 +11,9 @@ import { BlockEditor } from './components/BlockEditor';
 import { DropdownThemePicker, NOTE_THEMES } from './components/DropdownThemePicker';
 import { NotesStatsModal } from './components/NotesStatsModal';
 import { NotesConfigModal, NotesConfig } from './components/NotesConfigModal';
+import { JournalRemindersModal } from './components/JournalRemindersModal';
+import { getJournalReminders, saveJournalReminders } from '../../services/journalReminders';
+import { notificationService } from '../../services/notificationService';
 import { SpecialEventsHub } from './components/SpecialEventsHub';
 import { SecureNotesHub } from './components/SecureNotesHub';
 import { BlueprintSelector } from './components/BlueprintSelector';
@@ -450,6 +453,27 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   const [config, setConfig] = useState<NotesConfig>(() => getInitialNotesConfig(user?.id));
 
  const [isLocked, setIsLocked] = useState(false);
+
+ // Journaling reminders: set up the first time the journal zone opens, editable from its gear.
+ const [journalRemindersOpen, setJournalRemindersOpen] = useState(false);
+ const [journalRemindersFirstTime, setJournalRemindersFirstTime] = useState(false);
+ const [journalReminderTimes, setJournalReminderTimes] = useState<string[]>([]);
+ const openJournalReminders = useCallback((firstTime: boolean) => {
+   setJournalReminderTimes(getJournalReminders(user?.id).times);
+   setJournalRemindersFirstTime(firstTime);
+   setJournalRemindersOpen(true);
+ }, [user?.id]);
+ const closeJournalReminders = useCallback((times?: string[]) => {
+   if (user?.id) {
+     const saved = saveJournalReminders(user.id, { times: times ?? getJournalReminders(user.id).times, prompted: true });
+     if (times) notificationService.scheduleJournalReminders(saved.times);
+   }
+   setJournalRemindersOpen(false);
+ }, [user?.id]);
+ useEffect(() => {
+   if (subView !== 'JOURNAL' || isLocked || !user?.id) return;
+   if (!getJournalReminders(user.id).prompted) openJournalReminders(true);
+ }, [subView, isLocked, user?.id, openJournalReminders]);
  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
  const [recoveryInput, setRecoveryInput] = useState('');
  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
@@ -2087,7 +2111,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   <div className="flex gap-2">
   <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-colors"><ChevronLeft size={18} /></button>
   <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/5 transition-colors"><ChevronRight size={18} /></button>
-  {journalViewMode === 'CALENDAR' && (
+  {(
   <button onClick={() => setShowCalendarSettings(!showCalendarSettings)} className={`p-2.5 rounded-full border transition-colors ${showCalendarSettings ? 'bg-white text-black border-white' : 'bg-white/5 hover:bg-white/10 border-white/5 text-white'}`} title={t('notes.calendarSettings', 'Calendar Settings')}><Settings size={15} /></button>
   )}
   </div>
@@ -2101,6 +2125,16 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
         <button onClick={() => setShowCalendarSettings(false)} className="text-white/40 hover:text-white/80 transition-colors"><X size={14} /></button>
       </div>
       
+      {/* Journaling reminders (all views) */}
+      <button
+        onClick={() => { setShowCalendarSettings(false); openJournalReminders(false); }}
+        className="w-full flex items-center justify-between rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-2.5 text-left transition-colors"
+      >
+        <span className="text-[10px] font-bold text-white/70 uppercase tracking-wide">{i18n.language?.startsWith('es') ? 'Recordatorios' : 'Reminders'}</span>
+        <span className="text-[10px] font-black text-indigo-300 tabular-nums">{getJournalReminders(user?.id).times.join(' · ') || (i18n.language?.startsWith('es') ? 'Sin horarios' : 'None')}</span>
+      </button>
+
+      {journalViewMode === 'CALENDAR' && (<>
       {/* Opacity slider */}
       <div className="space-y-1.5">
         <div className="flex justify-between items-center text-[10px] font-bold text-white/50 uppercase">
@@ -2128,6 +2162,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
           <span className={`block w-2.5 h-2.5 rounded-full bg-white absolute top-0.5 transition-transform duration-200 ${calendarShowFuture ? 'right-0.5' : 'left-0.5'}`} />
         </button>
       </div>
+      </>)}
     </div>
   )}
   </div>
@@ -2314,6 +2349,14 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  
  <SpecialEventsHub isOpen={showEventsHub} onClose={closeEventsHub} onOpenSettings={() => setConfigOpen(true)} isPro={isPro} onOpenPro={onShowPro} />
  <SecureNotesHub isOpen={showSecureHub} onClose={closeSecureHub} onOpenSettings={() => setConfigOpen(true)} />
+
+  <JournalRemindersModal
+    isOpen={journalRemindersOpen}
+    isFirstTime={journalRemindersFirstTime}
+    initialTimes={journalReminderTimes}
+    onSave={(times) => closeJournalReminders(times)}
+    onSkip={() => closeJournalReminders()}
+  />
 
   {/* Config & Security Modals */}
   <NotesConfigModal 

@@ -6,7 +6,7 @@ import { es } from 'date-fns/locale';
 import { Quest, Attribute, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
 import { cn } from '../../../utils/cn';
-import { parseLocalDate } from '../../../utils/dateUtils';
+import { parseLocalDate, formatClock } from '../../../utils/dateUtils';
 import { SubtaskManager } from './SubtaskManager';
 import { triggerFlyingIcon } from '../../dashboard/components/FlyingIcon';
 import { useTranslation } from 'react-i18next';
@@ -283,6 +283,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
                     )}>
                         <Calendar size={10} className={deadlineInfo.key === 'today' || deadlineInfo.key === 'overdue' ? "text-rose-400" : "text-slate-500"} />
                         {deadlineText}
+                        {quest.deadlineTime && <span className="font-black tabular-nums">· {formatClock(quest.deadlineTime)}</span>}
                     </div>
                 )}
             </div>

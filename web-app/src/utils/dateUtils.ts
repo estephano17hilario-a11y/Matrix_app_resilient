@@ -299,3 +299,38 @@ export const getCompletedCountThisPeriod = (sub: any, intervalType: 'WEEKLY' | '
         return allEvents.filter(d => d.startsWith(currentMonthPrefix)).length;
     }
 };
+
+/** "HH:mm" → minutes since midnight, or null when empty / malformed. */
+export const timeToMinutes = (time?: string | null): number | null => {
+    if (!time) return null;
+    const m = /^(\d{1,2}):(\d{2})$/.exec(String(time).trim());
+    if (!m) return null;
+    const h = Number(m[1]);
+    const min = Number(m[2]);
+    if (h > 23 || min > 59) return null;
+    return h * 60 + min;
+};
+
+/**
+ * The instant a task is due: its deadline day, at deadlineTime when it has one
+ * (otherwise the start of that day, as before). Null when there is no usable deadline.
+ */
+export const getQuestDueDate = (quest: { deadline?: string; deadlineTime?: string | null }): Date | null => {
+    if (!quest.deadline) return null;
+    const date = parseLocalDate(quest.deadline);
+    if (isNaN(date.getTime())) return null;
+    const due = new Date(date);
+    const minutes = timeToMinutes(quest.deadlineTime);
+    if (minutes !== null) due.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
+    return due;
+};
+
+/** "14:30" → "2:30 PM" (or "14:30" when `hour12` is false). */
+export const formatClock = (time: string, hour12 = true): string => {
+    const minutes = timeToMinutes(time);
+    if (minutes === null) return time;
+    const h = Math.floor(minutes / 60);
+    const m = String(minutes % 60).padStart(2, '0');
+    if (!hour12) return `${String(h).padStart(2, '0')}:${m}`;
+    return `${h % 12 || 12}:${m} ${h >= 12 ? 'PM' : 'AM'}`;
+};

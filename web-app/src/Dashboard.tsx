@@ -84,15 +84,17 @@ const ProUpgradeModal = preloadable(() => import('./modules/monetization/ProUpgr
 const StreakRoadmapView = preloadable(() => import('./modules/dashboard/StreakRoadmapView').then(m => ({ default: m.StreakRoadmapView })));
 const PomodoroView = preloadable(() => import('./modules/focus/PomodoroView').then(m => ({ default: m.PomodoroView })));
 const ImprovementFeedView = preloadable(() => import('./modules/feed/ImprovementFeedView').then(m => ({ default: m.ImprovementFeedView })));
+import { useNotesContext } from './modules/notes/context/NotesContext';
+const RoutineView = preloadable(() => import('./modules/routine/RoutineView').then(m => ({ default: m.RoutineView })));
 import { DeluxSuccessOverlay } from './modules/monetization/DeluxSuccessOverlay';
 
 // Sections laid out left → right in the world. The dock's own order comes
 // first, so travelling right in the dock moves the camera right.
-const SCENE_ORDER = ['TASKS', 'HABITS', 'FOCUS', 'NOTES', 'FEED', 'ACHIEVEMENTS', 'STORE'];
+const SCENE_ORDER = ['TASKS', 'HABITS', 'FOCUS', 'NOTES', 'FEED', 'ROUTINE', 'ACHIEVEMENTS', 'STORE'];
 
 // Every on-demand screen, warmed up behind the boot splash (see the effect in
 // Dashboard), so the first time one opens it is already in memory.
-const ON_DEMAND = [HabitVisualView, FocusView, NotesView, AchievementsScreen, StoreScreen, SmartTaskWizard, StrategicMapView, ProUpgradeModal, StreakRoadmapView, PomodoroView, ImprovementFeedView];
+const ON_DEMAND = [HabitVisualView, FocusView, NotesView, AchievementsScreen, StoreScreen, SmartTaskWizard, StrategicMapView, ProUpgradeModal, StreakRoadmapView, PomodoroView, ImprovementFeedView, RoutineView];
 
 const SuspenseFallback = () => (
  <div className="flex items-center justify-center h-full w-full min-h-[200px]">
@@ -222,6 +224,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  }, []);
 
  const { t, i18n } = useTranslation();
+ const { journalEntries } = useNotesContext();
  // ⚡ PERFORMANCE: Track loaded views to keep them alive (Cache)
  const [loadedViews, setLoadedViews] = useState<Set<string>>(new Set(['TASKS', 'HABITS', 'FOCUS', 'NOTES', 'ACHIEVEMENTS', 'STORE', 'FEED']));
  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -2110,6 +2113,36 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
   recoverableHabits={recoverableHabits}
   recoverableProjects={recoverableProjects}
   onRestoreStreak={restoreStreak}
+ />
+ </Suspense>
+ </ViewContainer>
+ )}
+
+ {/* RUTINA: habits + tasks (+ projects, journaling) in one chronological day */}
+ {currentView === 'ROUTINE' && (
+  <ViewContainer isActive={currentView === 'ROUTINE'} id="ROUTINE" className={cn("h-full pt-0 flex-1 px-4 sm:px-6 mx-auto w-full", APP_MAX_WIDTH)}>
+ <Suspense fallback={<SuspenseFallback />}>
+ <RoutineView
+ userId={user?.id}
+ habits={habits}
+ quests={quests}
+ projects={projects}
+ attributes={attributes}
+ isActive={currentView === 'ROUTINE'}
+ journalEntries={journalEntries}
+ onCompleteHabit={handleHabitClick}
+ onUpdateHabit={handleHabitUpdate}
+ onEditHabit={handleEditHabit}
+ onCompleteQuest={completeQuest}
+ onEditQuest={handleEditQuest}
+ onAddQuest={handleAddQuest}
+ onAddHabit={handleAddHabit}
+ onFocusProject={(projectId) => handleFocusProject(projectId)}
+ onOpenJournal={(dateStr) => {
+  setCurrentView('NOTES');
+  setNoteViewMode('JOURNAL');
+  setTimeout(() => window.dispatchEvent(new CustomEvent('open_journal_date', { detail: { dateStr } })), 200);
+ }}
  />
  </Suspense>
  </ViewContainer>

@@ -27,7 +27,7 @@ import { calculateTaskRewards } from '@/utils/rewardCalculator';
 
 import { notificationService } from '@/services/notificationService';
 import { toast } from 'react-hot-toast';
-import { toLocalISOString, getHistoryDateKey, parseLocalDate, getCompletedCountThisPeriod } from '../../../utils/dateUtils';
+import { toLocalISOString, getHistoryDateKey, parseLocalDate, getCompletedCountThisPeriod, getQuestDueDate } from '../../../utils/dateUtils';
 import { calculateNextLevelXp, calculateLevelFromXp, calculateXpForLevel, calculateSubTraitMaxXp, calculateAttributeMaxXp } from '../../../utils/leveling';
 import { calculateLiveProductivityScore, isHabitActive, getDetailedScoreBreakdown } from '../../../utils/productivityScore';
 import { playLightSound, playHabitCompleteSound, playQuestCompleteSound } from '../../../utils/soundEffects';
@@ -4631,15 +4631,15 @@ export const useDashboardLogic = () => {
             if (newQuest.completed) {
                 notificationService.cancelTaskReminder(quest.id);
             } else if (newQuest.deadline) {
-                const deadlineDate = parseLocalDate(newQuest.deadline);
-                if (!isNaN(deadlineDate.getTime())) {
+                const deadlineDate = getQuestDueDate(newQuest);
+                if (deadlineDate) {
                     notificationService.scheduleTaskReminder(newQuest.id, newQuest.title, deadlineDate, newQuest.color || undefined);
                 }
             }
 
             if (spawnedQuest && spawnedQuest.deadline) {
-                const spawnedDeadlineDate = parseLocalDate(spawnedQuest.deadline);
-                if (!isNaN(spawnedDeadlineDate.getTime())) {
+                const spawnedDeadlineDate = getQuestDueDate(spawnedQuest);
+                if (spawnedDeadlineDate) {
                     notificationService.scheduleTaskReminder(spawnedQuest.id, spawnedQuest.title, spawnedDeadlineDate, spawnedQuest.color || undefined);
                 }
             }
@@ -5594,8 +5594,8 @@ export const useDashboardLogic = () => {
                 if (quest.completed || !quest.deadline) {
                     notificationService.cancelTaskReminder(quest.id);
                 } else {
-                    const deadlineDate = parseLocalDate(quest.deadline);
-                    if (!isNaN(deadlineDate.getTime())) {
+                    const deadlineDate = getQuestDueDate(quest);
+                    if (deadlineDate) {
                         notificationService.scheduleTaskReminder(quest.id, quest.title, deadlineDate, quest.color || undefined);
                     }
                 }

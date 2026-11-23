@@ -5,7 +5,8 @@ import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import FocusSession from '../plugins/FocusPlugin';
 import { PersistenceService } from './persistence';
-import { parseLocalDate } from '../utils/dateUtils';
+import { getQuestDueDate } from '../utils/dateUtils';
+import { getJournalReminders, MAX_JOURNAL_REMINDERS } from './journalReminders';
 
 // VAPID Key from Firebase Console -> Project Settings -> Cloud Messaging -> Web Push Certificates
 // const VAPID_KEY = 'YOUR_VAPID_KEY_HERE'; 
@@ -26,6 +27,25 @@ export interface NotificationInitResult {
     // Keep it positive and within a safe range (e.g., 0 to 999999)
     return prefix + (Math.abs(hash) % 1000000);
  };
+
+const JOURNAL_REMINDER_BASE_ID = 6100000;
+
+const buildJournalNotifications = (times: string[]) =>
+  times.slice(0, MAX_JOURNAL_REMINDERS).flatMap((time, i) => {
+    const [h, m] = time.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return [];
+    return [{
+      id: JOURNAL_REMINDER_BASE_ID + i,
+      title: "Journal",
+      body: "Es momento de escribir tu journal ✍️",
+      schedule: { on: { hour: h, minute: m }, allowWhileIdle: true },
+      channelId: 'lux_daily',
+      smallIcon: 'ic_stat_lux',
+      iconColor: '#818cf8',
+      actionTypeId: 'OPEN_APP',
+      extra: { type: 'JOURNAL' }
+    }];
+  });
 
 export const notificationService = {
  /**
@@ -453,6 +473,12 @@ export const notificationService = {
  try {
  const baseId = generateId(taskId, 8000000);
 
+ // A reminder in the past would fire immediately: nothing to schedule.
+ if (dueDate.getTime() <= Date.now()) {
+ await LocalNotifications.cancel({ notifications: [{ id: baseId }] });
+ return;
+ }
+
  await LocalNotifications.schedule({
  notifications: [{
  id: baseId,
@@ -468,6 +494,27 @@ export const notificationService = {
  console.log(`Scheduled reminder for task ${title} at ${dueDate.toISOString()}`);
  } catch (e) {
  console.error("Failed to schedule task reminder", e);
+ }
+ },
+
+ /**
+ * Journaling reminders: one repeating daily notification per chosen time (max 4).
+ * Always replaces the previous set, so removing a time really removes its alert.
+ */
+ scheduleJournalReminders: async (times: string[]) => {
+ if (!Capacitor.isNativePlatform()) return;
+ try {
+ const ids = Array.from({ length: MAX_JOURNAL_REMINDERS }, (_, i) => JOURNAL_REMINDER_BASE_ID + i);
+ await LocalNotifications.cancel({ notifications: ids.map(id => ({ id })) });
+ if (times.length === 0) return;
+
+ const hasExact = await notificationService.ensureExactAlarmPermission();
+ if (!hasExact) return;
+
+ await LocalNotifications.schedule({ notifications: buildJournalNotifications(times) });
+ console.log(`Scheduled ${times.length} journaling reminders`);
+ } catch (e) {
+ console.error("Failed to schedule journaling reminders", e);
  }
  },
 
@@ -736,12 +783,12 @@ export const notificationService = {
       quests.forEach(quest => {
         if (quest.completed || !quest.deadline) return;
         const baseId = generateId(quest.id, 8000000);
-        const deadlineDate = parseLocalDate(quest.deadline);
-        if (!isNaN(deadlineDate.getTime()) && deadlineDate.getTime() > Date.now()) {
+        const deadlineDate = getQuestDueDate(quest);
+        if (deadlineDate && deadlineDate.getTime() > Date.now()) {
           notificationsToSchedule.push({
             id: baseId,
             title: "Task Due",
-            body: quest.title,
+            body: quest.deadlineTime ? `${quest.deadlineTime} · ${quest.title}` : quest.title,
             schedule: { at: deadlineDate, allowWhileIdle: true },
             channelId: 'lux_daily',
             smallIcon: 'ic_stat_lux',
@@ -750,6 +797,10 @@ export const notificationService = {
           });
         }
       });
+
+      // Journaling reminders live in localStorage; this sync must put them back
+      // because it cancels every pending notification first.
+      notificationsToSchedule.push(...buildJournalNotifications(getJournalReminders(uid).times));
 
       specialEvents.forEach(event => {
         if (!event.notifyTime) return;

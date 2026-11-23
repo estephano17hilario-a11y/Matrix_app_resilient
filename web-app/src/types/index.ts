@@ -58,6 +58,8 @@ export interface Quest {
   completed: boolean;
   completedAt?: string;
   deadline?: string;
+  /** Optional time of day for the deadline, "HH:mm" (24h). Absent = the whole day. */
+  deadlineTime?: string;
   subtasks?: Subtask[];
   fractalStructure?: any; // Stores the smart task structure
   isSmartQuest?: boolean;
