@@ -266,6 +266,7 @@ class RoutineWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.routine_done_btn, broadcast(context, ACTION_TOGGLE_DONE, widgetId, 2))
 
             manager.updateAppWidget(widgetId, views)
+            Log.d(TAG, "updated widget $widgetId filter=${snap.filter} rows=${snap.rows.size} pct=${s.pct}")
         }
     }
 
@@ -327,8 +328,20 @@ class RoutineWidgetProvider : AppWidgetProvider() {
         val pending = goAsync()
         Thread {
             try {
-                val manager = AppWidgetManager.getInstance(context)
-                updateWidget(context.applicationContext, manager, id)
+                val app = context.applicationContext
+                val manager = AppWidgetManager.getInstance(app)
+                updateWidget(app, manager, id)
+                // The launcher can keep the old header after a click-triggered full update; a partial update
+                // of just the controls that changed is applied reliably on top of the existing view.
+                val prefs = app.getSharedPreferences(RoutineWidgetData.PREFS_WIDGET, Context.MODE_PRIVATE)
+                val appDefault = RoutineConfig.fromJson(app.getSharedPreferences(RoutineWidgetData.PREFS_ROUTINE, Context.MODE_PRIVATE).getString(RoutineWidgetData.KEY_CONFIG, null)).showCompleted
+                val filter = prefs.getString("routine_filter_widget_$id", "ALL") ?: "ALL"
+                val showDone = prefs.getBoolean("routine_show_done_widget_$id", appDefault)
+                val partial = RemoteViews(app.packageName, R.layout.widget_routine)
+                partial.setTextViewText(R.id.routine_filter_text, filterLabel(filter))
+                partial.setImageViewResource(R.id.routine_done_icon, if (showDone) R.drawable.ic_routine_eye else R.drawable.ic_routine_eye_off)
+                partial.setInt(R.id.routine_done_icon, "setImageAlpha", if (showDone) 255 else 130)
+                manager.partiallyUpdateAppWidget(id, partial)
                 manager.notifyAppWidgetViewDataChanged(id, R.id.routine_list)
             } finally {
                 pending.finish()
