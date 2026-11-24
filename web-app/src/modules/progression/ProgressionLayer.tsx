@@ -108,6 +108,15 @@ export const ProgressionLayer: React.FC<Props> = ({ user, habits, quests, projec
     return () => { clearTimeout(timer); document.removeEventListener('visibilitychange', onVisible); };
   }, [snap.ready, dataReady, snap.meta.dayCutoff, snap.summary.lastClosedDay, closeDays]);
 
+  // 2b. Today's projected ELO for the HUD (same figure as Ranks → Hoy). Recomputed whenever
+  // the data or the engine changes; a day rollover also changes `lastClosedDay`.
+  useEffect(() => {
+    if (!snap.ready || !dataReady) return;
+    const today = progressionStore.todayKey();
+    const projection = progressionStore.project(buildDayCloseInput(today, { habits, quests, projects, meta: snap.meta }));
+    progressionStore.setTodayProjected(projection.projectedTotal);
+  }, [snap.ready, dataReady, habits, quests, projects, snap.meta, snap.engine]);
+
   // 3. Immediate focus ELO while the timer runs (+1 each time an hour is crossed).
   useEffect(() => focusBus.subscribe(live => {
     if (!live.running || !progressionStore.getSnapshot().ready) return;

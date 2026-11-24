@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "Now" marker: sits on the timeline right before the first item still ahead of the clock. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingTop="2dp"
+    android:paddingBottom="2dp">
+
+    <TextView
+        android:id="@+id/routine_now_clock"
+        android:layout_width="40dp"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-black"
+        android:gravity="end"
+        android:includeFontPadding="false"
+        android:paddingEnd="3dp"
+        android:text="10:42"
+        android:textColor="#FDA4AF"
+        android:textSize="9.5sp" />
+
+    <FrameLayout
+        android:layout_width="16dp"
+        android:layout_height="16dp">
+
+        <ImageView
+            android:id="@+id/routine_now_halo"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_routine_dot_halo" />
+
+        <ImageView
+            android:id="@+id/routine_now_dot"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_gravity="center"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_routine_check_fill" />
+    </FrameLayout>
+
+    <ImageView
+        android:id="@+id/routine_now_line"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:layout_marginStart="6dp"
+        android:layout_weight="1"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_routine_line" />
+</LinearLayout>

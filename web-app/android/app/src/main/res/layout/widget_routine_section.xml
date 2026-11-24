@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="2dp"
+    android:paddingTop="7dp"
+    android:paddingBottom="3dp">
+
+    <TextView
+        android:id="@+id/routine_section_emoji"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:includeFontPadding="false"
+        android:text="☀️"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/routine_section_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:fontFamily="sans-serif-black"
+        android:includeFontPadding="false"
+        android:letterSpacing="0.16"
+        android:text="MAÑANA"
+        android:textColor="#FBBF24"
+        android:textSize="9.5sp" />
+
+    <ImageView
+        android:id="@+id/routine_section_line"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_weight="1"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_routine_line" />
+
+    <TextView
+        android:id="@+id/routine_section_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-black"
+        android:includeFontPadding="false"
+        android:paddingEnd="4dp"
+        android:text="0/0"
+        android:textColor="#4DFFFFFF"
+        android:textSize="9sp" />
+</LinearLayout>

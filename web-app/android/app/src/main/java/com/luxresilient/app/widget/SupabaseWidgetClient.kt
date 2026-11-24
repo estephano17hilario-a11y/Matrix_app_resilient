@@ -3,6 +3,7 @@ package com.luxresilient.app.widget
 import android.content.Context
 import android.util.Log
 import com.google.gson.Gson
+import com.google.gson.JsonArray
 import com.google.gson.JsonParser
 import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
@@ -843,6 +844,69 @@ class SupabaseWidgetClient(private val context: Context) {
     }
 
     fun currentUserId(): String? = getCredentials().first
+
+    // ── Raw (lossless) collection access ────────────────────────────────────────
+    // The typed models above only keep the fields the older widgets know about, so writing them
+    // back would drop everything else on the record. The Routine widget edits the raw JSON instead.
+
+    /** Items of a collection as raw JSON: local cache first, then (only if allowed) the server. */
+    fun readRawCollection(collectionName: String, allowNetwork: Boolean): JsonArray? {
+        try {
+            val capPrefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
+            val key = capPrefs.all.keys.find { it.startsWith("MATRIX_CACHED_COLLECTION:") && it.endsWith(":$collectionName") }
+            if (key != null) {
+                val json = capPrefs.getString(key, null)
+                if (!json.isNullOrEmpty()) {
+                    val data = JsonParser.parseString(json).asJsonObject.get("data")
+                    if (data != null && data.isJsonArray) return data.asJsonArray
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "readRawCollection($collectionName) cache: ${e.message}")
+        }
+        if (!allowNetwork) return null
+
+        val (userId, _) = getCredentials()
+        if (userId.isNullOrEmpty()) return null
+        return try {
+            val response = restGet("user_collections?user_id=eq.${URLEncoder.encode(userId, "UTF-8")}&collection_name=eq.$collectionName&deleted=eq.false&select=data") ?: return null
+            val out = JsonArray()
+            for (element in JsonParser.parseString(response).asJsonArray) {
+                val data = element.asJsonObject.get("data")
+                if (data != null && data.isJsonObject) out.add(data)
+            }
+            out
+        } catch (e: Exception) {
+            Log.e(TAG, "readRawCollection($collectionName) network: ${e.message}")
+            null
+        }
+    }
+
+    /** Replaces the cached items of a collection (no-op when the app has not cached it yet). */
+    fun writeRawCollection(collectionName: String, items: JsonArray) {
+        try {
+            val capPrefs = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
+            val key = capPrefs.all.keys.find { it.startsWith("MATRIX_CACHED_COLLECTION:") && it.endsWith(":$collectionName") } ?: return
+            val cachedJson = capPrefs.getString(key, null)
+            val envelope = if (!cachedJson.isNullOrEmpty()) JsonParser.parseString(cachedJson).asJsonObject else JsonObject()
+            envelope.add("data", items)
+            capPrefs.edit().putString(key, gson.toJson(envelope)).apply()
+        } catch (e: Exception) {
+            Log.e(TAG, "writeRawCollection($collectionName): ${e.message}")
+        }
+    }
+
+    /** Saves one full item (all of its fields) to the server. Blocking: call off the main thread. */
+    fun patchRawRecord(collectionName: String, itemId: String, data: JsonObject): Boolean {
+        val (userId, _) = getCredentials()
+        if (userId.isNullOrEmpty()) return false
+        val recordId = URLEncoder.encode("${userId}_${collectionName}_$itemId", "UTF-8")
+        val payload = JsonObject().apply {
+            add("data", data)
+            addProperty("deleted", false)
+        }
+        return restPatch("user_collections?id=eq.$recordId", gson.toJson(payload))
+    }
 
     /**
      * Fetch projects for the user

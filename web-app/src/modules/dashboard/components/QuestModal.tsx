@@ -605,8 +605,14 @@ export const QuestModal = React.memo(({
                                                 {t('modals.quest.dueDate')}
                                             </span>
                                             <div className="flex items-baseline gap-1 pointer-events-none">
-                                                <span className="text-sm font-bold text-white">{parseLocalDate(deadline).getDate()}</span>
-                                                <span className="text-[10px] font-bold text-white/50 uppercase">{parseLocalDate(deadline).toLocaleDateString('en-US', { month: 'short' })}</span>
+                                                {deadline === toLocalISOString(new Date()) ? (
+                                                    <span className="text-sm font-bold text-white">{t('dashboard.today', 'Hoy')}</span>
+                                                ) : (
+                                                    <>
+                                                        <span className="text-sm font-bold text-white">{parseLocalDate(deadline).getDate()}</span>
+                                                        <span className="text-[10px] font-bold text-white/50 uppercase">{parseLocalDate(deadline).toLocaleDateString('en-US', { month: 'short' })}</span>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
 

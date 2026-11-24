@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lux · Rutina: progress hero + chronological timeline of the day (same data and rules as the Routine screen). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/routine_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/routine_background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_background" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="8dp">
+
+        <!-- Hero: progress ring, what is next and the day counters -->
+        <FrameLayout
+            android:id="@+id/routine_hero"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="6dp"
+            android:clickable="true">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitXY"
+                android:src="@drawable/widget_routine_hero_bg" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="10dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="8dp">
+
+                <FrameLayout
+                    android:id="@+id/routine_ring_box"
+                    android:layout_width="46dp"
+                    android:layout_height="46dp">
+
+                    <ImageView
+                        android:id="@+id/routine_ring"
+                        android:layout_width="46dp"
+                        android:layout_height="46dp"
+                        android:scaleType="fitXY" />
+
+                    <TextView
+                        android:id="@+id/routine_ring_pct"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:fontFamily="sans-serif-black"
+                        android:includeFontPadding="false"
+                        android:text="0%"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="6dp">
+
+                    <TextView
+                        android:id="@+id/routine_label"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:fontFamily="sans-serif-black"
+                        android:includeFontPadding="false"
+                        android:letterSpacing="0.14"
+                        android:maxLines="1"
+                        android:text="RUTINA"
+                        android:textColor="#B3BAE6FD"
+                        android:textSize="8.5sp" />
+
+                    <TextView
+                        android:id="@+id/routine_next_title"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:fontFamily="sans-serif-black"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:text="—"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/routine_stats"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:ellipsize="end"
+                        android:fontFamily="sans-serif-medium"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:text=""
+                        android:textColor="#66FFFFFF"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <!-- Day-part filter + show/hide completed -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <FrameLayout
+                        android:id="@+id/routine_filter_btn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        android:background="@drawable/widget_routine_pill_bg"
+                        android:clickable="true"
+                        android:paddingStart="9dp"
+                        android:paddingEnd="9dp">
+
+                        <TextView
+                            android:id="@+id/routine_filter_text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:fontFamily="sans-serif-black"
+                            android:includeFontPadding="false"
+                            android:letterSpacing="0.06"
+                            android:text="TODO"
+                            android:textColor="#FFFFFF"
+                            android:textSize="9.5sp" />
+                    </FrameLayout>
+
+                    <FrameLayout
+                        android:id="@+id/routine_done_btn"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_marginStart="5dp"
+                        android:background="@drawable/widget_routine_btn_bg"
+                        android:clickable="true">
+
+                        <ImageView
+                            android:id="@+id/routine_done_icon"
+                            android:layout_width="14dp"
+                            android:layout_height="14dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_routine_eye" />
+                    </FrameLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </FrameLayout>
+
+        <ListView
+            android:id="@+id/routine_list"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:divider="@null"
+            android:dividerHeight="0dp"
+            android:fadingEdge="none"
+            android:scrollbars="none" />
+
+        <TextView
+            android:id="@+id/routine_empty"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:lineSpacingExtra="2dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="Nada programado para hoy"
+            android:textColor="#66FFFFFF"
+            android:textSize="12sp"
+            android:visibility="gone" />
+    </LinearLayout>
+</FrameLayout>

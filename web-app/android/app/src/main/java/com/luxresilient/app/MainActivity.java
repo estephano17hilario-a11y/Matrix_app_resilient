@@ -75,6 +75,11 @@ public class MainActivity extends BridgeActivity {
             android.content.Intent projectIntent = new android.content.Intent("com.luxresilient.app.REFRESH_PROJECT");
             projectIntent.setComponent(new android.content.ComponentName(this, com.luxresilient.app.widget.ProjectWidgetProvider.class));
             sendBroadcast(projectIntent);
+
+            // Refresh Routine widget
+            android.content.Intent routineIntent = new android.content.Intent("com.luxresilient.app.REFRESH_ROUTINE");
+            routineIntent.setComponent(new android.content.ComponentName(this, com.luxresilient.app.widget.RoutineWidgetProvider.class));
+            sendBroadcast(routineIntent);
         } catch (Exception e) {
             e.printStackTrace();
         }

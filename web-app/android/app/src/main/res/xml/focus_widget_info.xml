@@ -6,7 +6,9 @@
     android:minResizeHeight="70dp"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_focus_chart"
+    android:previewImage="@drawable/widget_preview_focus"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
+    android:description="@string/widget_focus_description"
     android:configure="com.luxresilient.app.widget.WidgetConfigActivity"
     android:widgetFeatures="reconfigurable" />

@@ -237,6 +237,50 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/rivals_widget_info" />
         </receiver>
+        <!-- Routine Widget: today's timeline (habits, sub-habits, tasks, focus reminders, journal) -->
+        <receiver
+            android:name=".widget.RoutineWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_routine_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.luxresilient.app.REFRESH_ROUTINE" />
+                <action android:name="com.luxresilient.app.ROUTINE_CYCLE_FILTER" />
+                <action android:name="com.luxresilient.app.ROUTINE_TOGGLE_DONE" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/routine_widget_info" />
+        </receiver>
+
+        <service
+            android:name=".widget.RoutineWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
+
+        <!-- Invisible trampoline for taps on the Routine widget list -->
+        <activity
+            android:name=".widget.RoutineActionActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:taskAffinity=""
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:exported="false" />
+
+        <!-- Keeps the Routine widget's "now" marker and day rollover fresh -->
+        <receiver
+            android:name=".widget.RoutineAlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <!-- Google Play Services version -->
         <!-- Social: duel + shared-streak widgets, friend picker, background alarms -->
         <receiver

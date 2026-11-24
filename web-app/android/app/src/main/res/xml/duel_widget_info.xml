@@ -8,6 +8,7 @@
     android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_duel"
+    android:previewImage="@drawable/widget_preview_duel"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:configure="com.luxresilient.app.widget.FriendPickerActivity"

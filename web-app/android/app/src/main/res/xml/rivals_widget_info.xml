@@ -10,6 +10,7 @@
     android:maxResizeHeight="500dp"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_rivals"
+    android:previewImage="@drawable/widget_preview_rivals"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:description="@string/widget_rivals_description" />

@@ -112,6 +112,26 @@ class WidgetAuthBridge : Plugin() {
     }
 
     /**
+     * The Routine screen's settings and journal reminder times live in the WebView (localStorage), which the
+     * native widget cannot read. The app pushes them here so the widget draws the same routine.
+     */
+    @PluginMethod
+    fun updateRoutineConfig(call: PluginCall) {
+        try {
+            val context = activity ?: context
+            val editor = context.getSharedPreferences(RoutineWidgetData.PREFS_ROUTINE, Context.MODE_PRIVATE).edit()
+            call.getObject("config")?.let { editor.putString(RoutineWidgetData.KEY_CONFIG, it.toString()) }
+            call.getArray("journalTimes")?.let { editor.putString(RoutineWidgetData.KEY_JOURNAL_TIMES, it.toString()) }
+            editor.apply()
+            Thread { RoutineWidgetProvider.refreshAll(context) }.start()
+            call.resolve()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update routine config: ${e.message}", e)
+            call.reject("Failed to update routine config: ${e.message}")
+        }
+    }
+
+    /**
      * Update the productivity score and refresh score widgets
      */
     @PluginMethod
@@ -280,6 +300,9 @@ class WidgetAuthBridge : Plugin() {
                 }
                 context.sendBroadcast(updateIntent)
             }
+
+            // Routine widgets read the app's cached data themselves: redraw them off the main thread.
+            Thread { RoutineWidgetProvider.refreshAll(context) }.start()
 
             // Also notify AppWidgetManager for Rivals widgets (CRITICAL: was missing!)
             val rivalsComponent = ComponentName(context, RivalsWidgetProvider::class.java)

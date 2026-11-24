@@ -14,6 +14,7 @@ import { QuantityUpdateModal } from '../dashboard/components/QuantityUpdateModal
 import { addDays, formatClock, getHistoryDateKey, startOfWeek, toLocalISOString } from '../../utils/dateUtils';
 import { cn } from '../../utils/cn';
 import { RoutineConfigSheet } from './RoutineConfigSheet';
+import { syncRoutineWidget } from './routineWidgetSync';
 import {
   buildRoutineItems, countByPart, dayPartOf, formatHourRange, hourBlockOf, loadRoutineConfig, saveRoutineConfig, sectionize,
   type DayPart, type DayPartFilter, type RoutineConfig, type RoutineItem, type RoutineSection,
@@ -290,6 +291,9 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
     window.addEventListener('journal-reminders-updated', onUpdate);
     return () => window.removeEventListener('journal-reminders-updated', onUpdate);
   }, [userId]);
+
+  // The native Routine widget draws the same day: keep it on the same settings and reminder times.
+  useEffect(() => { syncRoutineWidget(config, journalTimes); }, [config, journalTimes]);
 
   const updateConfig = useCallback((patch: Partial<RoutineConfig>) => {
     setConfig(prev => {

@@ -8,7 +8,9 @@
     android:targetCellHeight="1"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_project_progress"
+    android:previewImage="@drawable/widget_preview_project"
     android:resizeMode="horizontal"
     android:widgetCategory="home_screen"
+    android:description="@string/widget_project_description"
     android:configure="com.luxresilient.app.widget.WidgetConfigActivity"
     android:widgetFeatures="reconfigurable" />

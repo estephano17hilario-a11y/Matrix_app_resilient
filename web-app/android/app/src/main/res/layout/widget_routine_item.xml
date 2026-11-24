@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One timeline row: [time] [rail + dot] [card with icon, title, check]. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/routine_item_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <!-- Time column -->
+    <LinearLayout
+        android:id="@+id/routine_time_col"
+        android:layout_width="40dp"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical|end"
+        android:orientation="vertical"
+        android:paddingEnd="3dp">
+
+        <TextView
+            android:id="@+id/routine_time_main"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-black"
+            android:includeFontPadding="false"
+            android:text="8:00"
+            android:textColor="#CCFFFFFF"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/routine_time_suffix"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:fontFamily="sans-serif-black"
+            android:includeFontPadding="false"
+            android:letterSpacing="0.1"
+            android:text="AM"
+            android:textColor="#59FFFFFF"
+            android:textSize="7.5sp" />
+    </LinearLayout>
+
+    <!-- Rail: a line shared by the whole section, with this item's dot on it -->
+    <FrameLayout
+        android:layout_width="16dp"
+        android:layout_height="match_parent">
+
+        <ImageView
+            android:id="@+id/routine_rail"
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_horizontal"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_routine_rail" />
+
+        <ImageView
+            android:id="@+id/routine_dot_halo"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_gravity="center"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_routine_dot_halo"
+            android:visibility="gone" />
+
+        <ImageView
+            android:layout_width="11dp"
+            android:layout_height="11dp"
+            android:layout_gravity="center"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_routine_dot_bg" />
+
+        <ImageView
+            android:id="@+id/routine_dot_fill"
+            android:layout_width="11dp"
+            android:layout_height="11dp"
+            android:layout_gravity="center"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_routine_check_fill"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/routine_dot_ring"
+            android:layout_width="11dp"
+            android:layout_height="11dp"
+            android:layout_gravity="center"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_routine_dot_ring" />
+    </FrameLayout>
+
+    <!-- Card -->
+    <FrameLayout
+        android:id="@+id/routine_card"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="3dp"
+        android:layout_marginTop="3dp"
+        android:layout_marginBottom="3dp"
+        android:layout_weight="1"
+        android:clickable="true">
+
+        <ImageView
+            android:id="@+id/routine_card_bg"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_routine_card_bg" />
+
+        <ImageView
+            android:id="@+id/routine_card_glow"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_routine_card_glow" />
+
+        <ImageView
+            android:id="@+id/routine_card_border"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_routine_card_border" />
+
+        <ImageView
+            android:id="@+id/routine_accent"
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_routine_accent" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="10dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="8dp">
+
+            <!-- Icon -->
+            <FrameLayout
+                android:layout_width="32dp"
+                android:layout_height="32dp">
+
+                <ImageView
+                    android:id="@+id/routine_icon_bg"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:scaleType="fitXY"
+                    android:src="@drawable/widget_routine_icon_bg" />
+
+                <ImageView
+                    android:id="@+id/routine_icon"
+                    android:layout_width="17dp"
+                    android:layout_height="17dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_routine_task" />
+
+                <TextView
+                    android:id="@+id/routine_emoji"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:includeFontPadding="false"
+                    android:text="🎯"
+                    android:textSize="16sp"
+                    android:visibility="gone" />
+            </FrameLayout>
+
+            <!-- Title + details -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:paddingStart="9dp"
+                android:paddingEnd="6dp">
+
+                <TextView
+                    android:id="@+id/routine_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    android:includeFontPadding="false"
+                    android:maxLines="2"
+                    android:text="Título"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:id="@+id/routine_meta"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/routine_chip_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="6dp"
+                        android:fontFamily="sans-serif-black"
+                        android:includeFontPadding="false"
+                        android:text="8:00 AM"
+                        android:textColor="#FFFFFF"
+                        android:textSize="9.5sp" />
+
+                    <TextView
+                        android:id="@+id/routine_subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:fontFamily="sans-serif-bold"
+                        android:includeFontPadding="false"
+                        android:letterSpacing="0.06"
+                        android:maxLines="1"
+                        android:text="SUBTÍTULO"
+                        android:textColor="#59FFFFFF"
+                        android:textSize="8.5sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Check / action button -->
+            <FrameLayout
+                android:id="@+id/routine_check"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:clickable="true">
+
+                <ImageView
+                    android:id="@+id/routine_check_fill"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_gravity="center"
+                    android:scaleType="fitXY"
+                    android:src="@drawable/widget_routine_check_fill"
+                    android:visibility="gone" />
+
+                <ImageView
+                    android:id="@+id/routine_check_ring"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_gravity="center"
+                    android:scaleType="fitXY"
+                    android:src="@drawable/widget_routine_check_ring" />
+
+                <ImageView
+                    android:id="@+id/routine_check_icon"
+                    android:layout_width="15dp"
+                    android:layout_height="15dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_routine_check"
+                    android:visibility="gone" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- Progress along the bottom edge (quantity habits, focus goals) -->
+        <ImageView
+            android:id="@+id/routine_progress"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:layout_gravity="bottom"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="3dp"
+            android:scaleType="fitXY"
+            android:visibility="gone" />
+    </FrameLayout>
+</LinearLayout>

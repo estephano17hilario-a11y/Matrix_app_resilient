@@ -7,6 +7,8 @@ export interface WidgetBridgePlugin {
   /** Re-renders the friend duel and shared-streak widgets (they fetch their own data). */
   refreshSocialWidgets?(): Promise<void>;
   updateScore(options: { score: number }): Promise<void>;
+  /** Routine screen settings + journal reminder times, so the native Routine widget draws the same day. */
+  updateRoutineConfig?(options: { config: Record<string, unknown>; journalTimes: string[] }): Promise<void>;
   updateRivalsData(options: {
     rivalName: string;
     rivalAvatar: string;

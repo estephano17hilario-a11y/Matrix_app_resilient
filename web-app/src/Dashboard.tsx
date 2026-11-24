@@ -23,6 +23,9 @@ import { AchievementToast } from './components/AchievementToast';
 import { StatsHeader } from './modules/dashboard/components/StatsHeader';
 import { calculateLiveProductivityScore } from './utils/productivityScore';
 import WidgetAuthBridge from './plugins/WidgetBridgePlugin';
+import { loadRoutineConfig } from './modules/routine/routineEngine';
+import { syncRoutineWidget } from './modules/routine/routineWidgetSync';
+import { getJournalReminders } from './services/journalReminders';
 import { Dock } from './modules/dashboard/components/Dock';
 import { DockConfigModal } from './components/ui/DockConfigModal';
 import { QuestModal } from './modules/dashboard/components/QuestModal';
@@ -761,6 +764,10 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
         } catch (e) {
           console.error('Failed to parse journal deep link URL:', e);
         }
+      } else if (event.url && event.url.includes('luxapp://routine')) {
+        // Routine widget: jump to the Routine section.
+        localStorage.removeItem('cold_start_open_routine');
+        setCurrentView('ROUTINE');
       } else if (event.url && (event.url.includes('luxapp://rivals') || event.url.includes('rivals'))) {
         try {
           console.log('🎯 [Dashboard Deep Link] Routing to RIVALS section');
@@ -821,6 +828,17 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
       }, 600);
     }
 
+    // Routine widget opened the app from a cold start.
+    if (localStorage.getItem('cold_start_open_routine')) {
+      localStorage.removeItem('cold_start_open_routine');
+      setTimeout(() => setCurrentView('ROUTINE'), 600);
+    }
+    const handleRoutineTrigger = () => {
+      localStorage.removeItem('cold_start_open_routine');
+      setCurrentView('ROUTINE');
+    };
+    window.addEventListener('cold_start_routine_trigger', handleRoutineTrigger);
+
     const handleOpenDockConfig = () => {
       setIsDockOpen(false);
       setIsDockConfigOpen(true);
@@ -873,8 +891,19 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
       window.removeEventListener('open-rivals-modal', handleOpenRivals);
       window.removeEventListener('cold_start_focus_trigger', handleFocusTrigger);
       window.removeEventListener('cold_start_journal_trigger', handleJournalTrigger);
+      window.removeEventListener('cold_start_routine_trigger', handleRoutineTrigger);
     };
   }, [setCurrentView, setFocusTargetProjectId, setFocusAutoStartProjectId, setIsPomodoroActive, setNoteViewMode]);
+
+  // Native Routine widget: hand it the Routine settings and journal reminder times at startup, even if the
+  // Routine section is never opened (RoutineView keeps it in sync afterwards).
+  useEffect(() => {
+    if (!user?.id) return;
+    const push = () => syncRoutineWidget(loadRoutineConfig(user.id), getJournalReminders(user.id).times);
+    push();
+    window.addEventListener('journal-reminders-updated', push);
+    return () => window.removeEventListener('journal-reminders-updated', push);
+  }, [user?.id]);
 
  const [forceFocusOpen, setForceFocusOpen] = useState(false);
 

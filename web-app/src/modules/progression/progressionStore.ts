@@ -90,6 +90,8 @@ export interface ProgressionSnapshot {
   pendingReport: PendingReport | null;
   celebration: Celebration | null;
   leaderboard: LeaderboardState;
+  /** ELO the user would net today if the day ended now (same figure as Ranks → Hoy). null until computed. */
+  todayProjected: number | null;
 }
 
 const LOCAL_KEY = (uid: string) => `matrix_progression_v1_${uid}`;
@@ -133,6 +135,7 @@ let snap: ProgressionSnapshot = {
   pendingReport: null,
   celebration: null,
   leaderboard: { status: 'IDLE' },
+  todayProjected: null,
   ...derive(blankEngine()),
 };
 
@@ -295,7 +298,7 @@ export const progressionStore = {
     } catch (e) {
       console.warn('[Progression] local load failed', e);
     }
-    set({ userId, ready: true, engine, meta, logs, pendingReport: null, celebration: null, leaderboard: { status: 'IDLE' }, ...derive(engine) });
+    set({ userId, ready: true, engine, meta, logs, pendingReport: null, celebration: null, leaderboard: { status: 'IDLE' }, todayProjected: null, ...derive(engine) });
     loadRemote(userId).catch(e => console.warn('[Progression] remote load failed', e));
   },
 
@@ -354,6 +357,12 @@ export const progressionStore = {
 
   project(input: DayCloseInput): DayProjection {
     return projectDay(snap.engine, input);
+  },
+
+  /** Publishes today's projected ELO for the HUD (no persistence: it is derived data). */
+  setTodayProjected(value: number | null) {
+    if (snap.todayProjected === value) return;
+    set({ todayProjected: value });
   },
 
   /** Activates a rest shield for today. PURCHASED ones must already be paid. */

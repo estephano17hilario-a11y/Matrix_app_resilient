@@ -6,7 +6,9 @@
     android:minResizeHeight="110dp"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_task_list"
+    android:previewImage="@drawable/widget_preview_tasks"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
+    android:description="@string/widget_tasks_description"
     android:configure="com.luxresilient.app.widget.WidgetConfigActivity"
     android:widgetFeatures="reconfigurable" />

@@ -255,14 +255,14 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
               </div>
             ) : null}
             
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center flex-wrap gap-x-2 gap-y-1 min-w-0">
                  {/* Trait / Strategy Badge - Row 2 */}
                 {(attribute || smartProject) && (
-                    <div 
-                        className="flex items-center gap-1 px-1.5 py-[2px] rounded-md bg-white/5 border border-white/5"
+                    <div
+                        className="flex items-center gap-1 px-1.5 py-[2px] rounded-md bg-white/5 border border-white/5 min-w-0 max-w-full"
                         style={{ borderColor: `${themeColor}20` }}
                     >
-                        <span className="text-[9px] font-bold uppercase tracking-wider opacity-90" style={{ color: themeColor }}>
+                        <span className="text-[9px] font-bold uppercase tracking-wider opacity-90 truncate" style={{ color: themeColor }}>
                             {smartProject 
                                 ? smartProject.mainGoal 
                                 : `${t(attribute?.label || '', (attribute?.label || '').replace('traits.', ''))}${subTrait ? ` › ${subTrait.name}` : ''}`
@@ -274,7 +274,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
                  {/* Deadline - Row 2 */}
                  {deadlineInfo && !quest.completed && (
                     <div className={cn(
-                        "flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[10px] font-bold tracking-wide transition-colors",
+                        "flex items-center gap-1.5 px-2 py-0.5 rounded-md border text-[10px] font-bold tracking-wide transition-colors shrink-0",
                         deadlineInfo.key === 'today' || deadlineInfo.key === 'overdue' 
                             ? "bg-rose-500/10 border-rose-500/20 text-rose-300" 
                             : deadlineInfo.key === 'tomorrow' 
@@ -290,10 +290,14 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
           </div>
           
           {/* RIGHT SIDE: Actions Only */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
+             {/* Collapsed: takes zero width so the title/info can use the full card.
+                 Expanded (or hover on desktop): reveals edit/delete. */}
              <div className={cn(
-                 "flex items-center gap-1 transition-all duration-200",
-                 expanded ? "opacity-100" : "opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
+                 "flex items-center gap-1 overflow-hidden transition-all duration-200",
+                 expanded
+                    ? "opacity-100 max-w-[80px]"
+                    : "opacity-0 max-w-0 pointer-events-none group-hover:opacity-100 group-hover:max-w-[80px] group-hover:pointer-events-auto"
              )}>
                 {/* EDIT */}
                 {onEdit && (

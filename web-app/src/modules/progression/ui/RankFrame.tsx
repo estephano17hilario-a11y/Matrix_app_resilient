@@ -91,7 +91,7 @@ RankFrameArt.displayName = 'RankFrameArt';
  * frame (if any) is drawn behind it, and the rank insignia hangs below as a pendant.
  */
 export const RankFrame: React.FC<{ children: React.ReactNode; onOpen?: () => void; avatarSize?: number }> = ({ children, onOpen, avatarSize = 56 }) => {
-  const { ready, standing, meta } = useProgression();
+  const { ready, standing, meta, todayProjected } = useProgression();
   const frame = meta.equippedFrame ?? null;
   if (!ready) return <>{children}</>;
 
@@ -121,6 +121,24 @@ export const RankFrame: React.FC<{ children: React.ReactNode; onOpen?: () => voi
       >
         <RankBadge rankIndex={standing.rankIndex} division={standing.division} size={36} title={standing.label} />
       </button>
+      {/* Today's ELO: sits under the insignia, left-aligned with it, on the same floor line. */}
+      {todayProjected !== null && (
+        <span
+          className="absolute z-[11] select-none whitespace-nowrap font-mono font-black tabular-nums leading-none"
+          style={{
+            left: -10,
+            top: avatarSize + 12,
+            fontSize: 10,
+            letterSpacing: '0.02em',
+            pointerEvents: 'none',
+            color: todayProjected > 0 ? '#34d399' : todayProjected < 0 ? '#f87171' : '#8b8b9c',
+            textShadow: '0 1px 4px rgba(0,0,0,0.7)',
+          }}
+          title={`ELO de hoy: ${todayProjected > 0 ? '+' : ''}${todayProjected}`}
+        >
+          {todayProjected > 0 ? '+' : ''}{todayProjected} ELO
+        </span>
+      )}
     </div>
   );
 };

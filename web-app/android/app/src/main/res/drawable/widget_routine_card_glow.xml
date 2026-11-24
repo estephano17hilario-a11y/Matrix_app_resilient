@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- White-to-clear wash; the widget tints it with the item's colour (setColorFilter keeps the alpha). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:angle="0"
+        android:startColor="#4DFFFFFF"
+        android:centerColor="#14FFFFFF"
+        android:endColor="#00FFFFFF"
+        android:type="linear" />
+    <corners android:radius="18dp" />
+</shape>

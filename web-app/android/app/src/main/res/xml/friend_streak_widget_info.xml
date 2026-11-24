@@ -6,6 +6,7 @@
     android:minResizeHeight="180dp"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_journal_calendar"
+    android:previewImage="@drawable/widget_preview_friend_streak"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:configure="com.luxresilient.app.widget.FriendPickerActivity"

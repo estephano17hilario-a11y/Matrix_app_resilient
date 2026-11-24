@@ -238,6 +238,10 @@ export default function App() {
         } catch (e) {
           console.error('Error parsing journal from App.tsx:', e);
         }
+      } else if (event.url.includes('luxapp://routine')) {
+        // Routine widget: open the Routine section (the Dashboard picks this up on mount or via the event).
+        localStorage.setItem('cold_start_open_routine', '1');
+        window.dispatchEvent(new CustomEvent('cold_start_routine_trigger'));
       } else if (event.url.includes('com.luxresilient.app://auth/callback')) {
         try {
           let access_token: string | null = null;
