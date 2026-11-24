@@ -267,7 +267,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
     <div className="flex items-center gap-3 sm:gap-4 opacity-100 translate-x-0 w-full pl-1">
         {/* AVATAR - RESTORED & CENTERED */}
         <div 
-            className="relative group active:scale-95 transition-transform shrink-0 cursor-pointer ml-5 mr-2" 
+            className="relative group active:scale-95 transition-transform shrink-0 cursor-pointer ml-[17px] mr-2"
             onClick={(e) => {
                 e.stopPropagation();
                 if (onShowSettingsWithTab) {

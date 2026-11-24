@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 
 import { Globe, BarChart3, Hexagon, Bell, BatteryMedium, Smartphone, Settings2, Calendar, Layers, Lock, LineChart, LayoutGrid, Zap, Brain, Swords, CheckCircle2, LayoutTemplate, ShoppingBag, Activity, PenLine, Coins, Quote, ShieldAlert, Volume2 } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
+import { Only } from '../Only';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../../utils/cn';
 import FocusSession from '@/plugins/FocusPlugin';
@@ -285,12 +286,9 @@ export const SystemSection = () => {
 
  return (
  <div className="space-y-8 pb-4">
- <div className="space-y-1">
- <h2 className="text-lg font-semibold text-white">{t('settings.tabs.prefs', 'System')}</h2>
- <p className="text-white/40 text-sm">{t('settings.systemDesc', 'Language, permissions, and navigation.')}</p>
- </div>
 
  <div className="space-y-4">
+<Only page="language">
  {/* Language */}
  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
  <div className="flex items-center gap-3">
@@ -330,7 +328,9 @@ export const SystemSection = () => {
  </button>
  </div>
  </div>
+</Only>
 
+<Only page="notifications">
  {/* Native Permissions */}
  {isNative && (
  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
@@ -389,134 +389,122 @@ export const SystemSection = () => {
  </div>
  )}
 
-  {/* NOTIFICATION TONES & CUSTOM PHRASES (GOLD ECONOMY) */}
-  <div className="bg-[#111] border border-white/10 rounded-2xl p-5 space-y-5 transition-colors">
-    <div className="flex items-center justify-between border-b border-white/10 pb-3">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 text-amber-400">
-          <Bell size={20} />
-        </div>
-        <div>
-          <div className="text-base font-black text-white tracking-tight flex items-center gap-2">
-            Tono de Notificaciones & Frases de Poder
-          </div>
-          <div className="text-xs text-white/50">Personaliza la voz de tu coach y tus alertas</div>
-        </div>
+  {/* COACH TONE (GOLD ECONOMY) */}
+  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4">
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 text-amber-400 shrink-0">
+        <Bell size={18} />
       </div>
-      <div className="flex items-center gap-1 text-amber-400 font-bold font-mono text-xs bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
-        <Coins size={14} /> {(user?.stats?.gold || 0).toLocaleString()} Oro
+      <div className="flex-1 min-w-0">
+        <div className="text-base font-bold text-white tracking-tight">Tono del coach</div>
+        <div className="text-xs text-white/40 font-medium">Cambiarlo cuesta 2,000 Oro</div>
+      </div>
+      <div className="shrink-0 flex items-center gap-1 text-amber-400 font-bold font-mono text-xs bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+        <Coins size={13} /> {(user?.stats?.gold || 0).toLocaleString()}
       </div>
     </div>
 
-    {/* Tone Selector */}
-    <div className="space-y-3">
-      <div className="flex items-center justify-between text-xs">
-        <span className="font-bold text-white/80 uppercase tracking-wider flex items-center gap-1.5">
-          Tono de Notificación Actual
-        </span>
-        <span className="text-amber-400 font-bold text-[11px] bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
-          Cambiar cuesta 2,000 Oro 🪙
-        </span>
-      </div>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      {(Object.keys(TONE_DEFINITIONS) as NotificationTone[]).map((toneKey) => {
+        const tone = TONE_DEFINITIONS[toneKey];
+        const isSelected = currentTone === toneKey;
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-        {(Object.keys(TONE_DEFINITIONS) as NotificationTone[]).map((toneKey) => {
-          const tone = TONE_DEFINITIONS[toneKey];
-          const isSelected = currentTone === toneKey;
-
-          return (
-            <button
-              key={toneKey}
-              onClick={() => handleRequestChangeTone(toneKey)}
-              className={cn(
-                "p-3 rounded-xl border text-left transition-all flex flex-col justify-between gap-2 active:scale-95",
-                isSelected
-                  ? "bg-amber-500/15 border-amber-400 text-white shadow-[0_0_15px_rgba(245,158,11,0.2)]"
-                  : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
-              )}
-            >
-              <div>
-                <span className="text-[9px] font-black uppercase tracking-wider text-amber-300">
-                  {tone.badge}
-                </span>
-                <div className="text-xs font-bold text-white mt-1">{tone.name}</div>
-              </div>
-              <span className="text-[9px] font-bold text-white/40 uppercase">
-                {isSelected ? '✓ Seleccionado' : '2,000 Oro'}
+        return (
+          <button
+            key={toneKey}
+            onClick={() => handleRequestChangeTone(toneKey)}
+            className={cn(
+              "px-3 py-2.5 rounded-xl border text-left transition-colors flex sm:flex-col items-center sm:items-start justify-between gap-2 active:scale-[0.98]",
+              isSelected
+                ? "bg-amber-500/15 border-amber-400/70 text-white"
+                : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
+            )}
+          >
+            <div className="min-w-0">
+              <span className="block text-[9px] font-black uppercase tracking-wider text-amber-300">
+                {tone.badge}
               </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-
-    {/* Phrase Editors */}
-    <div className="pt-2 border-t border-white/10 space-y-4">
-      {/* Anti-Procrastination Phrase */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-xs">
-          <label className="font-bold text-white/90 flex items-center gap-1.5">
-            <ShieldAlert size={14} className="text-rose-400" />
-            Frase Anti-Procrastinación (Máx 50 caracteres)
-          </label>
-          <span className="text-[10px] font-bold text-amber-400 font-mono">
-            500 Oro 🪙
-          </span>
-        </div>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            maxLength={50}
-            value={antiPhrase}
-            onChange={(e) => setAntiPhrase(e.target.value)}
-            placeholder="Ej: ¿Vas a dejar que te ganen hoy?"
-            className="flex-1 bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-amber-400"
-          />
-          <button
-            onClick={handleRequestSaveAntiPhrase}
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs rounded-xl transition-all shadow-md active:scale-95 whitespace-nowrap"
-          >
-            Guardar (500g)
+              <div className="text-[13px] font-bold text-white mt-0.5">{tone.name}</div>
+            </div>
+            <span className={cn("shrink-0 text-[10px] font-bold uppercase", isSelected ? "text-amber-300" : "text-white/40")}>
+              {isSelected ? '✓ Activo' : '2,000 Oro'}
+            </span>
           </button>
-        </div>
-      </div>
-
-      {/* Splash Screen Subtitle Phrase */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-xs">
-          <label className="font-bold text-white/90 flex items-center gap-1.5">
-            <Volume2 size={14} className="text-cyan-400" />
-            Frase de Pantalla de Carga LUX (Máx 20 caracteres)
-          </label>
-          <span className="text-[10px] font-bold text-amber-400 font-mono">
-            500 Oro 🪙
-          </span>
-        </div>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            maxLength={20}
-            value={splashPhrase}
-            onChange={(e) => setSplashPhrase(e.target.value)}
-            placeholder="Ej: Sin Excusas"
-            className="flex-1 bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-cyan-400 font-semibold"
-          />
-          <button
-            onClick={handleRequestSaveSplashPhrase}
-            className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs rounded-xl transition-all shadow-md active:scale-95 whitespace-nowrap"
-          >
-            Guardar (500g)
-          </button>
-        </div>
-      </div>
+        );
+      })}
     </div>
   </div>
 
+  {/* CUSTOM PHRASES (GOLD ECONOMY) */}
+  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4">
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 text-cyan-400 shrink-0">
+        <Quote size={18} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-base font-bold text-white tracking-tight">Frases personales</div>
+        <div className="text-xs text-white/40 font-medium">Guardar cada frase cuesta 500 Oro</div>
+      </div>
+    </div>
+
+    {/* Anti-Procrastination Phrase */}
+    <div className="space-y-1.5">
+      <label className="text-xs font-bold text-white/85 flex items-center gap-1.5">
+        <ShieldAlert size={13} className="text-rose-400 shrink-0" />
+        Anti-procrastinación
+        <span className="ml-auto text-[10px] font-medium text-white/30">{antiPhrase.length}/50</span>
+      </label>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          maxLength={50}
+          value={antiPhrase}
+          onChange={(e) => setAntiPhrase(e.target.value)}
+          placeholder="Ej: ¿Vas a dejar que te ganen hoy?"
+          className="flex-1 min-w-0 bg-black/60 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-amber-400"
+        />
+        <button
+          onClick={handleRequestSaveAntiPhrase}
+          className="shrink-0 px-3.5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs rounded-xl transition-colors active:scale-95 whitespace-nowrap"
+        >
+          Guardar
+        </button>
+      </div>
+    </div>
+
+    {/* Splash Screen Subtitle Phrase */}
+    <div className="space-y-1.5">
+      <label className="text-xs font-bold text-white/85 flex items-center gap-1.5">
+        <Volume2 size={13} className="text-cyan-400 shrink-0" />
+        Pantalla de carga LUX
+        <span className="ml-auto text-[10px] font-medium text-white/30">{splashPhrase.length}/20</span>
+      </label>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          maxLength={20}
+          value={splashPhrase}
+          onChange={(e) => setSplashPhrase(e.target.value)}
+          placeholder="Ej: Sin Excusas"
+          className="flex-1 min-w-0 bg-black/60 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-cyan-400 font-semibold"
+        />
+        <button
+          onClick={handleRequestSaveSplashPhrase}
+          className="shrink-0 px-3.5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs rounded-xl transition-colors active:scale-95 whitespace-nowrap"
+        >
+          Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+</Only>
+
+<Only page="charts">
  {/* Chart Style */}
  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 transition-colors">
  <div className="flex items-center justify-between">
- <div className="flex items-center gap-3">
- <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+ <div className="flex items-center gap-3 min-w-0 flex-1">
+ <div className="w-10 h-10 shrink-0 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
  <BarChart3 size={18} className="text-cyan-400" />
  </div>
  <div>
@@ -547,12 +535,14 @@ export const SystemSection = () => {
  </div>
  </div>
  </div>
+</Only>
 
+<Only page="layout">
  {/* Section Controls */}
  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 transition-colors">
  <div className="flex items-center justify-between">
- <div className="flex items-center gap-3">
- <div className="w-10 h-10 rounded-xl bg-fuchsia-500/10 flex items-center justify-center border border-fuchsia-500/20">
+ <div className="flex items-center gap-3 min-w-0 flex-1">
+ <div className="w-10 h-10 shrink-0 rounded-xl bg-fuchsia-500/10 flex items-center justify-center border border-fuchsia-500/20">
  <Settings2 size={18} className="text-fuchsia-400" />
  </div>
  <div>
@@ -564,7 +554,7 @@ export const SystemSection = () => {
  <button
  onClick={() => updateHabitSectionControl(habitSectionControl === 'VISIBLE' ? 'HIDDEN' : 'VISIBLE')}
  className={cn(
- "w-12 h-6 rounded-full transition-colors duration-150 relative border",
+ "w-12 h-6 shrink-0 rounded-full transition-colors duration-150 relative border",
  habitSectionControl === 'VISIBLE' 
  ? "bg-fuchsia-500/30 border-fuchsia-500/50" 
  : "bg-white/10 border-white/10"
@@ -621,8 +611,8 @@ export const SystemSection = () => {
  {/* Customization of Drawer (+) and Top Quick Actions */}
   <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
     <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="w-10 h-10 shrink-0 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
           <LayoutGrid size={18} className="text-purple-400" />
         </div>
         <div>
@@ -633,7 +623,7 @@ export const SystemSection = () => {
       
       <button
         onClick={handleOpenDockConfig}
-        className="px-4 py-2 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5"
+        className="shrink-0 px-4 py-2 bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5"
       >
         <span>Personalizar</span>
       </button>
@@ -726,7 +716,9 @@ export const SystemSection = () => {
       </div>
     </div>
   </div>
+</Only>
 
+<Only page="defaults">
  {/* Default Habit View */}
  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
  <div className="flex items-center gap-3">
@@ -760,7 +752,9 @@ export const SystemSection = () => {
  </button>
  </div>
  </div>
+</Only>
 
+<Only page="charts">
   {/* Default Chart Visibility */}
   <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
     <div className="flex items-center gap-3">
@@ -818,7 +812,9 @@ export const SystemSection = () => {
       })}
     </div>
   </div>
+</Only>
 
+<Only page="language">
  {/* Week Starts On */}
  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
  <div className="flex items-center gap-3">
@@ -858,7 +854,9 @@ export const SystemSection = () => {
  </button>
  </div>
  </div>
+</Only>
 
+<Only page="charts">
  {/* Default Chart Views */}
  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors relative overflow-hidden">
  {/* Glassmorphism Blur Effect */}
@@ -942,7 +940,9 @@ export const SystemSection = () => {
  })}
  </div>
  </div>
+</Only>
 
+<Only page="defaults">
  {/* Default Projects View */}
  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors relative overflow-hidden">
  <div className="absolute inset-0 bg-white/[0.05] z-0 pointer-events-none" />
@@ -1063,7 +1063,9 @@ export const SystemSection = () => {
   })}
   </div>
   </div>
+</Only>
 
+<Only page="taskfilters">
   {/* Default Task Filters */}
  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-5 transition-colors relative overflow-hidden">
  <div className="absolute inset-0 bg-white/[0.05] z-0 pointer-events-none" />
@@ -1225,6 +1227,7 @@ export const SystemSection = () => {
  </div>
  </div>
  </div>
+</Only>
 
  {/* Tone Change Confirmation Modal with 10 Preview Messages */}
   <AnimatePresence>

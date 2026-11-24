@@ -10,11 +10,11 @@ import { FrameInventory } from '@/modules/progression/ui/FrameInventory';
 import type { Attribute, BadHabit, ViceLedgerEntry, ViceOffer } from '../../types';
 import { toast } from 'react-hot-toast';
 import { pulseWorld } from '@/immersion/engine';
-import { DealCard, RarityTag, ViceCard, toRgb } from './market/ViceCard';
+import { RarityTag, ViceCard, toRgb } from './market/ViceCard';
 import { PurchaseRitual } from './market/PurchaseRitual';
 import { OfferConfigSheet } from './market/OfferConfigSheet';
 import { ViceLedgerView } from './market/ViceLedgerView';
-import { availableUses, dealOfTheDay, offerOf, passQuote, streakAtStake, viceRarity } from './market/viceMarket';
+import { availableUses, offerOf, passQuote, streakAtStake, viceRarity } from './market/viceMarket';
 import confetti from 'canvas-confetti';
 import { 
     Coins, Zap, Palette, ShoppingBag, 
@@ -443,9 +443,8 @@ const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSp
   const offMarket = vices.filter(h => offerOf(h).mode === 'OFF');
   const owned = vices.filter(h => availableUses(h) > 0);
   const colorOf = (h: BadHabit) => toRgb(h.customColor || attributes?.find(a => a.id === h.attribute)?.color);
-  const dealId = dealOfTheDay(vices);
-  const dealHabit = dealId ? vices.find(h => h.id === dealId) || null : null;
-  const quoteOf = (h: BadHabit) => passQuote(h, ledger, dealId);
+  // No "deal of the day" on bad habits: passes always sell at their regular price.
+  const quoteOf = (h: BadHabit) => passQuote(h, ledger, null);
   const passesOwned = vices.reduce((s, h) => s + (h.vicePasses || 0), 0);
   const daysAtStake = vices.reduce((s, h) => s + streakAtStake(h), 0);
   const spentThisWeek = ledger.filter(e => Date.now() - e.createdAt < 7 * DAY_MS).reduce((s, e) => s + e.price, 0);
@@ -652,16 +651,6 @@ const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSp
                   </div>
                 ) : (
                   <>
-                    {dealHabit && (
-                      <DealCard
-                        habit={dealHabit}
-                        rgb={colorOf(dealHabit)}
-                        quote={quoteOf(dealHabit)}
-                        gold={vault}
-                        onBuy={() => setRitualId(dealHabit.id)}
-                      />
-                    )}
-
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {onSale.map(h => (
                         <ViceCard

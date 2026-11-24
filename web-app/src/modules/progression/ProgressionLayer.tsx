@@ -7,7 +7,7 @@
 // sync or a complete/undo/complete cycle never pays twice.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { Suspense, lazy, useCallback, useEffect, useRef } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef } from 'react';
 import type { Habit, Project, Quest, Session } from '@/types';
 import { toLocalISOString, parseLocalDate } from '@/utils/dateUtils';
 import { dayEndsAt, getDayKey, type DayKey } from './engine';
@@ -22,9 +22,11 @@ import { FrameUnlocker } from './ui/FrameUnlocker';
 import { rankStyle } from './ui/tokens';
 import type { ProgressionTab } from './ui/ProgressionScreen';
 import { XP_BASE } from './xpRules';
+import { preloadable } from '@/utils/preloadable';
 import './ui/progression.css';
 
-const ProgressionScreen = lazy(() => import('./ui/ProgressionScreen').then(m => ({ default: m.ProgressionScreen })));
+// Preloadable: warmed up in idle time so opening the screen never waits on the chunk.
+const ProgressionScreen = preloadable(() => import('./ui/ProgressionScreen').then(m => ({ default: m.ProgressionScreen })));
 
 /** Completions older than this when detected are treated as synced, not live (no report). */
 const LIVE_WINDOW_MS = 10 * 60_000;
@@ -67,6 +69,12 @@ export const ProgressionLayer: React.FC<Props> = ({ user, habits, quests, projec
   const data = useRef({ habits, quests, projects });
   data.current = { habits, quests, projects };
   const seen = useRef<Seen | null>(null);
+
+  // Warm the ranks screen up once the app is idle.
+  useEffect(() => {
+    const t = window.setTimeout(() => { ProgressionScreen.preload().catch(() => {}); }, 3000);
+    return () => window.clearTimeout(t);
+  }, []);
 
   // 1. Load the user's progression.
   useEffect(() => {

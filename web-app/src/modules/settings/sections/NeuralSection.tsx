@@ -330,10 +330,6 @@ export const NeuralSection = () => {
 
   return (
     <div className="space-y-8 pb-4">
-      <div className="space-y-1">
-        <h2 className="text-xl font-bold text-white tracking-tight">{t('settings.attributeEditor', 'Traits')}</h2>
-        <p className="text-white/40 text-sm font-medium">{t('settings.attributeEditorDesc', 'Your core attributes and cognitive parameters.')}</p>
-      </div>
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">

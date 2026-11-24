@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Palette, Eye, Check, Sparkles, Briefcase, Zap, Layers, Rocket, Coins, Hexagon, ChevronDown, Brain, Dumbbell, Wallet, Target, Users, Crown, Lock } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
+import { Only } from '../Only';
 import { useTheme } from '@/context/ThemeContext';
 import { THEMES, ThemeId, THEME_PRICES, DEFAULT_UNLOCKED_THEMES, ThemeConfig, ThemeCategory } from '../../../config/themes';
 import { cn } from '../../../utils/cn';
@@ -69,7 +70,7 @@ export const VisualsSection = () => {
   const { currentTheme, setTheme, vividMode, toggleVividMode, radarConfig, updateRadarConfig, isPro, showProModal } = useSettings();
   const { previewTheme, setPreviewTheme } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState<DisplayCategory>('mine');
-  const [isRadarConfigOpen, setIsRadarConfigOpen] = useState(false);
+  const [isRadarConfigOpen, setIsRadarConfigOpen] = useState(true);
   const [isColorDropdownOpen, setIsColorDropdownOpen] = useState(false);
   
   // Theme purchase modal state
@@ -253,12 +254,9 @@ export const VisualsSection = () => {
 
   return (
     <div className="space-y-8 pb-4 relative select-none">
-      <div className="space-y-1">
-        <h2 className="text-lg font-semibold text-white">{t('settings.tabs.design', 'Visual')}</h2>
-        <p className="text-white/40 text-sm">{t('settings.visualDesc', 'Customize themes and display settings.')}</p>
-      </div>
 
       <div className="space-y-4">
+<Only page="effects">
         {/* Vivid Mode */}
         <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-4 hover:border-white/[0.08] transition-colors relative overflow-hidden group">
           <div 
@@ -299,7 +297,9 @@ export const VisualsSection = () => {
 
         {/* Immersive world: depth, motion, haptics, sound */}
         <ImmersionSettingsCard />
+</Only>
 
+<Only page="radar">
         {/* ─── RADAR CHART CUSTOMIZATION SECTION (COMPACT & COLLAPSIBLE) ─── */}
         <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-4 transition-colors">
           <div className="flex items-center justify-between">
@@ -629,7 +629,9 @@ export const VisualsSection = () => {
             )}
           </AnimatePresence>
         </div>
+</Only>
 
+<Only page="themes">
         {/* Themes Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-2">
@@ -764,6 +766,7 @@ export const VisualsSection = () => {
             })}
           </div>
         </div>
+</Only>
       </div>
 
       {/* Radar Color Purchase Confirmation Modal */}

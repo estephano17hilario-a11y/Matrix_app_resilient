@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { User, LogOut, Edit2, Check, X, Link2, Unlink, Eye, EyeOff, Loader2, Lock, Trash2 } from 'lucide-react';
 import { useSettings } from '../SettingsContext';
+import { Only } from '../Only';
 import { useAuth } from '@/context/AuthContext';
 import { useLux } from '@/context/LuxContext';
 import { getAvatarPath } from '../../../config/avatars';
@@ -197,11 +198,8 @@ export const AccountSection = () => {
 
   return (
     <div className="space-y-8 pb-4">
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-white">{t('settings.tabs.profile', 'Profile')}</h2>
-          <p className="text-white/40 text-sm">{t('settings.profileDesc', 'Your identity and connection status.')}</p>
-        </div>
 
+<Only page="profile">
       <div className="bg-gradient-to-br from-white/[0.05] to-white/[0.01] border border-white/[0.05] rounded-[20px] p-5 relative overflow-hidden group">
         <div 
           className="absolute top-0 right-0 w-48 h-48 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity" 
@@ -284,7 +282,9 @@ export const AccountSection = () => {
           <AvatarCarouselQuick />
         </div>
       </div>
+</Only>
 
+<Only page="security">
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-bold text-white tracking-wide">Seguridad</h3>
@@ -385,7 +385,9 @@ export const AccountSection = () => {
           )}
         </div>
       </div>
+</Only>
 
+<Only page="session">
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-bold text-white tracking-wide">{t('settings.session', 'Session')}</h3>
@@ -426,6 +428,7 @@ export const AccountSection = () => {
           </div>
         </button>
       </div>
+</Only>
 
       <ConfirmationModal
         isOpen={showDeleteConfirm}

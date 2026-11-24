@@ -613,7 +613,7 @@ export const QuestModal = React.memo(({
                                         {/* Optional time of day for the deadline */}
                                         <div className="rounded-[1.2rem] bg-white/5 border border-white/5 flex items-center justify-between px-4 py-2 relative overflow-hidden">
                                             <span className="text-[9px] font-black text-white/30 uppercase flex items-center gap-2">
-                                                {t('modals.quest.dueTime', 'Hora límite')}
+                                                {t('modals.quest.dueTime', 'Hora')}
                                             </span>
                                             <div className="flex items-center gap-2">
                                                 <input
@@ -621,7 +621,7 @@ export const QuestModal = React.memo(({
                                                     value={deadlineTime}
                                                     onChange={(e) => setDeadlineTime(e.target.value)}
                                                     className="bg-transparent text-sm font-bold text-white outline-none [color-scheme:dark] min-w-[88px] text-right"
-                                                    aria-label={t('modals.quest.dueTime', 'Hora límite')}
+                                                    aria-label={t('modals.quest.dueTime', 'Hora')}
                                                 />
                                                 {deadlineTime && (
                                                     <button

@@ -745,7 +745,7 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
           </p>
         </motion.div>
       ) : (
-        <div key={listKey} className={config.timeLeft ? '-ml-2.5' : undefined}>
+        <div key={listKey} className={config.timeLeft ? '-ml-1' : undefined}>
           {sections.map(section => {
             const meta = sectionMeta(section);
             const SIcon = meta.icon;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef, Suspense, useCallback, useMemo } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, Suspense, useCallback, useMemo, startTransition } from 'react';
 import { createPortal } from 'react-dom';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
@@ -666,11 +666,9 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  // ⚡ PERFORMANCE: Add current view to loaded set
  useEffect(() => {
  if (currentView) {
- setLoadedViews(prev => {
- const newSet = new Set(prev);
- newSet.add(currentView);
- return newSet;
- });
+ // Keep the same Set when the section is already mounted: a new Set on every
+ // navigation re-rendered the whole Dashboard right after the transition.
+ setLoadedViews(prev => (prev.has(currentView) ? prev : new Set(prev).add(currentView)));
  }
  }, [currentView]);
 
@@ -1326,6 +1324,17 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  // opening any of them later never waits for (or flashes) a loading state.
  useEffect(() => { ON_DEMAND.forEach(c => { c.preload().catch(() => {}); }); }, []);
 
+ // Routine is the only section that used to mount on its first visit (a full
+ // render on the tap). Mount it once, in idle time after boot, like the rest.
+ useEffect(() => {
+  const mount = () => startTransition(() => setLoadedViews(prev => (prev.has('ROUTINE') ? prev : new Set(prev).add('ROUTINE'))));
+  const timer = window.setTimeout(() => {
+   const ric = (window as any).requestIdleCallback as ((cb: () => void, o?: { timeout: number }) => number) | undefined;
+   if (ric) ric(mount, { timeout: 5000 }); else mount();
+  }, 3500);
+  return () => window.clearTimeout(timer);
+ }, []);
+
  const sectionArrived = useRef(false);
  useLayoutEffect(() => {
   if (!sectionArrived.current) { sectionArrived.current = true; return; }
@@ -1583,6 +1592,9 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
        return;
      }
      if (state.isSettingsOpen) {
+       // Inside a settings page, "back" returns to the settings home first.
+       const ev = new CustomEvent('settings-back', { cancelable: true });
+       if (!window.dispatchEvent(ev)) return;
        state.setIsSettingsOpen(false);
        return;
      }

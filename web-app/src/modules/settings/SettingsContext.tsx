@@ -1,14 +1,16 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { ThemeId } from '../../config/themes';
 import { Attribute } from '../../types';
 import { RadarConfig, DEFAULT_RADAR_CONFIG } from '@/types/User';
 import { useAuth } from '@/context/AuthContext';
+import { resolvePage } from './registry';
 
 // Define the shape of the Settings Context
 interface SettingsContextType {
-  // Navigation
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
+  // Navigation: null = home (list of pages), otherwise the open page id
+  page: string | null;
+  openPage: (id: string) => void;
+  goHome: () => void;
   closeSettings: () => void;
 
   // Theme & Visuals
@@ -136,12 +138,15 @@ interface SettingsProviderProps {
 }
 
 export const SettingsProvider = ({ children, ...props }: SettingsProviderProps) => {
-  const [activeTab, setActiveTab] = useState(props.initialTab || 'visuals');
+  const [page, setPage] = useState<string | null>(() => resolvePage(props.initialTab));
+  const openPage = useCallback((id: string) => setPage(resolvePage(id)), []);
+  const goHome = useCallback(() => setPage(null), []);
   const { logout, user } = useAuth();
 
   const value: SettingsContextType = {
-    activeTab,
-    setActiveTab,
+    page,
+    openPage,
+    goHome,
     closeSettings: props.onClose,
     
     currentTheme: props.currentTheme,

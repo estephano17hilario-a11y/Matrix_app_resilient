@@ -42,6 +42,8 @@ export interface SettingsViewProps {
   onWeekStartDayChange?: (day: 0 | 1) => void;
   defaultChartViews?: any;
   onUpdateDefaultChartViews?: (views: any) => void;
+  defaultChartVisibility?: { tasks?: boolean; habits?: boolean; focus?: boolean };
+  onUpdateDefaultChartVisibility?: (visibility: any) => void;
   defaultProjectView?: 'PROJECT' | 'TRAIT' | 'NONE';
   onUpdateDefaultProjectView?: (view: 'PROJECT' | 'TRAIT' | 'NONE') => void;
   defaultTaskFilters?: any;
