@@ -16,6 +16,11 @@ import { NotificationTone, TONE_DEFINITIONS } from '../../../services/notificati
 import { PersistenceService } from '../../../services/persistence';
 import { supabase } from '../../../services/supabase';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import {
+  START_SECTIONS, HOLD_TARGETS, HOLD_MS_MIN, HOLD_MS_MAX, HOLD_MS_DEFAULT,
+  getStartSection, setStartSection as setStartSectionPref, getHoldTarget, setHoldTarget as setHoldTargetPref,
+  getHoldMs, setHoldMs as setHoldMsPref, type StartSection, type HoldTarget,
+} from '@/utils/startupPrefs';
 
 export const SystemSection = () => {
  const { t, i18n } = useTranslation();
@@ -194,6 +199,26 @@ export const SystemSection = () => {
     window.dispatchEvent(new CustomEvent('top-quick-actions-changed'));
     toast.success('Acciones rápidas de la cabecera actualizadas');
   };
+
+  const es = (i18n.language || 'es').toLowerCase().startsWith('es');
+  const SECTION_LABELS: Record<string, [string, string]> = {
+    TASKS: ['Tareas', 'Tasks'], HABITS: ['Hábitos', 'Habits'], FOCUS: ['Foco', 'Focus'], NOTES: ['Notas / Stats', 'Notes / Stats'],
+    FEED: ['Feed', 'Feed'], ROUTINE: ['Rutina', 'Routine'], ACHIEVEMENTS: ['Legacy', 'Legacy'], STORE: ['Tienda', 'Store'],
+  };
+  const sectionLabel = (id: string) => SECTION_LABELS[id]?.[es ? 0 : 1] ?? id;
+  const holdLabel = (id: HoldTarget) => {
+    switch (id) {
+      case 'DOCK_CONFIG': return es ? 'Editar barra (por defecto)' : 'Edit dock (default)';
+      case 'QUEST': return es ? 'Nueva misión' : 'New mission';
+      case 'SETTINGS': return es ? 'Configuración' : 'Settings';
+      case 'RANKS': return es ? 'Rangos' : 'Ranks';
+      case 'FRIENDS': return es ? 'Amigos' : 'Friends';
+      default: return sectionLabel(id);
+    }
+  };
+  const [startSection, setStartSectionState] = useState<StartSection | 'LAST'>(() => getStartSection());
+  const [holdTarget, setHoldTargetState] = useState<HoldTarget>(() => getHoldTarget());
+  const [holdMs, setHoldMsState] = useState<number>(() => getHoldMs());
 
   const handleOpenDockConfig = () => {
     window.dispatchEvent(new CustomEvent('open-dock-config'));
@@ -627,6 +652,89 @@ export const SystemSection = () => {
       >
         <span>Personalizar</span>
       </button>
+    </div>
+  </div>
+
+  {/* Section the app opens on */}
+  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 shrink-0 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
+        <LayoutTemplate size={18} className="text-cyan-400" />
+      </div>
+      <div>
+        <div className="text-base font-bold text-white tracking-tight">{es ? 'Sección de inicio' : 'Start section'}</div>
+        <div className="text-xs text-white/40 font-medium">{es ? 'La sección en la que se abre la app cada vez que entras' : 'The section the app opens on every time you enter'}</div>
+      </div>
+    </div>
+    <div className="grid grid-cols-2 gap-2">
+      {[{ id: 'LAST' as const, label: es ? 'Última usada' : 'Last used' }, ...START_SECTIONS.map(id => ({ id, label: sectionLabel(id) }))].map(opt => (
+        <button
+          key={`start-${opt.id}`}
+          onClick={() => { setStartSectionPref(opt.id); setStartSectionState(opt.id); toast.success(es ? 'Sección de inicio actualizada' : 'Start section updated'); }}
+          className={cn(
+            "py-2.5 px-3 rounded-xl transition-colors text-xs font-bold active:scale-95 border",
+            startSection === opt.id
+              ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40"
+              : "bg-white/5 text-white/60 border-white/5 hover:bg-white/10"
+          )}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  </div>
+
+  {/* Hold "+" */}
+  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 shrink-0 rounded-xl bg-violet-500/10 flex items-center justify-center border border-violet-500/20">
+        <Zap size={18} className="text-violet-400" />
+      </div>
+      <div>
+        <div className="text-base font-bold text-white tracking-tight">{es ? 'Mantener presionado el (+)' : 'Press and hold (+)'}</div>
+        <div className="text-xs text-white/40 font-medium">{es ? 'A dónde te lleva y cuánto hay que mantenerlo' : 'Where it takes you and how long to hold'}</div>
+      </div>
+    </div>
+
+    <div className="grid grid-cols-2 gap-2">
+      {HOLD_TARGETS.map(id => (
+        <button
+          key={`hold-${id}`}
+          onClick={() => { setHoldTargetPref(id); setHoldTargetState(id); toast.success(es ? 'Acción del (+) actualizada' : '(+) action updated'); }}
+          className={cn(
+            "py-2.5 px-3 rounded-xl transition-colors text-xs font-bold active:scale-95 border",
+            holdTarget === id
+              ? "bg-violet-500/20 text-violet-300 border-violet-500/40"
+              : "bg-white/5 text-white/60 border-white/5 hover:bg-white/10"
+          )}
+        >
+          {holdLabel(id)}
+        </button>
+      ))}
+    </div>
+
+    <div className="space-y-2 pt-1">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-black text-violet-400 uppercase tracking-widest">{es ? 'Tiempo de pulsado' : 'Hold time'}</span>
+        <span className="text-sm font-bold text-white tabular-nums">{(holdMs / 1000).toFixed(1)} s</span>
+      </div>
+      <input
+        type="range"
+        min={HOLD_MS_MIN}
+        max={HOLD_MS_MAX}
+        step={100}
+        value={holdMs}
+        onChange={(e) => { const v = Number(e.target.value); setHoldMsState(v); setHoldMsPref(v); }}
+        className="w-full accent-violet-400"
+        aria-label={es ? 'Tiempo de pulsado' : 'Hold time'}
+      />
+      <div className="flex justify-between text-[10px] text-white/30 font-medium">
+        <span>{(HOLD_MS_MIN / 1000).toFixed(1)} s</span>
+        <button onClick={() => { setHoldMsState(HOLD_MS_DEFAULT); setHoldMsPref(HOLD_MS_DEFAULT); }} className="text-white/50 underline underline-offset-2">
+          {es ? 'Restablecer' : 'Reset'} ({(HOLD_MS_DEFAULT / 1000).toFixed(1)} s)
+        </button>
+        <span>{(HOLD_MS_MAX / 1000).toFixed(1)} s</span>
+      </div>
     </div>
   </div>
 

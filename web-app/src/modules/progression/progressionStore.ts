@@ -403,7 +403,8 @@ export const progressionStore = {
   async refreshLeaderboard(profile: { displayName?: string | null; avatarId?: string | null }) {
     const uid = snap.userId;
     if (!uid) return;
-    set({ leaderboard: { status: 'LOADING' } });
+    // Stale-while-revalidate: keep showing the previous rows while they refresh.
+    if (snap.leaderboard.status !== 'READY') set({ leaderboard: { status: 'LOADING' } });
     await leaderboardService.publish({
       user_id: uid,
       display_name: profile.displayName ?? null,
@@ -413,7 +414,7 @@ export const progressionStore = {
       level: snap.level.level,
     });
     const rows = await leaderboardService.top(100);
-    if (!rows) return set({ leaderboard: { status: 'UNAVAILABLE' } });
+    if (!rows) { if (snap.leaderboard.status !== 'READY') set({ leaderboard: { status: 'UNAVAILABLE' } }); return; }
     const legendEntry = PROGRESSION_CONFIG.RANKS[PROGRESSION_CONFIG.RANKS.length - 1].entry;
     const isLegend = snap.standing.division === null;
     const [myPosition, legendPosition] = await Promise.all([

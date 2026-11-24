@@ -25,6 +25,7 @@ import { TouchLight } from '@/immersion/TouchLight';
 import { WorldWhisper } from '@/immersion/WorldWhisper';
 import { arrive } from '@/immersion/engine';
 import { startReveal } from '@/immersion/reveal';
+import { whenWarm } from '@/utils/bootWarmup';
 import Dashboard from './Dashboard';
 import { isRecoveryUrl, markPasswordRecovery } from '@/modules/auth/passwordRecovery';
 import { PasswordRecoveryModal } from '@/modules/auth/components/PasswordRecoveryModal';
@@ -81,12 +82,19 @@ const AppRoutes = () => {
     if (dashboardUnlocked) {
       // The name holds for a moment (the app renders and warms up behind it),
       // then fades out over the already-painted interface.
-      const timer = setTimeout(() => {
+      // The brand moment lasts at least 700 ms; after that the splash leaves as soon as every
+      // screen chunk, the fonts and the Routine section are in memory (capped at 2.6 s so a
+      // slow network never traps the user behind it). Fast devices get in sooner, and the
+      // interface that appears is already fully warm.
+      let cancelled = false;
+      let gone: ReturnType<typeof setTimeout> | undefined;
+      whenWarm(700, 2600).then(() => {
+        if (cancelled) return;
         setShowSplash(false);
         arrive();
-      }, 1100);
-      const gone = setTimeout(() => setSplashMounted(false), 1100 + 500);
-      return () => { clearTimeout(timer); clearTimeout(gone); };
+        gone = setTimeout(() => setSplashMounted(false), 500);
+      });
+      return () => { cancelled = true; if (gone) clearTimeout(gone); };
     }
   }, [dashboardUnlocked]);
 

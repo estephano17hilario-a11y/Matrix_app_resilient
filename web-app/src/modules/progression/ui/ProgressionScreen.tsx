@@ -130,6 +130,7 @@ const REASON: Record<string, (e: EloEvent) => string> = {
   PROJECT_GOAL_MISSED: () => 'Meta de foco de proyecto no cumplida',
   STREAK_MILESTONE: e => `Bono de racha: ${e.meta?.days} días`,
   STREAK_BROKEN: e => `Racha de ${e.meta?.days} días rota`,
+  ADMIN_GRANT: () => 'Ajuste de ELO',
 };
 
 const REASON_ICON: Record<string, React.ReactNode> = {
@@ -139,6 +140,7 @@ const REASON_ICON: Record<string, React.ReactNode> = {
   PROJECT_GOAL_MISSED: <Target size={15} />,
   STREAK_MILESTONE: <Flame size={15} />,
   STREAK_BROKEN: <HeartCrack size={15} />,
+  ADMIN_GRANT: <Flame size={15} />,
 };
 
 const MONTHS_SHORT = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];

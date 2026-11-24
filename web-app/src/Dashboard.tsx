@@ -60,6 +60,7 @@ import { pulseWorld, runSceneTransition, setScene, setSceneAccent, setWorldScrol
 import { revealNow } from './immersion/reveal';
 import { onPress } from './immersion/press';
 import { preloadable } from './utils/preloadable';
+import { registerWarmup, deferredWarmup } from './utils/bootWarmup';
 import { availableUses } from './modules/store/market/viceMarket';
 import { useDepthRecede } from './immersion/useDepthRecede';
 import { isDockOpenNow, requestDockClose } from './modules/dashboard/dockState';
@@ -96,6 +97,12 @@ const SCENE_ORDER = ['TASKS', 'HABITS', 'FOCUS', 'NOTES', 'FEED', 'ROUTINE', 'AC
 // Every on-demand screen, warmed up behind the boot splash (see the effect in
 // Dashboard), so the first time one opens it is already in memory.
 const ON_DEMAND = [HabitVisualView, FocusView, NotesView, AchievementsScreen, StoreScreen, SmartTaskWizard, StrategicMapView, ProUpgradeModal, StreakRoadmapView, PomodoroView, ImprovementFeedView, RoutineView];
+
+// Started when this module is evaluated (script start), in parallel with persistence and
+// auth, instead of after the Dashboard's first render. The boot splash waits for these.
+ON_DEMAND.forEach(c => { registerWarmup(() => c.preload()); });
+// The Routine section is the only one not mounted from the start: it mounts behind the splash.
+const routineMounted = deferredWarmup();
 
 const SuspenseFallback = () => (
  <div className="flex items-center justify-center h-full w-full min-h-[200px]">
@@ -1322,17 +1329,27 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  // section is already there. The very first view keeps its entrance.
  // Warm every on-demand screen while the boot splash still covers the app, so
  // opening any of them later never waits for (or flashes) a loading state.
- useEffect(() => { ON_DEMAND.forEach(c => { c.preload().catch(() => {}); }); }, []);
+ // (The chunks themselves are requested at module load, see ON_DEMAND above.)
 
  // Routine is the only section that used to mount on its first visit (a full
- // render on the tap). Mount it once, in idle time after boot, like the rest.
+ // render on the tap). Mount it right after the first paint, still behind the
+ // boot splash, as soon as its chunk is in memory.
  useEffect(() => {
-  const mount = () => startTransition(() => setLoadedViews(prev => (prev.has('ROUTINE') ? prev : new Set(prev).add('ROUTINE'))));
-  const timer = window.setTimeout(() => {
-   const ric = (window as any).requestIdleCallback as ((cb: () => void, o?: { timeout: number }) => number) | undefined;
-   if (ric) ric(mount, { timeout: 5000 }); else mount();
-  }, 3500);
-  return () => window.clearTimeout(timer);
+  let cancelled = false;
+  let timer = 0;
+  const mount = () => {
+   startTransition(() => setLoadedViews(prev => (prev.has('ROUTINE') ? prev : new Set(prev).add('ROUTINE'))));
+   // Count it as warm once React has committed the transition.
+   window.setTimeout(routineMounted, 120);
+  };
+  RoutineView.preload().catch(() => {}).then(() => {
+   if (cancelled) return;
+   timer = window.setTimeout(() => {
+    const ric = (window as any).requestIdleCallback as ((cb: () => void, o?: { timeout: number }) => number) | undefined;
+    if (ric) ric(mount, { timeout: 600 }); else mount();
+   }, 150);
+  });
+  return () => { cancelled = true; window.clearTimeout(timer); };
  }, []);
 
  const sectionArrived = useRef(false);

@@ -68,9 +68,9 @@ export const PAGES: SettingsPage[] = [
   },
   {
     id: 'layout', group: 'interface', section: 'system', icon: LayoutTemplate, tint: '#ec4899',
-    es: { title: 'Barra y accesos rápidos', desc: 'Dock, menú (+) e iconos de la cabecera' },
-    en: { title: 'Dock & quick actions', desc: 'Dock, (+) menu and header icons' },
-    keywords: 'dock barra inferior layout aura legacy menu desplegable plus mas acciones rapidas quick actions hud cabecera header iconos icons secciones habitos section controls botones',
+    es: { title: 'Barra y accesos rápidos', desc: 'Dock, sección de inicio, menú (+) y su pulsación larga' },
+    en: { title: 'Dock & quick actions', desc: 'Dock, start section, (+) menu and its long press' },
+    keywords: 'inicio start arranque abrir open sección section mantener presionado pulsar pulsacion larga hold long press tiempo time segundos seconds dock barra inferior layout aura legacy menu desplegable plus mas acciones rapidas quick actions hud cabecera header iconos icons secciones habitos section controls botones',
   },
   {
     id: 'charts', group: 'interface', section: 'system', icon: LineChart, tint: '#22d3ee',

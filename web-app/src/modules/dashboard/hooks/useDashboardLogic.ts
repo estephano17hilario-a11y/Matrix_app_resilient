@@ -39,6 +39,7 @@ import { useReward } from '@/modules/rewards/context/RewardContext';
 
 import { SmartProject } from '@/types/SmartGoal';
 import { DockConfig, DEFAULT_DOCK_CONFIG } from '@/components/ui/DockConfigModal';
+import { initialView } from '@/utils/startupPrefs';
 import { pulseWorld } from '@/immersion/engine';
 import { anchorRestoredStreak, carriedDailyStreak, computeHabitStreak, habitStreakRecovery, isDailyStreakMet, todayTaskCounts } from '@/utils/streakRules';
 import { dealOfTheDay, passQuote } from '@/modules/store/market/viceMarket';
@@ -205,10 +206,9 @@ export const useDashboardLogic = () => {
     const { theme: currentTheme, setTheme: setCurrentTheme, vividMode, setVividMode } = useTheme(); // Use ThemeContext instead of local state
     const [lastAchievement, setLastAchievement] = useState<Achievement | null>(null);
 
+    // Opens on the section the user pinned in Settings, or on the one they left.
     const [currentView, setCurrentView] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('lux_last_view') || localStorage.getItem('matrix_last_view') || 'TASKS';
-        }
+        if (typeof window !== 'undefined') return initialView();
         return 'TASKS';
     });
 

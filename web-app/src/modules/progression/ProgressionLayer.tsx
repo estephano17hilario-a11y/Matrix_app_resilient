@@ -23,10 +23,12 @@ import { rankStyle } from './ui/tokens';
 import type { ProgressionTab } from './ui/ProgressionScreen';
 import { XP_BASE } from './xpRules';
 import { preloadable } from '@/utils/preloadable';
+import { registerWarmup } from '@/utils/bootWarmup';
 import './ui/progression.css';
 
 // Preloadable: warmed up in idle time so opening the screen never waits on the chunk.
 const ProgressionScreen = preloadable(() => import('./ui/ProgressionScreen').then(m => ({ default: m.ProgressionScreen })));
+registerWarmup(() => ProgressionScreen.preload());
 
 /** Completions older than this when detected are treated as synced, not live (no report). */
 const LIVE_WINDOW_MS = 10 * 60_000;
@@ -70,11 +72,18 @@ export const ProgressionLayer: React.FC<Props> = ({ user, habits, quests, projec
   data.current = { habits, quests, projects };
   const seen = useRef<Seen | null>(null);
 
-  // Warm the ranks screen up once the app is idle.
+  // The ranks screen chunk is requested at module load (see registerWarmup above). Once the
+  // app is idle, also fetch the leaderboard so the first visit to Ranks already has rows.
   useEffect(() => {
-    const t = window.setTimeout(() => { ProgressionScreen.preload().catch(() => {}); }, 3000);
+    if (!snap.ready || !snap.userId) return;
+    const t = window.setTimeout(() => {
+      if (progressionStore.getSnapshot().leaderboard.status === 'IDLE') {
+        progressionStore.refreshLeaderboard({ displayName: user?.displayName, avatarId: user?.avatarId }).catch(() => {});
+      }
+    }, 2500);
     return () => window.clearTimeout(t);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snap.ready, snap.userId]);
 
   // 1. Load the user's progression.
   useEffect(() => {

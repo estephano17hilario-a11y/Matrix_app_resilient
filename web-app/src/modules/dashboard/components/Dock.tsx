@@ -6,6 +6,7 @@ import { DockConfig, DockItemConfig, DOCK_ITEMS, DockItemId } from '@/components
 import { onPress } from '@/immersion/press';
 import { LuxSheen } from '@/immersion/LuxSheen';
 import { publishDockOpen } from '../dockState';
+import { getHoldMs, getHoldTarget } from '@/utils/startupPrefs';
 
 interface DockProps {
  currentView: string;
@@ -86,8 +87,16 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
    window.dispatchEvent(new CustomEvent('open-dock-config'));
  };
 
- // Holding "+" for 1.7 s opens that editor. The tap itself still toggles the menu as usual.
- const LONG_PRESS_MS = 1700;
+ // Holding "+" runs the action chosen in Settings (default: that editor) after the
+ // chosen time. The tap itself still toggles the menu as usual.
+ const runHoldAction = () => {
+   const target = getHoldTarget();
+   if (target === 'DOCK_CONFIG') { openDockConfig(); return; }
+   if (target === 'QUEST') { onToggle(false); onOpenModal('QUEST'); return; }
+   // Already there: just close the menu (re-selecting the active section would flip its sub-mode).
+   if (target === currentView) { onToggle(false); return; }
+   handleSmartNav(target);
+ };
  const longTimer = React.useRef<number | null>(null);
  const longFired = React.useRef(false);
  const clearLong = () => { if (longTimer.current !== null) { window.clearTimeout(longTimer.current); longTimer.current = null; } };
@@ -103,8 +112,8 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
          longTimer.current = null;
          longFired.current = true;
          try { navigator.vibrate?.(40); } catch { /* no haptics */ }
-         openDockConfig();
-       }, LONG_PRESS_MS);
+         runHoldAction();
+       }, getHoldMs());
      }
      plusPress.onPointerDown(e);
    },
