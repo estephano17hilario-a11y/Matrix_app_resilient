@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import * as LucideIcons from 'lucide-react';
+import * as LucideIcons from '@/utils/lucideRegistry';
 import { X, Plus, CheckCircle2, Hash, List, ChevronDown, Star, Target, Zap, AlertCircle, Calendar, Palette, Trash2, GripVertical, Sliders } from 'lucide-react';
 import { Attribute, Habit, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';

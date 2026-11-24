@@ -28,7 +28,7 @@ import { DateSelectionModal } from './DateSelectionModal';
 let LucideIconsCache: Record<string, React.ElementType> | null = null;
 const loadLucideIcons = async (): Promise<Record<string, React.ElementType>> => {
     if (LucideIconsCache) return LucideIconsCache;
-    const mod = await import('lucide-react');
+    const mod = await import('@/utils/lucideRegistry');
     LucideIconsCache = mod as unknown as Record<string, React.ElementType>;
     return LucideIconsCache;
 };

@@ -1,5 +1,5 @@
 import React from 'react';
-import * as LucideIcons from 'lucide-react';
+import * as LucideIcons from '@/utils/lucideRegistry';
 
 interface DynamicIconProps {
   icon?: string | null;

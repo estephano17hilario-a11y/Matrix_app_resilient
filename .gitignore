@@ -43,3 +43,9 @@ yarn-error.*
 # Google Services (contains sensitive API keys)
 google-services.json
 **/google-services.json
+
+# device logs
+*.logcat
+# scratch scripts embed VPS credentials: never commit
+scratch/*.mjs
+scratch/backup_world/

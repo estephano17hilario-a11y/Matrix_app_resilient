@@ -18,9 +18,11 @@ export function useRivalsLogic(
   userHabitPct: number = 0
 ) {
   const { user, profile, updateProfileLocally } = useAuth();
+  // Per-user key: the old global key leaked one account's progress into the next login on the same phone.
+  const progressKey = `matrix_rivals_progress_${user?.id || profile?.uid || 'anon'}`;
   const [progress, setProgress] = useState<RivalsProgressData>(() => {
     try {
-      const saved = localStorage.getItem('matrix_rivals_progress');
+      const saved = localStorage.getItem(progressKey);
       if (saved) return JSON.parse(saved);
     } catch (e) {
       console.warn('Failed to parse local rivals progress:', e);
@@ -171,7 +173,7 @@ export function useRivalsLogic(
   // Save progress helper
   const saveProgress = useCallback(async (newProgress: RivalsProgressData) => {
     setProgress(newProgress);
-    localStorage.setItem('matrix_rivals_progress', JSON.stringify(newProgress));
+    localStorage.setItem(progressKey, JSON.stringify(newProgress));
 
     const targetId = user?.id || profile?.id || profile?.uid;
     if (targetId) {
@@ -190,7 +192,7 @@ export function useRivalsLogic(
         console.warn('[Rivals] Failed to persist progress to Supabase:', err);
       }
     }
-  }, [user, profile, updateProfileLocally]);
+  }, [user, profile, updateProfileLocally, progressKey]);
 
   // Claim victory and advance to next level
   const claimLevelVictory = useCallback(async (levelToClaim: number) => {

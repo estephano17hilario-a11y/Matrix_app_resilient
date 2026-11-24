@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import * as LucideIcons from 'lucide-react';
+import * as LucideIcons from '@/utils/lucideRegistry';
 import { useTranslation } from 'react-i18next';
 import {
   BookOpen, CalendarClock, Check, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, Clock, Flame, Moon, PenLine,

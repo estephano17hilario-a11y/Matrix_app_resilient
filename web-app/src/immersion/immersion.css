@@ -438,24 +438,6 @@ html.lux-immersive [contenteditable='true'] {
   animation: none !important;
 }
 
-/* The dock's "premium blur" rule (index.css) matches the same specificity as the
-   Android blur kill-switch and comes later, so on Android the dock kept a live
-   backdrop blur — re-blurred every frame while the dock grows and the interface
-   behind it scales and dims. That was the lag on "+". The dock keeps its glass
-   look with a translucent dark fill instead, and no backdrop-filter. */
-html.android-webview [data-lux-dock] [class*="backdrop-blur"],
-html.android-webview [data-lux-dock][class*="backdrop-blur"],
-html.android-webview [data-lux-dock] .glass-panel,
-html.android-webview [data-lux-dock] .aura-container,
-html.android-webview [data-lux-dock] .aura-container::after {
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-}
-html.android-webview [data-lux-dock] [class*="backdrop-blur"],
-html.android-webview [data-lux-dock] .aura-container {
-  background-color: rgba(10, 10, 16, 0.62) !important;
-}
-
 /* The scene sits above the dock's backdrop layer while the interface recedes
    (a modal, or the expanded dock). This used to be a React class driven by the
    dock state, which meant re-rendering the Dashboard on every "+" tap; the

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import * as LucideIcons from 'lucide-react';
+import * as LucideIcons from '@/utils/lucideRegistry';
 import { Check, Flame, MoreVertical, ChevronDown } from 'lucide-react';
 import { Habit, Attribute } from '../../../types';
 import { cn } from '../../../utils/cn';

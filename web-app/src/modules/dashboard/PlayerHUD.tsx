@@ -3,7 +3,7 @@ import { LuxSheen } from '@/immersion/LuxSheen';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { HelpCircle } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
+import * as LucideIcons from '@/utils/lucideRegistry';
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { LiquidProgressBar } from '@/components/ui/LiquidProgressBar';
 import { cn } from '@/utils/cn';

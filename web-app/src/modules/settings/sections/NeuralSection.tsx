@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Hexagon, Edit3, Check, X, Trash2, Plus } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
+import * as LucideIcons from '@/utils/lucideRegistry';
 import { useSettings } from '../SettingsContext';
 import { useAuth } from '../../../context/AuthContext';
 import { useTranslation } from 'react-i18next';

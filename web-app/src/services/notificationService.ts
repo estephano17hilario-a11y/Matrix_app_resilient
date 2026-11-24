@@ -460,7 +460,7 @@ export const notificationService = {
  if (diff > 0 && diff < 86400000) { // Only schedule if within 24 hours for web
  setTimeout(() => {
  if (typeof Notification !== 'undefined' && Notification.permission === "granted") {
- new Notification("Task Due", { body: title, icon: '/vite.svg' });
+ new Notification("Task Due", { body: title, icon: '/apple-touch-icon.png' });
  }
  }, diff);
  }
@@ -554,7 +554,7 @@ export const notificationService = {
  return;
  }
  if (Notification.permission === "granted") {
- new Notification(title, { body, icon: '/vite.svg' });
+ new Notification(title, { body, icon: '/apple-touch-icon.png' });
  }
  }
  },
@@ -595,7 +595,7 @@ export const notificationService = {
  if (diff > 0 && diff < 3600000) {
  setTimeout(() => {
  if (Notification.permission === "granted") {
- new Notification(title, { body, icon: '/vite.svg' });
+ new Notification(title, { body, icon: '/apple-touch-icon.png' });
  }
  }, diff);
  }

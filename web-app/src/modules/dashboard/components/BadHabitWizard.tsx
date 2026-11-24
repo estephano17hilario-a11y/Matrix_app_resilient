@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Zap, ShieldAlert, Skull, ChevronRight, ChevronLeft, AlertTriangle, Flame, Sparkles, Brain, Calendar, RotateCcw, Check, Info, ChevronDown, Hexagon, Scale, Target } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
+import * as LucideIcons from '@/utils/lucideRegistry';
 import { Attribute, BadHabit } from '../../../types';
 import { useTranslation } from 'react-i18next';
 import { IconPicker } from './IconPicker';

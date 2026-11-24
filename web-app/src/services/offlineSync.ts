@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { Preferences } from '@capacitor/preferences';
+import { mergeUserSettings } from './settingsSync';
 
 export interface OfflineAction {
   id: string; // Unique ID for the action
@@ -88,6 +89,14 @@ export const OfflineSyncService = {
         const filtered = queue.filter(a => !(a.itemId === action.itemId && a.collectionName === action.collectionName && a.userId === action.userId));
         filtered.push(newAction);
         await OfflineSyncService.saveQueue(filtered);
+      } else if (existing.type === 'SETTINGS_SAVE' && action.type === 'SETTINGS_SAVE') {
+        const prevPrefs = existing.data?.local_prefs;
+        existing.data = { ...existing.data, ...action.data };
+        if (prevPrefs || action.data?.local_prefs) {
+          existing.data.local_prefs = { ...(prevPrefs || {}), ...(action.data?.local_prefs || {}) };
+        }
+        existing.timestamp = Date.now();
+        await OfflineSyncService.saveQueue(queue);
       } else if (existing.type === 'SAVE' && action.type === 'UPDATE') {
         existing.data = { ...existing.data, ...action.data };
         existing.timestamp = Date.now();
@@ -241,16 +250,8 @@ export const OfflineSyncService = {
 
           if (upsertError) throw upsertError;
         } else if (action.type === 'SETTINGS_SAVE') {
-           const { error } = await supabase
-              .from('user_collections')
-              .upsert({
-                id: `config_${action.userId}`,
-                user_id: action.userId,
-                collection_name: 'settings',
-                data: action.data,
-                deleted: false
-              }, { onConflict: 'id' });
-            if (error) throw error;
+           // Merge (never replace): a queued save only carries the keys that changed.
+           await mergeUserSettings(action.userId, action.data || {});
         } else if (action.type === 'STATS_SYNC') {
            const updatePayload: any = {
              stats: action.data.stats,

@@ -7,7 +7,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { Habit, Attribute, BadHabit } from '../../types';
 import { RelapseChart } from './components/RelapseChart';
 import { BadHabitItem } from './components/BadHabitItem';
-import * as LucideIcons from 'lucide-react';
+import * as LucideIcons from '@/utils/lucideRegistry';
 import { Check } from 'lucide-react';
 import { HabitItem } from './components/HabitItem';
 import { QuantityUpdateModal } from './components/QuantityUpdateModal';

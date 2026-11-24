@@ -259,7 +259,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[350] bg-black/60 pointer-events-auto"
+            className="fixed inset-0 z-[350] bg-black/55 backdrop-blur-sm pointer-events-auto"
             onClick={() => {
               onToggle(false);
             }}
@@ -459,7 +459,6 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
  transform: isOpen ? 'translate3d(0,0,0)' : 'translate3d(0,-16px,0)',
  pointerEvents: isOpen ? 'auto' : 'none',
  willChange: 'transform, opacity',
- contain: 'layout paint',
  transition: isOpen
    ? 'opacity 0.22s ease 0.05s, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1) 0.05s'
    : 'opacity 0.1s ease, transform 0.1s ease',
@@ -689,7 +688,6 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
   transform: isOpen ? 'translate3d(0,0,0) scale(1)' : 'translate3d(0,15px,0) scale(0.98)',
   pointerEvents: isOpen ? 'auto' : 'none',
   willChange: 'transform, opacity',
-  contain: 'layout paint',
   transition: isOpen
     ? 'opacity 0.22s ease 0.06s, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1) 0.06s'
     : 'opacity 0.08s ease, transform 0.08s ease',

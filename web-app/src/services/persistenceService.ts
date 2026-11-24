@@ -5,6 +5,7 @@ import { DailyFeedEntry } from '../types/DailyFeedEntry';
 import { sanitizeFirestoreData } from '../utils/firestoreUtils';
 import { AuditLogger } from './auditService';
 import { OfflineSyncService } from './offlineSync';
+import { isTransientError, mergeUserSettings } from './settingsSync';
 
 // In-memory query cache for 0ms DB reads
 const collectionMemoryCache = new Map<string, { data: any[], timestamp: number }>();
@@ -82,25 +83,6 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
       // by combining userId, collectionName, and the item's targetId.
       const uniqueRecordId = `${userId}_${collectionName}_${targetId}`;
 
-      // Clean up any legacy rows to prevent duplicates from reappearing if this one is deleted
-      try {
-          const { data: existingRecords } = await supabase
-            .from('user_collections')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('collection_name', collectionName)
-            .contains('data', { id: targetId });
-            
-          if (existingRecords && existingRecords.length > 0) {
-              const legacyIds = existingRecords.filter(r => r.id !== uniqueRecordId).map(r => r.id);
-              if (legacyIds.length > 0) {
-                  await supabase.from('user_collections').delete().in('id', legacyIds);
-              }
-          }
-      } catch(e) {
-          console.warn('Failed to clean up legacy rows during save', e);
-      }
-
       // OPTIMISTIC LOCAL SAVE (Important for Instant UI)
       // The calling code often expects persistence to be fast.
       // However, we still need to wait for Supabase or catch the error.
@@ -117,7 +99,7 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
 
         if (error) throw error;
       } catch (networkError: any) {
-        const isNetwork = !navigator.onLine || networkError.message?.includes('fetch') || networkError.message?.includes('network');
+        const isNetwork = isTransientError(networkError);
         if (isNetwork) {
           console.log(`[Offline Sync] Queued SAVE for ${collectionName}/${targetId}`);
           await OfflineSyncService.addAction({
@@ -154,14 +136,25 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
 
       try {
         // Fetch existing data first to merge. Support legacy rows by searching inside JSONB.
-        const { data: existingRecords, error: fetchError } = await supabase
+        let { data: existingRecords, error: fetchError } = await supabase
           .from('user_collections')
           .select('id, data')
-          .eq('user_id', userId)
-          .eq('collection_name', collectionName)
-          .contains('data', { id: itemId });
+          .eq('id', uniqueRecordId)
+          .eq('user_id', userId);
 
         if (fetchError) throw fetchError;
+
+        if (!existingRecords || existingRecords.length === 0) {
+          // Rare: row written before ids were namespaced. Fall back to scanning the JSON.
+          const legacy = await supabase
+            .from('user_collections')
+            .select('id, data')
+            .eq('user_id', userId)
+            .eq('collection_name', collectionName)
+            .contains('data', { id: itemId });
+          if (legacy.error) throw legacy.error;
+          existingRecords = legacy.data;
+        }
 
         if (!existingRecords || existingRecords.length === 0) {
             console.warn(`[Persistence] Record not found for update: ${collectionName}/${itemId}. Skipping update to prevent data loss.`);
@@ -195,7 +188,7 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
 
         if (error) throw error;
       } catch (networkError: any) {
-        const isNetwork = !navigator.onLine || networkError.message?.includes('fetch') || networkError.message?.includes('network');
+        const isNetwork = isTransientError(networkError);
         if (isNetwork) {
           console.log(`[Offline Sync] Queued UPDATE for ${collectionName}/${itemId}`);
           await OfflineSyncService.addAction({
@@ -252,7 +245,7 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
         if (upsertError) throw upsertError;
 
       } catch (networkError: any) {
-        const isNetwork = !navigator.onLine || networkError.message?.includes('fetch') || networkError.message?.includes('network');
+        const isNetwork = isTransientError(networkError);
         if (isNetwork) {
           console.log(`[Offline Sync] Queued DELETE for ${collectionName}/${itemId}`);
           await OfflineSyncService.addAction({
@@ -299,32 +292,10 @@ const settingsService = {
     },
     save: async (userId: string, dataToSave: any) => {
         try {
-            // Merge with existing data to prevent race conditions when multiple components save concurrently
-            const { data: currentData } = await supabase
-              .from('user_collections')
-              .select('data')
-              .eq('id', `config_${userId}`)
-              .eq('user_id', userId)
-              .eq('collection_name', 'settings')
-              .maybeSingle();
-
-            const existingData = currentData?.data || {};
-            const mergedData = { ...existingData, ...dataToSave };
-
-            const { error } = await supabase
-              .from('user_collections')
-              .upsert({
-                id: `config_${userId}`,
-                user_id: userId,
-                collection_name: 'settings',
-                data: mergedData,
-                deleted: false
-              }, { onConflict: 'id' });
-            
-            if (error) throw error;
+            // Server-side merge: concurrent writers can no longer drop each other's keys.
+            await mergeUserSettings(userId, dataToSave);
         } catch (networkError: any) {
-            const isNetwork = !navigator.onLine || networkError.message?.includes('fetch') || networkError.message?.includes('network');
-            if (isNetwork) {
+            if (isTransientError(networkError)) {
               console.log(`[Offline Sync] Queued SETTINGS_SAVE for settings/config_${userId}`);
               await OfflineSyncService.addAction({
                 type: 'SETTINGS_SAVE',

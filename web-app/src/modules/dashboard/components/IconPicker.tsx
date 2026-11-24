@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import * as LucideIcons from 'lucide-react';
+import * as LucideIcons from '@/utils/lucideRegistry';
 import { Search, X, ChevronDown, Palette, ArrowDown, ListFilter, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../../utils/cn';

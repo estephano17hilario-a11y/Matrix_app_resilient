@@ -38,18 +38,16 @@ export default defineConfig({
       output: {
         // Compact attribute names
         compact: true,
+        // Stable vendor chunks: they change rarely, so the WebView/browser cache keeps them across app updates.
         manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('firebase')) return 'firebase';
-            // UI Vendor first (specifics)
-            if (id.includes('framer-motion') || id.includes('lucide-react') || id.includes('clsx') || id.includes('tailwind-merge')) return 'ui-vendor';
-            // Supabase client
-            if (id.includes('@supabase')) return 'supabase-vendor';
-            // React Core last (catch-all)
-            if (id.includes('react') || id.includes('react-dom')) return 'react-vendor';
-            // Heavy chart lib
-            if (id.includes('recharts') || id.includes('d3')) return 'charts-vendor';
-          }
+          if (!id.includes('node_modules')) return;
+          const inPkg = (...names) => names.some(n => id.includes('/node_modules/' + n + '/'));
+          if (inPkg('react', 'react-dom', 'scheduler')) return 'react-vendor';
+          if (inPkg('framer-motion', 'motion-dom', 'motion-utils', 'lucide-react', 'clsx', 'tailwind-merge')) return 'ui-vendor';
+          if (id.includes('/@supabase/')) return 'supabase-vendor';
+          if (inPkg('recharts', 'recharts-scale', 'victory-vendor', 'decimal.js-light', 'reselect', 'immer', 'redux') || id.includes('/node_modules/d3-') || id.includes('/@reduxjs/')) return 'charts-vendor';
+          if (inPkg('i18next', 'react-i18next', 'i18next-browser-languagedetector')) return 'i18n-vendor';
+          if (inPkg('date-fns')) return 'date-vendor';
         },
       },
     },
