@@ -556,6 +556,17 @@ html.lux-lite .lux-shine::before { opacity: 0; }
 html.android-webview .text-galactic { animation: none !important; }
 html.android-webview .btn-orb-glow::before { animation: none !important; }
 
+/* The orb's glow was sized as 200% of the "+" button, and the button changes
+   size every time the dock opens or closes (0.5s transition). A blurred
+   conic-gradient layer that resizes each frame is re-blurred and re-rasterised
+   each frame, right while the dock is expanding. A conic gradient depends only
+   on angle, so a fixed box (larger than the button at either size, clipped by
+   its overflow) looks identical and the blurred layer is rasterised once. */
+html .btn-orb-glow::before {
+  width: 132px;
+  height: 132px;
+}
+
 /* ── REDUCED MOTION ────────────────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
