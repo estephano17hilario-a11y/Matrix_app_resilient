@@ -16,7 +16,7 @@ import { cn } from '../../utils/cn';
 import { RoutineConfigSheet } from './RoutineConfigSheet';
 import { syncRoutineWidget } from './routineWidgetSync';
 import {
-  buildRoutineItems, countByPart, dayPartOf, formatHourRange, hourBlockOf, loadRoutineConfig, saveRoutineConfig, sectionize,
+  buildRoutineItems, countByPart, dayPartOf, formatHourRange, hideCompleted, hourBlockOf, loadRoutineConfig, saveRoutineConfig, sectionize,
   type DayPart, type DayPartFilter, type RoutineConfig, type RoutineItem, type RoutineSection,
 } from './routineEngine';
 
@@ -356,7 +356,10 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
     colorForAttribute: attrColor, labels,
   }), [habits, quests, projects, journalTimes, writtenDays, config, attrColor, labels]);
 
+  // Every item of the day, done or not: the counters, ring and "up next" read from this.
   const allItems = useMemo(() => itemsFor(date), [itemsFor, date]);
+  // What the list actually draws: "Mostrar completados" only hides done items from here, never from the counters.
+  const listItems = useMemo(() => hideCompleted(allItems, config), [allItems, config]);
 
   // Week strip: the 7 days around the selected date, with a pending/done hint each.
   const weekDays = useMemo(() => {
@@ -369,19 +372,19 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
     });
   }, [date, itemsFor]);
 
-  const counts = useMemo(() => countByPart(allItems), [allItems]);
+  const counts = useMemo(() => countByPart(listItems), [listItems]);
   // Hour blocks present in the day (only used when dividing by hours): the chips above the list.
   const hourBlocks = useMemo(() => {
     if (!config.divideByHour) return [];
     const byStart = new Map<number, { startHour: number; endHour: number; count: number }>();
-    for (const it of allItems) {
+    for (const it of listItems) {
       if (it.overdue || it.minutes === null) continue;
       const b = hourBlockOf(it.minutes, config.hourBlock);
       const cur = byStart.get(b.startHour);
       if (cur) cur.count += 1; else byStart.set(b.startHour, { ...b, count: 1 });
     }
     return Array.from(byStart.values()).sort((a, b) => a.startHour - b.startHour);
-  }, [allItems, config.divideByHour, config.hourBlock]);
+  }, [listItems, config.divideByHour, config.hourBlock]);
 
   // A filter that no longer exists (block size changed, mode switched) falls back to "Todo".
   useEffect(() => {
@@ -389,13 +392,13 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
   }, [filter, hourBlocks]);
 
   const visible = useMemo(() => {
-    if (filter === 'ALL') return allItems;
+    if (filter === 'ALL') return listItems;
     if (filter.startsWith('H')) {
       const start = Number(filter.slice(1));
-      return allItems.filter(it => it.minutes !== null && !it.overdue && hourBlockOf(it.minutes, config.hourBlock).startHour === start);
+      return listItems.filter(it => it.minutes !== null && !it.overdue && hourBlockOf(it.minutes, config.hourBlock).startHour === start);
     }
-    return allItems.filter(it => it.minutes !== null && !it.overdue && dayPartOf(it.minutes) === filter);
-  }, [allItems, filter, config.hourBlock]);
+    return listItems.filter(it => it.minutes !== null && !it.overdue && dayPartOf(it.minutes) === filter);
+  }, [listItems, filter, config.hourBlock]);
   const sections: RoutineSection[] = useMemo(() => sectionize(visible, config), [visible, config]);
 
   const doneCount = allItems.filter(i => i.done).length;
@@ -758,9 +761,13 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
           <motion.div animate={reduce ? undefined : { y: [0, -7, 0] }} transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }} className="mx-auto w-14 h-14 rounded-3xl bg-sky-400/10 border border-sky-400/20 flex items-center justify-center mb-4">
             <CalendarClock size={26} className="text-sky-300" />
           </motion.div>
-          <p className="text-[15px] font-black text-white/80">{tr('Nada programado', 'Nothing scheduled')}</p>
+          <p className="text-[15px] font-black text-white/80">
+            {allItems.length > 0 ? tr('Todo completado', 'All completed') : tr('Nada programado', 'Nothing scheduled')}
+          </p>
           <p className="text-[12px] text-white/35 mt-1.5 leading-relaxed">
-            {tr('Ponle hora a tus hábitos y tareas, o activa más cosas en el engranaje.', 'Give your habits and tasks a time, or turn more things on with the gear.')}
+            {allItems.length > 0
+              ? tr('Los completados están ocultos. Actívalos en el engranaje para verlos.', 'Completed items are hidden. Turn them on with the gear to see them.')
+              : tr('Ponle hora a tus hábitos y tareas, o activa más cosas en el engranaje.', 'Give your habits and tasks a time, or turn more things on with the gear.')}
           </p>
         </motion.div>
       ) : (

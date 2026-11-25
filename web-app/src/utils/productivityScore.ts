@@ -61,7 +61,19 @@ export function isHabitActive(habit: Habit, date: Date): boolean {
  * only reset by the daily reset. Between midnight and that reset they still
  * describe yesterday, so they only count when the habit was touched on `dayKey`.
  */
-const isFreshOn = (h: Habit, dayKey: string) => !h.lastUpdatedDate || getHistoryDateKey(h.lastUpdatedDate) === dayKey;
+export const isFreshOn = (h: Habit, dayKey: string) => !h.lastUpdatedDate || getHistoryDateKey(h.lastUpdatedDate) === dayKey;
+
+/**
+ * The habit still carries "today" progress (done flag, quantity, ticked sub-habits) that was
+ * recorded on an EARLIER day, so the daily reset has to run on it. A habit with no
+ * lastUpdatedDate is not reported as stale (we cannot tell when it was touched).
+ */
+export const hasStaleDailyState = (h: Habit, dayKey: string): boolean => {
+  if (!h.lastUpdatedDate || getHistoryDateKey(h.lastUpdatedDate) === dayKey) return false;
+  return !!h.completedToday
+    || (h.currentValue ?? 0) > 0
+    || (h.type === 'CHECKLIST' && !!h.checklist?.some(i => i.completed));
+};
 
 /** Whether a habit counts as completed on `dayKey`. */
 export function isHabitDoneOn(h: Habit, dayKey: string): boolean {

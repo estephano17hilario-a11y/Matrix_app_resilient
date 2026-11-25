@@ -312,6 +312,9 @@ object RoutineEngine {
                 val colorStr = habit.str("customColor") ?: attrColor(habit.str("attribute")).ifEmpty { null } ?: habit.str("color") ?: DEFAULT_COLOR
                 val color = parseColor(colorStr)
                 val habitDone = isHabitDoneOn(habit, key)
+                // Live progress (quantity, ticked sub-habits) only counts if recorded today: until the
+                // app's daily reset runs it still describes the previous day (twin of routineEngine.ts).
+                val live = isToday && isFreshOn(habit, key)
                 val title = habit.str("title") ?: continue
                 val emoji = emojiForHabit(habit, config)
                 val type = habit.str("type")
@@ -323,7 +326,7 @@ object RoutineEngine {
                         val subId = sub.str("id") ?: continue
                         val subDays = sub.ints("days")
                         if (subDays.isNotEmpty() && !subDays.contains(day.get(Calendar.DAY_OF_WEEK) - 1)) continue
-                        val subDone = if (isToday) sub.bool("completed") else sub.strs("history").any { historyKey(it) == key }
+                        val subDone = if (isToday) (sub.bool("completed") && live) else sub.strs("history").any { historyKey(it) == key }
                         val time = normalizeTime(sub.str("reminderTime") ?: habit.str("reminderTime"))
                         items.add(RoutineItem(
                             id = "$habitId-sub-$subId", kind = RoutineKind.SUBHABIT, title = sub.str("text") ?: "",
@@ -338,7 +341,7 @@ object RoutineEngine {
                 val slots = habit.objs("dividedTimes").sortedBy { it.str("time") ?: "" }
                 if (type == "QUANTITY" && habit.bool("isDivided") && habit.str("dividedMode") == "FIXED" && slots.isNotEmpty()) {
                     var accumulated = 0.0
-                    val current = habit.dbl("currentValue") ?: 0.0
+                    val current = if (live) habit.dbl("currentValue") ?: 0.0 else 0.0
                     val unit = habit.str("unit") ?: ""
                     slots.forEachIndexed { i, slot ->
                         val amount = slot.dbl("amount") ?: 0.0
@@ -365,7 +368,7 @@ object RoutineEngine {
                     }
                 }
                 val target = habit.dbl("targetValue") ?: 0.0
-                val current = habit.dbl("currentValue") ?: 0.0
+                val current = if (live) habit.dbl("currentValue") ?: 0.0 else 0.0
                 val unit = habit.str("unit") ?: ""
                 val shown = if (isToday) current else if (habitDone) target else 0.0
                 items.add(RoutineItem(

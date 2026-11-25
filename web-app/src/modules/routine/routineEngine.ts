@@ -1,12 +1,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// ROUTINE ENGINE — turns habits, tasks, projects and journaling reminders into one
+// ROUTINE ENGINE (Kotlin twin: android/.../widget/RoutineEngine.kt) — turns habits, tasks, projects and journaling reminders into one
 // chronological list for a day. Pure functions: no React, no storage, easy to test.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { isLastDayOfMonth } from 'date-fns';
 import type { Habit, Project, Quest } from '../../types';
 import { getHistoryDateKey, timeToMinutes, toLocalISOString } from '../../utils/dateUtils';
-import { isHabitDoneOn, isProjectActive } from '../../utils/productivityScore';
+import { isFreshOn, isHabitDoneOn, isProjectActive } from '../../utils/productivityScore';
 
 export type RoutineKind = 'HABIT' | 'SUBHABIT' | 'TASK' | 'PROJECT' | 'JOURNAL';
 export type DayPart = 'MORNING' | 'AFTERNOON' | 'NIGHT';
@@ -160,12 +160,16 @@ export const buildRoutineItems = (input: BuildRoutineInput): RoutineItem[] => {
       if (habit.archived || !isHabitDueOn(habit, date)) continue;
       const color = habit.customColor || colorForAttribute(habit.attribute) || habit.color || '#6366f1';
       const habitDone = isHabitDoneOn(habit, key);
+      // Today's live progress (quantity, ticked sub-habits) is only real if it was recorded today:
+      // until the daily reset runs it still describes the previous day.
+      const live = isToday && isFreshOn(habit, key);
+      const liveValue = live ? habit.currentValue || 0 : 0;
 
       if (habit.type === 'CHECKLIST' && habit.checklist && habit.checklist.length > 0) {
         for (const sub of habit.checklist) {
           if (sub.deleted) continue;
           if (sub.days && sub.days.length > 0 && !sub.days.includes(date.getDay())) continue;
-          const subDone = isToday ? !!sub.completed : (sub.history || []).some(d => getHistoryDateKey(d) === key);
+          const subDone = isToday ? (!!sub.completed && live) : (sub.history || []).some(d => getHistoryDateKey(d) === key);
           items.push(makeItem({
             id: `${habit.id}-sub-${sub.id}`,
             kind: 'SUBHABIT',
@@ -182,7 +186,7 @@ export const buildRoutineItems = (input: BuildRoutineInput): RoutineItem[] => {
         const slots = [...habit.dividedTimes].sort((a, b) => a.time.localeCompare(b.time));
         let accumulated = 0;
         slots.forEach((slot, i) => {
-          const slotDone = habitDone || (isToday && (habit.currentValue || 0) >= accumulated + slot.amount);
+          const slotDone = habitDone || (live && liveValue >= accumulated + slot.amount);
           items.push(makeItem({
             id: `${habit.id}-time-${i}`,
             kind: 'HABIT',
@@ -209,14 +213,14 @@ export const buildRoutineItems = (input: BuildRoutineInput): RoutineItem[] => {
           id: habit.id,
           kind: 'HABIT',
           title: habit.title,
-          subtitle: isQuantity ? `${isToday ? (habit.currentValue || 0) : (habitDone ? habit.targetValue || 0 : 0)} / ${habit.targetValue || 0} ${habit.unit || ''}`.trim() : undefined,
+          subtitle: isQuantity ? `${isToday ? liveValue : (habitDone ? habit.targetValue || 0 : 0)} / ${habit.targetValue || 0} ${habit.unit || ''}`.trim() : undefined,
           time,
           done: habitDone,
           color,
           habit,
           isQuantity,
           progress: isQuantity && habit.targetValue
-            ? Math.max(0, Math.min(1, (habitDone && !isToday ? habit.targetValue : (isToday ? habit.currentValue || 0 : 0)) / habit.targetValue))
+            ? Math.max(0, Math.min(1, (habitDone && !isToday ? habit.targetValue : (isToday ? liveValue : 0)) / habit.targetValue))
             : undefined,
         }));
       }
@@ -287,8 +291,15 @@ export const buildRoutineItems = (input: BuildRoutineInput): RoutineItem[] => {
     });
   }
 
-  return sortRoutineItems(items.filter(it => (config.showCompleted || !it.done) && (config.showUntimed || it.minutes !== null || it.overdue)));
+  // `showCompleted` is purely visual and is NOT applied here: the day's counters (hechas / pendientes /
+  // atrasadas, progress ring) must count completed items even while they are hidden from the list.
+  // Callers hide them with `hideCompleted` just before drawing.
+  return sortRoutineItems(items.filter(it => config.showUntimed || it.minutes !== null || it.overdue));
 };
+
+/** Visual filter: drops completed items from the list when the user chose not to show them. */
+export const hideCompleted = (items: RoutineItem[], config: Pick<RoutineConfig, 'showCompleted'>): RoutineItem[] =>
+  config.showCompleted ? items : items.filter(it => !it.done);
 
 /** Chronological: timed items by clock time, then untimed; ties by kind, then title. */
 export const sortRoutineItems = (items: RoutineItem[]): RoutineItem[] =>

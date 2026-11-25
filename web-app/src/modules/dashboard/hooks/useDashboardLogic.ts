@@ -30,7 +30,7 @@ import { notificationService } from '@/services/notificationService';
 import { toast } from 'react-hot-toast';
 import { toLocalISOString, getHistoryDateKey, parseLocalDate, getCompletedCountThisPeriod, getQuestDueDate } from '../../../utils/dateUtils';
 import { calculateNextLevelXp, calculateLevelFromXp, calculateXpForLevel, calculateSubTraitMaxXp, calculateAttributeMaxXp } from '../../../utils/leveling';
-import { calculateLiveProductivityScore, isHabitActive, getDetailedScoreBreakdown } from '../../../utils/productivityScore';
+import { calculateLiveProductivityScore, isHabitActive, getDetailedScoreBreakdown, hasStaleDailyState } from '../../../utils/productivityScore';
 import { playLightSound, playHabitCompleteSound, playQuestCompleteSound } from '../../../utils/soundEffects';
 import confetti from 'canvas-confetti';
 
@@ -2466,6 +2466,17 @@ export const useDashboardLogic = () => {
         return () => clearInterval(interval);
     }, []);
 
+    // Habits that still carry a previous day's progress (done flag / quantity / ticked sub-habits).
+    // A cloud sync or cache load can bring such stale flags back AFTER the daily reset already ran;
+    // since the reset effect used to depend only on habits.length it never ran again and
+    // yesterday's checks stayed all day. Depending on this signature re-runs it whenever stale
+    // state shows up (it goes back to '' once the reset clears the flags, so it cannot loop).
+    const staleHabitsKey = useMemo(() => {
+        const todayKey = toLocalISOString(new Date());
+        return habits.filter(h => hasStaleDailyState(h, todayKey)).map(h => h.id).join(',');
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [habits, dailyResetTrigger]);
+
     // --- DAILY RESET & STREAK LOGIC ---
     useEffect(() => {
         if (!habits.length || !user?.id) return;
@@ -2492,15 +2503,21 @@ export const useDashboardLogic = () => {
                 let changed = false;
 
                 // 1. Reset completedToday if it's a new day
-                const wasUpdatedToday = habit.lastUpdatedDate === todayStr;
+                // (lastUpdatedDate may carry a time part: compare day keys. Without a stamp,
+                // a habit that already has today's date in its history counts as touched today.)
+                const wasUpdatedToday = habit.lastUpdatedDate
+                    ? getHistoryDateKey(habit.lastUpdatedDate) === todayStr
+                    : (habit.history || []).some(d => getHistoryDateKey(d) === todayStr);
 
                 // Reset partial or full progress if it was made on a previous day
                 const hasPartialProgress = habit.currentValue !== undefined && habit.currentValue > 0 || 
                                            (habit.type === 'CHECKLIST' && habit.checklist?.some(i => i.completed));
 
                 if (!wasUpdatedToday && (habit.completedToday || hasPartialProgress)) {
-                    // Backup state to yesterdayStr first
-                    const backedUpItem = backupHabitStateForDate(habit, yesterdayStr);
+                    // Backup the leftover progress to the day it belongs to (the last day the habit was
+                    // touched), falling back to yesterday when that is unknown.
+                    const backupKey = habit.lastUpdatedDate ? getHistoryDateKey(habit.lastUpdatedDate) : yesterdayStr;
+                    const backedUpItem = backupHabitStateForDate(habit, backupKey < todayStr ? backupKey : yesterdayStr);
                     newItem.valueHistory = backedUpItem.valueHistory;
                     newItem.checklist = backedUpItem.checklist;
                     
@@ -2817,7 +2834,7 @@ export const useDashboardLogic = () => {
         };
 
         checkBadHabitsDaily();
-    }, [habits.length, badHabits.length, user?.id, user?.stats?.streakFrozenUntil, dailyResetTrigger, dailyLimits.date]); // Include dailyLimits.date to re-eval when global reset finishes
+    }, [habits.length, badHabits.length, user?.id, user?.stats?.streakFrozenUntil, dailyResetTrigger, dailyLimits.date, staleHabitsKey]); // Include dailyLimits.date to re-eval when global reset finishes
 
         
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
