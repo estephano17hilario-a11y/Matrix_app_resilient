@@ -15,6 +15,7 @@ import { supabase } from '../../services/supabase';
 import { DateSelectionModal } from '../dashboard/components/DateSelectionModal';
 import { es } from 'date-fns/locale';
 import { TourLightbulb } from '../../components/TourLightbulb';
+import { revealAndFlash, useLocateTarget } from '../../utils/locateBus';
 
 interface TaskListProps {
  quests: Quest[];
@@ -28,13 +29,28 @@ interface TaskListProps {
  onAddQuest?: () => void;
  onFocusProject?: (projectId: string, taskId?: string) => void;
  defaultChartViews?: any;
+ /** True while this list is the visible section (used to deliver "locate" requests from Routine). */
+ isActive?: boolean;
 }
 
 // Optimization: Memoized Item Wrapper
 const MemoizedQuestItem = React.memo(QuestItem);
 
-export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attributes, projects, smartProjects, onCompleteQuest, onDeleteQuest, onEditQuest, onAddQuest, onFocusProject, dailyLimits, defaultChartViews }) => {
+export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attributes, projects, smartProjects, onCompleteQuest, onDeleteQuest, onEditQuest, onAddQuest, onFocusProject, dailyLimits, defaultChartViews, isActive = true }) => {
  const { t } = useTranslation();
+
+ // "Locate": the Routine section sent us to a task. It is pinned past the filters while this
+ // section stays open (and the list is un-virtualized so it is in the DOM), then flashed.
+ const locate = useLocateTarget('TASK', isActive);
+ const [pinnedQuestId, setPinnedQuestId] = useState<string | null>(null);
+ useEffect(() => {
+ if (!locate) return;
+ setPinnedQuestId(locate.id);
+ return revealAndFlash([`[data-locate-quest="${locate.id}"]`], 520);
+ }, [locate]);
+ useEffect(() => {
+ if (!isActive) setPinnedQuestId(null);
+ }, [isActive]);
 
  // Filters
  const [showFilters, setShowFilters] = useState(false);
@@ -72,6 +88,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
 
  const filteredQuests = useMemo(() => {
  return quests.filter(quest => {
+ if (quest.id === pinnedQuestId) return true;
  // Fast check: Completion status
  if (hideCompleted && quest.completed) return false;
 
@@ -95,7 +112,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
 
  return true;
  });
- }, [quests, hideCompleted, timeframe, dateRange, traitFilter, typeFilter, difficultyFilter]);
+ }, [quests, hideCompleted, timeframe, dateRange, traitFilter, typeFilter, difficultyFilter, pinnedQuestId]);
 
  // Optimization: Separate sorting from filtering to memoize efficiently
   const sortedQuests = useMemo(() => {
@@ -227,7 +244,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  const [viewportHeight, setViewportHeight] = useState(600); // Default estimate
 
  // Only virtualize if list is long enough
- const isVirtualized = sortedQuests.length > 20;
+ const isVirtualized = sortedQuests.length > 20 && !pinnedQuestId;
 
  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
  const target = e.currentTarget;
@@ -681,6 +698,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  onDelete={onDeleteQuest}
  onEdit={onEditQuest}
  onFocusProject={onFocusProject}
+ locate={locate?.id === quest.id ? locate : null}
  isLite
  />
  </div>
@@ -706,6 +724,7 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  if (prev.quests === next.quests && 
  prev.attributes === next.attributes && 
  prev.dailyLimits === next.dailyLimits &&
+ prev.isActive === next.isActive &&
  prev.projects === next.projects &&
  prev.smartProjects === next.smartProjects) {
  return true; // Props are equal, don't re-render

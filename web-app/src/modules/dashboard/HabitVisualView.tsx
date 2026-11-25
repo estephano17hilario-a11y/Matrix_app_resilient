@@ -20,6 +20,7 @@ import { BadHabitDetailModal } from './components/BadHabitDetailModal';
 import { HabitMasteryModal } from './components/HabitMasteryModal';
 import { cn } from '../../utils/cn';
 import { getHistoryDateKey } from '../../utils/dateUtils';
+import { revealAndFlash, useLocateTarget } from '../../utils/locateBus';
 
 interface HabitVisualViewProps {
     habits: Habit[];
@@ -185,6 +186,24 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
         localStorage.setItem('showAllHabits', showAllHabits.toString());
     }, [showAllHabits]);
 
+    // "Locate": the Routine section sent us to a habit (or one of its subtasks). The habit is
+    // pinned past the completed / not-due filters while this section stays open, then flashed.
+    const locate = useLocateTarget('HABIT', isActive);
+    const [pinnedHabitId, setPinnedHabitId] = useState<string | null>(null);
+    useEffect(() => {
+        if (!locate) return;
+        setPinnedHabitId(locate.id);
+        setShowArchived(false);
+        const selectors = locate.subtaskId
+            ? [`[data-locate-sub="${locate.subtaskId}"]`, `[data-locate-habit="${locate.id}"]`]
+            : [`[data-locate-habit="${locate.id}"]`];
+        // Opening the subtasks folder animates for a moment: wait for it before measuring.
+        return revealAndFlash(selectors, locate.subtaskId ? 520 : 380);
+    }, [locate]);
+    useEffect(() => {
+        if (!isActive) setPinnedHabitId(null);
+    }, [isActive]);
+
     // Virtualize habits for the current selected date to prevent checked status bleeding
     const virtualizedHabits = useMemo(() => {
         const todayStr = getHistoryDateKey(new Date());
@@ -326,7 +345,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                     ))
                 ));
 
-            if (!isDue && !showAllHabits) return;
+            if (!isDue && !showAllHabits && habit.id !== pinnedHabitId) return;
 
             const attribute = attributeMap.get(habit.attribute);
             const baseColor = habit.customColor || attribute?.color || '#6366f1';
@@ -421,10 +440,10 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
             return parseTime(a.time) - parseTime(b.time);
         });
         if (hideCompleted) {
-            sortedItems = sortedItems.filter(item => !item.isCompleted);
+            sortedItems = sortedItems.filter(item => !item.isCompleted || item.habitId === pinnedHabitId);
         }
         return sortedItems;
-    }, [displayedHabits, currentDate, viewPreference, attributeMap, hideCompleted, showAllHabits]);
+    }, [displayedHabits, currentDate, viewPreference, attributeMap, hideCompleted, showAllHabits, pinnedHabitId]);
 
     const reduceMotion = useMemo(() => {
         return displayedHabits.length + badHabits.length > 20;
@@ -675,6 +694,8 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                 chronologicalItems.map((item) => (
                                     <div key={item.id} className="w-full px-2 mx-auto">
                                     <motion.div
+                                        data-locate-habit={item.habitId}
+                                        data-locate-sub={item.subtaskId}
                                         initial={false}
                                         animate={{ opacity: 1, y: 0 }}
                                         className={cn("w-full flex items-center gap-3 bg-[#050505]/90 border rounded-[14px] px-3.5 py-2 touch-manipulation cursor-pointer hover:bg-[#0a0a0a] transition-all relative overflow-hidden", !item.isDue && !item.isCompleted && "opacity-60 grayscale")}
@@ -828,6 +849,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                         (habit.monthlyLastDay && isLastDayOfMonth(currentDate))
                                                     ))
                                                 ));
+                                    if (habit.id === pinnedHabitId) return true;
                                     if (hideCompleted && habit.completedToday) return false;
                                     if (!showAllHabits && !isDue) return false;
                                     return true;
@@ -871,6 +893,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                     viewPreference={viewPreference}
                                                     weekStartDay={weekStartDay}
                                                     currentDate={currentDate}
+                                                    locate={locate?.id === habit.id ? locate : null}
                                                 />
                                             </div>
                                         </div>

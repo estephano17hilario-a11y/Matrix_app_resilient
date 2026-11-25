@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, ChevronDown, Trash2, Edit2, Target, Coins, Zap, Calendar, Play } from 'lucide-react';
 import { format, isToday, isTomorrow, differenceInDays } from 'date-fns';
@@ -23,11 +23,16 @@ interface QuestItemProps {
   onEdit?: (quest: Quest) => void;
   onFocusProject?: (projectId: string, taskId?: string) => void;
   isLite?: boolean;
+  /** Set when the user came from the Routine section to find this task: it opens itself. */
+  locate?: { nonce: number } | null;
 }
 
-export const QuestItem = React.memo(({ quest, attribute, project, smartProject, onComplete, onDelete, onEdit, onFocusProject, isLite }: QuestItemProps) => {
+export const QuestItem = React.memo(({ quest, attribute, project, smartProject, onComplete, onDelete, onEdit, onFocusProject, isLite, locate }: QuestItemProps) => {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
+  useEffect(() => {
+    if (locate) setExpanded(true);
+  }, [locate?.nonce]);
   const [isCompleting, setIsCompleting] = useState(false);
   const Icon = attribute?.icon;
 
@@ -109,6 +114,7 @@ export const QuestItem = React.memo(({ quest, attribute, project, smartProject, 
 
   return (
     <Container
+      data-locate-quest={quest.id}
       {...(isLite ? {} : { initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, scale: 0.95 } })}
       className={cn(
         "relative rounded-[1.25rem] transition-all duration-200 mb-3 group overflow-hidden clickable",

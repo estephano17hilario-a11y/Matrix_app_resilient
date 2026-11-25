@@ -26,15 +26,24 @@ interface HabitItemProps {
   viewPreference?: 'DEFAULT' | 'CHRONOLOGICAL';
   weekStartDay?: 0 | 1;
   currentDate?: Date;
+  /** Set when the user came from the Routine section to find this habit (or one of its subtasks). */
+  locate?: { nonce: number; subtaskId?: string } | null;
 }
 
-export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, onEdit, onUpdate, onShowActions, isDue = true, completedOverride, viewPreference = 'DEFAULT', currentDate }: HabitItemProps) => {
+export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, onEdit, onUpdate, onShowActions, isDue = true, completedOverride, viewPreference = 'DEFAULT', currentDate, locate }: HabitItemProps) => {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [isQuantityModalOpen, setIsQuantityModalOpen] = React.useState(false);
   const [isChecklistModalOpen, setIsChecklistModalOpen] = React.useState(false);
   const [isSubtasksFolderOpen, setIsSubtasksFolderOpen] = React.useState(false);
-  
+
+  // Coming from Routine to a subtask: open the habit and its subtasks folder so the row is on screen.
+  React.useEffect(() => {
+    if (!locate?.subtaskId) return;
+    setIsExpanded(true);
+    setIsSubtasksFolderOpen(true);
+  }, [locate?.nonce, locate?.subtaskId]);
+
   const today = (currentDate || new Date()).getDay();
   const subTrait = React.useMemo(() => {
     return attribute?.subTraits?.find(st => st.id === habit.subAttribute);
@@ -229,6 +238,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
         role: "button",
         tabIndex: 0,
         onClick: handleWrapperClick,
+        'data-locate-habit': habit.id,
         className: cn(
           "group relative bg-[#050505]/90 border rounded-[24px] pl-5 pr-4 py-3 w-[102%] -translate-x-[1%] transition-all duration-200 cursor-pointer overflow-hidden hover:bg-[#0a0a0a] hover:border-white/10 active:scale-95 clickable",
           allChecklistCompleted ? "border-emerald-500/30" : "border-white/5",
@@ -376,7 +386,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                       const isDoneOrSkipped = isCompleted || isSkipped;
                       
                       return (
-                          <div key={item.id} className="flex items-center gap-3 group/item cursor-pointer py-1.5 px-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5" onClick={() => handleChecklistToggle(item.id, isCompleted)}>
+                          <div key={item.id} data-locate-sub={item.id} className="flex items-center gap-3 group/item cursor-pointer py-1.5 px-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5" onClick={() => handleChecklistToggle(item.id, isCompleted)}>
                               <div
                                       className={cn(
                                           "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
@@ -557,7 +567,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                                                 const isDoneOrSkipped = isCompleted || isSkipped;
                                                 
                                                 return (
-                                                    <div key={item.id} className="flex items-center gap-3 group/item cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-colors" onClick={() => handleChecklistToggle(item.id, isCompleted)}>
+                                                    <div key={item.id} data-locate-sub={item.id} className="flex items-center gap-3 group/item cursor-pointer p-2 rounded-lg hover:bg-white/5 transition-colors" onClick={() => handleChecklistToggle(item.id, isCompleted)}>
                                                         <div
                                                             className={cn(
                                                                 "w-5 h-5 rounded-full border flex items-center justify-center transition-all",

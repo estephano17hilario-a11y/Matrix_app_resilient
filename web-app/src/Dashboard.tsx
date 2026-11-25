@@ -63,6 +63,7 @@ import { pulseWorld, runSceneTransition, setScene, setSceneAccent, setWorldScrol
 import { revealNow } from './immersion/reveal';
 import { onPress } from './immersion/press';
 import { preloadable } from './utils/preloadable';
+import { locateBus } from './utils/locateBus';
 import { registerWarmup, deferredWarmup } from './utils/bootWarmup';
 import { availableUses } from './modules/store/market/viceMarket';
 import { useDepthRecede } from './immersion/useDepthRecede';
@@ -1408,6 +1409,24 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
   announceArea(view);
  }, [currentView, sceneOrder]);
 
+ // Routine → Habits / Tasks: opens the section on the item (expanded when it unfolds) and flashes it.
+ const handleLocateHabit = useCallback((habitId: string, subtaskId: string | undefined, date: Date) => {
+  travelTo('HABITS', () => {
+   setCurrentDate(date);
+   setHabitViewMode('PROTOCOLS');
+   setCurrentView('HABITS');
+   locateBus.request({ kind: 'HABIT', id: habitId, subtaskId });
+  });
+ }, [travelTo, setCurrentDate, setCurrentView]);
+
+ const handleLocateQuest = useCallback((questId: string) => {
+  travelTo('TASKS', () => {
+   setTaskViewMode('LIST');
+   setCurrentView('TASKS');
+   locateBus.request({ kind: 'TASK', id: questId });
+  });
+ }, [travelTo, setCurrentView]);
+
  const applyDockViewChange = useCallback((view: string) => {
   if (view === 'SETTINGS') {
     setIsDockOpen(false);
@@ -1964,6 +1983,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  projects={projects}
  dailyLimits={dailyLimits}
  defaultChartViews={user?.defaultChartViews}
+ isActive={currentView === 'TASKS'}
  />
  </>
  ) : (
@@ -2198,6 +2218,8 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  onCompleteHabit={handleHabitClick}
  onUpdateHabit={handleHabitUpdate}
  onEditHabit={handleEditHabit}
+ onLocateHabit={handleLocateHabit}
+ onLocateQuest={handleLocateQuest}
  onCompleteQuest={completeQuest}
  onEditQuest={handleEditQuest}
  onAddQuest={handleAddQuest}

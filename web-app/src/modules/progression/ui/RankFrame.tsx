@@ -127,7 +127,7 @@ export const RankFrame: React.FC<{ children: React.ReactNode; onOpen?: () => voi
           className="absolute z-[11] select-none whitespace-nowrap font-mono font-black tabular-nums leading-none"
           style={{
             left: -10,
-            top: avatarSize + 12,
+            top: avatarSize + 4,
             fontSize: 10,
             letterSpacing: '0.02em',
             pointerEvents: 'none',
@@ -136,7 +136,7 @@ export const RankFrame: React.FC<{ children: React.ReactNode; onOpen?: () => voi
           }}
           title={`ELO de hoy: ${todayProjected > 0 ? '+' : ''}${todayProjected}`}
         >
-          {todayProjected > 0 ? '+' : ''}{todayProjected} ELO
+          {todayProjected > 0 ? '+' : ''}{todayProjected}
         </span>
       )}
     </div>

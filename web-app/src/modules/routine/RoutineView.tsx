@@ -32,6 +32,10 @@ interface RoutineViewProps {
   onCompleteHabit: (e: React.MouseEvent, habit: Habit, date?: Date) => void;
   onUpdateHabit?: (habitId: string, data: Partial<Habit>, date?: Date) => void;
   onEditHabit?: (habit: Habit & { _initialTab?: 'alarm' | 'checklist'; _targetSubtaskId?: string }) => void;
+  /** Tapping a habit / subtask card: go to the Habits section, open it and flash it. */
+  onLocateHabit?: (habitId: string, subtaskId: string | undefined, date: Date) => void;
+  /** Tapping a task card: go to the Tasks section, open it and flash it. */
+  onLocateQuest?: (questId: string) => void;
   onCompleteQuest: (e: React.MouseEvent, quest: Quest) => void;
   onEditQuest?: (quest: Quest) => void;
   onAddQuest?: () => void;
@@ -195,44 +199,52 @@ const RoutineCard: React.FC<CardProps> = React.memo(({ item, Icon, index, exactT
             </div>
           </div>
 
+          {/* The tap target is a square a few px bigger than the circle on every side, so a tap
+              that lands near the check never opens the card by mistake (and vice versa). The
+              negative margins keep the card height unchanged. */}
           <motion.button
             type="button"
             onClick={e => onToggle(e, item)}
-            whileTap={reduce ? undefined : { scale: 0.82 }}
+            whileTap={reduce ? undefined : { scale: 0.86 }}
             transition={SPRING}
             aria-label={item.done ? (es ? 'Hecho' : 'Done') : (es ? 'Marcar' : 'Mark')}
-            className="relative w-[42px] h-[42px] rounded-full flex items-center justify-center shrink-0"
-            style={{
-              backgroundColor: item.done ? c : 'rgba(0,0,0,0.35)',
-              border: `2px solid ${item.done ? c : `${c}80`}`,
-              boxShadow: item.done ? `0 0 18px ${c}66` : 'none',
-              transition: 'background-color .25s, border-color .25s, box-shadow .25s',
-            }}
+            className="relative w-[58px] h-[58px] -my-2 -mr-2 rounded-[18px] flex items-center justify-center shrink-0 touch-manipulation"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            <AnimatePresence initial={false}>
-              {showCheck && (
+            <span
+              className="relative w-[42px] h-[42px] rounded-full flex items-center justify-center"
+              style={{
+                backgroundColor: item.done ? c : 'rgba(0,0,0,0.35)',
+                border: `2px solid ${item.done ? c : `${c}80`}`,
+                boxShadow: item.done ? `0 0 18px ${c}66` : 'none',
+                transition: 'background-color .25s, border-color .25s, box-shadow .25s',
+              }}
+            >
+              <AnimatePresence initial={false}>
+                {showCheck && (
+                  <motion.span
+                    key="icon"
+                    className="absolute inset-0 flex items-center justify-center"
+                    initial={reduce ? false : { scale: 0, rotate: -50 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0 }}
+                    transition={{ type: 'spring', stiffness: 560, damping: 22 }}
+                    style={{ color: item.done ? '#fff' : c }}
+                  >
+                    <ActionIcon size={item.kind === 'PROJECT' ? 16 : 19} strokeWidth={item.kind === 'PROJECT' ? 2.5 : 3.2} />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+              {burst && !reduce && (
                 <motion.span
-                  key="icon"
-                  className="absolute inset-0 flex items-center justify-center"
-                  initial={reduce ? false : { scale: 0, rotate: -50 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  exit={{ scale: 0 }}
-                  transition={{ type: 'spring', stiffness: 560, damping: 22 }}
-                  style={{ color: item.done ? '#fff' : c }}
-                >
-                  <ActionIcon size={item.kind === 'PROJECT' ? 16 : 19} strokeWidth={item.kind === 'PROJECT' ? 2.5 : 3.2} />
-                </motion.span>
+                  className="absolute inset-0 rounded-full pointer-events-none"
+                  style={{ border: `2px solid ${c}` }}
+                  initial={{ scale: 0.8, opacity: 0.8 }}
+                  animate={{ scale: 2.3, opacity: 0 }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                />
               )}
-            </AnimatePresence>
-            {burst && !reduce && (
-              <motion.span
-                className="absolute inset-0 rounded-full pointer-events-none"
-                style={{ border: `2px solid ${c}` }}
-                initial={{ scale: 0.8, opacity: 0.8 }}
-                animate={{ scale: 2.3, opacity: 0 }}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
-              />
-            )}
+            </span>
           </motion.button>
         </div>
 
@@ -257,7 +269,7 @@ RoutineCard.displayName = 'RoutineCard';
 
 export const RoutineView: React.FC<RoutineViewProps> = ({
   userId, habits, quests, projects, attributes, isActive = true, journalEntries = [],
-  onCompleteHabit, onUpdateHabit, onEditHabit, onCompleteQuest, onEditQuest, onAddQuest, onAddHabit, onFocusProject, onOpenJournal,
+  onCompleteHabit, onUpdateHabit, onEditHabit, onLocateHabit, onLocateQuest, onCompleteQuest, onEditQuest, onAddQuest, onAddHabit, onFocusProject, onOpenJournal,
 }) => {
   const { i18n } = useTranslation();
   const es = !!i18n.language?.startsWith('es');
@@ -449,12 +461,15 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
   }, [date, dayKey, onCompleteHabit, onUpdateHabit, onCompleteQuest, onFocusProject, onOpenJournal]);
 
   const openItem = useCallback((item: RoutineItem) => {
-    if (item.kind === 'TASK' && item.quest) onEditQuest?.(item.quest);
-    else if ((item.kind === 'HABIT' || item.kind === 'SUBHABIT') && item.habit) {
-      onEditHabit?.({ ...item.habit, _initialTab: item.kind === 'SUBHABIT' ? 'checklist' : 'alarm', _targetSubtaskId: item.subtaskId });
+    // Tapping a card never edits: it takes you to where the item lives and flashes it.
+    if (item.kind === 'TASK' && item.quest) {
+      if (onLocateQuest) onLocateQuest(item.quest.id); else onEditQuest?.(item.quest);
+    } else if ((item.kind === 'HABIT' || item.kind === 'SUBHABIT') && item.habit) {
+      if (onLocateHabit) onLocateHabit(item.habit.id, item.kind === 'SUBHABIT' ? item.subtaskId : undefined, date);
+      else onEditHabit?.({ ...item.habit, _initialTab: item.kind === 'SUBHABIT' ? 'checklist' : 'alarm', _targetSubtaskId: item.subtaskId });
     } else if (item.kind === 'PROJECT' && item.project) onFocusProject?.(item.project.id);
     else if (item.kind === 'JOURNAL') onOpenJournal?.(dayKey);
-  }, [dayKey, onEditQuest, onEditHabit, onFocusProject, onOpenJournal]);
+  }, [date, dayKey, onLocateHabit, onLocateQuest, onEditQuest, onEditHabit, onFocusProject, onOpenJournal]);
 
   const onSaveJournalTimes = (times: string[]) => {
     if (userId) {

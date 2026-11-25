@@ -980,3 +980,14 @@ body, button, input, textarea {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
+/* "Locate" flash: tells the user where an item from the Routine section lives. */
+@keyframes lux-locate-flash {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+  18%, 58% { box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.95), 0 0 30px 6px rgba(251, 191, 36, 0.45); }
+  38%, 78% { box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.35), 0 0 8px 1px rgba(251, 191, 36, 0.15); }
+}
+.lux-locate-flash {
+  animation: lux-locate-flash 2.6s ease-in-out 1;
+  position: relative;
+  z-index: 5;
+}
