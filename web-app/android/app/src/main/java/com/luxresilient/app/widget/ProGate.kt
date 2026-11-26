@@ -21,8 +21,8 @@ object ProGate {
     private const val PREFS = "lux_widget_auth"
     private const val KEY_IS_PRO = "is_pro"
 
-    /** Deluxe-only widgets: Lux · Rutina, Lux · Calendario and Matrix Diario Calendario. */
-    private val PRO_ONLY = listOf("RoutineWidgetProvider", "CalendarWidgetProvider", "JournalWidgetProvider")
+    /** Deluxe-only widgets: Lux · Protocolos, Lux · Rutina, Lux · Calendario and Matrix Diario Calendario. */
+    private val PRO_ONLY = listOf("HabitWidgetProvider", "RoutineWidgetProvider", "CalendarWidgetProvider", "JournalWidgetProvider")
 
     fun isProOnly(providerClassName: String): Boolean = PRO_ONLY.any { providerClassName.endsWith(it) }
 

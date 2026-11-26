@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { isWithinInterval } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { toLocalISOString, startOfWeek, endOfWeek, getHistoryDateKey } from './utils/dateUtils';
-import { generateFocusData } from './utils/dataEngine';
 import { PlayerHUD } from './modules/dashboard/PlayerHUD';
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
 
@@ -425,7 +424,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
   const todayTasksCompleted = useMemo(() => {
     const todayStr = toLocalISOString(new Date());
     const fromQuests = quests.filter(q => {
-      if (!q.completed && q.status !== 'completed') return false;
+      if (!q.completed) return false;
       if (!q.completedAt) return false;
       const dateKey = getHistoryDateKey(q.completedAt);
       return dateKey === todayStr;

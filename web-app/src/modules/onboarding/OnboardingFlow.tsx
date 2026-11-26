@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { App } from '@capacitor/app';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, CheckCircle2, Sparkles, ChevronDown, Target, Flame, Zap, Coins, Bell, MessageSquare, Quote, Volume2, ShieldAlert, Lock } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Sparkles, Bell, MessageSquare, Quote, Volume2, ShieldAlert, Lock } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { OnboardingLayout } from './components/OnboardingLayout';
@@ -12,7 +12,6 @@ import { Attribute } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { AvatarCarousel } from './components/avatar-carousel/AvatarCarousel';
 import { calculateAttributeMaxXp } from '../../utils/leveling';
-import { useTheme } from '@/context/ThemeContext';
 import { NotificationTone, TONE_DEFINITIONS } from '../../services/notificationTonesService';
 
 type Step = 'avatar' | 'traits' | 'notification_tone' | 'custom_phrases' | 'saving';
@@ -20,7 +19,6 @@ type Step = 'avatar' | 'traits' | 'notification_tone' | 'custom_phrases' | 'savi
 export function OnboardingFlow() {
   const { user, profile, updateProfileLocally } = useAuth();
   const { i18n, t } = useTranslation();
-  const { setTheme } = useTheme();
   const lockedTraitIds = ['DISCIPLINA', 'RESILIENCIA'];
   // Everyone starts with the 2 base traits and picks 3–4 more (5–6 in total).
   const MIN_EXTRA_TRAITS = 3;
@@ -30,7 +28,7 @@ export function OnboardingFlow() {
   
   const [selectedTraits, setSelectedTraits] = useState<string[]>(lockedTraitIds);
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
-  const [showScrollHint, setShowScrollHint] = useState(true);
+  const [, setShowScrollHint] = useState(true);
   const traitsScrollRef = useRef<HTMLDivElement | null>(null);
   const safetyTimerRef = useRef<NodeJS.Timeout | null>(null);
   

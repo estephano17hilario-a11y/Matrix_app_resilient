@@ -227,7 +227,7 @@ const GOGGINS_MESSAGES = [
 ];
 
 // Helper to get random item
-export function getRandomToneMessage(tone: NotificationTone, scenario: string = 'general', customPhrase?: string): string {
+export function getRandomToneMessage(tone: NotificationTone, _scenario: string = 'general', customPhrase?: string): string {
   let list = NEUTRAL_MESSAGES;
   if (tone === 'SUPREME_MOTIVATOR') list = MOTIVATOR_MESSAGES;
   if (tone === 'GOGGINS_BRUTAL') list = GOGGINS_MESSAGES;

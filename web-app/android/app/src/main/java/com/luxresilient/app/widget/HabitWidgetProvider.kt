@@ -147,6 +147,10 @@ class HabitWidgetProvider : AppWidgetProvider() {
             appWidgetManager.updateAppWidget(widgetId, views)
             return
         }
+        if (!ProGate.isPro(context)) {
+            appWidgetManager.updateAppWidget(widgetId, ProGate.lockedViews(context, widgetId, "Lux · Protocolos"))
+            return
+        }
 
         // Read preferences for column distribution and background opacity
         val prefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)

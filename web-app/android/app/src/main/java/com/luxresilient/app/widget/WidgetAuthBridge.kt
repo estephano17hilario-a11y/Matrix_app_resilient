@@ -151,6 +151,9 @@ class WidgetAuthBridge : Plugin() {
                 context.sendBroadcast(Intent(context, JournalWidgetProvider::class.java).apply {
                     action = JournalWidgetProvider.ACTION_REFRESH_JOURNAL
                 })
+                context.sendBroadcast(Intent(context, HabitWidgetProvider::class.java).apply {
+                    action = HabitWidgetProvider.ACTION_REFRESH
+                })
             }
             call.resolve()
         } catch (e: Exception) {

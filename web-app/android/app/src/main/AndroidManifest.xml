@@ -110,7 +110,7 @@
             android:taskAffinity=""
             android:launchMode="singleInstance"
             android:excludeFromRecents="true"
-            android:exported="true" />
+            android:exported="false" />
 
         <!-- Widget Translucent Selector Activity -->
         <activity
@@ -119,7 +119,7 @@
             android:taskAffinity=""
             android:launchMode="singleInstance"
             android:excludeFromRecents="true"
-            android:exported="true" />
+            android:exported="false" />
 
 
         <!-- Widget Receiver -->
