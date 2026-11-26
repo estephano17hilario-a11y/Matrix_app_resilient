@@ -27,7 +27,7 @@ export const DropdownThemePicker = ({ currentTheme, onSelect, projects, activePr
  <div className="relative z-50 shrink-0">
  <button 
    onClick={() => setIsOpen(!isOpen)} 
-   className="w-8 h-8 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 transition-all flex items-center justify-center shrink-0 active:scale-95"
+   className="cu-icon-btn"
    title="Seleccionar Color de la Nota"
  >
    <div className="w-3.5 h-3.5 rounded-full shadow-[0_0_8px_currentColor]" style={{ backgroundColor: activeColor, color: activeColor }} />

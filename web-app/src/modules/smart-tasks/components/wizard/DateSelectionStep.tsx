@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, ChevronRight } from 'lucide-react';
+import { Calendar, Flag } from 'lucide-react';
 import { useTranslation, Trans } from 'react-i18next';
 import { generateTimeBlocks, FractalStructure } from '../../../../utils/fractalTimeEngine';
-import { cn } from '../../../../utils/cn';
+import { Segmented } from '../../../../components/cupertino';
 
 interface DateSelectionStepProps {
   onStartProcess: (startDate: Date, endDate: Date) => void;
@@ -12,185 +12,150 @@ interface DateSelectionStepProps {
 
 export const DateSelectionStep: React.FC<DateSelectionStepProps> = ({ onStartProcess, activeColor: _activeColor }) => {
   const { t } = useTranslation();
-  
+
   const [startDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState<string>(''); 
+  const [endDate, setEndDate] = useState<string>('');
   const [inputType, setInputType] = useState<'date' | 'duration'>('date');
-  const [duration, setDuration] = useState<{years: number, months: number, days: number}>({ years: 0, months: 0, days: 0 });
+  const [duration, setDuration] = useState<{ years: number, months: number, days: number }>({ years: 0, months: 0, days: 0 });
   const [activeField, setActiveField] = useState<'years' | 'months' | 'days' | null>(null);
   const [fractalPreview, setFractalPreview] = useState<FractalStructure | null>(null);
 
-  // Debounced Fractal Preview
+  // Debounced fractal preview
   useEffect(() => {
     const timer = setTimeout(() => {
       if (startDate && endDate) {
         const start = new Date(startDate);
         const end = new Date(endDate);
-        if (end > start) {
-          const preview = generateTimeBlocks(start, end);
-          setFractalPreview(preview);
-        } else {
-          setFractalPreview(null);
-        }
+        setFractalPreview(end > start ? generateTimeBlocks(start, end) : null);
+      } else {
+        setFractalPreview(null);
       }
     }, 300);
-
     return () => clearTimeout(timer);
   }, [startDate, endDate]);
 
-  // Duration Logic
+  // Duration → end date
   useEffect(() => {
-      if (inputType === 'duration') {
-          const start = new Date(startDate);
-          const end = new Date(start);
-          end.setFullYear(end.getFullYear() + (duration.years || 0));
-          end.setMonth(end.getMonth() + (duration.months || 0));
-          end.setDate(end.getDate() + (duration.days || 0));
-          
-          if (end > start) {
-              setEndDate(end.toISOString().split('T')[0]);
-          } else {
-              setEndDate('');
-          }
-      }
+    if (inputType === 'duration') {
+      const start = new Date(startDate);
+      const end = new Date(start);
+      end.setFullYear(end.getFullYear() + (duration.years || 0));
+      end.setMonth(end.getMonth() + (duration.months || 0));
+      end.setDate(end.getDate() + (duration.days || 0));
+      setEndDate(end > start ? end.toISOString().split('T')[0] : '');
+    }
   }, [duration, inputType, startDate]);
 
   const handleNext = () => {
-      if (endDate) {
-          const start = new Date(startDate);
-          const end = new Date(endDate);
-          end.setDate(end.getDate() + 1); // Inclusive logic
-          onStartProcess(start, end);
-      }
+    if (endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setDate(end.getDate() + 1); // inclusive
+      onStartProcess(start, end);
+    }
   };
 
+  const durationFields: { key: 'years' | 'months' | 'days'; label: string; max?: number }[] = [
+    { key: 'years', label: t('common.time.years') },
+    { key: 'months', label: t('common.time.months'), max: 11 },
+    { key: 'days', label: t('common.time.days') },
+  ];
+
   return (
-    <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
-        className="w-full flex flex-col items-center"
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+      className="cu-step"
     >
-        <div className="space-y-2 text-center flex-shrink-0 mb-6">
-            <h2 className="text-2xl font-medium text-white tracking-tight">
-                <Trans i18nKey="smartTask.wizard.date.title" components={{ span: <span className="font-bold text-white drop-shadow-md" /> }} />
-            </h2>
-             <p className="text-white/50 text-sm font-medium">{t('smartTask.wizard.date.subtitle')}</p>
+      <div className="cu-step-body">
+        <div className="cu-step-head">
+          <h2 className="cu-large-title">
+            <Trans i18nKey="smartTask.wizard.date.title" components={{ span: <b /> }} />
+          </h2>
+          <p className="cu-lead">{t('smartTask.wizard.date.subtitle')}</p>
         </div>
 
-        <div className="w-full max-w-lg mb-6">
-            <div className="space-y-4 mx-auto w-full">
-                {/* Tabs */}
-                <div className="flex p-1 bg-[#1a1a1a] rounded-xl border border-white/5 shadow-md">
-                     <button 
-                        onClick={() => setInputType('date')}
-                        className={cn("flex-1 py-2 rounded-lg text-sm font-bold transition-all", inputType === 'date' ? "bg-[#2a2a2a] text-white shadow-md" : "text-white/40 hover:text-white/80")}
-                     >
-                        {t('smartTask.wizard.date.mode.calendar')}
-                     </button>
-                     <button 
-                        onClick={() => setInputType('duration')}
-                        className={cn("flex-1 py-2 rounded-lg text-sm font-bold transition-all", inputType === 'duration' ? "bg-[#2a2a2a] text-white shadow-md" : "text-white/40 hover:text-white/80")}
-                     >
-                        {t('smartTask.wizard.date.mode.duration')}
-                     </button>
-                </div>
+        <Segmented<'date' | 'duration'>
+          tall
+          value={inputType}
+          onChange={setInputType}
+          options={[
+            { value: 'date', label: t('smartTask.wizard.date.mode.calendar') },
+            { value: 'duration', label: t('smartTask.wizard.date.mode.duration') },
+          ]}
+        />
 
-                <div className="p-5 bg-[#0f0f0f] rounded-2xl border border-white/5 shadow-md space-y-5 relative overflow-hidden">
-                    {inputType === 'date' ? (
-                         <div className="space-y-3">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] uppercase tracking-wider text-white/50 font-bold">{t('common.endDate')}</label>
-                                <div className="relative">
-                                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
-                                     <input 
-                                         type="date" 
-                                         min={startDate}
-                                         value={endDate}
-                                         onChange={(e) => setEndDate(e.target.value)}
-                                         className="w-full pl-12 pr-4 py-3.5 bg-black/60 border border-white/5 rounded-xl text-white font-medium focus:outline-none focus:border-white/20 transition-colors shadow-md"
-                                         style={{ colorScheme: 'dark' }}
-                                     />
-                                </div>
-                            </div>
-                         </div>
-                    ) : (
-                         <div className="grid grid-cols-3 gap-3">
-                             <div className="space-y-1.5">
-                                <label className="text-[11px] font-semibold text-white/50 text-center block uppercase tracking-wider">{t('common.time.years')}</label>
-                                <input 
-                                    type="number" 
-                                    min="0" 
-                                    value={activeField === 'years' && duration.years === 0 ? '' : duration.years} 
-                                    onChange={(e) => setDuration({...duration, years: parseInt(e.target.value) || 0})} 
-                                    onFocus={() => setActiveField('years')}
-                                    onBlur={() => setActiveField(null)}
-                                    className="w-full bg-black/60 border border-white/5 rounded-xl py-3 text-lg font-bold text-center text-white focus:outline-none focus:border-white/20 transition-all shadow-md" 
-                                />
-                             </div>
-                             <div className="space-y-1.5">
-                                <label className="text-[11px] font-semibold text-white/50 text-center block uppercase tracking-wider">{t('common.time.months')}</label>
-                                <input 
-                                    type="number" 
-                                    min="0" 
-                                    max="11"
-                                    value={activeField === 'months' && duration.months === 0 ? '' : duration.months} 
-                                    onChange={(e) => setDuration({...duration, months: parseInt(e.target.value) || 0})} 
-                                    onFocus={() => setActiveField('months')}
-                                    onBlur={() => setActiveField(null)}
-                                    className="w-full bg-black/60 border border-white/5 rounded-xl py-3 text-lg font-bold text-center text-white focus:outline-none focus:border-white/20 transition-all shadow-md" 
-                                />
-                             </div>
-                             <div className="space-y-1.5">
-                                <label className="text-[11px] font-semibold text-white/50 text-center block uppercase tracking-wider">{t('common.time.days')}</label>
-                                <input 
-                                    type="number" 
-                                    min="0" 
-                                    value={activeField === 'days' && duration.days === 0 ? '' : duration.days} 
-                                    onChange={(e) => setDuration({...duration, days: parseInt(e.target.value) || 0})} 
-                                    onFocus={() => setActiveField('days')}
-                                    onBlur={() => setActiveField(null)}
-                                    className="w-full bg-black/60 border border-white/5 rounded-xl py-3 text-lg font-bold text-center text-white focus:outline-none focus:border-white/20 transition-all shadow-md" 
-                                />
-                             </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Preview Section */}
-                {fractalPreview && (
-                    <motion.div 
-                        initial={{ opacity: 0, y: 5, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        className="p-4 rounded-2xl bg-[#0f0f0f] border border-white/5 space-y-3"
-                    >
-                        <div className="flex items-center justify-between text-xs">
-                            <span className="text-white/60 font-medium">{t('strategicMap.fractalStructure')}</span>
-                            <span className="text-white font-mono text-[11px] bg-black/30 px-2 py-1 rounded-md">
-                                {fractalPreview.drillDownPath.map(unit => t(`strategicMap.levels.${unit}`)).join(' > ')}
-                            </span>
-                        </div>
-                         <div className="flex gap-1.5 h-2 w-full rounded-full overflow-hidden bg-black/40 p-0.5">
-                            {fractalPreview.structure.map((_, i) => (
-                                <div key={i} className="h-full bg-white/30 rounded-full" style={{ flex: 1, opacity: 0.4 + (i % 2) * 0.6 }} />
-                            ))}
-                         </div>
-                    </motion.div>
-                )}
+        {inputType === 'date' ? (
+          <div className="cu-group cu-field">
+            <div className="cu-row" style={{ minHeight: 58 }}>
+              <span className="cu-row-tile" style={{ background: '#ff453a' }}><Calendar size={17} /></span>
+              <span className="cu-row-main"><span className="cu-row-label">{t('common.endDate')}</span></span>
+              <input
+                type="date"
+                min={startDate}
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="cu-input cu-right"
+                style={{ flex: 'none', width: 'auto', colorScheme: 'dark' }}
+                aria-label={t('common.endDate')}
+              />
             </div>
-        </div>
+          </div>
+        ) : (
+          <div className="cu-group">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+              {durationFields.map(({ key, label, max }, i) => (
+                <label
+                  key={key}
+                  className="cu-field"
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '16px 8px 14px', borderLeft: i ? '0.5px solid var(--cu-sep)' : 0 }}
+                >
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={max}
+                    className="cu-input cu-num"
+                    style={{ textAlign: 'center', fontSize: 34, fontWeight: 700, letterSpacing: '-0.03em' }}
+                    value={activeField === key && duration[key] === 0 ? '' : duration[key]}
+                    onChange={(e) => setDuration({ ...duration, [key]: parseInt(e.target.value) || 0 })}
+                    onFocus={() => setActiveField(key)}
+                    onBlur={() => setActiveField(null)}
+                  />
+                  <span className="cu-row-sub" style={{ textTransform: 'capitalize' }}>{label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
 
-        <div className="flex justify-center flex-shrink-0">
-            <button
-                type="button"
-                disabled={!endDate}
-                onClick={handleNext}
-                className="px-8 py-3.5 rounded-full bg-white text-black font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 text-base shadow-md shadow-white/10"
-            >
-                {t('smartTask.wizard.action.startJourney')} <ChevronRight size={18} />
-            </button>
-        </div>
+        {fractalPreview && (
+          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="cu-group">
+            <div className="cu-row" style={{ alignItems: 'flex-start', flexDirection: 'column', gap: 10, padding: '14px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+                <Flag size={15} style={{ color: 'var(--cu-accent)' }} />
+                <span className="cu-row-sub" style={{ flex: 1 }}>{t('strategicMap.fractalStructure')}</span>
+              </div>
+              <span style={{ fontSize: 15, fontWeight: 600 }}>
+                {fractalPreview.drillDownPath.map(unit => t(`strategicMap.levels.${unit}`)).join('  ›  ')}
+              </span>
+              <div style={{ display: 'flex', gap: 4, height: 6, width: '100%' }}>
+                {fractalPreview.structure.map((_, i) => (
+                  <div key={i} style={{ flex: 1, borderRadius: 99, background: 'var(--cu-accent)', opacity: 0.35 + (i % 2) * 0.55 }} />
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </div>
+
+      <div className="cu-step-foot">
+        <button type="button" className="cu-cta" disabled={!endDate} onClick={handleNext}>
+          {t('smartTask.wizard.action.startJourney')}
+        </button>
+      </div>
     </motion.div>
   );
 };

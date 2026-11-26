@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Glass button / calendar cell: a faint white wash with a hairline rim. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="oval">
     <solid android:color="#1AFFFFFF" />
+    <stroke
+        android:width="0.5dp"
+        android:color="#26FFFFFF" />
     <size
         android:width="32dp"
         android:height="32dp" />

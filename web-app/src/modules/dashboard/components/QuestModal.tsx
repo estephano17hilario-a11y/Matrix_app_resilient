@@ -1,30 +1,19 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Crosshair, Plus, Star, Circle, Square, Triangle, Target, Repeat, ChevronDown, CheckCircle2, Hexagon, Hourglass } from 'lucide-react';
+import { Star, Circle, Square, Triangle, Target, Repeat, Hexagon, Hourglass, CalendarDays, Clock, BookOpen, FileText, Palette, X, Timer } from 'lucide-react';
 import { Attribute, Quest, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
 import { Difficulty, calculateTaskRewards } from '../../../utils/rewardCalculator';
-import { RewardPredictionPill } from './RewardPredictionPill';
 import { useTranslation } from 'react-i18next';
 import { DurationPicker } from './DurationPicker';
 import { toLocalISOString, parseLocalDate } from '../../../utils/dateUtils';
 import { DateSelectionModal } from './DateSelectionModal';
+import { TimePicker } from '../../../components/ui/TimePicker';
+import {
+    CupertinoSheet, Stack, Section, Hero, Row, Segmented, Toggle, Stepper, Chip, DateNumberGrid, Swatches, TraitGrid,
+    OptionList, RewardPreview, SheetSkeleton, Pad, Tiles, Tile, resolveTraitIcon, traitLabelOf,
+} from '../../../components/cupertino';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 🔒 PERFORMANCE FIX #1: Replace wildcard import with targeted lazy lookup.
-// `import * as LucideIcons` loads every icon in lucide-react (~300+ SVGs) into
-// the JS heap on the first render of this component. On low-end Android devices
-// this alone can block the UI thread for 50-200ms, causing the jank we see.
-// We replace it with a lightweight async resolver that is only called when the
-// attr picker is opened — NOT on initial mount.
-// ─────────────────────────────────────────────────────────────────────────────
-
-// ─────────────────────────────────────────────────────────────────────────────
-// We still need the full icon set for the attr picker dropdown, but only lazily.
-// We load it in a module-level variable that starts null and is populated on
-// demand (when the picker opens). This keeps the main thread free during modal entry.
-// ─────────────────────────────────────────────────────────────────────────────
+// Full lucide set is loaded lazily the first time the trait picker opens (keeps modal entry light on Android).
 let LucideIconsCache: Record<string, React.ElementType> | null = null;
 const loadLucideIcons = async (): Promise<Record<string, React.ElementType>> => {
     if (LucideIconsCache) return LucideIconsCache;
@@ -33,15 +22,14 @@ const loadLucideIcons = async (): Promise<Record<string, React.ElementType>> => 
     return LucideIconsCache;
 };
 
-const resolveIconFromCache = (iconName?: string | null, icon?: any): React.ElementType => {
-    if (!iconName && !icon) return Hexagon;
-    if (LucideIconsCache && iconName && LucideIconsCache[iconName]) return LucideIconsCache[iconName];
-    if (icon) {
-        if (typeof icon === 'function') return icon;
-        if (typeof icon === 'object' && icon !== null && '$$typeof' in icon) return icon;
-    }
-    return Hexagon;
-};
+const JOURNAL_COLORS = ['#3b82f6', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#eab308'];
+const ALL_MONTHS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+type RecurrenceKind = 'NONE' | 'INTERVAL' | 'WEEKLY' | 'MONTHLY';
+type Panel = null | 'duration' | 'trait' | 'project' | 'repeat';
+type DateMode = 'today' | 'tomorrow' | 'custom';
+
+const formatMinutes = (m: number) => (m >= 60 ? `${+(m / 60).toFixed(1)} h` : `${m} min`);
 
 export const QuestModal = React.memo(({
     isOpen,
@@ -70,236 +58,154 @@ export const QuestModal = React.memo(({
 }) => {
     const { t } = useTranslation();
 
-    if (isOpen) {
-        debugger;
-    }
-
-    useEffect(() => {
-        console.log("🟢 [QuestModal LifeCycle] QuestModal mounted!");
-        return () => {
-            console.log("🔴 [QuestModal LifeCycle] QuestModal UNMOUNTED!");
-        };
-    }, []);
-
-    console.log(`🌀 [QuestModal LifeCycle] QuestModal rendering (isOpen: ${isOpen})`);
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // 🔒 PERFORMANCE FIX #2: Deferred rendering.
-    // When `isOpen` flips to true, Android needs to run the entry animation
-    // (scale + fade from framer-motion) at 60fps. If we also mount 400+ DOM
-    // nodes (form inputs, pickers, buttons) on the SAME frame, the UI thread
-    // stalls — this is the "jank list is out of time" error in the logs.
-    //
-    // Solution: render only the backdrop + shell on frame 1, then after a
-    // single requestAnimationFrame we set `isContentReady = true` and render
-    // the full form. This gives Android ONE frame to commit the entry animation
-    // before the heavy DOM work begins.
-    // ─────────────────────────────────────────────────────────────────────────
+    // Render only the sheet shell on the first frame; the form mounts one frame later so the entry
+    // animation stays smooth on low-end Android devices.
     const [isContentReady, setIsContentReady] = useState(false);
-
     useEffect(() => {
-        console.log(`🌀 [QuestModal LifeCycle] useEffect triggered for isOpen. isOpen: ${isOpen}, isContentReady: ${isContentReady}`);
-        if (!isOpen) {
-            // Reset immediately on close so next open starts fresh
-            setIsContentReady(false);
-            return;
-        }
-        // Defer the heavy form render until after the first paint frame
-        const rafId = requestAnimationFrame(() => {
-            // setTimeout(0) inside rAF guarantees we are past the commit phase
-            const tid = setTimeout(() => {
-                console.log("🌀 [QuestModal LifeCycle] requestAnimationFrame + setTimeout fired. Setting isContentReady to true.");
-                setIsContentReady(true);
-            }, 0);
-            return () => clearTimeout(tid);
-        });
+        if (!isOpen) { setIsContentReady(false); return; }
+        const rafId = requestAnimationFrame(() => setIsContentReady(true));
         return () => cancelAnimationFrame(rafId);
     }, [isOpen]);
 
-    // Form State
+    // Form state
     const [title, setTitle] = useState('');
     const [desc, setDesc] = useState('');
     const [attrId, setAttrId] = useState('DISCIPLINA');
     const [subAttrId, setSubAttrId] = useState('');
-    const [isSubAttrPickerOpen, setSubAttrPickerOpen] = useState(false);
     const [projectId, setProjectId] = useState('');
     const [difficulty, setDifficulty] = useState<Difficulty>('C');
     const [deadline, setDeadline] = useState(toLocalISOString(new Date()));
     const [deadlineTime, setDeadlineTime] = useState<string>('');
-
-    // Recurrence State
-    const [recurrenceType, setRecurrenceType] = useState<'NONE' | 'INTERVAL' | 'WEEKLY' | 'MONTHLY'>('NONE');
+    const [recurrenceType, setRecurrenceType] = useState<RecurrenceKind>('NONE');
     const [recurrenceInterval, setRecurrenceInterval] = useState<number>(1);
     const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
-    const [recurrenceMonths, setRecurrenceMonths] = useState<number[]>([0,1,2,3,4,5,6,7,8,9,10,11]);
+    const [recurrenceMonths, setRecurrenceMonths] = useState<number[]>(ALL_MONTHS);
     const [monthlyType, setMonthlyType] = useState<'SPECIFIC_DATES' | 'LAST_DAY'>('SPECIFIC_DATES');
-    const [isRecurrencePickerOpen, setRecurrencePickerOpen] = useState(false);
     const [showInJournaling, setShowInJournaling] = useState<boolean>(false);
     const [journalIconColor, setJournalIconColor] = useState<string>('#3b82f6');
-
-    const [isAttrPickerOpen, setAttrPickerOpen] = useState(false);
-    const [isProjectPickerOpen, setProjectPickerOpen] = useState(false);
     const [estimatedTime, setEstimatedTime] = useState(0);
     const [pomodoroTarget, setPomodoroTarget] = useState<number>(0);
     const [pomodoroCompleted, setPomodoroCompleted] = useState<number>(0);
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [panel, setPanel] = useState<Panel>(null);
+    const [, setIconsLoaded] = useState(false);
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 🔒 PERFORMANCE FIX #3: Load full Lucide icon set lazily on picker open.
-    // ─────────────────────────────────────────────────────────────────────────
-    const [iconsLoaded, setIconsLoaded] = useState(false);
-    const handleOpenAttrPicker = useCallback(async () => {
-        if (!LucideIconsCache) {
+    const openPanel = useCallback(async (next: Exclude<Panel, null>) => {
+        if (next === 'trait' && !LucideIconsCache) {
             await loadLucideIcons();
-            setIconsLoaded(true); // trigger re-render so picker icons resolve
+            setIconsLoaded(true); // re-render so the picker icons resolve
         }
-        setAttrPickerOpen(true);
+        setPanel(next);
     }, []);
-    // Keep iconsLoaded in scope for the JSX below (it just needs to reference it
-    // so the component re-renders after the lazy load)
-    void iconsLoaded;
 
-    // To prevent mobile ghost clicks from closing the modal immediately after mounting,
-    // we track if the touch/click actually started (via touchstart/mousedown) on this backdrop.
-    // Ghost clicks do not trigger touchstart/mousedown on the newly mounted backdrop.
-    const backdropTouchStartedRef = React.useRef(false);
-
-    const handleBackdropTouchStart = () => {
-        console.log("🌀 [QuestModal UI] Backdrop touch/mousedown started.");
-        backdropTouchStartedRef.current = true;
-    };
-
-    const handleBackdropClick = (_e: React.MouseEvent) => {
-        console.log(`🌀 [QuestModal UI] Backdrop click event fired. touchStarted: ${backdropTouchStartedRef.current}`);
-        if (!backdropTouchStartedRef.current) {
-            console.log("🌀 [QuestModal UI] Ignoring ghost backdrop click.");
-            return;
-        }
-        backdropTouchStartedRef.current = false;
-        console.log("🌀 [QuestModal UI] Backdrop click valid. Invoking onClose().");
-        onClose();
-    };
-
-    // Smart Auto-linking by Keywords in title
-    React.useEffect(() => {
+    // Smart auto-linking by keywords in the title
+    useEffect(() => {
         if (!title || initialValues?.attribute || lockedAttributeId) return;
         for (const attr of (attributes || [])) {
-            if (attr.subTraits) {
-                for (const sub of attr.subTraits) {
-                    const subWords = sub.name.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-                    const matched = subWords.some(word => title.toLowerCase().includes(word)) || title.toLowerCase().includes(sub.name.toLowerCase());
-                    if (matched) {
-                        setAttrId(attr.id);
-                        setSubAttrId(sub.id);
-                        return;
-                    }
+            for (const sub of (attr.subTraits || [])) {
+                const subWords = sub.name.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+                const lower = title.toLowerCase();
+                if (subWords.some(word => lower.includes(word)) || lower.includes(sub.name.toLowerCase())) {
+                    setAttrId(attr.id);
+                    setSubAttrId(sub.id);
+                    return;
                 }
             }
         }
     }, [title, attributes, lockedAttributeId, initialValues]);
 
-    // Effect to apply locked props or initial values
-    React.useEffect(() => {
-        if (isOpen) {
-            setIsSubmitting(false);
-            if (initialValues) {
-                setTitle(initialValues.title || '');
-                setDesc(initialValues.description || '');
-                setAttrId(initialValues.attribute || '');
-                setSubAttrId(initialValues.subAttribute || '');
-                setProjectId(initialValues.projectId || initialValues.smartProjectId || '');
-                setDifficulty((initialValues.difficulty as Difficulty) || 'C');
-                setDeadline(initialValues.deadline || toLocalISOString(new Date()));
-                setDeadlineTime(initialValues.deadlineTime || '');
-                setEstimatedTime(initialValues.estimatedTime || 0);
-                setPomodoroTarget(initialValues.pomodoroTarget || 0);
-                setPomodoroCompleted(initialValues.pomodoroCompleted || 0);
-                setShowInJournaling(initialValues.showInJournaling || false);
-                setJournalIconColor(initialValues.journalIconColor || '#3b82f6');
-
-                if (initialValues.recurrence) {
-                    setRecurrenceType(initialValues.recurrence.type || 'NONE');
-                    setRecurrenceInterval(initialValues.recurrence.interval || 1);
-                    setRecurrenceDays(initialValues.recurrence.days || []);
-                    setRecurrenceMonths(initialValues.recurrence.months || [0,1,2,3,4,5,6,7,8,9,10,11]);
-                    setMonthlyType(initialValues.recurrence.monthlyType || 'SPECIFIC_DATES');
-                } else {
-                    setRecurrenceType('NONE');
-                    setRecurrenceInterval(1);
-                    setRecurrenceDays([]);
-                    setRecurrenceMonths([0,1,2,3,4,5,6,7,8,9,10,11]);
-                    setMonthlyType('SPECIFIC_DATES');
-                }
+    // Apply locked props / initial values whenever the sheet opens
+    useEffect(() => {
+        if (!isOpen) return;
+        setIsSubmitting(false);
+        setPanel(null);
+        if (initialValues) {
+            setTitle(initialValues.title || '');
+            setDesc(initialValues.description || '');
+            setAttrId(initialValues.attribute || '');
+            setSubAttrId(initialValues.subAttribute || '');
+            setProjectId(initialValues.projectId || initialValues.smartProjectId || '');
+            setDifficulty((initialValues.difficulty as Difficulty) || 'C');
+            setDeadline(initialValues.deadline || toLocalISOString(new Date()));
+            setDeadlineTime(initialValues.deadlineTime || '');
+            setEstimatedTime(initialValues.estimatedTime || 0);
+            setPomodoroTarget(initialValues.pomodoroTarget || 0);
+            setPomodoroCompleted(initialValues.pomodoroCompleted || 0);
+            setShowInJournaling(initialValues.showInJournaling || false);
+            setJournalIconColor(initialValues.journalIconColor || '#3b82f6');
+            if (initialValues.recurrence) {
+                setRecurrenceType(initialValues.recurrence.type || 'NONE');
+                setRecurrenceInterval(initialValues.recurrence.interval || 1);
+                setRecurrenceDays(initialValues.recurrence.days || []);
+                setRecurrenceMonths(initialValues.recurrence.months || ALL_MONTHS);
+                setMonthlyType(initialValues.recurrence.monthlyType || 'SPECIFIC_DATES');
             } else {
-                setTitle('');
-                setDesc('');
-                setAttrId('DISCIPLINA');
-                setSubAttrId('');
-                setProjectId('');
-                setDifficulty('C');
-                setDeadline(toLocalISOString(new Date()));
-                setEstimatedTime(0);
-                setPomodoroTarget(0);
-                setPomodoroCompleted(0);
                 setRecurrenceType('NONE');
                 setRecurrenceInterval(1);
                 setRecurrenceDays([]);
-                setRecurrenceMonths([0,1,2,3,4,5,6,7,8,9,10,11]);
+                setRecurrenceMonths(ALL_MONTHS);
                 setMonthlyType('SPECIFIC_DATES');
-                setShowInJournaling(false);
-                setJournalIconColor('#3b82f6');
             }
-
-            if (lockedAttributeId) setAttrId(lockedAttributeId);
-            if (lockedDate) setDeadline(lockedDate);
+        } else {
+            setTitle('');
+            setDesc('');
+            setAttrId('DISCIPLINA');
+            setSubAttrId('');
+            setProjectId('');
+            setDifficulty('C');
+            setDeadline(toLocalISOString(new Date()));
+            setDeadlineTime('');
+            setEstimatedTime(0);
+            setPomodoroTarget(0);
+            setPomodoroCompleted(0);
+            setRecurrenceType('NONE');
+            setRecurrenceInterval(1);
+            setRecurrenceDays([]);
+            setRecurrenceMonths(ALL_MONTHS);
+            setMonthlyType('SPECIFIC_DATES');
+            setShowInJournaling(false);
+            setJournalIconColor('#3b82f6');
         }
+        if (lockedAttributeId) setAttrId(lockedAttributeId);
+        if (lockedDate) setDeadline(lockedDate);
     }, [isOpen, lockedAttributeId, lockedDate, initialValues]);
 
     const selectedAttr = attributes?.find((a) => a.id === attrId);
-    const activeColor = selectedAttr ? selectedAttr.color : '#333333';
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // 🔒 PERFORMANCE FIX #4: Use targeted icon resolver instead of scanning
-    // the entire LucideIcons namespace on every render.
-    // ─────────────────────────────────────────────────────────────────────────
-    const SelectedIcon = useMemo(() => {
-        if (!selectedAttr) return Star;
-        return resolveIconFromCache(selectedAttr.iconName, selectedAttr.icon);
-    }, [selectedAttr]);
-
-    const activeLabel = selectedAttr && selectedAttr.label
-        ? t(selectedAttr.label, typeof selectedAttr.label === 'string' ? selectedAttr.label.replace('traits.', '') : '')
-        : t('modals.project.traitDefault', 'Trait');
+    const activeColor = selectedAttr ? selectedAttr.color : '#0a84ff';
+    const SelectedIcon = useMemo(
+        () => resolveTraitIcon(selectedAttr, LucideIconsCache, Star),
+        [selectedAttr, panel] // `panel` changes after the lazy icon registry loads
+    );
+    const activeLabel = selectedAttr ? traitLabelOf(selectedAttr, t) : t('modals.project.traitDefault', 'Trait');
 
     const selectedProject = projects.find(p => p.id === projectId);
     const selectedSmartProject = smartProjects.find(p => p.id === (lockedSmartProjectId || initialValues?.smartProjectId));
+    const linkedProjectTitle = projectId
+        ? (selectedProject?.title || smartProjects.find(p => p.id === projectId)?.mainGoal || '')
+        : '';
 
     const prediction = useMemo(() => {
         const multipliers: Record<Difficulty, number> = { 'C': 1, 'B': 2, 'A': 3, 'S': 4 };
         return calculateTaskRewards(estimatedTime, multipliers[difficulty], 0, 'TASK');
     }, [estimatedTime, difficulty]);
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // 🔒 PERFORMANCE FIX #5: Memoize the difficulties array so it isn't
-    // recreated on every render (it calls t() for each label).
-    // ─────────────────────────────────────────────────────────────────────────
     const difficulties = useMemo(() => [
-        { id: 'C' as Difficulty, label: t('modals.quest.difficulties.Basic'), icon: Circle, color: 'text-cyan-400' },
-        { id: 'B' as Difficulty, label: t('modals.quest.difficulties.Medium'), icon: Square, color: 'text-emerald-400' },
-        { id: 'A' as Difficulty, label: t('modals.quest.difficulties.Hard'), icon: Triangle, color: 'text-orange-400' },
-        { id: 'S' as Difficulty, label: t('modals.quest.difficulties.Epic'), icon: Star, color: 'text-purple-500' },
+        { value: 'C' as Difficulty, label: t('modals.quest.difficulties.Basic'), icon: <Circle size={11} style={{ color: '#64d2ff' }} /> },
+        { value: 'B' as Difficulty, label: t('modals.quest.difficulties.Medium'), icon: <Square size={11} style={{ color: '#30d158' }} /> },
+        { value: 'A' as Difficulty, label: t('modals.quest.difficulties.Hard'), icon: <Triangle size={11} style={{ color: '#ff9f0a' }} /> },
+        { value: 'S' as Difficulty, label: t('modals.quest.difficulties.Epic'), icon: <Star size={11} style={{ color: '#bf5af2' }} /> },
     ], [t]);
 
+    const canSubmit = !!title.trim() && !!attrId && !isSubmitting;
+
     const handleConfirm = async () => {
-        console.log(`🌀 [QuestModal API] handleConfirm clicked. title: "${title}", isSubmitting: ${isSubmitting}`);
-        if (isSubmitting) return;
+        if (!canSubmit) return;
         setIsSubmitting(true);
 
         const finalSmartProjectId = lockedSmartProjectId ||
-                                   smartProjects.find(p => p.id === projectId)?.id ||
-                                   initialValues?.smartProjectId;
-
+            smartProjects.find(p => p.id === projectId)?.id ||
+            initialValues?.smartProjectId;
         const finalProjectId = smartProjects.find(p => p.id === projectId) ? '' : projectId;
 
         try {
@@ -327,607 +233,338 @@ export const QuestModal = React.memo(({
                     type: recurrenceType,
                     interval: recurrenceInterval,
                     days: recurrenceDays,
-                    monthlyType: monthlyType,
+                    monthlyType,
                     months: recurrenceMonths
                 } : { type: 'NONE' }
             });
         } catch (error) {
-            console.error("Failed to save quest", error);
+            console.error('Failed to save quest', error);
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    if (typeof document === 'undefined' || !document.body) return null;
+    const isEditing = !!initialValues;
+    const sheetTitle = isEditing ? t('modals.quest.titleEdit') : (isSmartTask ? t('modals.quest.titleSmart') : t('modals.quest.titleNew'));
+    const sheetSubtitle = lockedSmartProjectId
+        ? `${t('cu.mission', 'Misión')}: ${selectedSmartProject?.mainGoal || t('cu.active', 'Activa')}`
+        : lockedDate
+            ? t('cu.linkedTo', { defaultValue: 'Para el {{date}}', date: lockedDate })
+            : (isSmartTask ? t('modals.quest.linkedStrategy') : undefined);
 
-    return createPortal(
-        <AnimatePresence>
-            {isOpen && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[99999] pointer-events-auto flex items-center justify-center p-4"
-                >
-                    <div 
-                        className="absolute inset-0 bg-black/60" 
-                        onTouchStart={handleBackdropTouchStart}
-                        onMouseDown={handleBackdropTouchStart}
-                        onClick={handleBackdropClick} 
+    // Quick date: Today / Tomorrow / custom
+    const todayISO = toLocalISOString(new Date());
+    const tomorrowISO = useMemo(() => { const d = new Date(); d.setDate(d.getDate() + 1); return toLocalISOString(d); }, [todayISO]);
+    const dateMode: DateMode = deadline === todayISO ? 'today' : deadline === tomorrowISO ? 'tomorrow' : 'custom';
+    const dateObj = parseLocalDate(deadline);
+    const customLabel = dateMode === 'custom'
+        ? dateObj.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: dateObj.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined })
+        : t('cu.pickDate', 'Elegir fecha');
+
+    const toggleIn = (setter: React.Dispatch<React.SetStateAction<number[]>>, n: number) =>
+        setter(prev => prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n].sort((a, b) => a - b));
+
+    const repeatValue = recurrenceType === 'NONE'
+        ? t('tasks.recurrence.none', 'Nunca')
+        : recurrenceType === 'INTERVAL'
+            ? t('cu.everyNDays', { defaultValue: 'Cada {{count}} día(s)', count: recurrenceInterval })
+            : t('tasks.recurrence.monthly', 'Mensual');
+
+    // ── Detail panels (open inside the sheet — no scrolling the main page) ──
+    const panelTitle: Record<Exclude<Panel, null>, string> = {
+        duration: t('cu.duration', 'Duración'),
+        trait: t('cu.trait', 'Rasgo'),
+        project: t('cu.project', 'Proyecto'),
+        repeat: t('cu.repeat', 'Repetición'),
+    };
+
+    const panelBody = panel === 'duration' ? (
+        <DurationPicker value={estimatedTime} onChange={setEstimatedTime} />
+    ) : panel === 'trait' ? (
+        <Stack className="cu-tight">
+            <div className="cu-group">
+                <TraitGrid
+                    attributes={attributes}
+                    value={attrId}
+                    registry={LucideIconsCache}
+                    fallbackIcon={Hexagon}
+                    t={t}
+                    onPick={(id) => {
+                        if (id !== attrId) { setAttrId(id); setSubAttrId(''); }
+                        const picked = attributes.find(a => a.id === id);
+                        if (!picked?.subTraits?.length) setPanel(null);
+                    }}
+                />
+            </div>
+            {selectedAttr?.subTraits && selectedAttr.subTraits.length > 0 && (
+                <Section label={t('habits.subTrait', 'Sub-rasgo')}>
+                    <OptionList<string>
+                        value={subAttrId}
+                        onPick={(id) => { setSubAttrId(id); setPanel(null); }}
+                        options={[
+                            { id: '', title: t('common.none', 'Ninguno') },
+                            ...selectedAttr.subTraits.map(st => ({ id: st.id, title: st.name, sub: `Lvl ${st.level}` })),
+                        ]}
                     />
-                    <motion.div
-                        initial={{ scale: 0.95, opacity: 0, y: 10 }}
-                        animate={{ scale: 1, opacity: 1, y: 0 }}
-                        exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                        className="relative z-10 w-full max-w-[360px] max-h-[90vh] flex flex-col"
-                    >
-                        <div
-                            className="rounded-[2rem] overflow-hidden flex flex-col h-full max-h-full relative transition-all duration-200"
-                            style={{
-                                background: 'linear-gradient(165deg, rgba(20,20,25,0.95) 0%, rgba(5,5,5,0.98) 100%)',
-                                border: `1px solid ${attrId ? activeColor : 'rgba(255, 255, 255, 0.08)'}`,
-                                boxShadow: attrId
-                                    ? `0 0 0 1px ${activeColor}40, 0 8px 32px -8px rgba(0,0,0,0.8)`
-                                    : '0 20px 40px -10px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1)'
-                            }}
-                        >
-                            {/* ─────────────────────────────────────────────────────────── */}
-                            {/* FRAME 1: Shell always renders immediately (lightweight)     */}
-                            {/* This is what Android sees during the entry animation        */}
-                            {/* ─────────────────────────────────────────────────────────── */}
-                            <div className="p-4 flex justify-between items-center mb-1 px-5 shrink-0">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-lg transition-colors duration-200" style={{ background: attrId ? activeColor : '#333' }}>
-                                        <Crosshair size={16} className="text-white" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h2 className="text-lg font-black text-white tracking-tight flex items-center gap-2">
-                                            {initialValues ? t('modals.quest.titleEdit') : (isSmartTask ? t('modals.quest.titleSmart') : t('modals.quest.titleNew'))}
-                                            {lockedSmartProjectId && (
-                                                <span className="text-[9px] font-bold bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full uppercase tracking-widest border border-cyan-500/20">
-                                                    Mission: {selectedSmartProject?.mainGoal || 'Active'}
-                                                </span>
-                                            )}
-                                        </h2>
-                                        <p className="text-[10px] text-white/40 font-medium">
-                                            {lockedDate ? `Linked to ${lockedDate}` : (isSmartTask ? t('modals.quest.linkedStrategy') : '')}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center active:bg-white/20 transition-colors hover:bg-white/10">
-                                        <X size={16} className="text-white/70" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* ─────────────────────────────────────────────────────────── */}
-                            {/* FRAME 2+: Full content deferred until after entry animation */}
-                            {/* ─────────────────────────────────────────────────────────── */}
-                            {!isContentReady ? (
-                                /* Skeleton placeholder — keeps the modal height stable while loading */
-                                <div className="px-4 pb-4 space-y-3 animate-pulse">
-                                    <div className="h-10 rounded-2xl bg-white/5 w-full" />
-                                    <div className="h-8 rounded-full bg-white/5 w-full" />
-                                    <div className="h-24 rounded-2xl bg-white/5 w-full" />
-                                    <div className="h-8 rounded-xl bg-white/5 w-full" />
-                                    <div className="h-10 rounded-xl bg-white/5 w-full" />
-                                </div>
-                            ) : (
-                                <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-4 pb-4 space-y-4">
-                                    {/* Reward Prediction */}
-                                    <div>
-                                        <RewardPredictionPill
-                                            prediction={prediction}
-                                            attributeColor={activeColor}
-                                            AttributeIcon={SelectedIcon}
-                                            attributeLabel={activeLabel}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        {/* Title & Attribute */}
-                                        <div className="flex gap-2">
-                                            <div className="flex-1 bg-white/5 rounded-[1.2rem] border border-white/5 p-1 focus-within:border-white/20 transition-colors">
-                                                <input
-                                                    type="text"
-                                                    value={title}
-                                                    onChange={(e) => setTitle(e.target.value)}
-                                                    placeholder={t('modals.quest.namePlaceholder')}
-                                                    className="w-full bg-transparent px-4 py-3 text-sm font-bold text-white placeholder:text-white/20 outline-none"
-                                                    autoFocus={false}
-                                                />
-                                            </div>
-                                            <div
-                                                onClick={() => !lockedAttributeId && handleOpenAttrPicker()}
-                                                className={`w-14 rounded-[1.2rem] border flex items-center justify-center shrink-0 active:scale-95 transition-all relative ${isAttrPickerOpen ? 'z-50' : ''} ${lockedAttributeId ? 'cursor-not-allowed opacity-80' : 'cursor-pointer'} ${attrId ? 'bg-white/5 border-white/10' : 'bg-white/5 border-dashed border-white/10'}`}
-                                            >
-                                                {attrId ? (<SelectedIcon size={20} style={{ color: activeColor }} />) : <Plus size={20} className="text-white/30" />}
-                                                {isAttrPickerOpen && !lockedAttributeId && (
-                                                    <>
-                                                        <div className="fixed inset-0 z-[998] bg-transparent" onClick={(e) => { e.stopPropagation(); setAttrPickerOpen(false); }} />
-                                                        <div className="absolute top-full right-0 mt-2 p-2 bg-[#1c1c1e] rounded-[1.5rem] grid grid-cols-2 gap-2 z-[999] w-[240px] shadow-md border border-white/10 animate-in zoom-in-95 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                                                            {Array.isArray(attributes) && attributes.map((attr) => {
-                                                                if (!attr) return null;
-                                                                const Icon = resolveIconFromCache(attr.iconName, attr.icon);
-                                                                return (
-                                                                    <button key={attr.id} onClick={(e) => { e.stopPropagation(); if (attr.id !== attrId) { setAttrId(attr.id); setSubAttrId(''); } setAttrPickerOpen(false); }} className="flex flex-col items-center p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-                                                                        <Icon size={16} style={{ color: attr.color }} />
-                                                                        <span className="text-[9px] font-bold text-slate-400 mt-1">{attr.label ? t(attr.label, typeof attr.label === 'string' ? attr.label.replace('traits.', '') : '') : ''}</span>
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {selectedAttr?.subTraits && selectedAttr.subTraits.length > 0 && (
-                                            <div className="space-y-1 animate-in slide-in-from-top-1 fade-in">
-                                                <span className="text-[9px] font-black text-white/30 uppercase tracking-wider block px-1">
-                                                    {t('habits.subTrait', 'Sub-Rasgo')}
-                                                </span>
-                                                <div className="relative">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setSubAttrPickerOpen(!isSubAttrPickerOpen)}
-                                                        className="w-full h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between px-4 text-xs font-bold text-white transition-colors hover:bg-white/10"
-                                                    >
-                                                        <div className="flex items-center gap-2">
-                                                            {subAttrId ? (
-                                                                <span className="text-slate-300">
-                                                                    {selectedAttr.subTraits.find(st => st.id === subAttrId)?.name || subAttrId}
-                                                                </span>
-                                                            ) : (
-                                                                <span className="text-white/20">{t('habits.selectSubTraitOptional', 'Seleccionar Sub-Rasgo (Opcional)')}</span>
-                                                            )}
-                                                        </div>
-                                                        <ChevronDown size={14} className="text-white/30" />
-                                                    </button>
-
-                                                    {isSubAttrPickerOpen && (
-                                                        <>
-                                                            <div className="fixed inset-0 z-[998] bg-transparent" onClick={() => setSubAttrPickerOpen(false)} />
-                                                            <div className="absolute top-full left-0 right-0 mt-2 p-2 bg-[#1c1c1e] rounded-[1.5rem] flex flex-col gap-1 z-[999] shadow-md border border-white/10 max-h-[160px] overflow-y-auto">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => { setSubAttrId(''); setSubAttrPickerOpen(false); }}
-                                                                    className="flex items-center justify-between p-2.5 rounded-xl hover:bg-white/5 transition-colors text-left text-xs font-bold text-white/50"
-                                                                >
-                                                                    {t('common.none', 'Ninguno')}
-                                                                </button>
-                                                                {selectedAttr.subTraits.map(st => (
-                                                                    <button
-                                                                        key={st.id}
-                                                                        type="button"
-                                                                        onClick={() => { setSubAttrId(st.id); setSubAttrPickerOpen(false); }}
-                                                                        className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 transition-colors text-left"
-                                                                    >
-                                                                        <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center text-slate-400">
-                                                                            {resolveIconFromCache(st.iconName) ? React.createElement(resolveIconFromCache(st.iconName), { size: 12 }) : <Hexagon size={12} />}
-                                                                        </div>
-                                                                        <div className="flex flex-col">
-                                                                            <span className="text-xs font-bold text-white">{st.name}</span>
-                                                                            <span className="text-[9px] font-bold text-slate-500">Lvl {st.level}</span>
-                                                                        </div>
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Description */}
-                                        <div className="bg-white/5 rounded-[1.2rem] border border-white/5 p-3">
-                                            <input
-                                                type="text"
-                                                value={desc}
-                                                onChange={(e) => setDesc(e.target.value)}
-                                                placeholder={t('modals.quest.briefingPlaceholder')}
-                                                className="w-full bg-transparent text-xs font-medium text-slate-300 placeholder:text-white/20 outline-none"
-                                            />
-                                        </div>
-
-                                        {/* Estimated Time */}
-                                        <div className="pt-1">
-                                            <DurationPicker
-                                                value={estimatedTime}
-                                                onChange={setEstimatedTime}
-                                            />
-                                        </div>
-
-                                        {/* Pomodoro Target Picker (Only shown if associated with a project) */}
-                                        {projectId && projectId !== 'none' && (
-                                            <div className="bg-white/5 rounded-[1.2rem] border border-white/5 p-3 space-y-2 mb-2">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <Hourglass size={12} className="text-cyan-400" />
-                                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Pomodoros de Objetivo</span>
-                                                    </div>
-                                                    <span className="text-xs font-mono font-black text-white">{pomodoroTarget || 'Sin Límite'}</span>
-                                                </div>
-                                                <div className="flex items-center justify-center gap-4 bg-black/20 rounded-xl p-2 border border-white/5">
-                                                    <button 
-                                                        onClick={() => setPomodoroTarget(prev => Math.max(0, prev - 1))}
-                                                        className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white font-bold"
-                                                    >
-                                                        -
-                                                    </button>
-                                                    <span className="text-sm font-black font-mono text-white min-w-[20px] text-center">{pomodoroTarget}</span>
-                                                    <button 
-                                                        onClick={() => setPomodoroTarget(prev => Math.min(10, prev + 1))}
-                                                        className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white font-bold"
-                                                    >
-                                                        +
-                                                    </button>
-                                                </div>
-                                                <div className="text-[8px] text-slate-500 font-medium text-center">
-                                                    Servirá como guía de pomodoros para completar la tarea.
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Difficulty Selector */}
-                                        <div className="bg-white/5 rounded-[1.2rem] border border-white/5 p-1 flex justify-between relative">
-                                            {difficulties.map((diff) => {
-                                                const isSelected = difficulty === diff.id;
-                                                const DiffIcon = diff.icon;
-                                                return (
-                                                    <button
-                                                        key={diff.id}
-                                                        onClick={() => setDifficulty(diff.id)}
-                                                        className="relative flex-1 h-8 flex items-center justify-center rounded-[1rem] transition-all duration-200 z-10"
-                                                    >
-                                                        {isSelected && (
-                                                            <div className="absolute inset-0 bg-white/10 shadow-lg rounded-[1rem] border border-white/5" />
-                                                        )}
-                                                        <div className={`flex items-center gap-1.5 ${isSelected ? 'scale-105' : 'opacity-50 scale-95'} transition-all duration-200`}>
-                                                            <DiffIcon size={10} className={diff.color} fill={isSelected ? "currentColor" : "none"} />
-                                                            <span className={`text-[9px] font-bold uppercase tracking-wide ${diff.color}`}>
-                                                                {diff.label}
-                                                            </span>
-                                                        </div>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {/* Date Picker */}
-                                        <div
-                                            onClick={() => !lockedDate && setIsDateModalOpen(true)}
-                                            className={`rounded-[1.2rem] bg-white/5 border border-white/5 flex items-center justify-between px-4 py-2.5 relative overflow-hidden transition-colors ${lockedDate ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-white/10'}`}
-                                        >
-                                            <span className="text-[9px] font-black text-white/30 uppercase flex items-center gap-2">
-                                                {t('modals.quest.dueDate')}
-                                            </span>
-                                            <div className="flex items-baseline gap-1 pointer-events-none">
-                                                {deadline === toLocalISOString(new Date()) ? (
-                                                    <span className="text-sm font-bold text-white">{t('dashboard.today', 'Hoy')}</span>
-                                                ) : (
-                                                    <>
-                                                        <span className="text-sm font-bold text-white">{parseLocalDate(deadline).getDate()}</span>
-                                                        <span className="text-[10px] font-bold text-white/50 uppercase">{parseLocalDate(deadline).toLocaleDateString('en-US', { month: 'short' })}</span>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Optional time of day for the deadline */}
-                                        <div className="rounded-[1.2rem] bg-white/5 border border-white/5 flex items-center justify-between px-4 py-2 relative overflow-hidden">
-                                            <span className="text-[9px] font-black text-white/30 uppercase flex items-center gap-2">
-                                                {t('modals.quest.dueTime', 'Hora')}
-                                            </span>
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="time"
-                                                    value={deadlineTime}
-                                                    onChange={(e) => setDeadlineTime(e.target.value)}
-                                                    className="bg-transparent text-sm font-bold text-white outline-none [color-scheme:dark] min-w-[88px] text-right"
-                                                    aria-label={t('modals.quest.dueTime', 'Hora')}
-                                                />
-                                                {deadlineTime && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setDeadlineTime('')}
-                                                        className="w-5 h-5 rounded-full bg-white/10 text-white/60 text-[11px] leading-none flex items-center justify-center hover:bg-white/20"
-                                                        aria-label={t('common.clear', 'Quitar')}
-                                                    >
-                                                        ×
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Project Link */}
-                                        <div className="relative">
-                                            <button
-                                                onClick={() => setProjectPickerOpen(!isProjectPickerOpen)}
-                                                className={`w-full h-9 rounded-[1.2rem] border border-white/5 flex items-center justify-between px-4 text-xs font-bold transition-colors ${projectId ? 'bg-white/10 text-white' : 'bg-white/5 text-white/40 hover:bg-white/8'}`}
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <Target size={13} className={projectId ? 'text-white' : 'text-white/30'} />
-                                                    <span>{projectId ? (selectedProject?.title || smartProjects.find(p => p.id === projectId)?.mainGoal || t('modals.quest.linkProject')) : t('modals.quest.linkProject')}</span>
-                                                </div>
-                                                <ChevronDown size={13} className="text-white/30" />
-                                            </button>
-                                            {isProjectPickerOpen && (
-                                                <>
-                                                    <div className="fixed inset-0 z-[998] bg-transparent" onClick={() => setProjectPickerOpen(false)} />
-                                                    <div className="absolute top-full left-0 right-0 mt-2 p-2 bg-[#1c1c1e] rounded-[1.5rem] flex flex-col gap-1 z-[999] shadow-md border border-white/10 animate-in zoom-in-95 max-h-[300px] overflow-y-auto">
-                                                        <button
-                                                            onClick={() => { setProjectId(''); setProjectPickerOpen(false); }}
-                                                            className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-left"
-                                                        >
-                                                            <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
-                                                                <X size={14} className="text-white/50" />
-                                                            </div>
-                                                            <span className="text-xs font-bold text-white/50">{t('modals.quest.noProject')}</span>
-                                                        </button>
-
-                                                        {smartProjects && smartProjects.length > 0 && (
-                                                            <div className="px-3 py-1 text-[9px] font-bold text-white/30 uppercase tracking-widest">{t('quests.strategic', 'Strategic')}</div>
-                                                        )}
-                                                        {Array.isArray(smartProjects) && smartProjects.map(p => {
-                                                            if (!p) return null;
-                                                            const attr = Array.isArray(attributes) ? attributes.find(a => a?.id === p.traitId) : undefined;
-                                                            return (
-                                                                <button
-                                                                    key={p.id}
-                                                                    onClick={() => {
-                                                                        setProjectId(p.id);
-                                                                        if (p.traitId) { setAttrId(p.traitId); setSubAttrId(''); }
-                                                                        setProjectPickerOpen(false);
-                                                                    }}
-                                                                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-left"
-                                                                >
-                                                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: p.traitColor || attr?.color || '#333' }}>
-                                                                        <Target size={14} className="text-white" />
-                                                                    </div>
-                                                                    <div className="flex flex-col overflow-hidden">
-                                                                        <span className="text-xs font-bold text-white truncate w-full">{p.mainGoal}</span>
-                                                                        <span className="text-[10px] font-bold text-slate-500 uppercase">{t('quests.strategy', 'Strategy')}</span>
-                                                                    </div>
-                                                                </button>
-                                                            );
-                                                        })}
-
-                                                        {projects && projects.length > 0 && (
-                                                            <div className="px-3 py-1 text-[9px] font-bold text-white/30 uppercase tracking-widest mt-2">{t('quests.protocols', 'Protocols')}</div>
-                                                        )}
-                                                        {Array.isArray(projects) && projects.map(p => {
-                                                            if (!p) return null;
-                                                            const attr = Array.isArray(attributes) ? attributes.find(a => a?.id === p.attribute) : undefined;
-                                                            return (
-                                                                <button
-                                                                    key={p.id}
-                                                                    onClick={() => {
-                                                                        setProjectId(p.id);
-                                                                        if (p.attribute) { setAttrId(p.attribute); setSubAttrId(''); }
-                                                                        setProjectPickerOpen(false);
-                                                                    }}
-                                                                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors text-left"
-                                                                >
-                                                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: attr?.color || '#333' }}>
-                                                                        <Target size={14} className="text-white" />
-                                                                    </div>
-                                                                    <div className="flex flex-col overflow-hidden">
-                                                                        <span className="text-xs font-bold text-white truncate w-full">{p.title}</span>
-                                                                        <span className="text-[10px] font-bold text-slate-500 uppercase">{attr?.label ? t(attr.label, typeof attr.label === 'string' ? attr.label.replace('traits.', '') : '') : ''}</span>
-                                                                    </div>
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-
-                                        {/* Recurrence Selector */}
-                                        <div className="bg-white/5 rounded-[1.2rem] border border-white/5 p-3 relative">
-                                            <div
-                                                onClick={() => setRecurrencePickerOpen(!isRecurrencePickerOpen)}
-                                                className="flex items-center justify-between cursor-pointer group"
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <Repeat size={14} className={recurrenceType !== 'NONE' ? "text-cyan-400" : "text-white/30"} />
-                                                    <span className={`text-[10px] font-bold uppercase ${recurrenceType !== 'NONE' ? "text-white" : "text-white/50"}`}>
-                                                        {recurrenceType === 'NONE' ? t('tasks.recurrence.none', 'No Repeat') :
-                                                         recurrenceType === 'INTERVAL' ? t('tasks.recurrence.interval', 'Interval') + ' (opcional)' :
-                                                         recurrenceType === 'WEEKLY' ? t('tasks.recurrence.weekly', 'Weekly') :
-                                                         t('tasks.recurrence.monthly', 'Monthly')}
-                                                    </span>
-                                                </div>
-                                                <ChevronDown size={14} className={`text-white/30 transition-transform ${isRecurrencePickerOpen ? 'rotate-180' : ''}`} />
-                                            </div>
-
-                                            <AnimatePresence>
-                                                {isRecurrencePickerOpen && (
-                                                    <motion.div
-                                                        initial={{ opacity: 0 }}
-                                                        animate={{ opacity: 1 }}
-                                                        exit={{ opacity: 0 }}
-                                                        transition={{ duration: 0.15 }}
-                                                        className="mt-3"
-                                                    >
-                                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1">
-                                                            {['NONE', 'INTERVAL', 'MONTHLY'].map(type => (
-                                                                <button
-                                                                    key={type}
-                                                                    onClick={() => {
-                                                                        setRecurrenceType(type as any);
-                                                                        setRecurrenceDays([]);
-                                                                        setRecurrencePickerOpen(false);
-                                                                    }}
-                                                                    className={`py-2 rounded-xl text-[9px] font-black tracking-wide transition-all border ${recurrenceType === type ? "bg-white/10 text-white border-white/20 shadow-sm" : "bg-transparent border-transparent text-slate-500 hover:text-white"}`}
-                                                                >
-                                                                    {t(`tasks.recurrence.${type.toLowerCase()}`, type)}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
-
-                                            {recurrenceType === 'INTERVAL' && (
-                                                <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
-                                                    <span className="text-[10px] font-bold text-white/70">{t('tasks.recurrence.everyDays', 'Repeat every X days')}:</span>
-                                                    <input
-                                                        type="number"
-                                                        min="1"
-                                                        max="365"
-                                                        value={recurrenceInterval}
-                                                        onChange={(e) => setRecurrenceInterval(Math.max(1, parseInt(e.target.value) || 1))}
-                                                        className="w-16 h-8 bg-black/40 rounded-lg text-center text-xs font-bold text-white outline-none border border-white/10 focus:border-white/30"
-                                                    />
-                                                </div>
-                                            )}
-
-                                            {recurrenceType === 'MONTHLY' && (
-                                                <div className="mt-3 pt-3 border-t border-white/5 space-y-4">
-                                                    <div className="space-y-2">
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">{t('tasks.recurrence.months', 'Meses')}</span>
-                                                            <span className="text-[9px] font-bold text-white/30">{recurrenceMonths.length === 12 ? t('common.all', 'Todos') : `${recurrenceMonths.length} seleccionados`}</span>
-                                                        </div>
-                                                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
-                                                            {Array.from({ length: 12 }).map((_, index) => {
-                                                                const monthName = new Date(2024, index, 1).toLocaleDateString(undefined, { month: 'short' });
-                                                                const isSelected = recurrenceMonths.includes(index);
-                                                                return (
-                                                                    <button
-                                                                        key={index}
-                                                                        onClick={() => {
-                                                                            setRecurrenceMonths(prev => {
-                                                                                if (prev.includes(index)) return prev.filter(m => m !== index);
-                                                                                return [...prev, index];
-                                                                            });
-                                                                        }}
-                                                                        className={`h-8 rounded-lg flex items-center justify-center text-[10px] font-bold capitalize transition-all border ${isSelected ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]" : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10"}`}
-                                                                    >
-                                                                        {monthName.replace('.', '')}
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="space-y-2 pt-3 border-t border-white/5">
-                                                        <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">{t('tasks.recurrence.days', 'Días')}</span>
-                                                        <div className="grid grid-cols-7 gap-1.5 mb-2">
-                                                            {Array.from({ length: 31 }).map((_, i) => {
-                                                                const day = i + 1;
-                                                                return (
-                                                                    <button
-                                                                        key={day}
-                                                                        onClick={() => {
-                                                                            setRecurrenceDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
-                                                                        }}
-                                                                        className={`h-7 rounded-lg flex items-center justify-center text-[10px] font-bold transition-all border ${recurrenceDays.includes(day) ? "bg-cyan-500 text-black border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.4)]" : "bg-white/5 border-transparent text-slate-500 hover:bg-white/10"}`}
-                                                                    >
-                                                                        {day}
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                        <button
-                                                            onClick={() => {
-                                                                if (monthlyType === 'LAST_DAY') setMonthlyType('SPECIFIC_DATES');
-                                                                else setMonthlyType('LAST_DAY');
-                                                            }}
-                                                            className={`w-full py-2.5 rounded-xl text-[10px] font-bold transition-all border flex justify-center items-center gap-2 ${monthlyType === 'LAST_DAY' ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/30 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1)]" : "bg-white/5 text-slate-400 border-transparent hover:bg-white/10"}`}
-                                                        >
-                                                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${monthlyType === 'LAST_DAY' ? "bg-cyan-500 border-cyan-400 text-black" : "border-slate-500"}`}>
-                                                                {monthlyType === 'LAST_DAY' && <CheckCircle2 size={12} />}
-                                                            </div>
-                                                            {t('habits.lastDayOfMonth', 'Último día del mes')}
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {recurrenceType !== 'NONE' && (
-                                                <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
-                                                                <Target size={14} />
-                                                            </div>
-                                                            <div>
-                                                                <span className="text-xs font-bold text-white block">{t('quests.showInJournaling', 'Mostrar en el Journaling')}</span>
-                                                                <span className="text-[10px] text-white/40">{t('quests.addToJournalCalendar', 'Agrega esta tarea al calendario de Journal')}</span>
-                                                            </div>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => setShowInJournaling(!showInJournaling)}
-                                                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${showInJournaling ? 'bg-emerald-500' : 'bg-white/10'}`}
-                                                        >
-                                                            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${showInJournaling ? 'translate-x-5' : 'translate-x-1'}`} />
-                                                        </button>
-                                                    </div>
-
-                                                    <AnimatePresence>
-                                                        {showInJournaling && (
-                                                            <motion.div
-                                                                initial={{ opacity: 0 }}
-                                                                animate={{ opacity: 1 }}
-                                                                exit={{ opacity: 0 }}
-                                                                transition={{ duration: 0.15 }}
-                                                                className="mt-3"
-                                                            >
-                                                                <div className="pt-2 pb-1 space-y-2">
-                                                                    <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">{t('quests.iconColor', 'Color del Icono')}</span>
-                                                                    <div className="flex flex-wrap gap-2">
-                                                                        {['#3b82f6', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#eab308'].map(color => (
-                                                                            <button
-                                                                                key={color}
-                                                                                onClick={() => setJournalIconColor(color)}
-                                                                                className={`w-6 h-6 rounded-full border-2 transition-transform ${journalIconColor === color ? 'border-white scale-110 shadow-lg' : 'border-transparent scale-100 opacity-60 hover:opacity-100'}`}
-                                                                                style={{ backgroundColor: color }}
-                                                                            />
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                            </motion.div>
-                                                        )}
-                                                    </AnimatePresence>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <button
-                                            onClick={handleConfirm}
-                                            disabled={!title || !attrId || isSubmitting}
-                                            className={`w-full h-10 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 shrink-0 ${(!title || !attrId || isSubmitting) ? 'bg-white/5 text-white/20' : 'bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 border border-white/10 text-white shadow-lg active:scale-95 hover:shadow-md hover:border-white/20'}`}
-                                        >
-                                            {isSubmitting ? (
-                                                <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></span>
-                                            ) : (
-                                                t('modals.quest.confirm')
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </motion.div>
-
-                    <DateSelectionModal
-                        isOpen={isDateModalOpen}
-                        onClose={() => setIsDateModalOpen(false)}
-                        onSelect={(date) => setDeadline(toLocalISOString(date))}
-                        mode="DAY"
-                        currentDate={parseLocalDate(deadline)}
-                    />
-                </motion.div>
+                </Section>
             )}
-        </AnimatePresence>,
-        document.body
+        </Stack>
+    ) : panel === 'project' ? (
+        <Stack className="cu-tight">
+            <Section>
+                <Row className="cu-option" label={t('modals.quest.noProject')} selected={!projectId} onClick={() => { setProjectId(''); setPanel(null); }} />
+                {smartProjects.filter(Boolean).map(p => (
+                    <Row
+                        key={p.id}
+                        className="cu-option"
+                        icon={<Target size={16} />}
+                        iconColor={p.traitColor || attributes.find(a => a?.id === p.traitId)?.color || '#5e5ce6'}
+                        label={p.mainGoal}
+                        sub={t('quests.strategy', 'Estrategia')}
+                        selected={projectId === p.id}
+                        onClick={() => {
+                            setProjectId(p.id);
+                            if (p.traitId) { setAttrId(p.traitId); setSubAttrId(''); }
+                            setPanel(null);
+                        }}
+                    />
+                ))}
+                {projects.filter(Boolean).map(p => {
+                    const attr = attributes.find(a => a?.id === p.attribute);
+                    return (
+                        <Row
+                            key={p.id}
+                            className="cu-option"
+                            icon={<Target size={16} />}
+                            iconColor={attr?.color || '#5e5ce6'}
+                            label={p.title}
+                            sub={attr ? traitLabelOf(attr, t) : t('quests.protocols', 'Protocolo')}
+                            selected={projectId === p.id}
+                            onClick={() => {
+                                setProjectId(p.id);
+                                if (p.attribute) { setAttrId(p.attribute); setSubAttrId(''); }
+                                setPanel(null);
+                            }}
+                        />
+                    );
+                })}
+            </Section>
+            {projectId && projectId !== 'none' && (
+                <Section footer={t('cu.pomodorosHint', 'Guía de pomodoros para completar la tarea')}>
+                    <Row
+                        icon={<Hourglass size={17} />}
+                        iconColor="#ff9f0a"
+                        label={t('cu.pomodoros', 'Pomodoros objetivo')}
+                        value={pomodoroTarget || t('cu.noLimit', 'Sin límite')}
+                        trailing={<Stepper value={pomodoroTarget} min={0} max={10} onChange={setPomodoroTarget} label="Pomodoros" />}
+                    />
+                </Section>
+            )}
+        </Stack>
+    ) : panel === 'repeat' ? (
+        <Stack className="cu-tight">
+            <Section>
+                <Pad small>
+                    <Segmented<RecurrenceKind>
+                        value={recurrenceType}
+                        onChange={(type) => { setRecurrenceType(type); setRecurrenceDays([]); }}
+                        options={[
+                            { value: 'NONE', label: t('tasks.recurrence.none', 'Nunca') },
+                            { value: 'INTERVAL', label: t('tasks.recurrence.interval', 'Intervalo') },
+                            { value: 'MONTHLY', label: t('tasks.recurrence.monthly', 'Mensual') },
+                        ]}
+                    />
+                </Pad>
+                {recurrenceType === 'INTERVAL' && (
+                    <Row
+                        icon={<Repeat size={17} />}
+                        iconColor="#30d158"
+                        label={t('tasks.recurrence.everyDays', 'Repetir cada X días')}
+                        value={recurrenceInterval}
+                        trailing={<Stepper value={recurrenceInterval} min={1} max={365} onChange={setRecurrenceInterval} label="Interval" />}
+                    />
+                )}
+                {recurrenceType === 'MONTHLY' && (
+                    <>
+                        <Pad>
+                            <div className="cu-section-label" style={{ padding: '0 0 8px' }}>
+                                {t('tasks.recurrence.months', 'Meses')} · {recurrenceMonths.length === 12 ? t('common.all', 'Todos') : recurrenceMonths.length}
+                            </div>
+                            <div className="cu-month-grid">
+                                {ALL_MONTHS.map((index) => (
+                                    <Chip key={index} soft on={recurrenceMonths.includes(index)} onClick={() => toggleIn(setRecurrenceMonths, index)}>
+                                        {new Date(2024, index, 1).toLocaleDateString(undefined, { month: 'short' }).replace('.', '')}
+                                    </Chip>
+                                ))}
+                            </div>
+                        </Pad>
+                        <Pad>
+                            <div className="cu-section-label" style={{ padding: '0 0 8px' }}>{t('tasks.recurrence.days', 'Días')}</div>
+                            <DateNumberGrid selected={recurrenceDays} onToggle={(d) => toggleIn(setRecurrenceDays, d)} />
+                        </Pad>
+                        <Row
+                            label={t('habits.lastDayOfMonth', 'Último día del mes')}
+                            trailing={<Toggle checked={monthlyType === 'LAST_DAY'} onChange={(v) => setMonthlyType(v ? 'LAST_DAY' : 'SPECIFIC_DATES')} label={t('habits.lastDayOfMonth', 'Último día del mes')} />}
+                        />
+                    </>
+                )}
+            </Section>
+            {recurrenceType !== 'NONE' && (
+                <Section>
+                    <Row
+                        icon={<BookOpen size={17} />}
+                        iconColor="#30d158"
+                        label={t('quests.showInJournaling', 'Mostrar en el Journaling')}
+                        sub={t('quests.addToJournalCalendar', 'Agrega esta tarea al calendario de Journal')}
+                        trailing={<Toggle checked={showInJournaling} onChange={setShowInJournaling} label={t('quests.showInJournaling', 'Mostrar en el Journaling')} />}
+                    />
+                    {showInJournaling && (
+                        <Pad>
+                            <div className="cu-section-label" style={{ padding: '0 0 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <Palette size={13} /> {t('quests.iconColor', 'Color del icono')}
+                            </div>
+                            <Swatches colors={JOURNAL_COLORS} value={journalIconColor} onChange={setJournalIconColor} />
+                        </Pad>
+                    )}
+                </Section>
+            )}
+        </Stack>
+    ) : null;
+
+    return (
+        <CupertinoSheet
+            isOpen={isOpen}
+            onClose={onClose}
+            accent={activeColor}
+            title={sheetTitle}
+            subtitle={sheetSubtitle}
+            primaryLabel={isEditing ? t('cu.save', 'Guardar') : t('cu.create', 'Crear')}
+            onPrimary={handleConfirm}
+            primaryDisabled={!canSubmit}
+            primaryLoading={isSubmitting}
+            maxWidth={460}
+            doneLabel={t('cu.done', 'Listo')}
+            subpanel={panel ? { title: panelTitle[panel], onBack: () => setPanel(null), children: panelBody } : null}
+            footer={isContentReady ? (
+                <RewardPreview
+                    xp={prediction.xp}
+                    traitXp={prediction.traitXp}
+                    coins={prediction.coins}
+                    traitColor={activeColor}
+                    TraitIcon={SelectedIcon}
+                    traitLabel={activeLabel}
+                    bonus={prediction.bonusApplied}
+                    xpLabel={t('common.xp', 'XP')}
+                    goldLabel={t('common.gold', 'Oro')}
+                />
+            ) : undefined}
+            overlays={
+                <DateSelectionModal
+                    isOpen={isDateModalOpen}
+                    onClose={() => setIsDateModalOpen(false)}
+                    onSelect={(date) => setDeadline(toLocalISOString(date))}
+                    mode="DAY"
+                    currentDate={parseLocalDate(deadline)}
+                />
+            }
+        >
+            {!isContentReady ? <SheetSkeleton /> : (
+                <Stack className="cu-tight">
+                    {/* Name */}
+                    <Hero
+                        tile={<SelectedIcon size={28} />}
+                        tileColor={activeColor}
+                        value={title}
+                        onChange={setTitle}
+                        placeholder={t('modals.quest.namePlaceholder')}
+                    />
+
+                    <div className="cu-desc">
+                        <FileText size={17} />
+                        <input
+                            className="cu-input"
+                            value={desc}
+                            onChange={(e) => setDesc(e.target.value)}
+                            placeholder={t('modals.quest.briefingPlaceholder')}
+                            aria-label={t('modals.quest.briefingPlaceholder')}
+                        />
+                    </div>
+
+                    {/* When — one tap for the common cases */}
+                    {lockedDate ? (
+                        <div className="cu-desc" style={{ justifyContent: 'space-between' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}><CalendarDays size={17} />{t('modals.quest.dueDate')}</span>
+                            <b style={{ fontWeight: 600 }}>{dateObj.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</b>
+                        </div>
+                    ) : (
+                        <Segmented<DateMode>
+                            tall
+                            value={dateMode}
+                            onChange={(m) => {
+                                if (m === 'today') setDeadline(todayISO);
+                                else if (m === 'tomorrow') setDeadline(tomorrowISO);
+                                else setIsDateModalOpen(true);
+                            }}
+                            options={[
+                                { value: 'today', label: t('dashboard.today', 'Hoy') },
+                                { value: 'tomorrow', label: t('cu.tomorrow', 'Mañana') },
+                                { value: 'custom', label: customLabel, icon: <CalendarDays size={13} /> },
+                            ]}
+                        />
+                    )}
+
+                    {/* Effort */}
+                    <Segmented<Difficulty> tall value={difficulty} onChange={setDifficulty} options={difficulties} />
+
+                    {/* Details as tiles */}
+                    <Tiles cols={3}>
+                        <Tile icon={<Clock size={14} />} color="#ff9f0a" label={t('modals.quest.dueTime', 'Hora')}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <TimePicker value={deadlineTime} onChange={setDeadlineTime} className="cu-time" label={t('modals.quest.dueTime', 'Hora')} />
+                                {deadlineTime && (
+                                    <button type="button" className="cu-mini" style={{ width: 22, height: 22 }} onClick={() => setDeadlineTime('')} aria-label={t('common.clear', 'Quitar')}>
+                                        <X size={12} strokeWidth={2.6} />
+                                    </button>
+                                )}
+                            </span>
+                        </Tile>
+                        <Tile
+                            icon={<Timer size={14} />}
+                            color="#5e5ce6"
+                            label={t('cu.duration', 'Duración')}
+                            value={estimatedTime > 0 ? formatMinutes(estimatedTime) : t('cu.undefined', 'Sin definir')}
+                            onClick={() => openPanel('duration')}
+                        />
+                        <Tile
+                            icon={<SelectedIcon size={14} />}
+                            color={activeColor}
+                            label={t('cu.trait', 'Rasgo')}
+                            value={activeLabel}
+                            onClick={() => !lockedAttributeId && openPanel('trait')}
+                            disabled={!!lockedAttributeId}
+                        />
+                        <Tile
+                            icon={<Target size={14} />}
+                            color="#0a84ff"
+                            label={t('cu.project', 'Proyecto')}
+                            value={linkedProjectTitle || t('modals.quest.noProject')}
+                            onClick={() => openPanel('project')}
+                        />
+                        <Tile
+                            span={2}
+                            icon={<Repeat size={14} />}
+                            color="#30d158"
+                            label={t('cu.repeat', 'Repetición')}
+                            value={repeatValue}
+                            onClick={() => openPanel('repeat')}
+                        />
+                    </Tiles>
+                </Stack>
+            )}
+        </CupertinoSheet>
     );
 }, (prev, next) => {
     if (!prev.isOpen && !next.isOpen) return true;
     return false;
 });
+

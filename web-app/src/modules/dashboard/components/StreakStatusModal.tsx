@@ -1,3 +1,4 @@
+import { StreakFlame } from '../../superHabits/StreakFlame';
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -271,11 +272,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                                                     className="absolute inset-0 pointer-events-none"
                                                     style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.4) 0%, transparent 70%)' }}
                                                 />
-                                                <Flame 
-                                                    size={80} 
-                                                    className="text-orange-500 drop-shadow-[0_0_25px_rgba(249,115,22,0.8)] relative z-10" 
-                                                    fill="currentColor"
-                                                />
+                                                <StreakFlame streak={effectiveStreak} size={84} className="relative z-10" />
                                             </motion.div>
 
                                             {/* Streak Number */}
@@ -302,11 +299,7 @@ export const StreakStatusModal: React.FC<StreakStatusModalProps> = ({ isOpen, on
                                             <motion.div 
                                                 className="w-14 h-14 rounded-full flex items-center justify-center mb-4 bg-white/5 border border-white/10"
                                             >
-                                                <Flame 
-                                                    size={28} 
-                                                    className="text-white/20" 
-                                                    fill="none"
-                                                />
+                                                <StreakFlame streak={effectiveStreak} size={30} lit={false} />
                                             </motion.div>
 
                                             {/* Title & Subtitle */}

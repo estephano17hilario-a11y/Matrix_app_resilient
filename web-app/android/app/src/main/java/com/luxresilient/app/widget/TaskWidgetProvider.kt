@@ -122,7 +122,7 @@ class TaskWidgetProvider : AppWidgetProvider() {
         val views = RemoteViews(context.packageName, R.layout.widget_task_list)
 
         // Apply Overall Widget Background Opacity
-        views.setFloat(R.id.task_background_image, "setAlpha", bgOpacity / 100f)
+        WidgetTheme.apply(context, views, R.id.task_background_image, appWidgetManager, widgetId, TaskWidgetProvider::class.java.name, default = WidgetTheme.Style.GRAPHITE)
 
         // Get and display active timeframe
         val timeframe = prefs.getString("task_timeframe_widget_$widgetId", "ALL") ?: "ALL"

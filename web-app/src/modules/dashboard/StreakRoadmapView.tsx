@@ -1,3 +1,4 @@
+import { StreakFlame } from '../superHabits/StreakFlame';
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { motion, Variants } from 'framer-motion';
 import { 
@@ -299,7 +300,7 @@ export const StreakRoadmapView: React.FC<StreakRoadmapViewProps> = ({ habits, on
                             </button>
 
                             <div className={cn("p-2.5 rounded-2xl border transition-all duration-200", isTodayCompleted ? "bg-amber-500/20 border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.3)]" : "bg-white/5 border-white/10")}>
-                                <Flame className={cn("w-6 h-6 transition-all duration-200", isTodayCompleted ? "text-amber-400 fill-amber-400/80 drop-shadow-[0_0_10px_rgba(245,158,11,0.8)] scale-110" : "text-white/20 fill-transparent scale-100")} />
+                                <StreakFlame streak={currentStreak} size={22} lit={isTodayCompleted} />
                             </div>
                         </div>
                     </div>

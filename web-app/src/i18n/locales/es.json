@@ -232,18 +232,186 @@
     }
   },
   "traits": {
+    "DISCIPLINA": "Disciplina",
     "FISICO": "Físico",
     "MENTAL": "Mental",
-    "CREATIVIDAD": "Creatividad",
     "SOCIAL": "Social",
     "ESPIRITU": "Espíritu",
     "FINANZAS": "Finanzas",
+    "CREATIVIDAD": "Creatividad",
     "ORDEN": "Orden",
-    "VITALIDAD": "Vitalidad",
     "LIDERAZGO": "Liderazgo",
     "RESILIENCIA": "Resiliencia",
+    "VITALIDAD": "Vitalidad",
     "ESTILO": "Estilo",
-    "DISCIPLINA": "Disciplina"
+    "disciplina": {
+      "label": "Disciplina",
+      "desc": "Voluntad inquebrantable.",
+      "achievements": {
+        "0": "Comienzo Forjado",
+        "1": "Dificultades Iniciales",
+        "2": "Pacto",
+        "3": "Cambios de Mentalidad",
+        "4": "Indicio de Detox",
+        "5": "Detox",
+        "6": "Fuerza Mental",
+        "7": "David Goggins"
+      }
+    },
+    "fisico": {
+      "label": "Físico",
+      "desc": "Poder y resistencia.",
+      "achievements": {
+        "0": "Despertar",
+        "1": "Agujetas",
+        "2": "Constancia",
+        "3": "Atleta Amateur",
+        "4": "Cuerpo Esculpido",
+        "5": "Máquina",
+        "6": "Bestia",
+        "7": "Semidiós"
+      }
+    },
+    "mental": {
+      "label": "Intelecto",
+      "desc": "Agudeza y aprendizaje.",
+      "achievements": {
+        "0": "Estudiante",
+        "1": "Curioso",
+        "2": "Lector Voraz",
+        "3": "Intelectual",
+        "4": "Erudito",
+        "5": "Sabio",
+        "6": "Mente Maestra",
+        "7": "Omnisciente"
+      }
+    },
+    "social": {
+      "label": "Carisma",
+      "desc": "Influencia y conexión.",
+      "achievements": {
+        "0": "Tímido",
+        "1": "Saludo",
+        "2": "Conversador",
+        "3": "Amigo",
+        "4": "Alma de la Fiesta",
+        "5": "Conector",
+        "6": "Líder de Tribu",
+        "7": "Influencia Global"
+      }
+    },
+    "espiritu": {
+      "label": "Espíritu",
+      "desc": "Calma y consciencia.",
+      "achievements": {
+        "0": "Silencio",
+        "1": "Respiración",
+        "2": "Meditación",
+        "3": "Mindfulness",
+        "4": "Despertar Espiritual",
+        "5": "Iluminación",
+        "6": "Trascendencia",
+        "7": "Nirvana"
+      }
+    },
+    "finanzas": {
+      "label": "Riqueza",
+      "desc": "Libertad de recursos.",
+      "achievements": {
+        "0": "Ahorro",
+        "1": "Primer Ingreso",
+        "2": "Estabilidad",
+        "3": "Inversor",
+        "4": "Libertad Financiera",
+        "5": "Magnate",
+        "6": "Imperio",
+        "7": "Dueño del Banco"
+      }
+    },
+    "creatividad": {
+      "label": "Creatividad",
+      "desc": "Visión e innovación.",
+      "achievements": {
+        "0": "Doodle",
+        "1": "Idea",
+        "2": "Sketch",
+        "3": "Artist",
+        "4": "Innovator",
+        "5": "Visionary",
+        "6": "World Creator",
+        "7": "Demiurge"
+      }
+    },
+    "orden": {
+      "label": "Sistema",
+      "desc": "Control y estructura.",
+      "achievements": {
+        "0": "Cama Hecha",
+        "1": "Rutina",
+        "2": "Agenda",
+        "3": "Sistema",
+        "4": "Eficiencia",
+        "5": "Automatización",
+        "6": "Reloj Suizo",
+        "7": "Entropía Cero"
+      }
+    },
+    "liderazgo": {
+      "label": "Liderazgo",
+      "desc": "Guiar a otros.",
+      "achievements": {
+        "0": "Iniciativa",
+        "1": "Voz",
+        "2": "Guía",
+        "3": "Capitán",
+        "4": "Comandante",
+        "5": "General",
+        "6": "Rey",
+        "7": "Emperador"
+      }
+    },
+    "resiliencia": {
+      "label": "Temple",
+      "desc": "Invencibilidad.",
+      "achievements": {
+        "0": "Aguante",
+        "1": "Dureza",
+        "2": "Escudo",
+        "3": "Rebote",
+        "4": "Antifrágil",
+        "5": "Inmortal",
+        "6": "Fénix",
+        "7": "Indestructible"
+      }
+    },
+    "vitalidad": {
+      "label": "Energía",
+      "desc": "Motor de vida.",
+      "achievements": {
+        "0": "Chispa",
+        "1": "Batería",
+        "2": "Energía",
+        "3": "Vigor",
+        "4": "Alto Voltaje",
+        "5": "Reactor",
+        "6": "Sol",
+        "7": "Supernova"
+      }
+    },
+    "estilo": {
+      "label": "Estética",
+      "desc": "Arte de vivir.",
+      "achievements": {
+        "0": "Básico",
+        "1": "Combinado",
+        "2": "Buen Gusto",
+        "3": "Elegante",
+        "4": "Trendsetter",
+        "5": "Icono",
+        "6": "Vanguardia",
+        "7": "Perfección Áurea"
+      }
+    }
   },
   "onboarding": {
     "intro": {
@@ -776,11 +944,11 @@
     "tabs": {
       "market": "Mercado",
       "upgrades": "Mejoras",
-      "inventory": "Inventario",
-      "ledger": "Registro"
+      "inventory": "Mochila",
+      "ledger": "Recibos"
     },
     "vault": {
-      "kicker": "Tu bóveda",
+      "kicker": "Tu monedero",
       "week": "Gasto 7d",
       "passes": "Pases",
       "atStake": "En juego",
@@ -788,10 +956,10 @@
       "controlLine": "{{planned}} plan. · {{falls}} caídas"
     },
     "market": {
-      "title": "Mercado de vicios",
+      "title": "Estantes",
       "lead": "Caer reinicia tu racha. Comprarlo con tu oro es una decisión: queda registrada y tu racha sigue.",
-      "emptyTitle": "Aún no hay vicios en el mercado",
-      "offMarket": "Fuera del mercado",
+      "emptyTitle": "Los estantes están vacíos",
+      "offMarket": "En el almacén",
       "sell": "Poner a la venta",
       "configure": "Configurar oferta",
       "passesOwned": "{{count}} pases guardados",
@@ -917,7 +1085,49 @@
     "insufficientFunds": "Fondos insuficientes (Oro)",
     "purchaseSuccess": "¡Tema adquirido con éxito!",
     "purchaseError": "Error al realizar la compra",
-    "buyNow": "Confirmar Compra"
+    "buyNow": "Confirmar Compra",
+    "keeper": {
+      "empty": "El mostrador está vacío. Crea un mal hábito y lo pongo en el estante.",
+      "broke": "Hoy no te alcanza para nada… junta {{amount}} de oro más y vuelve.",
+      "passes": "Guardas {{count}} pase(s). Úsalos con intención, no por impulso.",
+      "night": "¿A estas horas? Piénsalo bien antes de comprar.",
+      "morning": "Buenos días. Lo que compres aquí, lo decides tú.",
+      "afternoon": "Pasa, mira con calma. Aquí nada se cae: se compra.",
+      "evening": "Buenas noches. Elige con la cabeza fría."
+    },
+    "shop": {
+      "name": "El Mercado",
+      "tagline": "Vicios con conciencia",
+      "open": "Abierto"
+    },
+    "shelf": {
+      "never": "Nunca",
+      "today": "Hoy",
+      "yesterday": "Ayer",
+      "daysAgo": "hace {{count}} d",
+      "weeksAgo": "hace {{count}} sem",
+      "monthsAgo": "hace {{count}} m",
+      "last": "Última",
+      "streak": "Racha",
+      "days": "{{count}} d",
+      "broken": "Rota",
+      "missing": "Te faltan {{amount}}",
+      "all": "Todo",
+      "afford": "Puedo pagar",
+      "owned": "Con pase",
+      "sortPrice": "Precio",
+      "sortDamage": "Más dañino",
+      "sortStreak": "Mayor racha",
+      "sortRecent": "Más reciente",
+      "noMatch": "Nada en este estante por ahora."
+    },
+    "severity": {
+      "1": "Leve",
+      "2": "Moderado",
+      "3": "Dañino",
+      "4": "Grave",
+      "5": "Crítico"
+    }
   },
   "achievements": {
     "social": {
@@ -2016,188 +2226,6 @@
       }
     ]
   },
-  "traits": {
-    "DISCIPLINA": "Disciplina",
-    "FISICO": "Físico",
-    "MENTAL": "Mental",
-    "SOCIAL": "Social",
-    "ESPIRITU": "Espíritu",
-    "FINANZAS": "Finanzas",
-    "CREATIVIDAD": "Creatividad",
-    "ORDEN": "Orden",
-    "LIDERAZGO": "Liderazgo",
-    "RESILIENCIA": "Resiliencia",
-    "VITALIDAD": "Vitalidad",
-    "ESTILO": "Estilo",
-    "disciplina": {
-      "label": "Disciplina",
-      "desc": "Voluntad inquebrantable.",
-      "achievements": {
-        "0": "Comienzo Forjado",
-        "1": "Dificultades Iniciales",
-        "2": "Pacto",
-        "3": "Cambios de Mentalidad",
-        "4": "Indicio de Detox",
-        "5": "Detox",
-        "6": "Fuerza Mental",
-        "7": "David Goggins"
-      }
-    },
-    "fisico": {
-      "label": "Físico",
-      "desc": "Poder y resistencia.",
-      "achievements": {
-        "0": "Despertar",
-        "1": "Agujetas",
-        "2": "Constancia",
-        "3": "Atleta Amateur",
-        "4": "Cuerpo Esculpido",
-        "5": "Máquina",
-        "6": "Bestia",
-        "7": "Semidiós"
-      }
-    },
-    "mental": {
-      "label": "Intelecto",
-      "desc": "Agudeza y aprendizaje.",
-      "achievements": {
-        "0": "Estudiante",
-        "1": "Curioso",
-        "2": "Lector Voraz",
-        "3": "Intelectual",
-        "4": "Erudito",
-        "5": "Sabio",
-        "6": "Mente Maestra",
-        "7": "Omnisciente"
-      }
-    },
-    "social": {
-      "label": "Carisma",
-      "desc": "Influencia y conexión.",
-      "achievements": {
-        "0": "Tímido",
-        "1": "Saludo",
-        "2": "Conversador",
-        "3": "Amigo",
-        "4": "Alma de la Fiesta",
-        "5": "Conector",
-        "6": "Líder de Tribu",
-        "7": "Influencia Global"
-      }
-    },
-    "espiritu": {
-      "label": "Espíritu",
-      "desc": "Calma y consciencia.",
-      "achievements": {
-        "0": "Silencio",
-        "1": "Respiración",
-        "2": "Meditación",
-        "3": "Mindfulness",
-        "4": "Despertar Espiritual",
-        "5": "Iluminación",
-        "6": "Trascendencia",
-        "7": "Nirvana"
-      }
-    },
-    "finanzas": {
-      "label": "Riqueza",
-      "desc": "Libertad de recursos.",
-      "achievements": {
-        "0": "Ahorro",
-        "1": "Primer Ingreso",
-        "2": "Estabilidad",
-        "3": "Inversor",
-        "4": "Libertad Financiera",
-        "5": "Magnate",
-        "6": "Imperio",
-        "7": "Dueño del Banco"
-      }
-    },
-    "creatividad": {
-      "label": "Creatividad",
-      "desc": "Visión e innovación.",
-      "achievements": {
-        "0": "Doodle",
-        "1": "Idea",
-        "2": "Sketch",
-        "3": "Artist",
-        "4": "Innovator",
-        "5": "Visionary",
-        "6": "World Creator",
-        "7": "Demiurge"
-      }
-    },
-    "orden": {
-      "label": "Sistema",
-      "desc": "Control y estructura.",
-      "achievements": {
-        "0": "Cama Hecha",
-        "1": "Rutina",
-        "2": "Agenda",
-        "3": "Sistema",
-        "4": "Eficiencia",
-        "5": "Automatización",
-        "6": "Reloj Suizo",
-        "7": "Entropía Cero"
-      }
-    },
-    "liderazgo": {
-      "label": "Liderazgo",
-      "desc": "Guiar a otros.",
-      "achievements": {
-        "0": "Iniciativa",
-        "1": "Voz",
-        "2": "Guía",
-        "3": "Capitán",
-        "4": "Comandante",
-        "5": "General",
-        "6": "Rey",
-        "7": "Emperador"
-      }
-    },
-    "resiliencia": {
-      "label": "Temple",
-      "desc": "Invencibilidad.",
-      "achievements": {
-        "0": "Aguante",
-        "1": "Dureza",
-        "2": "Escudo",
-        "3": "Rebote",
-        "4": "Antifrágil",
-        "5": "Inmortal",
-        "6": "Fénix",
-        "7": "Indestructible"
-      }
-    },
-    "vitalidad": {
-      "label": "Energía",
-      "desc": "Motor de vida.",
-      "achievements": {
-        "0": "Chispa",
-        "1": "Batería",
-        "2": "Energía",
-        "3": "Vigor",
-        "4": "Alto Voltaje",
-        "5": "Reactor",
-        "6": "Sol",
-        "7": "Supernova"
-      }
-    },
-    "estilo": {
-      "label": "Estética",
-      "desc": "Arte de vivir.",
-      "achievements": {
-        "0": "Básico",
-        "1": "Combinado",
-        "2": "Buen Gusto",
-        "3": "Elegante",
-        "4": "Trendsetter",
-        "5": "Icono",
-        "6": "Vanguardia",
-        "7": "Perfección Áurea"
-      }
-    }
-  },
   "dock": {
     "newMission": "Nueva Misión",
     "singleTask": "Tarea Única",
@@ -2894,5 +2922,123 @@
       "elo": "ELO por día",
       "title": "Tu semana"
     }
+  },
+  "cu": {
+    "mission": "Misión",
+    "active": "Activa",
+    "linkedTo": "Para el {{date}}",
+    "save": "Guardar",
+    "create": "Crear",
+    "when": "Cuándo",
+    "effort": "Esfuerzo",
+    "organize": "Organización",
+    "trait": "Rasgo",
+    "project": "Proyecto",
+    "pomodoros": "Pomodoros objetivo",
+    "pomodorosHint": "Guía de pomodoros para completar la tarea",
+    "noLimit": "Sin límite",
+    "repeat": "Repetición",
+    "missingPrefix": "Falta",
+    "missing": {
+      "name": "nombre",
+      "trait": "rasgo",
+      "days": "días",
+      "goal": "meta",
+      "split": "reparto de la meta",
+      "steps": "pasos de la lista",
+      "alarm": "alarma",
+      "session": "duración de sesión"
+    },
+    "impact": {
+      "1": "Bajo",
+      "2": "Medio",
+      "3": "Alto",
+      "4": "Máximo"
+    },
+    "impactHint": "Cuanto mayor el impacto, mayor la recompensa al completarlo.",
+    "schedule": "Cuándo se repite",
+    "specificDays": "Días concretos",
+    "specificDates": "Fechas concretas",
+    "flexible": "Flexible",
+    "tracking": "Cómo se mide",
+    "trackBoolean": "Se marca como hecho o no hecho.",
+    "trackQuantity": "Define una meta numérica, por ejemplo 8 vasos.",
+    "trackChecklist": "Una lista de pasos que se completan uno a uno.",
+    "splitGoal": "Dividir la meta",
+    "overBy": "Te pasas por {{n}} {{unit}}",
+    "remaining": "Faltan {{n}} {{unit}} por asignar",
+    "allAssigned": "Meta completamente asignada",
+    "days": "Días",
+    "alarm": "Alarma",
+    "weekly": "Semanal",
+    "monthly": "Mensual",
+    "timesWeek": "Veces por semana (máx. 6)",
+    "timesMonth": "Veces al mes",
+    "allowSkip": "Permitir saltarse",
+    "useWeekdays": "Usar días de la semana",
+    "useIntervals": "Usar intervalos",
+    "alarmRequired": "La alarma es obligatoria para crear un hábito.",
+    "alarmRequiredProject": "La alarma es obligatoria para crear un proyecto.",
+    "superHabit": "Súper hábito",
+    "superHabitHint": "Roadmap de 60 días, insignias y efectos",
+    "removeSuper": "Quitar súper hábito",
+    "goalHint": "Cuánto tiempo quieres dedicarle. Lo repartimos en metas diarias.",
+    "pomoHint": "Duración de cada bloque de enfoque en minutos.",
+    "advancedPomo": "Pomodoro avanzado",
+    "advancedPomoHint": "Diseña tu propia rutina de enfoque y descansos",
+    "stepsTotal": "{{n}} pasos · {{m}} min",
+    "focus": "Enfoque",
+    "break": "Descanso",
+    "insertStep": "Insertar paso",
+    "editStep": "Editar paso",
+    "newStep": "Nuevo paso",
+    "mainTrait": "Principal",
+    "saveStep": "Guardar paso",
+    "addStep": "Agregar paso",
+    "clearRoutine": "Borrar rutina",
+    "routineDays": "Días activos de la rutina",
+    "strategy": "Estrategia",
+    "close": "Cerrar",
+    "noteTitle": "Nota",
+    "journalTitle": "Diario",
+    "autosaved": "Se guarda automáticamente",
+    "changeFolder": "Cambiar carpeta",
+    "undo": "Deshacer",
+    "redo": "Rehacer",
+    "noteInfo": "Información de la nota",
+    "done": "Listo",
+    "futureDay": "Modo solo visualización · día futuro",
+    "recurring": "Recurrente",
+    "noEvents": "No hay eventos ni misiones programadas para este día.",
+    "editLater": "Podrás escribir en tu diario cuando llegue esta fecha.",
+    "mood": "¿Cómo te sientes?",
+    "customEmojiPrompt": "Ingresa un emoji personalizado para este día:",
+    "customEmoji": "Personalizar emoji",
+    "customize": "Personalizar",
+    "words": "Palabras",
+    "characters": "Caracteres",
+    "duration": "Duración",
+    "tomorrow": "Mañana",
+    "pickDate": "Elegir fecha",
+    "undefined": "Sin definir",
+    "more": "Más",
+    "timesN": "{{n}} veces",
+    "lastDayShort": "último",
+    "monthDays": "Días del mes",
+    "choose": "Elegir",
+    "useCount": "Prefiero un número de veces por semana",
+    "useDays": "Prefiero elegir los días",
+    "splitOn": "Meta dividida · editar",
+    "steps": "Pasos",
+    "stepsCount": "{{n}} pasos · editar",
+    "addSteps": "Añadir pasos",
+    "iconColor": "Icono y color",
+    "custom": "Personal",
+    "auto": "Automático",
+    "color": "Color",
+    "goalTime": "Meta de tiempo",
+    "routine": "Rutina",
+    "icon": "Icono",
+    "impactShort": "Impacto"
   }
 }

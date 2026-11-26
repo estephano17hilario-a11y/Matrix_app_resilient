@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence, useSpring, useTransform } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useLux } from '@/context/LuxContext';
 import { useEconomy } from '@/context/EconomyContext';
@@ -11,13 +11,14 @@ import type { Attribute, BadHabit, ViceLedgerEntry, ViceOffer } from '../../type
 import { toast } from 'react-hot-toast';
 import { pulseWorld } from '@/immersion/engine';
 import { RarityTag, ViceCard, toRgb } from './market/ViceCard';
+import { ShopFront } from './market/ShopFront';
 import { PurchaseRitual } from './market/PurchaseRitual';
 import { OfferConfigSheet } from './market/OfferConfigSheet';
 import { ViceLedgerView } from './market/ViceLedgerView';
-import { availableUses, offerOf, passQuote, streakAtStake, viceRarity } from './market/viceMarket';
+import { availableUses, lastDoneAt, offerOf, passQuote, streakAtStake, viceImpact, viceRarity } from './market/viceMarket';
 import confetti from 'canvas-confetti';
 import { 
-    Coins, Zap, Palette, ShoppingBag, 
+    Zap, Palette, ShoppingBag,
     Check, Brain, ShieldAlert, Clock,
     Smartphone, Code, Square, Image, User, Share2, Bell, Gamepad, Newspaper,
     Coffee, Armchair, Moon, UserX, Droplet, Layers, Frown, CloudRain, Target,
@@ -29,22 +30,6 @@ import clsx from 'clsx';
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 // --- COMPONENTS ---
-
-const GoldCounter = ({ value }: { value: number }) => {
-  const spring = useSpring(value, { stiffness: 50, damping: 20 });
-  const displayValue = useTransform(spring, (current) => Math.round(current));
-  const [display, setDisplay] = useState(value);
-
-  useEffect(() => {
-    spring.set(value);
-    const unsubscribe = displayValue.on("change", (latest) => {
-      setDisplay(latest);
-    });
-    return () => unsubscribe();
-  }, [value, spring, displayValue]);
-
-  return <span>{display}</span>;
-};
 
 // Icon Map (Should be shared but keeping simple for now)
 const IconMap: Record<string, React.ElementType> = {
@@ -445,6 +430,27 @@ const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSp
   const colorOf = (h: BadHabit) => toRgb(h.customColor || attributes?.find(a => a.id === h.attribute)?.color);
   // No "deal of the day" on bad habits: passes always sell at their regular price.
   const quoteOf = (h: BadHabit) => passQuote(h, ledger, null);
+  const cheapest = onSale.length ? Math.min(...onSale.map(h => quoteOf(h).price)) : null;
+
+  // Shelf controls: what to show and in which order.
+  const [shelfFilter, setShelfFilter] = useState<'ALL' | 'AFFORD' | 'PASSES'>('ALL');
+  const [shelfSort, setShelfSort] = useState<'PRICE' | 'DAMAGE' | 'STREAK' | 'RECENT'>('PRICE');
+  const shelf = useMemo(() => {
+    const price = (h: BadHabit) => passQuote(h, ledger, null).price;
+    // "Recent" = the vice you did most recently, first.
+    const recent = (h: BadHabit) => lastDoneAt(h, ledger) ?? -1;
+    const list = onSale.filter(h => (
+      shelfFilter === 'AFFORD' ? vault >= price(h)
+        : shelfFilter === 'PASSES' ? availableUses(h) > 0
+          : true
+    ));
+    return [...list].sort((a, b) => (
+      shelfSort === 'PRICE' ? price(a) - price(b)
+        : shelfSort === 'DAMAGE' ? viceImpact(b) - viceImpact(a) || price(b) - price(a)
+          : shelfSort === 'STREAK' ? streakAtStake(b) - streakAtStake(a)
+            : recent(b) - recent(a)
+    ));
+  }, [onSale, shelfFilter, shelfSort, vault, ledger]);
   const passesOwned = vices.reduce((s, h) => s + (h.vicePasses || 0), 0);
   const daysAtStake = vices.reduce((s, h) => s + streakAtStake(h), 0);
   const spentThisWeek = ledger.filter(e => Date.now() - e.createdAt < 7 * DAY_MS).reduce((s, e) => s + e.price, 0);
@@ -532,50 +538,16 @@ const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSp
 
       <div className="relative z-10 w-full max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl mx-auto px-4 pt-4">
 
-        {/* ── Vault ── */}
-        <div data-tour="store-header" className="lux-reveal relative rounded-[28px] overflow-hidden border border-amber-400/15 mb-4"
-             style={{ background: 'linear-gradient(160deg, rgba(245,158,11,0.16) 0%, rgba(16,14,10,0.95) 45%, rgba(9,9,11,0.97) 100%)', boxShadow: '0 24px 50px -28px rgba(245,158,11,0.55)' }}>
-          <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/80 to-transparent" />
-          <div className="absolute -top-20 -right-16 w-60 h-60 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(245,158,11,0.25), transparent 70%)' }} />
-          <div className="relative p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-[10px] font-black uppercase tracking-[0.28em] text-amber-300/80">{t('store.vault.kicker', 'Tu bóveda')}</div>
-                <div className="mt-1 flex items-center gap-2">
-                  <Coins className="text-amber-400 drop-shadow-[0_0_10px_rgba(245,158,11,0.6)]" size={24} fill="currentColor" />
-                  <span className="text-[32px] font-black text-white tabular-nums leading-none tracking-tight"><GoldCounter value={vault} /></span>
-                </div>
-              </div>
-              {/* Self-control rank */}
-              <div className="shrink-0 flex items-center gap-2.5 rounded-2xl border px-2.5 py-2" style={{ borderColor: `rgb(${control.rgb} / 0.35)`, background: `rgb(${control.rgb} / 0.08)` }}>
-                <div className="relative w-10 h-10 flex items-center justify-center">
-                  <div className="absolute inset-[3px] rotate-45 rounded-[9px] border-2" style={{ borderColor: `rgb(${control.rgb})`, boxShadow: `0 0 16px rgb(${control.rgb} / 0.55), inset 0 0 10px rgb(${control.rgb} / 0.3)` }} />
-                  <span className="relative text-[18px] font-black" style={{ color: `rgb(${control.rgb})`, textShadow: `0 0 12px rgb(${control.rgb} / 0.8)` }}>{control.rank}</span>
-                </div>
-                <div className="leading-tight">
-                  <div className="text-[9px] font-black uppercase tracking-[0.18em] text-white/45">{t('store.vault.control', 'Autocontrol')}</div>
-                  <div className="text-[10.5px] font-semibold text-white/70 tabular-nums">
-                    {t('store.vault.controlLine', '{{planned}} plan. · {{falls}} caídas', { planned: control.planned, falls: control.falls })}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="mt-3.5 grid grid-cols-3 gap-2">
-              {[
-                { icon: Coins, label: t('store.vault.week', 'Gasto 7d'), value: spentThisWeek.toLocaleString(), tone: 'text-amber-300' },
-                { icon: Ticket, label: t('store.vault.passes', 'Pases'), value: passesOwned, tone: 'text-sky-300' },
-                { icon: Flame, label: t('store.vault.atStake', 'En juego'), value: daysAtStake, tone: 'text-orange-300' },
-              ].map(s => (
-                <div key={s.label} className="rounded-xl bg-black/30 border border-white/[0.05] px-2.5 py-2">
-                  <div className="text-[8.5px] font-bold uppercase tracking-[0.1em] text-white/35 truncate">{s.label}</div>
-                  <div className="mt-0.5 flex items-center gap-1 text-[16px] font-black text-white tabular-nums">
-                    <s.icon size={12} className={s.tone} /> {s.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        {/* ── Shop front: awning, shopkeeper, purse ── */}
+        <ShopFront
+          gold={vault}
+          cheapest={cheapest}
+          vices={onSale.length}
+          passesOwned={passesOwned}
+          daysAtStake={daysAtStake}
+          spentThisWeek={spentThisWeek}
+          control={control}
+        />
 
         {/* ── Sections ── */}
         <div className="sticky top-2 z-40 mb-4 flex gap-1 rounded-2xl bg-[#0e0e12]/95 border border-white/[0.07] p-1 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.8)]">
@@ -588,17 +560,17 @@ const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSp
                 role="tab"
                 aria-selected={on}
                 onClick={() => setTab(id)}
-                className="relative flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[11.5px] font-bold"
+                className="relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-2 text-[10.5px] font-bold"
               >
                 {on && (
                   <motion.span layoutId="store-tab" className="absolute inset-0 rounded-xl bg-amber-400/15 border border-amber-400/30" transition={{ type: 'spring', stiffness: 420, damping: 34 }}>
                     <span className="absolute inset-x-4 -bottom-px h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
                   </motion.span>
                 )}
-                <Icon size={14} className={clsx('relative', on ? 'text-amber-300' : 'text-white/40')} />
+                <Icon size={16} className={clsx('relative', on ? 'text-amber-300' : 'text-white/40')} />
                 <span className={clsx('relative', on ? 'text-white' : 'text-white/45')}>{label}</span>
                 {!!badge && badge > 0 && (
-                  <span className="relative ml-0.5 min-w-[16px] h-4 px-1 rounded-full bg-amber-400 text-black text-[9px] font-black flex items-center justify-center">{badge}</span>
+                  <span className="absolute right-1.5 top-1 min-w-[16px] h-4 px-1 rounded-full bg-amber-400 text-black text-[9px] font-black flex items-center justify-center">{badge}</span>
                 )}
               </button>
             );
@@ -614,84 +586,133 @@ const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSp
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
           >
             {tab === 'MARKET' && (
-              <div className="space-y-3">
-                <div className="lux-reveal flex items-center gap-3 px-1">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[15px] font-black text-white">{t('store.market.title', 'Mercado de vicios')}</div>
-                    <div className="text-[11.5px] text-white/45 leading-snug">
+              <div className="space-y-3.5">
+                {/* shelf header */}
+                <div className="lux-reveal flex items-end gap-3 px-1">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[16px] font-black leading-tight text-white">{t('store.market.title', 'Estantes')}</div>
+                    <div className="mt-0.5 text-[11.5px] leading-snug text-white/45">
                       {t('store.market.lead', 'Caer reinicia tu racha. Comprarlo con tu oro es una decisión: queda registrada y tu racha sigue.')}
                     </div>
                   </div>
-                  {onCreateVice && onSale.length > 4 && (
+                  {onCreateVice && onSale.length > 0 && (
                     <button
                       type="button"
                       onClick={onCreateVice}
-                      className="shrink-0 h-9 rounded-xl px-3 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.1em] text-rose-100 border border-rose-400/35 bg-rose-500/15"
+                      className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-amber-400/35 bg-amber-500/15 px-3 text-[11px] font-black uppercase tracking-[0.1em] text-amber-100 active:scale-95"
                     >
                       <Plus size={14} strokeWidth={3} /> {t('store.market.newShort', 'Nuevo')}
                     </button>
                   )}
                 </div>
 
+                {onSale.length > 1 && (
+                  <div className="lux-reveal -mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5 no-scrollbar" role="toolbar">
+                    {([
+                      { id: 'ALL', label: t('store.shelf.all', 'Todo') },
+                      { id: 'AFFORD', label: t('store.shelf.afford', 'Puedo pagar') },
+                      { id: 'PASSES', label: t('store.shelf.owned', 'Con pase') },
+                    ] as const).map(f => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setShelfFilter(f.id)}
+                        aria-pressed={shelfFilter === f.id}
+                        className={clsx(
+                          'h-8 shrink-0 whitespace-nowrap rounded-full border px-3.5 text-[11px] font-bold transition-colors',
+                          shelfFilter === f.id ? 'border-amber-400/50 bg-amber-400/20 text-amber-100' : 'border-white/[0.08] bg-white/[0.03] text-white/50',
+                        )}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                    <span className="mx-0.5 my-1.5 w-px shrink-0 bg-white/10" />
+                    {([
+                      { id: 'PRICE', label: t('store.shelf.sortPrice', 'Precio') },
+                      { id: 'DAMAGE', label: t('store.shelf.sortDamage', 'Más dañino') },
+                      { id: 'STREAK', label: t('store.shelf.sortStreak', 'Mayor racha') },
+                      { id: 'RECENT', label: t('store.shelf.sortRecent', 'Más reciente') },
+                    ] as const).map(f => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setShelfSort(f.id)}
+                        aria-pressed={shelfSort === f.id}
+                        className={clsx(
+                          'h-8 shrink-0 whitespace-nowrap rounded-full border px-3.5 text-[11px] font-bold transition-colors',
+                          shelfSort === f.id ? 'border-white/30 bg-white/12 text-white' : 'border-white/[0.06] bg-transparent text-white/40',
+                        )}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 {vices.length === 0 ? (
-                  <div className="lux-reveal rounded-[24px] border border-white/[0.06] bg-white/[0.02] py-10 px-6 text-center">
-                    <Flame className="mx-auto text-white/20" size={34} strokeWidth={1.5} />
-                    <div className="mt-3 text-[14px] font-bold text-white/60">{t('store.market.emptyTitle', 'Aún no hay vicios en el mercado')}</div>
-                    <div className="mt-1 text-[12px] text-white/35">{t('store.market.emptyCreate', 'Crea tu primer mal hábito: tendrá su rareza, su precio y su registro.')}</div>
+                  <div className="lux-reveal rounded-[24px] border border-dashed border-amber-300/20 bg-amber-300/[0.03] px-6 py-10 text-center">
+                    <div className="text-[34px]" aria-hidden>🦉</div>
+                    <div className="mt-2 text-[14px] font-bold text-white/70">{t('store.market.emptyTitle', 'Los estantes están vacíos')}</div>
+                    <div className="mt-1 text-[12px] text-white/40">{t('store.market.emptyCreate', 'Crea tu primer mal hábito: tendrá su rareza, su precio y su registro.')}</div>
                     {onCreateVice && (
                       <button
                         type="button"
                         onClick={onCreateVice}
-                        className="mt-5 inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-[12px] font-black uppercase tracking-[0.12em] text-black"
-                        style={{ background: 'linear-gradient(135deg, #fda4af, #f43f5e)', boxShadow: '0 0 24px rgba(244,63,94,0.4)' }}
+                        className="mt-5 inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-[12px] font-black uppercase tracking-[0.12em] text-black active:scale-95"
+                        style={{ background: 'linear-gradient(135deg, #fde68a, #f59e0b)', boxShadow: '0 0 24px rgba(245,158,11,0.4)' }}
                       >
                         <Plus size={15} strokeWidth={3} /> {t('store.market.newVice', 'Crear mal hábito')}
                       </button>
                     )}
                   </div>
                 ) : (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {onSale.map(h => (
-                        <ViceCard
-                          key={h.id}
-                          habit={h}
-                          rgb={colorOf(h)}
-                          quote={quoteOf(h)}
-                          gold={vault}
-                          onBuy={() => setRitualId(h.id)}
-                          onUse={() => useVice(h.id)}
-                          onConfigure={() => setConfiguring(h.id)}
-                        />
-                      ))}
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-5 pt-1 md:grid-cols-3 lg:grid-cols-4">
+                    {shelf.map(h => (
+                      <ViceCard
+                        key={h.id}
+                        habit={h}
+                        rgb={colorOf(h)}
+                        quote={quoteOf(h)}
+                        gold={vault}
+                        lastAt={lastDoneAt(h, ledger)}
+                        onBuy={() => setRitualId(h.id)}
+                        onUse={() => useVice(h.id)}
+                        onConfigure={() => setConfiguring(h.id)}
+                      />
+                    ))}
 
-                      {onCreateVice && (
+                    {shelf.length === 0 && onSale.length > 0 && (
+                      <div className="col-span-full rounded-2xl border border-white/[0.06] bg-white/[0.02] py-8 text-center text-[12.5px] text-white/40">
+                        {t('store.shelf.noMatch', 'Nada en este estante por ahora.')}
+                      </div>
+                    )}
+
+                    {onCreateVice && onSale.length > 0 && (
+                      <div className="shop-shelf lux-reveal">
                         <button
                           type="button"
                           onClick={onCreateVice}
-                          className="lux-reveal flex items-center gap-3 rounded-[20px] border border-dashed border-white/[0.14] bg-white/[0.015] py-2.5 pl-4 pr-3 text-left hover:border-rose-400/40"
+                          className="flex h-full min-h-[150px] w-full flex-col items-center justify-center gap-2 rounded-[22px] border border-dashed border-amber-300/25 bg-amber-300/[0.03] px-3 text-center active:scale-[0.98]"
                         >
-                          <span className="w-11 h-11 rounded-[14px] flex items-center justify-center bg-rose-500/10 text-rose-300 border border-rose-400/25">
-                            <Plus size={20} strokeWidth={2.5} />
+                          <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-300/25 bg-amber-400/10 text-amber-200">
+                            <Plus size={22} strokeWidth={2.5} />
                           </span>
-                          <span className="min-w-0">
-                            <span className="block text-[13.5px] font-bold text-white/80">{t('store.market.newVice', 'Crear mal hábito')}</span>
-                            <span className="block text-[10.5px] text-white/35 truncate">{t('store.market.newViceDesc', 'Entra al mercado con su rareza y su precio')}</span>
-                          </span>
+                          <span className="text-[12.5px] font-bold text-white/75">{t('store.market.newVice', 'Crear mal hábito')}</span>
+                          <span className="text-[10.5px] leading-snug text-white/35">{t('store.market.newViceDesc', 'Entra al mercado con su rareza y su precio')}</span>
                         </button>
-                      )}
-                    </div>
-                  </>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {offMarket.length > 0 && (
                   <div className="lux-reveal rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3">
-                    <div className="px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">{t('store.market.offMarket', 'Fuera del mercado')}</div>
+                    <div className="px-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">{t('store.market.offMarket', 'En el almacén')}</div>
                     <div className="mt-2 divide-y divide-white/[0.05]">
                       {offMarket.map(h => (
-                        <div key={h.id} className="flex items-center gap-3 py-2.5 px-1">
-                          <span className="w-2 h-2 rounded-full" style={{ background: `rgb(${colorOf(h)})` }} />
-                          <span className="flex-1 text-[13px] text-white/60 truncate">{h.title}</span>
+                        <div key={h.id} className="flex items-center gap-3 px-1 py-2.5">
+                          <span className="h-2 w-2 rounded-full" style={{ background: `rgb(${colorOf(h)})` }} />
+                          <span className="flex-1 truncate text-[13px] text-white/60">{h.title}</span>
                           <button type="button" onClick={() => setConfiguring(h.id)} className="text-[11px] font-bold text-amber-300/80">
                             {t('store.market.sell', 'Poner a la venta')}
                           </button>

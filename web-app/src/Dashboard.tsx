@@ -57,6 +57,7 @@ import type { RewardEvent } from './modules/social/socialStore';
 import { chestItemId } from './modules/social/engine';
 import { useEconomy } from './context/EconomyContext';
 import { StreakCelebrationOverlay } from './modules/dashboard/components/StreakCelebrationOverlay';
+import { SuperHabitFX } from './modules/superHabits/SuperHabitFX';
 import { StatsTutorialOverlay } from './components/StatsTutorialOverlay';
 import { cn } from './utils/cn';
 import { pulseWorld, runSceneTransition, setScene, setSceneAccent, setWorldScroll } from './immersion/engine';
@@ -1764,7 +1765,10 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  lastStreakDate={user?.stats?.lastStreakDate}
  />
 
- <DeluxSuccessOverlay 
+ {/* Super habit completion scenes (themed sound + particles + badge unlock) */}
+ <SuperHabitFX />
+
+ <DeluxSuccessOverlay
  isOpen={showDeluxSuccess}
  onClose={() => setShowDeluxSuccess(false)}
  />

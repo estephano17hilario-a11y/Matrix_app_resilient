@@ -1,3 +1,5 @@
+import type { SuperHabitId } from '../modules/superHabits/catalog';
+
 export type ThemeType = 'gradient' | 'blob';
 
 export interface ThemeConfig {
@@ -141,6 +143,7 @@ export interface Habit {
   rewardedXp?: number; // Actual XP rewarded upon completion (for integrity)
   lastUpdatedDate?: string; // Tracks the last date any progress was made (to reset correctly)
   streakForgiven?: string[]; // Missed days forgiven by a store streak recovery (date keys)
+  superHabit?: SuperHabitId; // Set when the habit is a "super habit" (60-day roadmap, badges, themed FX)
 }
 
 export interface BadHabit {

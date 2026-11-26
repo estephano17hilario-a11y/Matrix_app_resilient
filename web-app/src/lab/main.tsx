@@ -55,6 +55,29 @@ const boot = async () => {
 
   await PersistenceService.initialize();
 
+  // ?superhabits → seed one habit per streak tier so the evolving flame, badges and roadmap can be reviewed.
+  if (new URLSearchParams(location.search).has('superhabits')) {
+    const day = (back: number) => {
+      const d = new Date(); d.setDate(d.getDate() - back);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+    const mk = (id: string, title: string, streak: number, doneToday: boolean, superHabit?: string) => ({
+      id, title, streak, completedToday: doneToday, attribute: 'DISCIPLINA', totalCompletions: streak, frequency: 'DAILY',
+      type: 'BOOLEAN', estimatedTime: 20, impact: 2, createdAt: Date.now() - streak * 86400000, reminderTime: '08:00',
+      history: Array.from({ length: streak }, (_, i) => day(i + (doneToday ? 0 : 1))), superHabit,
+    });
+    PersistenceService.saveCollection(LAB_UID, 'habits', [
+      mk('lab-1', 'Gym', 0, false, 'gym'),
+      mk('lab-2', 'Estudiar', 3, false, 'estudiar'),
+      mk('lab-3', 'Programación', 7, true, 'programacion'),
+      mk('lab-4', 'Meditación', 14, false, 'meditacion'),
+      mk('lab-5', 'Fe Católica', 30, true, 'catolica'),
+      mk('lab-6', 'Tomar agua', 60, false, 'agua'),
+      mk('lab-7', 'Leer 10 min', 5, false),
+      mk('lab-8', 'Idiomas', 45, false, 'idiomas'),
+    ]);
+  }
+
   const profile: any = {
     id: LAB_UID,
     uid: LAB_UID,
@@ -86,6 +109,13 @@ const boot = async () => {
     }), [p]);
     return React.createElement(AuthContext.Provider, { value }, children);
   };
+
+  // ?flames → component gallery (flame tiers, badges, themes, FX triggers) instead of the app.
+  if (new URLSearchParams(location.search).has('flames')) {
+    const { SuperHabitsGallery } = await import('./SuperHabitsGallery');
+    createRoot(document.getElementById('root')!).render(React.createElement(SuperHabitsGallery));
+    return;
+  }
 
   createRoot(document.getElementById('root')!).render(
     React.createElement(LabAuth, null, React.createElement(AppShell)),

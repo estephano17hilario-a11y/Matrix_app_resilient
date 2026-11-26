@@ -128,7 +128,7 @@ class FocusWidgetProvider : AppWidgetProvider() {
         val views = RemoteViews(context.packageName, R.layout.widget_focus_chart)
 
         // Apply Overall Widget Background Opacity
-        views.setFloat(R.id.focus_background_image, "setAlpha", bgOpacity / 100f)
+        WidgetTheme.apply(context, views, R.id.focus_background_image, appWidgetManager, widgetId, FocusWidgetProvider::class.java.name, default = WidgetTheme.Style.MIDNIGHT)
 
         // Configure controls displaying timeframe & division modes
         val timeframe = prefs.getString("focus_timeframe_widget_$widgetId", "WEEK") ?: "WEEK"
@@ -181,14 +181,12 @@ class FocusWidgetProvider : AppWidgetProvider() {
                 val projects = client.fetchProjects()
                 val dailyFeed = client.fetchDailyFeed()
 
-                // Responsive high-resolution bitmap drawing
-                val options = appWidgetManager.getAppWidgetOptions(widgetId)
-                val minWidthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
-                val minHeightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
-
+                // Draw at the size of the area the image really gets (the widget minus its header),
+                // otherwise the chart is stretched when the launcher reports no size yet.
+                val (widthDp, heightDp) = WidgetTheme.sizeDp(appWidgetManager.getAppWidgetOptions(widgetId), 250, 180)
                 val density = context.resources.displayMetrics.density
-                val widthPx = ((if (minWidthDp > 0) minWidthDp else 320) * density).toInt().coerceAtLeast(300)
-                val heightPx = ((if (minHeightDp > 0) minHeightDp else 160) * density).toInt().coerceAtLeast(140)
+                val widthPx = ((widthDp - 20) * density).toInt().coerceAtLeast(300)
+                val heightPx = ((heightDp - 52) * density).toInt().coerceAtLeast(120)
 
                 val chartBitmap = FocusChartDrawer.drawChart(
                     context, widthPx, heightPx, timeframe, division, projects, dailyFeed

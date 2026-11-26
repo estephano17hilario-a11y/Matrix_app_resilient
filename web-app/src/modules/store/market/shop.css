@@ -1,0 +1,97 @@
+/* ── EL MERCADO · a cosy little shop ─────────────────────────────────────────
+   Warm lantern light, a striped awning and wooden shelves. Every loop below is
+   transform/opacity only (compositor), and all of them stop under `lux-lite` or
+   `prefers-reduced-motion`, like the rest of the app's ambient animation. */
+
+.shop-lantern {
+  position: absolute;
+  inset: -40px 0 auto 0;
+  height: 360px;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 0%, rgba(251, 191, 36, 0.20), transparent 70%),
+    radial-gradient(ellipse 40% 40% at 12% 18%, rgba(244, 114, 62, 0.10), transparent 70%);
+}
+
+/* Shelf plank under every row of items. */
+.shop-shelf {
+  position: relative;
+  padding-bottom: 14px;
+}
+.shop-shelf::after {
+  content: "";
+  position: absolute;
+  left: -6px;
+  right: -6px;
+  bottom: 0;
+  height: 13px;
+  border-radius: 5px 5px 7px 7px;
+  background:
+    repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.0) 0 26px, rgba(0, 0, 0, 0.12) 26px 28px),
+    linear-gradient(180deg, #7a4d28 0%, #55341a 52%, #34200f 100%);
+  box-shadow:
+    0 12px 18px -8px rgba(0, 0, 0, 0.85),
+    inset 0 1px 0 rgba(255, 223, 175, 0.28);
+}
+/* The card "stands" on the plank. */
+.shop-shelf > .shop-item { margin-bottom: -1px; }
+
+/* Items breathe a little, each one slightly out of phase. */
+@keyframes shop-bob {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(0, -3px, 0); }
+}
+.shop-bob { animation: shop-bob 3.2s ease-in-out infinite alternate; will-change: transform; }
+
+@keyframes shop-twinkle {
+  0%, 100% { opacity: 0.45; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+.shop-bulb { animation: shop-twinkle 2.8s ease-in-out infinite; }
+
+/* A coin turning on its edge. */
+@keyframes shop-coin {
+  0%, 100% { transform: scaleX(1); }
+  45% { transform: scaleX(1); }
+  55% { transform: scaleX(0.12); }
+  65% { transform: scaleX(1); }
+}
+.shop-coin { animation: shop-coin 4.2s ease-in-out infinite; }
+
+@keyframes shop-open-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.shop-open-dot { animation: shop-open-blink 2.4s ease-in-out infinite; }
+
+/* The awning sways by a hair, as if a door had just opened. */
+@keyframes shop-sway {
+  from { transform: skewX(-0.5deg); }
+  to { transform: skewX(0.5deg); }
+}
+.shop-awning { transform-origin: 50% 0; animation: shop-sway 5s ease-in-out infinite alternate; }
+
+/* Price button glints when you can afford the item. */
+.shop-buy-shine::before {
+  content: "";
+  position: absolute;
+  top: -30%;
+  bottom: -30%;
+  left: 0;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: translate3d(-130%, 0, 0) skewX(-20deg);
+  animation: lux-shine 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform;
+}
+
+html.lux-lite .shop-bob,
+html.lux-lite .shop-bulb,
+html.lux-lite .shop-coin,
+html.lux-lite .shop-open-dot,
+html.lux-lite .shop-awning,
+html.lux-lite .shop-buy-shine::before { animation: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .shop-bob, .shop-bulb, .shop-coin, .shop-open-dot, .shop-awning, .shop-buy-shine::before { animation: none !important; }
+}

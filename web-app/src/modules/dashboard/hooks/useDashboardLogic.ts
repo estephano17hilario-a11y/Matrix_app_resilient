@@ -32,6 +32,7 @@ import { toLocalISOString, getHistoryDateKey, parseLocalDate, getCompletedCountT
 import { calculateNextLevelXp, calculateLevelFromXp, calculateXpForLevel, calculateSubTraitMaxXp, calculateAttributeMaxXp } from '../../../utils/leveling';
 import { calculateLiveProductivityScore, isHabitActive, getDetailedScoreBreakdown, hasStaleDailyState } from '../../../utils/productivityScore';
 import { playLightSound, playHabitCompleteSound, playQuestCompleteSound } from '../../../utils/soundEffects';
+import { emitSuperHabitComplete } from '../../superHabits/superHabitEvents';
 import confetti from 'canvas-confetti';
 
 import { useTheme } from '@/context/ThemeContext';
@@ -5214,12 +5215,19 @@ export const useDashboardLogic = () => {
         const isTargetToday = !targetDate || toLocalISOString(targetDate) === toLocalISOString(new Date());
         const todayHistory = toLocalISOString(targetDate || new Date());
         const todayKey = getHistoryDateKey(todayHistory);
-        
+
         let isReversal = false;
         if (targetDate) {
             isReversal = habit.history?.some(d => getHistoryDateKey(d) === todayKey) ?? false;
         } else {
             isReversal = habit.completedToday;
+        }
+
+        // Where the tap happened, for the super habit burst (currentTarget is gone after the first await).
+        let fxOrigin: { x: number; y: number } | undefined;
+        if (habit.superHabit) {
+            const r = (e.currentTarget as HTMLElement | null)?.getBoundingClientRect?.();
+            if (r) fxOrigin = { x: (r.left + r.width / 2) / window.innerWidth, y: (r.top + r.height / 2) / window.innerHeight };
         }
 
         // 1. FEEDBACK
@@ -5228,8 +5236,8 @@ export const useDashboardLogic = () => {
         } else {
             if (navigator.vibrate) navigator.vibrate(5);
         }
-        
-        if (!isReversal && (habit.type === 'SIMPLE' || habit.type === 'BOOLEAN')) {
+
+        if (!isReversal && !habit.superHabit && (habit.type === 'SIMPLE' || habit.type === 'BOOLEAN')) {
              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
              spawnParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, '#fff', Flame, 'fire');
              playHabitCompleteSound();
@@ -5285,6 +5293,7 @@ export const useDashboardLogic = () => {
                 rewardedGold: rewards.rewardGold,
                 lastUpdatedDate: todayKey
             };
+            if (habit.superHabit) emitSuperHabitComplete(newHabit, habit.streak || 0, fxOrigin);
         }
 
         // 4. OPTIMISTIC UI UPDATES
@@ -5909,7 +5918,8 @@ export const useDashboardLogic = () => {
 
         // Play sounds based on progress type
         if (habitToReward && !isReversal) {
-            playHabitCompleteSound();
+            // Super habits play their own themed scene instead of the generic chime.
+            if (!emitSuperHabitComplete(next, h.streak || 0)) playHabitCompleteSound();
         } else if (!habitToReward && (data.checklist || data.currentValue !== undefined)) {
             playLightSound();
         }

@@ -1,11 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import * as LucideIcons from '@/utils/lucideRegistry';
-import { Scissors, Skull, Sparkles, Target, Calendar, MoreVertical, Scale } from 'lucide-react';
+import { Scissors, Skull, Sparkles, Target, MoreVertical, Scale } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { BadHabit, Attribute } from '../../../types';
-
-const STREAK_TARGETS = [1, 3, 7, 14, 30, 60, 90, 130, 180, 240, 310, 365];
 
 const getImpactLevel = (bh: BadHabit): number => {
     const match = bh.negativeImpact?.match(/\d+/);
@@ -26,6 +24,22 @@ interface BadHabitItemProps {
     onShowActions?: (habit: BadHabit) => void;
     onUpdateDynamicBalance?: (habit: BadHabit, newBalance: number) => void;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A THIN, ONE-ROW CARD (same weight as a habit row). Why it is built this way:
+//
+//   [tile] [title / one meta line]            [actions] [⋮]
+//
+// The previous card put badges, a streak pill and three 48px buttons in the same
+// row, so on a phone the title collapsed to 0px, the pill wrapped to three lines
+// and overlapped the "−" button, and the tile had no size at all (`w-13` is not a
+// Tailwind v3 class). The rules that keep this one from breaking again:
+//   • only ONE flexible column (`flex-1 min-w-0`), everything else is `shrink-0`
+//     with a fixed size written as an arbitrary value (`w-[34px]`);
+//   • text is always `truncate` and the meta line is `whitespace-nowrap`,
+//     so nothing wraps into extra lines or grows the card;
+//   • extra info never adds a row: progress is a 2px line on the card's edge.
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const BadHabitItem: React.FC<BadHabitItemProps> = ({
     habit,
@@ -50,335 +64,166 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
         if (!habit.iconName) return null;
         return (LucideIcons as any)[habit.iconName] || null;
     }, [habit.iconName]);
-    const isIntelligent = habit.intelligentStreak;
+    const isIntelligent = !!habit.intelligentStreak;
+    const isDynamic = !!habit.isDynamic;
     const currentTarget = habit.currentTarget || 3;
     const reachedDays = habit.reachedDays || 0;
-    const subTrait = resolvedAttributes[0]?.subTraits?.find(st => st.id === habit.subAttribute);
+    const balance = habit.dynamicBalance ?? 0;
+    const isOpportunityDay = isIntelligent && reachedDays === currentTarget;
 
-    const traitName = React.useMemo(() => {
-        const rawId = habit.attribute || 'TP';
-        const cleanId = rawId.replace('traits.', '').toUpperCase();
-        const dict: Record<string, string> = {
-            'RESILIENCIA': 'Resiliencia',
-            'DISCIPLINA': 'Disciplina',
-            'FZA_VOLUNTAD': 'Fuerza de Voluntad',
-            'VOLUNTAD': 'Fuerza de Voluntad',
-            'FUERZA_VOLUNTAD': 'Fuerza de Voluntad',
-            'FUERZA_DE_VOLUNTAD': 'Fuerza de Voluntad',
-            'ENERGIA': 'Energía',
-            'INTELIGENCIA': 'Inteligencia',
-            'SALUD': 'Salud',
-            'SALUD_FISICA': 'Salud Física',
-            'ENFOQUE': 'Enfoque',
-            'PRODUCTIVIDAD': 'Productividad'
-        };
-        return dict[cleanId] || cleanId;
-    }, [habit.attribute]);
+    const traitLabel = React.useMemo(() => {
+        const first = resolvedAttributes[0];
+        const raw = first?.label || habit.attribute || '';
+        return raw.replace('traits.', '').toUpperCase();
+    }, [resolvedAttributes, habit.attribute]);
 
     const potentialEndOfDayTp = React.useMemo(() => {
-        const balance = habit.dynamicBalance ?? 0;
         const exceedAmount = balance > 0 ? balance : 0;
-        const delta = getDifficultyDelta(habit);
-        return exceedAmount * delta;
-    }, [habit]);
+        return exceedAmount * getDifficultyDelta(habit);
+    }, [habit, balance]);
 
-    const targetIndex = STREAK_TARGETS.indexOf(currentTarget);
-    const isOpportunityDay = isIntelligent && reachedDays === currentTarget;
-    const progress = isIntelligent ? Math.min((reachedDays / currentTarget) * 100, 100) : Math.min(habit.streak, 100);
+    // Green when the habit is under control, red when it is not.
+    let isGood: boolean;
+    if (isDynamic) isGood = habit.dynamicTargetType === 'positive' ? balance > 0 : balance >= 0;
+    else isGood = !isRelapsed;
 
-    // Compute dynamic border and background styles based on status
-    let isBadHabitGood = false;
-    if (habit.isDynamic) {
-        const balance = habit.dynamicBalance ?? 0;
-        if (habit.dynamicTargetType === 'positive') {
-            isBadHabitGood = balance > 0;
-        } else {
-            // neutral
-            isBadHabitGood = balance >= 0;
-        }
-    } else {
-        isBadHabitGood = !isRelapsed;
-    }
+    const showDynamicControls = isDynamic && !isRelapsed;
+    const showRelapseButton = !isRelapsed && !isDynamic;
+    const progress = isIntelligent && !isRelapsed ? Math.min((reachedDays / currentTarget) * 100, 100) : 0;
 
-    const dynamicBorderColor = isBadHabitGood 
-        ? 'rgba(16, 185, 129, 0.45)' // green (emerald-500/45)
-        : 'rgba(244, 63, 94, 0.5)';  // red (rose-500/50)
-
-    const dynamicBgColor = isBadHabitGood
-        ? 'rgba(16, 185, 129, 0.05)'  // subtle green
-        : 'rgba(244, 63, 94, 0.08)';   // subtle red
-
-    const wrapperStyle = {
-        backgroundColor: dynamicBgColor,
-        borderColor: dynamicBorderColor,
-        contentVisibility: 'auto' as const,
-        containIntrinsicSize: '140px'
+    const adjustBalance = (delta: number) => (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onUpdateDynamicBalance?.(habit, balance + delta);
     };
 
-    const wrapperProps = {
-        className: `group relative border rounded-[1.5rem] p-1 transition-all duration-200 overflow-hidden ${
-            isBadHabitGood
-                ? 'shadow-[0_0_15px_rgba(16,185,129,0.03)]'
-                : 'shadow-[0_0_15px_rgba(244,63,94,0.05)]'
-        }`,
-        style: wrapperStyle
-    };
+    const streakText = t('habits.shortDays', '{{count}} d', { count: habit.streak });
 
     return (
-        <div {...wrapperProps}>
+        <div
+            className="group relative overflow-hidden rounded-2xl border transition-colors duration-200"
+            style={{
+                backgroundColor: isGood ? 'rgba(16, 185, 129, 0.05)' : 'rgba(244, 63, 94, 0.08)',
+                borderColor: isGood ? 'rgba(16, 185, 129, 0.40)' : 'rgba(244, 63, 94, 0.5)',
+                contentVisibility: 'auto',
+                containIntrinsicSize: 'auto 52px',
+            }}
+        >
             {isIntelligent && !isRelapsed && (
-                <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-[1.5rem]">
-                    <div className="absolute top-[-50%] left-[-20%] w-[100%] h-[100%] bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.08)_0%,_transparent_60%)]" />
-                    <div className="absolute bottom-[-50%] right-[-20%] w-[100%] h-[100%] bg-[radial-gradient(circle_at_center,_rgba(232,121,249,0.05)_0%,_transparent_60%)]" />
-                </div>
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_0%_50%,_rgba(139,92,246,0.10)_0%,_transparent_55%)]" />
             )}
-            <div className={`relative flex z-10 p-3 flex-row items-center gap-2 sm:gap-4`}>
-                {/* Left part: Icon and text container */}
-                <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
-                    <div
-                        style={{
-                            backgroundColor: isRelapsed ? undefined : `${color}18`,
-                            borderColor: isRelapsed ? undefined : `${color}28`,
-                        }}
-                        className={`w-13 h-13 rounded-2xl flex items-center justify-center border transition-transform flex-shrink-0 ${
-                            isRelapsed
-                                ? 'bg-rose-500/10 border-rose-500/20'
-                                : habit.isDynamic
-                                    ? 'bg-gradient-to-br from-cyan-500/20 to-teal-500/20 border-cyan-400/30'
-                                    : isIntelligent
-                                        ? 'bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border-violet-400/30'
-                                        : ''
-                        }`}
-                    >
+
+            <div className="relative flex items-center gap-2.5 px-2.5 py-2">
+                {/* tile */}
+                <div
+                    style={{
+                        backgroundColor: isRelapsed ? undefined : `${color}18`,
+                        borderColor: isRelapsed ? undefined : `${color}30`,
+                    }}
+                    className={`relative flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-xl border ${
+                        isRelapsed ? 'border-rose-500/25 bg-rose-500/10'
+                            : isDynamic ? 'border-cyan-400/30 bg-cyan-500/10'
+                                : isIntelligent ? 'border-violet-400/30 bg-violet-500/10'
+                                    : ''
+                    }`}
+                >
+                    {isRelapsed ? (
+                        <Skull size={18} className="text-rose-500" />
+                    ) : CustomIcon ? (
+                        <CustomIcon size={18} style={{ color }} />
+                    ) : isDynamic ? (
+                        <Scale size={18} className="text-cyan-400" />
+                    ) : isIntelligent ? (
+                        <Sparkles size={18} className="text-violet-400" />
+                    ) : (
+                        <Skull size={17} style={{ color }} />
+                    )}
+                    {/* kind marker: a dot on the corner instead of a badge that needs a row */}
+                    {!isRelapsed && (isDynamic || isIntelligent) && (
+                        <span className={`absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border border-black/40 ${isDynamic ? 'bg-cyan-400' : 'bg-violet-400'}`} />
+                    )}
+                </div>
+
+                {/* title + ONE meta line */}
+                <div className="min-w-0 flex-1">
+                    <h4 className={`truncate text-[14px] font-bold leading-tight tracking-tight ${
+                        isRelapsed ? 'text-rose-400 line-through' : isDynamic ? 'text-cyan-100' : isIntelligent ? 'text-violet-100' : 'text-white'
+                    }`}>
+                        {habit.title}
+                    </h4>
+                    <div className="mt-0.5 flex items-center gap-1.5 whitespace-nowrap text-[10px] font-bold leading-none">
                         {isRelapsed ? (
-                            <Skull size={24} className="text-rose-500" />
-                        ) : CustomIcon ? (
-                            <div className="relative">
-                                <CustomIcon size={22} style={{ color: color }} />
-                                {isIntelligent && (
-                                    <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full" />
-                                )}
-                                {habit.isDynamic && (
-                                    <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
-                                )}
-                            </div>
-                        ) : habit.isDynamic ? (
-                            <Scale size={22} className="text-cyan-400 animate-pulse" />
-                        ) : isIntelligent ? (
-                            <div className="relative">
-                                <Sparkles size={22} className="text-violet-400" />
-                                <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full" />
-                            </div>
+                            <span className="text-rose-500 uppercase tracking-wider">{t('badHabits.relapsed', 'RECAÍDA')}</span>
                         ) : (
-                            <Skull size={20} style={{ color: color }} />
-                        )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1.5">
-                            <h4 className={`font-bold text-[14px] tracking-tight truncate ${isRelapsed ? 'text-rose-400 line-through' : habit.isDynamic ? 'text-cyan-200' : isIntelligent ? 'text-violet-200' : 'text-white'}`}>
-                                {habit.title}
-                            </h4>
-                            {isIntelligent && !isRelapsed && (
-                                <div className="flex items-center gap-1 px-1.5 py-0.5 bg-violet-500/20 border border-violet-400/30 rounded-full">
-                                    <Sparkles size={9} className="text-violet-300" />
-                                    <span className="text-[8px] font-bold text-violet-200 uppercase tracking-wider">AI</span>
-                                </div>
-                            )}
-                            {habit.isDynamic && !isRelapsed && (
-                                <div className="flex items-center gap-1 px-1.5 py-0.5 bg-cyan-500/20 border border-cyan-400/30 rounded-full">
-                                    <Scale size={9} className="text-cyan-300 animate-pulse" />
-                                    <span className="text-[8px] font-bold text-cyan-200 uppercase tracking-wider">DINÁMICO</span>
-                                </div>
-                            )}
-                        </div>
-                        {habit.isDynamic && !isRelapsed ? (
-                            <div className="space-y-1">
-                                <div className="flex flex-row items-center gap-2 sm:gap-3">
-                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-[10px] font-bold shadow-sm">
-                                        <LucideIcons.Flame size={12} className="text-cyan-400 animate-pulse" />
-                                        <span>{habit.streak} {habit.streak === 1 ? t('habits.dayStreak', 'DÍA DE RACHA') : t('habits.daysStreak', 'DÍAS DE RACHA')}</span>
-                                    </div>
-                                </div>
-                                <div className="text-[10px] text-cyan-300/80 font-semibold flex items-center gap-1 mt-0.5">
-                                    <span className="opacity-60 hidden sm:inline">{t('badHabits.endOfDay', 'Al final del día:')}</span>
-                                    <span className={potentialEndOfDayTp > 0 ? "text-emerald-400 font-extrabold" : "text-white/30"}>
-                                        +{potentialEndOfDayTp} TP <span className="hidden sm:inline">({traitName})</span>
+                            <>
+                                <span className="inline-flex shrink-0 items-center gap-0.5 text-orange-400">
+                                    <LucideIcons.Flame size={10} /> {streakText}
+                                </span>
+                                {isDynamic && (
+                                    <span className={`shrink-0 tabular-nums ${potentialEndOfDayTp > 0 ? 'text-emerald-400' : 'text-white/35'}`}>
+                                        · +{potentialEndOfDayTp} TP
                                     </span>
-                                </div>
-                            </div>
-                        ) : isIntelligent && !isRelapsed ? (
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex items-center gap-1.5">
-                                        <Target size={12} className="text-violet-400" />
-                                        <span className="text-[11px] font-bold text-violet-300">
-                                            {currentTarget} {t('habits.days', 'días')}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <Calendar size={12} className="text-emerald-400" />
-                                        <span className="text-[11px] font-semibold text-emerald-300">
-                                            {reachedDays}/{currentTarget}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="relative h-2 bg-black/40 rounded-full overflow-hidden border border-white/10 shadow-md">
-                                    <motion.div
-                                        animate={{ width: `${progress}%` }}
-                                        transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400 rounded-full shadow-[0_0_12px_rgba(217,70,239,0.6)]"
-                                    />
-                                    {isOpportunityDay && (
-                                        <div className="absolute inset-0 bg-amber-400/30 animate-pulse" />
-                                    )}
-                                </div>
-
-                                <div className="flex items-center gap-1 overflow-hidden">
-                                    {STREAK_TARGETS.slice(0, 6).map((target, i) => {
-                                        const isCurrentTarget = target === currentTarget;
-                                        const isPastTarget = targetIndex > i;
-                                        return (
-                                            <div
-                                                key={target}
-                                                className={`h-1.5 rounded-full transition-all duration-200 ${
-                                                    isPastTarget
-                                                        ? 'w-4 bg-emerald-500/60'
-                                                        : isCurrentTarget
-                                                            ? 'w-6 bg-violet-500'
-                                                            : 'w-2 bg-white/10'
-                                                }`}
-                                            />
-                                        );
-                                    })}
-                                    {STREAK_TARGETS.length > 6 && (
-                                        <span className="text-[8px] text-white/30 ml-0.5">...</span>
-                                    )}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex flex-wrap items-center gap-2">
-                                {resolvedAttributes.map(attr => {
-                                    const attrColor = attr.color || '#f43f5e';
-                                    return (
-                                        <div
-                                            key={attr.id}
-                                            style={{
-                                                borderColor: isRelapsed ? undefined : `${attrColor}18`,
-                                                backgroundColor: isRelapsed ? undefined : `${attrColor}08`,
-                                                color: isRelapsed ? undefined : '#94a3b8'
-                                            }}
-                                            className="flex items-center gap-1 text-[10px] font-black tracking-wider px-2 py-0.5 rounded-md border border-white/5 bg-white/5 text-slate-500"
-                                        >
-                                            {attr.label?.replace('traits.', '').toUpperCase()}
-                                            {resolvedAttributes.length === 1 && subTrait && ` › ${subTrait.name.toUpperCase()}`}
-                                        </div>
-                                    );
-                                })}
-                                {resolvedAttributes.length === 0 && (
-                                    <div
-                                        className="flex items-center gap-1 text-[10px] font-black tracking-wider px-2 py-0.5 rounded-md border border-white/5 bg-white/5 text-slate-500"
-                                    >
-                                        {t('habits.habit', 'HÁBITO').toUpperCase()}
-                                    </div>
                                 )}
-                                <div
-                                    style={{
-                                        color: isRelapsed ? undefined : color,
-                                        backgroundColor: isRelapsed ? undefined : `${color}12`
-                                    }}
-                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                                        isRelapsed
-                                            ? 'text-rose-500 bg-rose-500/10'
-                                            : isIntelligent
-                                                ? 'text-violet-400 bg-violet-500/10'
-                                                : ''
-                                    }`}
-                                >
-                                    {isOpportunityDay
-                                        ? t('badHabits.opportunityDay', '¡DÍA DE OPORTUNIDAD!').toUpperCase()
-                                        : isRelapsed
-                                            ? t('badHabits.relapsed', 'RELAPSED')
-                                            : (
-                                                <span className="inline-flex items-center gap-1">
-                                                    <LucideIcons.Flame size={11} className="text-orange-400" />
-                                                    {habit.streak} {t('habits.dayStreak', 'DAY STREAK')}
-                                                </span>
-                                            )}
-                                </div>
-                            </div>
+                                {isIntelligent && !isDynamic && (
+                                    <span className={`inline-flex shrink-0 items-center gap-0.5 tabular-nums ${isOpportunityDay ? 'text-amber-300' : 'text-violet-300'}`}>
+                                        · <Target size={9} /> {reachedDays}/{currentTarget}
+                                    </span>
+                                )}
+                                {!isDynamic && !isIntelligent && traitLabel && (
+                                    <span className="min-w-0 truncate font-black tracking-wider text-white/35">· {traitLabel}</span>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>
 
-                {/* Right part: Action buttons */}
-                <div className={`flex items-center gap-1.5 sm:gap-2.5 z-10 flex-shrink-0 ${
-                    habit.isDynamic && !isRelapsed 
-                        ? 'w-auto justify-end' 
-                        : ''
-                }`}>
-                    {habit.isDynamic && !isRelapsed && (
-                        <div className="flex items-center gap-2 mr-1">
+                {/* actions: fixed boxes, never squeeze the title */}
+                <div className="flex shrink-0 items-center gap-1">
+                    {showDynamicControls && (
+                        <>
                             <motion.button
-                                whileHover={{ scale: 1.15 }}
-                                whileTap={{ scale: 0.85 }}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (onUpdateDynamicBalance) {
-                                        const current = habit.dynamicBalance ?? 0;
-                                        const newBalance = current - 1;
-                                        onUpdateDynamicBalance(habit, newBalance);
-                                    }
-                                }}
-                                className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all hover:shadow-[0_0_12px_rgba(244,63,94,0.3)]"
+                                whileTap={{ scale: 0.88 }}
+                                onClick={adjustBalance(-1)}
+                                className="flex h-[32px] w-[32px] items-center justify-center rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-400 transition-colors active:bg-rose-500 active:text-white"
                                 title={t('badHabits.slip', 'Desliz')}
+                                aria-label={t('badHabits.slip', 'Desliz')}
                             >
-                                <LucideIcons.Minus size={24} />
+                                <LucideIcons.Minus size={16} />
                             </motion.button>
-
-                            <div className={`px-4 py-2.5 rounded-2xl text-base font-black tracking-wider border transition-all duration-300 min-w-[58px] text-center shadow-inner ${
-                                (habit.dynamicBalance ?? 0) < 0
-                                    ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.1)]'
-                                    : (habit.dynamicBalance ?? 0) === 0
-                                        ? 'bg-[#0d0d0f]/60 border-white/[0.08] text-slate-300'
-                                        : 'bg-emerald-500/10 border-emerald-500/35 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.15)] animate-pulse'
+                            <div className={`inline-flex h-[32px] min-w-[34px] items-center justify-center rounded-xl border px-1.5 text-[14px] font-black tabular-nums ${
+                                balance < 0
+                                    ? 'border-rose-500/30 bg-rose-500/10 text-rose-400'
+                                    : balance === 0
+                                        ? 'border-white/[0.08] bg-black/30 text-slate-300'
+                                        : 'border-emerald-500/35 bg-emerald-500/10 text-emerald-400'
                             }`}>
-                                {(habit.dynamicBalance ?? 0) > 0 ? `+${habit.dynamicBalance}` : habit.dynamicBalance ?? 0}
+                                {balance > 0 ? `+${balance}` : balance}
                             </div>
-
                             <motion.button
-                                whileHover={{ scale: 1.15 }}
-                                whileTap={{ scale: 0.85 }}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (onUpdateDynamicBalance) {
-                                        const current = habit.dynamicBalance ?? 0;
-                                        const newBalance = current + 1;
-                                        onUpdateDynamicBalance(habit, newBalance);
-                                    }
-                                }}
-                                className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all hover:shadow-[0_0_12px_rgba(16,185,129,0.3)]"
+                                whileTap={{ scale: 0.88 }}
+                                onClick={adjustBalance(1)}
+                                className="flex h-[32px] w-[32px] items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 transition-colors active:bg-emerald-500 active:text-white"
                                 title={t('badHabits.moralVictory', 'Victoria Moral')}
+                                aria-label={t('badHabits.moralVictory', 'Victoria Moral')}
                             >
-                                <LucideIcons.Plus size={24} />
+                                <LucideIcons.Plus size={16} />
                             </motion.button>
-                        </div>
+                        </>
                     )}
-                    {!isRelapsed && !habit.isDynamic && (
+                    {showRelapseButton && (
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onRelapse(habit);
                             }}
-                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-lg hover:scale-110 active:scale-95 ${
+                            className={`flex h-[32px] w-[32px] items-center justify-center rounded-xl border transition-colors active:scale-95 ${
                                 isIntelligent
-                                    ? 'bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-400/40 text-violet-300 hover:from-violet-500 hover:to-fuchsia-500 hover:text-white hover:shadow-[0_0_20px_rgba(217,70,239,0.4)]'
-                                    : 'bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white hover:shadow-rose-500/30'
+                                    ? 'border-violet-400/40 bg-violet-500/15 text-violet-300 active:bg-violet-500 active:text-white'
+                                    : 'border-rose-500/25 bg-rose-500/10 text-rose-500 active:bg-rose-500 active:text-white'
                             }`}
                             title={isIntelligent ? t('badHabits.useOpportunityDay', "Usar día de oportunidad (no rompe racha)") : t('badHabits.cutStreak', "Cortar racha (Relapso)")}
+                            aria-label={isIntelligent ? t('badHabits.useOpportunityDay', "Usar día de oportunidad (no rompe racha)") : t('badHabits.cutStreak', "Cortar racha (Relapso)")}
                         >
-                            <Scissors size={18} className="group-hover/cut:rotate-90 transition-transform duration-200" />
+                            <Scissors size={15} />
                         </button>
                     )}
                     {onShowActions && (
@@ -387,13 +232,26 @@ export const BadHabitItem: React.FC<BadHabitItemProps> = ({
                                 e.stopPropagation();
                                 onShowActions(habit);
                             }}
-                            className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+                            className="relative flex h-[32px] w-[22px] items-center justify-center text-white/35 transition-colors active:text-white before:absolute before:-inset-x-1 before:inset-y-0 before:content-['']"
+                            aria-label={t('common.more', 'Más')}
                         >
                             <MoreVertical size={16} />
                         </button>
                     )}
                 </div>
             </div>
+
+            {/* intelligent-streak progress: a 2px line on the edge (no extra row) */}
+            {progress > 0 && (
+                <div className="absolute inset-x-0 bottom-0 h-[2px] bg-white/[0.06]">
+                    <motion.div
+                        initial={false}
+                        animate={{ width: `${progress}%` }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+                        className={`h-full rounded-r-full ${isOpportunityDay ? 'bg-amber-400' : 'bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400'}`}
+                    />
+                </div>
+            )}
         </div>
     );
 };

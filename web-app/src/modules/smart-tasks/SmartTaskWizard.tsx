@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Sparkles, X, ChevronLeft } from 'lucide-react';
 import { useSmartTaskLogic } from './hooks/useSmartTaskLogic';
 import { SmartProject } from '../../types/SmartGoal';
 import { TRAITS_LIST } from '../dashboard/constants';
@@ -14,6 +14,7 @@ import { DateSelectionStep } from './components/wizard/DateSelectionStep';
 import { RecursiveFillingStep } from './components/wizard/RecursiveFillingStep';
 import { FREE_LIMITS, ENABLE_GLOBAL_PRO } from '../../config/limits';
 import { StrategyTutorial } from './components/StrategyTutorial';
+import '../../components/cupertino/cupertino.css';
 
 interface SmartTaskWizardProps {
   onComplete: (project: SmartProject) => void;
@@ -96,27 +97,13 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
       }
   };
 
-  useEffect(() => {
-    console.log("🟢 [SmartTaskWizard LifeCycle] SmartTaskWizard mounted!");
-    return () => {
-      console.log("🔴 [SmartTaskWizard LifeCycle] SmartTaskWizard UNMOUNTED!");
-    };
-  }, []);
-
-  console.log(`🌀 [SmartTaskWizard LifeCycle] SmartTaskWizard rendering (isLimitReached: ${isLimitReached}, isPro: ${isPro}, activeSmartTasksCount: ${activeSmartTasksCount})`);
-
   // Limit Reached Screen
   useEffect(() => {
     if (isLimitReached) {
-      console.log(`⚠️ [SmartTaskWizard] Limit reached! Auto-closing. (isPro: ${isPro}, activeSmartTasksCount: ${activeSmartTasksCount})`);
       if (onOpenPro) onOpenPro();
       onCancel();
     }
   }, [isLimitReached, onOpenPro, onCancel, isPro, activeSmartTasksCount]);
-
-  if (isLimitReached) {
-      return null;
-  }
 
   // Check for completion
   useEffect(() => {
@@ -132,113 +119,94 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
       }
   }, [currentStep, timeframeHierarchy, isStarting, generateProject, onComplete, hasCompleted]);
 
-  if (typeof document === 'undefined') return null;
+  if (isLimitReached || typeof document === 'undefined') return null;
+
+  const totalSteps = 3;
+  const recursiveTotal = Math.max(1, timeframeHierarchy.length - 1);
+  const recursiveProgress = Math.min(1, currentStep / recursiveTotal);
 
   return createPortal(
-    <div 
-      className="fixed inset-0 z-[500] flex items-center justify-center bg-[#09090b] overflow-hidden"
+    <div
+      className="cu-root cu-stage"
+      style={{
+        zIndex: 500,
+        ['--cu-accent' as any]: effectiveColor,
+        padding: 'max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom))',
+      }}
     >
-      {/* Dynamic Background based on Trait - Simplified for performance */}
-      <div 
-        className="absolute inset-0 pointer-events-none transition-colors duration-200 ease-in-out opacity-20"
-        style={{ 
-            background: tempTraitId || projectMeta.traitId
-                ? `radial-gradient(circle at 50% 40%, ${effectiveColor}30 0%, transparent 60%)`
-                : 'radial-gradient(circle at 50% 40%, #6366f115 0%, transparent 50%)'
-        }}
-      />
-      
-      {/* CANCEL BUTTON */}
-      <button 
-        onClick={onCancel}
-        className="absolute top-6 right-6 p-3 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-colors z-50 border border-white/5"
+      <motion.div
+        className="cu-card"
+        initial={{ opacity: 0, y: 28, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+        style={{ minHeight: 0 }}
       >
-        <span className="sr-only">{t('common.close', 'Close')}</span>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
+        {/* Header: back · progress · close */}
+        <div className="cu-wiz-head">
+          {isStarting && wizardStep > 0 && (
+            <button
+              type="button"
+              className="cu-icon-btn cu-wiz-back"
+              aria-label={t('smartTask.wizard.buttons.back', 'Atrás')}
+              onClick={() => { setPresetDates(null); setWizardStep(s => Math.max(0, s - 1)); }}
+            >
+              <ChevronLeft size={19} strokeWidth={2.4} />
+            </button>
+          )}
+          {isStarting ? (
+            <div className="cu-progress" aria-label={`${wizardStep + 1}/${totalSteps}`}>
+              {Array.from({ length: totalSteps }).map((_, i) => <i key={i} className={i <= wizardStep ? 'cu-on' : ''} />)}
+            </div>
+          ) : (
+            <div style={{ width: 140, height: 5, borderRadius: 99, background: 'var(--cu-fill-2)', overflow: 'hidden' }}>
+              <motion.div
+                style={{ height: '100%', borderRadius: 99, background: 'var(--cu-accent)' }}
+                animate={{ width: `${Math.max(6, recursiveProgress * 100)}%` }}
+                transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+              />
+            </div>
+          )}
+          <button type="button" className="cu-icon-btn cu-wiz-close" onClick={onCancel} aria-label={t('common.close', 'Cerrar')}>
+            <X size={18} strokeWidth={2.4} />
+          </button>
+        </div>
 
-      <div className="w-full max-w-xl px-6 relative z-10 flex flex-col items-center justify-center">
-              <AnimatePresence mode="sync">
-                {isStarting ? (
-                  <motion.div
-                    key="start"
-                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 1.02 }}
-                    transition={{ duration: 0.15, ease: "easeOut" }}
-                    className="flex flex-col items-center justify-center text-center space-y-6 w-full"
-                  >
-                    {/* APPLE INTELLIGENCE HEADER - Visible only in Objective Step */}
-                    <AnimatePresence>
-                        {wizardStep === 0 && (
-                            <motion.div 
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="flex flex-col items-center flex-shrink-0"
-                            >
-                                <div className="mb-5 flex items-center justify-center">
-                                    <div className="w-16 h-16 rounded-2xl bg-transparent border border-white/10 flex items-center justify-center shadow-sm transition-colors duration-200">
-                                        <Sparkles 
-                                            className="w-8 h-8 transition-colors duration-200" 
-                                            style={{ color: activeColor }}
-                                        />
-                                    </div>
-                                </div>
-                                <h1 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight">{t('smartTask.wizard.title')}</h1>
-                                <p className="text-sm text-white/50 mt-1 font-medium tracking-wide">{t('smartTask.wizard.subtitle')}</p>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+        <>
+          {isStarting ? (
+            <div key="start" className="cu-step">
+              {wizardStep === 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '8px 24px 0', textAlign: 'center' }}>
+                  <div className="cu-glyph"><Sparkles size={30} /></div>
+                  <p className="cu-lead" style={{ marginTop: 8, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 600 }}>
+                    {t('smartTask.wizard.title')}
+                  </p>
+                </div>
+              )}
 
-                    <div className="w-full flex-1 flex flex-col min-h-0 justify-center pt-2">
-                        {wizardStep === 0 && (
-                            <ObjectiveStep 
-                                initialValue={tempObjective}
-                                onNext={handleObjectiveNext}
-                                activeColor={activeColor}
-                            />
-                        )}
-
-                        {wizardStep === 1 && (
-                            <TraitSelectionStep 
-                                traits={traits}
-                                selectedTraitId={tempTraitId}
-                                onSelect={setTempTraitId}
-                                onNext={handleTraitNext}
-                            />
-                        )}
-
-                        {wizardStep === 2 && (
-                             <DateSelectionStep 
-                                onStartProcess={handleDateNext}
-                                activeColor={activeColor}
-                             />
-                        )}
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="recursive"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 1.05 }}
-                    transition={{ duration: 0.15 }}
-                    className="w-full h-full flex flex-col items-center"
-                  >
-                     {/* Recursive Steps */}
-                     {currentNode && (
-                         <RecursiveFillingStep 
-                            currentNode={currentNode}
-                            timeframeHierarchy={timeframeHierarchy}
-                            onSubmit={submitAnswer}
-                            activeColor={effectiveColor}
-                         />
-                     )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-      </div>
+              {wizardStep === 0 && (
+                <ObjectiveStep initialValue={tempObjective} onNext={handleObjectiveNext} activeColor={activeColor} />
+              )}
+              {wizardStep === 1 && (
+                <TraitSelectionStep traits={traits} selectedTraitId={tempTraitId} onSelect={setTempTraitId} onNext={handleTraitNext} />
+              )}
+              {wizardStep === 2 && (
+                <DateSelectionStep onStartProcess={handleDateNext} activeColor={activeColor} />
+              )}
+            </div>
+          ) : (
+            <motion.div key="recursive" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }} className="cu-step">
+              {currentNode && (
+                <RecursiveFillingStep
+                  currentNode={currentNode}
+                  timeframeHierarchy={timeframeHierarchy}
+                  onSubmit={submitAnswer}
+                  activeColor={effectiveColor}
+                />
+              )}
+            </motion.div>
+          )}
+        </>
+      </motion.div>
 
       {/* Tutorial Overlay */}
       <StrategyTutorial 

@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Overall frosted background image -->
+    <!-- Themed glass card -->
     <ImageView
         android:id="@+id/score_background_image"
         android:layout_width="match_parent"
@@ -12,7 +12,7 @@
         android:scaleType="fitXY"
         android:src="@drawable/widget_background" />
 
-    <!-- Unconfigured/Loading/Locked State -->
+    <!-- Locked state -->
     <LinearLayout
         android:id="@+id/score_login_required"
         android:layout_width="match_parent"
@@ -31,122 +31,174 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:fontFamily="sans-serif-medium"
             android:text="Abre Lux"
             android:textColor="#B3FFFFFF"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:layout_marginTop="4dp" />
+            android:textSize="11sp" />
     </LinearLayout>
 
-    <!-- Configured State -->
     <FrameLayout
         android:id="@+id/score_configured_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="visible">
 
-        <!-- VERTICAL LAYOUT (for 2x2, 3x3, 1x2, 1x1 etc) -->
+        <!-- SQUARE / TALL: ring that scales to the space, label on top, flipping caption below -->
         <LinearLayout
             android:id="@+id/score_layout_vertical"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:gravity="center"
+            android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:padding="6dp"
+            android:paddingStart="10dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="10dp"
             android:visibility="visible">
 
             <TextView
                 android:id="@+id/score_widget_title_vert"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="SCORE"
-                android:textColor="#99FFFFFF"
-                android:textSize="10sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.08"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.16"
                 android:maxLines="1"
-                android:layout_marginBottom="4dp" />
+                android:text="HOY"
+                android:textColor="#99FFFFFF"
+                android:textSize="10sp" />
 
             <FrameLayout
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:background="@drawable/widget_progress_circle">
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="2dp"
+                android:layout_weight="1">
+
+                <ImageView
+                    android:id="@+id/score_ring_vert"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:adjustViewBounds="true"
+                    android:scaleType="fitCenter" />
+
                 <TextView
                     android:id="@+id/score_widget_value_vert"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
+                    android:fontFamily="sans-serif-black"
                     android:text="--"
                     android:textColor="#FFFFFF"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
+                    android:textSize="26sp" />
             </FrameLayout>
 
-            <TextView
-                android:id="@+id/score_widget_sub_vert"
-                android:layout_width="wrap_content"
+            <ViewFlipper
+                android:id="@+id/score_flipper_vert"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Rendimiento"
-                android:textColor="#66FFFFFF"
-                android:textSize="9sp"
-                android:layout_marginTop="4dp"
-                android:maxLines="1" />
+                android:autoStart="true"
+                android:flipInterval="3800"
+                android:inAnimation="@android:anim/fade_in"
+                android:outAnimation="@android:anim/fade_out">
+
+                <TextView
+                    android:id="@+id/score_widget_sub_vert"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:text="Rendimiento diario"
+                    android:textColor="#E6FFFFFF"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/score_widget_caption_vert"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:text="Tareas · Hábitos · Foco"
+                    android:textColor="#80FFFFFF"
+                    android:textSize="10sp" />
+            </ViewFlipper>
         </LinearLayout>
 
-        <!-- HORIZONTAL LAYOUT (for 2x1, 3x1 etc) -->
+        <!-- WIDE: ring left, label + message + mini bar right -->
         <LinearLayout
             android:id="@+id/score_layout_horizontal"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="8dp"
+            android:paddingStart="14dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="10dp"
             android:visibility="gone">
 
             <FrameLayout
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/widget_progress_circle">
+                android:layout_width="58dp"
+                android:layout_height="58dp">
+
+                <ImageView
+                    android:id="@+id/score_ring_horiz"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="fitCenter" />
+
                 <TextView
                     android:id="@+id/score_widget_value_horiz"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
+                    android:fontFamily="sans-serif-black"
                     android:text="--"
                     android:textColor="#FFFFFF"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
+                    android:textSize="17sp" />
             </FrameLayout>
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
                 android:layout_weight="1"
-                android:orientation="vertical"
-                android:layout_marginStart="12dp"
-                android:gravity="center_vertical">
+                android:gravity="center_vertical"
+                android:orientation="vertical">
 
                 <TextView
                     android:id="@+id/score_widget_title_horiz"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="RENDIMIENTO"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.16"
+                    android:maxLines="1"
+                    android:text="HOY"
                     android:textColor="#99FFFFFF"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.08"
-                    android:maxLines="1" />
+                    android:textSize="10sp" />
 
                 <TextView
                     android:id="@+id/score_widget_sub_horiz"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Matrix Score"
-                    android:textColor="#66FFFFFF"
-                    android:textSize="9sp"
                     android:layout_marginTop="2dp"
-                    android:maxLines="1" />
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-black"
+                    android:maxLines="1"
+                    android:text="Rendimiento"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp" />
+
+                <ImageView
+                    android:id="@+id/score_bar_horiz"
+                    android:layout_width="match_parent"
+                    android:layout_height="8dp"
+                    android:layout_marginTop="7dp"
+                    android:scaleType="fitXY" />
             </LinearLayout>
         </LinearLayout>
     </FrameLayout>

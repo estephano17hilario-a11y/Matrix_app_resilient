@@ -47,8 +47,8 @@
                     android:layout_height="wrap_content"
                     android:text="Diario"
                     android:textColor="#FFFFFF"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
+                    android:fontFamily="sans-serif-black"
+                    android:textSize="14sp" />
 
                 <TextView
                     android:id="@+id/widget_month_text"
@@ -227,8 +227,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -254,8 +254,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -281,8 +281,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -308,8 +308,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -335,8 +335,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -362,8 +362,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -389,8 +389,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -422,8 +422,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -449,8 +449,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -476,8 +476,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -503,8 +503,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -530,8 +530,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -557,8 +557,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -584,8 +584,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -617,8 +617,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -644,8 +644,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -671,8 +671,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -698,8 +698,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -725,8 +725,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -752,8 +752,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -779,8 +779,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -812,8 +812,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -839,8 +839,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -866,8 +866,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -893,8 +893,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -920,8 +920,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -947,8 +947,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -974,8 +974,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -1007,8 +1007,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -1034,8 +1034,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -1061,8 +1061,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -1088,8 +1088,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -1115,8 +1115,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -1142,8 +1142,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -1169,8 +1169,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -1202,8 +1202,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -1229,8 +1229,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -1256,8 +1256,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -1283,8 +1283,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -1310,8 +1310,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -1337,8 +1337,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView
@@ -1364,8 +1364,8 @@
                     android:layout_weight="1"
                     android:orientation="vertical"
                     android:gravity="center"
-                    android:layout_margin="1dp"
-                    android:background="@drawable/widget_refresh_bg"
+                    android:layout_margin="1.5dp"
+                    android:background="@drawable/widget_day_cell"
                     android:padding="2dp">
                     
                     <TextView

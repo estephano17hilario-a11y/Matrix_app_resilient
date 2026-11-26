@@ -6,126 +6,126 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.graphics.*
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.RectF
+import android.graphics.Shader
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
 import com.luxresilient.app.R
-import kotlinx.coroutines.*
-import java.text.SimpleDateFormat
-import java.util.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.Calendar
+import java.util.Locale
 
+/**
+ * "Foco · Proyecto": one project's focus time, as a single glass strip.
+ *
+ *   ( ▶ )  Proyecto ................ [ Hoy ]
+ *          01:11 / 1:31:01
+ *          ███░░░░░░░░░░░░░░░░░░░░░░░
+ *
+ * The strip follows the chosen theme/opacity, the project's colour drives the title, the play
+ * glyph, the pill and the bar, and the pill is tappable: Hoy → Semana → Mes.
+ */
 class ProjectWidgetProvider : AppWidgetProvider() {
 
     companion object {
         private const val TAG = "ProjectWidgetProvider"
         const val ACTION_REFRESH_PROJECT = "com.luxresilient.app.REFRESH_PROJECT"
+        const val ACTION_CYCLE_RANGE = "com.luxresilient.app.PROJECT_CYCLE_RANGE"
+        private const val EXTRA_WIDGET_ID = "project_widget_id"
+        private val PROVIDER_CLASS = ProjectWidgetProvider::class.java.name
+
+        private val RANGES = listOf("day", "week", "month")
     }
 
-    override fun onUpdate(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetIds: IntArray
-    ) {
-        Log.d(TAG, "onUpdate called for ${appWidgetIds.size} project widgets")
-        for (widgetId in appWidgetIds) {
-            updateWidget(context, appWidgetManager, widgetId)
-        }
+    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        for (widgetId in appWidgetIds) updateWidget(context, appWidgetManager, widgetId)
     }
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-
-        if (intent.action == ACTION_REFRESH_PROJECT) {
-            Log.d(TAG, "Refresh project widgets requested")
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val component = ComponentName(context, ProjectWidgetProvider::class.java)
-            val ids = appWidgetManager.getAppWidgetIds(component)
-            for (widgetId in ids) {
-                updateWidget(context, appWidgetManager, widgetId)
+        val manager = AppWidgetManager.getInstance(context)
+        when (intent.action) {
+            ACTION_REFRESH_PROJECT -> {
+                val ids = manager.getAppWidgetIds(ComponentName(context, ProjectWidgetProvider::class.java))
+                for (id in ids) updateWidget(context, manager, id)
+            }
+            ACTION_CYCLE_RANGE -> {
+                val id = intent.getIntExtra(EXTRA_WIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
+                if (id == AppWidgetManager.INVALID_APPWIDGET_ID) return
+                val prefs = WidgetTheme.prefs(context)
+                val current = prefs.getString("project_range_widget_$id", "day")
+                val next = RANGES[(RANGES.indexOf(current).coerceAtLeast(0) + 1) % RANGES.size]
+                prefs.edit().putString("project_range_widget_$id", next).apply()
+                updateWidget(context, manager, id)
             }
         }
     }
 
-    override fun onAppWidgetOptionsChanged(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetId: Int,
-        newOptions: Bundle
-    ) {
+    override fun onAppWidgetOptionsChanged(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int, newOptions: Bundle) {
         super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
-        Log.d(TAG, "onAppWidgetOptionsChanged called for widget $appWidgetId")
         updateWidget(context, appWidgetManager, appWidgetId)
     }
 
-    private fun updateWidget(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        widgetId: Int
-    ) {
+    private fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, widgetId: Int) {
         val client = SupabaseWidgetClient(context)
-        
+
         if (!client.isAuthenticated()) {
             val views = RemoteViews(context.packageName, R.layout.widget_login_required)
-            val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-            if (launchIntent != null) {
-                val pendingIntent = PendingIntent.getActivity(
-                    context, 0, launchIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-                views.setOnClickPendingIntent(R.id.widget_login_required, pendingIntent)
+            context.packageManager.getLaunchIntentForPackage(context.packageName)?.let { launch ->
+                val pending = PendingIntent.getActivity(context, 0, launch, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                views.setOnClickPendingIntent(R.id.widget_login_required, pending)
             }
             appWidgetManager.updateAppWidget(widgetId, views)
             return
         }
 
-        val prefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
+        val prefs = WidgetTheme.prefs(context)
         val projectId = prefs.getString("project_id_widget_$widgetId", null)
-        val bgOpacity = when {
-            prefs.contains("widget_background_opacity_$widgetId") -> prefs.getInt("widget_background_opacity_$widgetId", 85)
-            prefs.contains("widget_background_opacity_com.luxresilient.app.widget.ProjectWidgetProvider") -> prefs.getInt("widget_background_opacity_com.luxresilient.app.widget.ProjectWidgetProvider", 85)
-            else -> prefs.getInt("widget_background_opacity", 85)
-        }
+        val style = WidgetTheme.styleFor(prefs, widgetId, PROVIDER_CLASS, WidgetTheme.Style.GRAPHITE)
+        val opacity = WidgetTheme.opacityFor(prefs, widgetId, PROVIDER_CLASS)
+
+        val options = appWidgetManager.getAppWidgetOptions(widgetId)
+        val (widthDp, heightDp) = WidgetTheme.sizeDp(options, 300, 80)
+        val is2x1 = widthDp < 200
 
         val views = RemoteViews(context.packageName, R.layout.widget_project_progress)
-
-        // Apply Overall Widget Background Opacity
-        views.setFloat(R.id.project_background_image, "setAlpha", bgOpacity / 100f)
+        views.setFloat(R.id.project_background_image, "setAlpha", opacity / 100f)
 
         if (projectId.isNullOrEmpty()) {
-            // Show unconfigured state
+            views.setImageViewBitmap(R.id.project_background_image, WidgetTheme.background(context, widthDp, heightDp, style))
             views.setViewVisibility(R.id.project_unconfigured_layout, View.VISIBLE)
             views.setViewVisibility(R.id.project_configured_layout, View.GONE)
-
-            // Setup click intent to open WidgetConfigActivity
             val configIntent = Intent(context, WidgetConfigActivity::class.java).apply {
                 putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
-            val configPending = PendingIntent.getActivity(
-                context, widgetId, configIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-            )
+            val configPending = PendingIntent.getActivity(context, widgetId, configIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
             views.setOnClickPendingIntent(R.id.btn_select_project, configPending)
             appWidgetManager.updateAppWidget(widgetId, views)
             return
         }
 
-        // Configure configured state
         views.setViewVisibility(R.id.project_unconfigured_layout, View.GONE)
         views.setViewVisibility(R.id.project_configured_layout, View.VISIBLE)
 
-        // Draw and update asynchronously
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val projects = client.fetchProjects()
-                val project = projects.find { it.id == projectId }
-
+                val project = client.fetchProjects().find { it.id == projectId }
                 if (project == null) {
-                    // Project not found or deleted, reset
                     withContext(Dispatchers.Main) {
+                        views.setImageViewBitmap(R.id.project_background_image, WidgetTheme.background(context, widthDp, heightDp, style))
                         views.setViewVisibility(R.id.project_unconfigured_layout, View.VISIBLE)
                         views.setViewVisibility(R.id.project_configured_layout, View.GONE)
                         appWidgetManager.updateAppWidget(widgetId, views)
@@ -133,101 +133,58 @@ class ProjectWidgetProvider : AppWidgetProvider() {
                     return@launch
                 }
 
-                // Compute details
-                val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
-                val todayMins = project.sessions?.filter { ProjectGoalCalculator.getLocalDateString(it.date) == todayStr }?.sumOf { it.duration / 60.0 } ?: 0.0
-                
-                val targetMins = ProjectGoalCalculator.getDynamicDailyTarget(project)
-
-                val pct = if (targetMins > 0) minOf(100, ((todayMins / targetMins) * 100).toInt()) else 0
+                val range = prefs.getString("project_range_widget_$widgetId", "day") ?: "day"
+                val (doneSecs, targetMins) = measure(project, range)
+                val targetSecs = targetMins * 60
+                val pct = if (targetSecs > 0) minOf(100, (doneSecs * 100L / targetSecs).toInt()) else 0
 
                 val density = context.resources.displayMetrics.density
                 val baseColorHex = project.color ?: TraitIcons.getColor(project.attribute)
-                val parsedColor = try { Color.parseColor(baseColorHex) } catch (e: Exception) { Color.parseColor("#EF4444") }
-
-                // Get dynamic widget options for sizing
-                val options = appWidgetManager.getAppWidgetOptions(widgetId)
-                val minWidthDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
-                val minHeightDp = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
-                val widgetWidth = ((if (minWidthDp > 0) minWidthDp else 300) * density).toInt().coerceAtLeast(280)
-                val widgetHeight = ((if (minHeightDp > 0) minHeightDp else 70) * density).toInt().coerceAtLeast(60)
+                val accent = try { Color.parseColor(baseColorHex) } catch (e: Exception) { Color.parseColor("#F59E0B") }
 
                 withContext(Dispatchers.Main) {
-                    // Apply dynamic card spacing (padding)
-                    val cardSpacing = prefs.getString("card_spacing_widget_$widgetId", "medio") ?: "medio"
-                    val paddingDp = when (cardSpacing) {
-                        "poco" -> 4
-                        "grande" -> 16
-                        else -> 10
-                    }
-                    val paddingPx = (paddingDp * density).toInt()
-                    views.setViewPadding(R.id.project_configured_layout, paddingPx, paddingPx, paddingPx, paddingPx)
+                    val pad = when (prefs.getString("card_spacing_widget_$widgetId", "medio")) { "poco" -> 8; "grande" -> 18; else -> 14 }
+                    views.setViewPadding(R.id.project_configured_layout, (pad * density).toInt(), (pad * 0.85f * density).toInt(), ((pad + 2) * density).toInt(), (pad * 0.85f * density).toInt())
 
-                    // Apply layout optimizations if in 2x1 mode (minWidthDp < 200)
-                    val is2x1 = minWidthDp in 1..199
-                    if (is2x1) {
-                        views.setViewVisibility(R.id.project_play_btn, View.GONE)
-                        views.setViewVisibility(R.id.project_chevron, View.GONE)
-                        views.setFloat(R.id.project_title, "setTextSize", 11.5f)
-                        views.setFloat(R.id.project_time_fraction, "setTextSize", 9.5f)
-                        views.setFloat(R.id.project_percentage_text, "setTextSize", 9.5f)
-                    } else {
-                        views.setViewVisibility(R.id.project_play_btn, View.VISIBLE)
-                        views.setViewVisibility(R.id.project_chevron, View.VISIBLE)
-                        views.setFloat(R.id.project_title, "setTextSize", 14.0f)
-                        views.setFloat(R.id.project_time_fraction, "setTextSize", 11.0f)
-                        views.setFloat(R.id.project_percentage_text, "setTextSize", 10.0f)
-                    }
+                    views.setImageViewBitmap(R.id.project_background_image, WidgetTheme.background(context, widthDp, heightDp, style, accent))
 
-                    // Background glow
-                    val glowBitmap = createGlowBackground(density, widgetWidth, widgetHeight, parsedColor)
-                    views.setImageViewBitmap(R.id.project_glow_background, glowBitmap)
+                    // Compact 2x1: no play button, smaller type.
+                    views.setViewVisibility(R.id.project_play_btn, if (is2x1) View.GONE else View.VISIBLE)
+                    views.setViewVisibility(R.id.project_range_pill, if (is2x1) View.GONE else View.VISIBLE)
+                    views.setFloat(R.id.project_title, "setTextSize", if (is2x1) 13f else 16f)
+                    views.setFloat(R.id.project_time_fraction, "setTextSize", if (is2x1) 17f else 24f)
 
-                    // Project title
                     views.setTextViewText(R.id.project_title, project.title)
-                    views.setTextColor(R.id.project_title, parsedColor)
+                    views.setTextColor(R.id.project_title, accent)
 
-                    // Format Time Fraction using Html to style actual and target times differently
-                    val actualHours = (todayMins / 60).toInt()
-                    val actualMins = (todayMins % 60).toInt()
-                    val targetHours = (targetMins / 60).toInt()
-                    val targetMinsVal = (targetMins % 60).toInt()
-                    
-                    val fractionHtml = "<font color='#FFFFFF'><b>%dh %02dm</b></font> <font color='#80FFFFFF'>/ %dh %02dm</font>".format(
-                        actualHours, actualMins, targetHours, targetMinsVal
-                    )
-                    views.setTextViewText(R.id.project_time_fraction, android.text.Html.fromHtml(fractionHtml, android.text.Html.FROM_HTML_MODE_LEGACY))
+                    val pill = when (range) { "week" -> "Semana"; "month" -> "Mes"; else -> "Hoy" }
+                    views.setTextViewText(R.id.project_range_pill, if (pct >= 100) "✓ $pill" else pill)
+                    views.setTextColor(R.id.project_range_pill, accent)
 
-                    // Progress bar fill (take full width in 2x1, or ~60% of widget width normally)
-                    val playBtnOffset = if (is2x1) 0f else (44 + 10) * density
-                    val rightOffset = if (is2x1) 12 * density else (16 + 8 + 20) * density
-                    val barWidth = (widgetWidth - playBtnOffset - rightOffset).toInt().coerceAtLeast(100)
-                    val barHeight = (6 * density).toInt()
-                    val barBitmap = createProgressBarBitmap(density, barWidth, barHeight, parsedColor, pct)
-                    views.setImageViewBitmap(R.id.project_progress_bar_fill, barBitmap)
+                    views.setTextViewText(R.id.project_time_fraction, timeText(doneSecs, targetSecs))
 
-                    // Percentage Text
-                    views.setTextViewText(R.id.project_percentage_text, "$pct%")
+                    // Bar: width follows the strip so the rounded caps stay round.
+                    val barWidthDp = (widthDp - (if (is2x1) 30 else 30 + 56 + 14)).coerceAtLeast(80)
+                    views.setImageViewBitmap(R.id.project_progress_bar_fill, progressBar(density, barWidthDp, 12, accent, pct))
 
-                    // Custom drawn Play Button bitmap (colored circle/rounded rect with white play symbol)
-                    if (!is2x1) {
-                        val playBtnSize = (44 * density).toInt()
-                        val playBitmap = createPlayButtonBitmap(density, playBtnSize, playBtnSize, parsedColor)
-                        views.setImageViewBitmap(R.id.project_play_image, playBitmap)
-                    }
+                    if (!is2x1) views.setImageViewBitmap(R.id.project_play_image, playButton(density, 56, accent))
 
-                    // Click intent to open Focus Session in the app (on play button and entire card)
+                    // Play + strip open the focus session; the pill cycles the range.
                     val launchIntent = Intent(Intent.ACTION_VIEW).apply {
                         data = Uri.parse("luxapp://focus-session?projectId=${project.id}")
                         setPackage(context.packageName)
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     }
-                    val pendingIntent = PendingIntent.getActivity(
-                        context, widgetId * 10 + 2, launchIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-                    )
-                    views.setOnClickPendingIntent(R.id.project_play_btn, pendingIntent)
-                    views.setOnClickPendingIntent(R.id.project_configured_layout, pendingIntent)
+                    val open = PendingIntent.getActivity(context, widgetId * 10 + 2, launchIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
+                    views.setOnClickPendingIntent(R.id.project_play_btn, open)
+                    views.setOnClickPendingIntent(R.id.project_configured_layout, open)
+
+                    val cycle = Intent(context, ProjectWidgetProvider::class.java).apply {
+                        action = ACTION_CYCLE_RANGE
+                        putExtra(EXTRA_WIDGET_ID, widgetId)
+                    }
+                    val cyclePending = PendingIntent.getBroadcast(context, widgetId * 10 + 3, cycle, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                    views.setOnClickPendingIntent(R.id.project_range_pill, cyclePending)
 
                     appWidgetManager.updateAppWidget(widgetId, views)
                 }
@@ -237,166 +194,103 @@ class ProjectWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    private fun createPlayButtonBitmap(density: Float, width: Int, height: Int, color: Int): Bitmap {
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        
-        // Draw rounded rectangle background (colored)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.color = color
-            this.style = Paint.Style.FILL
+    /** Seconds of focus done in the range, and the goal for that range in minutes. */
+    private fun measure(project: ProjectData, range: String): Pair<Int, Int> {
+        val sessions = project.sessions ?: emptyList()
+        val fmt = java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        val today = fmt.format(java.util.Date())
+        val freq = project.uiFrequency ?: project.goalFrequency
+        val daily = ProjectGoalCalculator.getDynamicDailyTarget(project)
+        val workDays = project.workingDays?.size?.takeIf { it > 0 } ?: 7
+        return when (range) {
+            "week" -> {
+                val cal = Calendar.getInstance().apply {
+                    firstDayOfWeek = Calendar.MONDAY
+                    set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+                }
+                val start = fmt.format(cal.time)
+                val secs = sessions.filter { val d = ProjectGoalCalculator.getLocalDateString(it.date); d >= start && d <= today }.sumOf { it.duration }
+                secs to (if (freq == "WEEKLY") ProjectGoalCalculator.getWeeklyGoalMinutes(project) else daily * workDays)
+            }
+            "month" -> {
+                val start = today.substring(0, 8) + "01"
+                val secs = sessions.filter { val d = ProjectGoalCalculator.getLocalDateString(it.date); d >= start && d <= today }.sumOf { it.duration }
+                secs to (if (freq == "MONTHLY") ProjectGoalCalculator.getMonthlyGoalMinutes(project) else daily * workDays * 4)
+            }
+            else -> {
+                val secs = sessions.filter { ProjectGoalCalculator.getLocalDateString(it.date) == today }.sumOf { it.duration }
+                secs to daily
+            }
         }
-        val rect = RectF(0f, 0f, width.toFloat(), height.toFloat())
-        canvas.drawRoundRect(rect, 10 * density, 10 * density, paint)
-        
-        // Draw white play triangle inside
-        paint.color = Color.WHITE
+    }
+
+    /** "01:11 / 1:31:01": done as mm:ss (h:mm:ss past an hour), goal always as h:mm:ss. */
+    private fun timeText(doneSecs: Int, targetSecs: Int): String {
+        fun hms(total: Int, forceHours: Boolean): String {
+            val h = total / 3600
+            val m = (total % 3600) / 60
+            val s = total % 60
+            return if (h > 0 || forceHours) String.format(Locale.US, "%d:%02d:%02d", h, m, s) else String.format(Locale.US, "%02d:%02d", m, s)
+        }
+        val done = hms(doneSecs, false)
+        return if (targetSecs > 0) "$done / ${hms(targetSecs, targetSecs >= 3600)}" else done
+    }
+
+    /** A recessed disc with the project-coloured play glyph. */
+    private fun playButton(density: Float, sizeDp: Int, accent: Int): Bitmap {
+        val scale = minOf(density, 3f)
+        val size = (sizeDp * scale).toInt()
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val c = size / 2f
+
+        paint.color = Color.argb(150, 0, 0, 0)
+        canvas.drawCircle(c, c, c, paint)
+        // soft inner rim, lit from the top
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 1.2f * scale
+        paint.shader = LinearGradient(0f, 0f, 0f, size.toFloat(), Color.argb(70, 255, 255, 255), Color.argb(0, 255, 255, 255), Shader.TileMode.CLAMP)
+        canvas.drawCircle(c, c, c - paint.strokeWidth / 2, paint)
+        paint.shader = null
+
+        // rounded play triangle
+        val half = size * 0.17f
         val path = Path().apply {
-            val centerX = width / 2f
-            val centerY = height / 2f
-            val size = 6 * density
-            
-            moveTo(centerX - size * 0.7f, centerY - size)
-            lineTo(centerX - size * 0.7f, centerY + size)
-            lineTo(centerX + size * 1.2f, centerY)
+            moveTo(c - half * 0.8f, c - half * 1.25f)
+            lineTo(c - half * 0.8f, c + half * 1.25f)
+            lineTo(c + half * 1.35f, c)
             close()
         }
+        paint.style = Paint.Style.FILL_AND_STROKE
+        paint.strokeJoin = Paint.Join.ROUND
+        paint.strokeWidth = size * 0.07f
+        paint.color = accent
         canvas.drawPath(path, paint)
-        
-        return bitmap
+        return bmp
     }
 
-    private fun createProgressBarBitmap(density: Float, width: Int, height: Int, color: Int, percentage: Int): Bitmap {
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        val rect = RectF(0f, 0f, width.toFloat(), height.toFloat())
-        
-        // 1. Draw semi-transparent background track
-        val trackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.color = Color.parseColor("#26FFFFFF") // 15% opacity white
-            this.style = Paint.Style.FILL
-        }
-        canvas.drawRoundRect(rect, 3 * density, 3 * density, trackPaint)
-        
-        // 2. Draw progress fill rounded rect
-        if (percentage > 0) {
-            val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                this.color = color
-                this.style = Paint.Style.FILL
-            }
-            val fillWidth = width * (percentage / 100f)
-            val fillRect = RectF(0f, 0f, fillWidth, height.toFloat())
-            canvas.drawRoundRect(fillRect, 3 * density, 3 * density, fillPaint)
-        }
-        return bitmap
-    }
+    /** Thick pill bar: dark track, accent fill with a gloss, a visible dot even at 1%. */
+    private fun progressBar(density: Float, widthDp: Int, heightDp: Int, accent: Int, pct: Int): Bitmap {
+        val scale = minOf(density, 3f)
+        val w = (widthDp * scale).toInt().coerceAtLeast(40)
+        val h = (heightDp * scale).toInt().coerceAtLeast(8)
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val r = h / 2f
 
-    private fun createGlowBackground(density: Float, width: Int, height: Int, color: Int): Bitmap {
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        
-        // Background card rounded rect
-        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.color = Color.parseColor("#050505")
-            this.alpha = 230
-        }
-        val rect = RectF(0f, 0f, width.toFloat(), height.toFloat())
-        canvas.drawRoundRect(rect, 16 * density, 16 * density, bgPaint)
+        paint.color = Color.argb(150, 0, 0, 0)
+        canvas.drawRoundRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), r, r, paint)
 
-        // Radial glow from center-left near the project icon
-        val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            val colors = intArrayOf(
-                Color.argb(70, Color.red(color), Color.green(color), Color.blue(color)),
-                Color.argb(20, Color.red(color), Color.green(color), Color.blue(color)),
-                Color.TRANSPARENT
-            )
-            val stops = floatArrayOf(0f, 0.4f, 1f)
-            this.shader = RadialGradient(
-                width * 0.12f, height * 0.5f,
-                height * 1.2f,
-                colors, stops,
-                Shader.TileMode.CLAMP
-            )
+        if (pct > 0) {
+            val fillW = maxOf(h.toFloat(), w * (pct / 100f))
+            val fill = RectF(0f, 0f, fillW, h.toFloat())
+            paint.color = accent
+            canvas.drawRoundRect(fill, r, r, paint)
+            paint.shader = LinearGradient(0f, 0f, 0f, h.toFloat(), Color.argb(90, 255, 255, 255), Color.argb(0, 255, 255, 255), Shader.TileMode.CLAMP)
+            canvas.drawRoundRect(fill, r, r, paint)
         }
-        canvas.drawRoundRect(rect, 16 * density, 16 * density, glowPaint)
-
-        // Border card
-        val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.style = Paint.Style.STROKE
-            this.strokeWidth = 1.5f * density
-            this.color = Color.argb(60, Color.red(color), Color.green(color), Color.blue(color))
-        }
-        canvas.drawRoundRect(rect, 16 * density, 16 * density, borderPaint)
-
-        return bitmap
-    }
-
-    private fun getIconEmoji(iconName: String): String? {
-        return when (iconName) {
-            "Dumbbell", "dumbbell" -> "💪"
-            "Heart", "heart" -> "❤️"
-            "HeartPulse", "heart-pulse" -> "💓"
-            "Activity", "activity" -> "📈"
-            "Bike", "bike" -> "🚴"
-            "Footprints", "footprints" -> "👣"
-            "Scale", "scale" -> "⚖️"
-            "Running", "run", "Run", "running" -> "🏃"
-            "Walk", "walk", "🚶" -> "🚶"
-            "Swim", "swim" -> "🏊"
-            "Meditation", "yoga", "Yoga", "meditation" -> "🧘"
-            
-            "Brain", "brain" -> "🧠"
-            "BookOpen", "book-open" -> "📖"
-            "Book", "book", "BookMarked", "book-marked" -> "📚"
-            "GraduationCap", "graduation-cap" -> "🎓"
-            "Lightbulb", "lightbulb" -> "💡"
-            "Puzzle", "puzzle" -> "🧩"
-            "Languages", "languages" -> "🌐"
-            "Notebook", "notebook" -> "📓"
-            "FileText", "file-text" -> "📄"
-            "Calculator", "calculator" -> "🧮"
-            "Search", "search" -> "🔍"
-            
-            "Target", "target" -> "🎯"
-            "CheckCircle", "check-circle", "Check", "check" -> "✅"
-            "Clock", "clock", "Clock3" -> "⏰"
-            "Timer", "timer" -> "⏱️"
-            "Calendar", "calendar", "CalendarRange" -> "📅"
-            "ListTodo", "list-todo", "List", "list" -> "📝"
-            "Hourglass", "hourglass" -> "⏳"
-            "Pin", "pin" -> "📌"
-            "Grid", "grid" -> "🏁"
-            
-            "Users", "users" -> "👥"
-            "MessageCircle", "message-circle", "MessageSquare", "message-square" -> "💬"
-            "Phone", "phone" -> "📱"
-            "Mail", "mail" -> "📧"
-            "HeartHandshake", "heart-handshake" -> "🤝"
-            "Share2", "share-2" -> "📤"
-            "ThumbsUp", "thumbs-up" -> "👍"
-            
-            "Palette", "palette" -> "🎨"
-            "Music", "music" -> "🎵"
-            "Camera", "camera" -> "📸"
-            "Video", "video" -> "📹"
-            "Pen", "pencil", "Pencil", "brush", "Brush" -> "✏️"
-            "Gamepad", "gamepad" -> "🎮"
-            "Tv", "tv", "Monitor", "monitor" -> "📺"
-            
-            "Wallet", "wallet" -> "💰"
-            "Coins", "coins" -> "🪙"
-            "DollarSign", "dollar-sign" -> "💵"
-            "TrendingUp", "trending-up" -> "📈"
-            
-            else -> null
-        }
-    }
-
-    private fun normalizeDate(dateStr: String?): String {
-        if (dateStr.isNullOrEmpty()) return ""
-        if (dateStr.length >= 10 && dateStr[4] == '-' && dateStr[7] == '-') {
-            return dateStr.substring(0, 10)
-        }
-        return dateStr
+        return bmp
     }
 }

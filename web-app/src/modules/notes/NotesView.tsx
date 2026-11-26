@@ -3,7 +3,7 @@ import { onPress } from '@/immersion/press';
 import { runSceneTransition } from '@/immersion/engine';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, ArrowLeft, Briefcase, Trash2, Lock, Calendar, AlignLeft, Filter, X, Cake, Gift, Settings, ListTodo, List, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, Search, Menu, Eye, EyeOff, LayoutGrid, CheckSquare, Square, Book, GraduationCap, Layers, Sparkles, Undo2, Redo2, Check, DollarSign, Dumbbell, Code2, Clock, Palette, MoreVertical } from 'lucide-react';
+import { Plus, BarChart3, ChevronLeft, ChevronRight, ChevronDown, Briefcase, Trash2, Lock, Calendar, AlignLeft, Filter, X, Cake, Gift, Settings, ListTodo, List, Repeat, Star, Folder, FolderPlus, FolderOpen, ArrowUpDown, Pencil, BookOpen, Search, Menu, Eye, EyeOff, LayoutGrid, CheckSquare, Square, Book, GraduationCap, Layers, Sparkles, Undo2, Redo2, Check, DollarSign, Dumbbell, Code2, Clock, Palette, MoreVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-hot-toast';
 import { Note, NoteFolder, JournalEntry, NoteBlock, Project, Quest } from '../../types';
@@ -26,6 +26,7 @@ import { DynamicIcon } from '../../components/DynamicIcon';
 import { useAuth } from '@/context/AuthContext';
 import { persistenceService } from '@/services/persistenceService';
 import { IconPicker } from '../dashboard/components/IconPicker';
+import '../../components/cupertino/cupertino.css';
 
 // Constants
 const MOODS = [
@@ -2466,253 +2467,227 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  )}
  </AnimatePresence>
 
-  {/* Note / Journal Editor Portal Modal */}
+  {/* Note / Journal Editor — Cupertino glass sheet */}
   {editorMode !== 'NONE' && typeof document !== 'undefined' && createPortal(
-    <div className="fixed inset-0 z-[500] bg-black/12 flex items-start justify-center p-2 sm:p-5 pt-[115px] sm:pt-[130px] pb-6 overflow-y-auto animate-in fade-in duration-200 backdrop-blur-none">
-      <div className="w-full max-w-md sm:max-w-lg mx-auto flex flex-col rounded-[28px] sm:rounded-[32px] overflow-hidden border border-white/15 shadow-2xl relative bg-[#0e0e16]/95 my-2 mt-2 max-h-[80vh] transition-all">
-        <div className="absolute top-0 left-0 right-0 h-48 opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 0%, ${activeThemeColor}, transparent 75%)` }} />
-
-        {/* Top Header Controls - Single Responsive Row */}
-        <div className="flex items-center justify-start px-3 sm:px-4 py-2 border-b border-white/10 relative z-20 bg-[#0d0d14]/95 gap-1.5 w-full overflow-x-auto no-scrollbar">
-          {/* Left: BLUE Exit Button + Categorize Button */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button 
-              onClick={closeEditor} 
-              className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white flex items-center justify-center shadow-md active:scale-95 transition-all shrink-0 border border-blue-400/30"
-              title="Salir del editor"
-            >
-              <ArrowLeft size={14} />
+    <div className="cu-root cu-editor-layer" style={{ zIndex: 500, ['--cu-accent' as any]: activeThemeColor === '#fff' ? '#0a84ff' : activeThemeColor }}>
+      <div className="cu-editor-sheet">
+        {/* Header: close · title · done */}
+        <div className="cu-header" style={{ touchAction: 'auto' }}>
+          <div className="cu-grabber" />
+          <div className="cu-header-row">
+            <button type="button" className="cu-icon-btn" onClick={closeEditor} aria-label={t('cu.close', 'Cerrar')}>
+              <ChevronLeft size={20} strokeWidth={2.4} />
             </button>
-
-            {editorMode === 'JOURNAL' && isDraftFuture && (
-              <div className="h-8 px-3 rounded-full bg-amber-500/10 border border-amber-500/25 text-[11px] font-bold text-amber-300 flex items-center gap-1.5 shrink-0">
-                <Lock size={12} className="text-amber-400" />
-                <span>{t('notes.viewOnlyFuture', 'Solo visualización')}</span>
-              </div>
-            )}
-            {editorMode === 'NOTE' && (
-              <button
-                onClick={() => setIsFolderPickerOpen(true)}
-                className="h-8 px-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-xs font-semibold text-white flex items-center gap-1.5 shrink-0 max-w-[130px] sm:max-w-[170px] transition-all"
-                title="Cambiar carpeta de destino"
-              >
-                <span className="shrink-0">{activeFolderObj ? (activeFolderObj.icon || '📁') : '📁'}</span>
-                <span className="truncate max-w-[80px] sm:max-w-[110px]">{activeFolderObj ? activeFolderObj.name : t('notes.uncategorized', 'Uncategorized')}</span>
-                <ChevronDown size={11} className="text-white/40 shrink-0" />
-              </button>
-            )}
+            <div className="cu-header-title">
+              <h2>{editorMode === 'NOTE' ? t('cu.noteTitle', 'Nota') : t('cu.journalTitle', 'Diario')}</h2>
+              <p>
+                {editorMode === 'JOURNAL'
+                  ? draftDate.toLocaleDateString(i18n.language, { weekday: 'long', month: 'long', day: 'numeric' })
+                  : (draftProjectId ? projects.find((p) => p.id === draftProjectId)?.title : t('cu.autosaved', 'Se guarda automáticamente'))}
+              </p>
+            </div>
+            <button type="button" className="cu-primary-btn" onClick={closeEditor}>{t('cu.done', 'Listo')}</button>
           </div>
 
-          {/* Right: Undo + Redo + Blueprint + Theme Picker */}
-          <div className="flex items-center gap-1.5 shrink-0">
+          {/* Toolbar row */}
+          <div className="cu-ed-tools no-scrollbar">
+            {editorMode === 'JOURNAL' && isDraftFuture && (
+              <span className="cu-chip cu-soft cu-on" style={{ ['--cu-accent' as any]: '#ff9f0a', cursor: 'default' }}>
+                <Lock size={13} /> {t('notes.viewOnlyFuture', 'Solo visualización')}
+              </span>
+            )}
+            {editorMode === 'NOTE' && (
+              <button type="button" className="cu-chip" onClick={() => setIsFolderPickerOpen(true)} title={t('cu.changeFolder', 'Cambiar carpeta')} style={{ maxWidth: 190 }}>
+                <span>{activeFolderObj ? (activeFolderObj.icon || '📁') : '📁'}</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeFolderObj ? activeFolderObj.name : t('notes.uncategorized', 'Sin carpeta')}</span>
+                <ChevronDown size={13} style={{ opacity: 0.6, flex: 'none' }} />
+              </button>
+            )}
+
+            <span style={{ flex: 1 }} />
 
             <button
-              onClick={handleUndo} style={{ display: editorMode === 'JOURNAL' && isDraftFuture ? 'none' : undefined }}
+              type="button"
+              className="cu-icon-btn"
+              onClick={handleUndo}
+              style={{ display: editorMode === 'JOURNAL' && isDraftFuture ? 'none' : undefined }}
               disabled={!canUndo}
-              className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all shrink-0 ${
-                canUndo
-                  ? 'bg-white/10 text-white border-white/20 hover:bg-white/20 active:scale-95'
-                  : 'bg-white/[0.02] text-white/20 border-white/5 cursor-not-allowed'
-              }`}
-              title="Deshacer (Undo)"
+              aria-label={t('cu.undo', 'Deshacer')}
             >
-              <Undo2 size={14} />
+              <Undo2 size={17} />
             </button>
-
             <button
-              onClick={handleRedo} style={{ display: editorMode === 'JOURNAL' && isDraftFuture ? 'none' : undefined }}
+              type="button"
+              className="cu-icon-btn"
+              onClick={handleRedo}
+              style={{ display: editorMode === 'JOURNAL' && isDraftFuture ? 'none' : undefined }}
               disabled={!canRedo}
-              className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all shrink-0 ${
-                canRedo
-                  ? 'bg-white/10 text-white border-white/20 hover:bg-white/20 active:scale-95'
-                  : 'bg-white/[0.02] text-white/20 border-white/5 cursor-not-allowed'
-              }`}
-              title="Rehacer (Redo)"
+              aria-label={t('cu.redo', 'Rehacer')}
             >
-              <Redo2 size={14} />
+              <Redo2 size={17} />
             </button>
 
             {!(editorMode === 'JOURNAL' && isDraftFuture) && <BlueprintSelector onSelect={(newBlocks) => syncDraftBlocks([...draftBlocksRef.current, ...newBlocks])} />}
 
-            <DropdownThemePicker 
-              currentTheme={draftTheme} 
-              onSelect={setDraftTheme} 
-              projects={editorMode === 'NOTE' ? projects : null} 
-              activeProject={draftProjectId} 
-              onSelectProject={setDraftProjectId} 
+            <DropdownThemePicker
+              currentTheme={draftTheme}
+              onSelect={setDraftTheme}
+              projects={editorMode === 'NOTE' ? projects : null}
+              activeProject={draftProjectId}
+              onSelectProject={setDraftProjectId}
             />
 
-            {/* Note Timestamps Info Button (3 dots) */}
             <button
               type="button"
-              onClick={() => setShowNoteInfoPopover(prev => !prev)} style={{ display: editorMode === 'JOURNAL' && isDraftFuture ? 'none' : undefined }}
-              className={`w-8 h-8 rounded-full border transition-all flex items-center justify-center shrink-0 ${
-                showNoteInfoPopover
-                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50 shadow-md'
-                  : 'bg-white/5 text-white/50 border-white/10 hover:text-white hover:bg-white/10'
-              }`}
-              title="Información y Fechas de la Nota"
+              onClick={() => setShowNoteInfoPopover(prev => !prev)}
+              style={{ display: editorMode === 'JOURNAL' && isDraftFuture ? 'none' : undefined }}
+              className="cu-icon-btn"
+              aria-label={t('cu.noteInfo', 'Información de la nota')}
+              aria-pressed={showNoteInfoPopover}
             >
-              <MoreVertical size={15} />
+              <MoreVertical size={17} />
             </button>
           </div>
         </div>
 
-        {/* Editor Body Scrollable Area */}
-        <div ref={editorScrollContainerRef} className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-10 relative">
+        {/* Body */}
+        <div ref={editorScrollContainerRef} className="cu-scroll cu-ed-body custom-scrollbar">
           {editorMode === 'NOTE' ? (
-            <div className="max-w-2xl mx-auto space-y-4">
+            <div className="cu-ed-content">
               {draftProjectId && (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
-                  <Briefcase size={12} className="text-cyan-400"/>
-                  <span className="text-[10px] font-bold text-cyan-300 uppercase tracking-wide">
-                    {projects.find((p) => p.id === draftProjectId)?.title}
-                  </span>
-                </div>
+                <span className="cu-chip cu-soft cu-on" style={{ alignSelf: 'flex-start', cursor: 'default' }}>
+                  <Briefcase size={13} /> {projects.find((p) => p.id === draftProjectId)?.title}
+                </span>
               )}
 
-              {/* Clean Title Input (No clipping!) */}
               <input
                 type="text"
                 value={draftTitle}
                 onChange={(e) => setDraftTitle(e.target.value)}
-                placeholder={t('notes.untitledPlaceholder', 'Título de la Nota...')}
-                className="w-full bg-transparent text-2xl sm:text-4xl font-black text-white placeholder:text-white/20 outline-none leading-normal tracking-tight border-b border-white/10 pb-3 mb-4"
+                placeholder={t('notes.untitledPlaceholder', 'Título de la nota')}
+                className="cu-ed-title"
+                aria-label={t('notes.untitledPlaceholder', 'Título de la nota')}
               />
 
-              {/* Word + Notion Clone Rich Block Editor */}
-              <div className="text-left">
+              <div className="cu-ed-editor">
                 <BlockEditor key={`${editorMode}-${draftId}`} blocks={draftBlocks} onChange={handleBlockEditorChange} />
               </div>
             </div>
           ) : (
-            <div className="max-w-2xl mx-auto text-center space-y-6">
-              <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] block">
-                {draftDate.toLocaleDateString(i18n.language, { weekday: 'long', month: 'long', day: 'numeric' })}
-              </span>
-
+            <div className="cu-ed-content">
               <input
                 type="text"
                 value={draftTitle}
                 onChange={(e) => setDraftTitle(e.target.value)}
-                placeholder={t('notes.untitledPlaceholder', 'Título de la Entrada...')}
+                placeholder={t('notes.untitledPlaceholder', 'Título de la entrada')}
                 readOnly={isDraftFuture}
-                className={`w-full bg-transparent text-2xl sm:text-3xl font-black text-white placeholder:text-white/20 outline-none leading-normal tracking-tight text-center border-b border-white/10 pb-3 ${isDraftFuture && !draftTitle ? 'hidden' : ''}`}
+                className="cu-ed-title"
+                style={isDraftFuture && !draftTitle ? { display: 'none' } : undefined}
+                aria-label={t('notes.untitledPlaceholder', 'Título de la entrada')}
               />
 
               {(activeSpecialEvents.length > 0 || activeDayQuests.length > 0 || isDraftFuture) && (
-                <div className="space-y-2.5 text-left">
+                <div className="cu-section">
                   {isDraftFuture && (
-                    <div className="flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs">
-                      <div className="flex items-center gap-2">
-                        <Lock size={14} className="text-amber-400 shrink-0" />
-                        <span className="font-bold">Modo Solo Visualización · Día Futuro</span>
-                      </div>
-                      <span className="text-[10px] uppercase tracking-wider text-amber-300/70 font-mono">Lectura</span>
+                    <div className="cu-notice" style={{ ['--tone' as any]: '#ff9f0a' }}>
+                      <Lock size={16} />
+                      <span>{t('cu.futureDay', 'Modo solo visualización · día futuro')}</span>
                     </div>
                   )}
 
-                  {activeSpecialEvents.map((ev) => (
-                    <button
-                      key={ev.id}
-                      type="button"
-                      onClick={() => setSelectedMemory(ev)}
-                      className="w-full text-left p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-purple-500/15 hover:from-amber-500/25 hover:to-purple-500/25 border border-amber-500/30 transition-all flex items-center gap-3 group active:scale-[0.99]"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-black/40 border border-white/10 flex items-center justify-center text-xl shrink-0">
-                        {ev.type === 'BIRTHDAY' ? '🎂' : ev.type === 'ANNIVERSARY' ? '❤️' : '⭐'}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">
-                            {ev.type === 'BIRTHDAY' ? t('notes.events.birthday', 'Cumpleaños') : ev.type === 'ANNIVERSARY' ? t('notes.events.anniversary', 'Aniversario') : t('notes.events.special', 'Evento Especial')}
+                  {(activeSpecialEvents.length > 0 || activeDayQuests.length > 0) && (
+                    <div className="cu-group">
+                      {activeSpecialEvents.map((ev) => (
+                        <button key={ev.id} type="button" onClick={() => setSelectedMemory(ev)} className="cu-row" style={{ minHeight: 64 }}>
+                          <span className="cu-row-tile" style={{ width: 40, height: 40, borderRadius: 12, fontSize: 20, background: 'linear-gradient(145deg, #ff9f0a, #ff375f)' }}>
+                            {ev.type === 'BIRTHDAY' ? '🎂' : ev.type === 'ANNIVERSARY' ? '❤️' : '⭐'}
                           </span>
-                        </div>
-                        <h4 className="text-sm font-black text-white truncate">{ev.title}</h4>
-                        {ev.blocks && ev.blocks.length > 0 && getPlainTextFromContent(ev.blocks[0].content).trim() && (
-                          <p className="text-xs text-white/60 truncate mt-0.5">{getPlainTextFromContent(ev.blocks[0].content)}</p>
-                        )}
-                      </div>
-                      <ChevronRight size={16} className="text-white/40 group-hover:text-white transition-colors shrink-0" />
-                    </button>
-                  ))}
+                          <span className="cu-row-main">
+                            <span className="cu-row-sub" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600, color: '#ffb340' }}>
+                              {ev.type === 'BIRTHDAY' ? t('notes.events.birthday', 'Cumpleaños') : ev.type === 'ANNIVERSARY' ? t('notes.events.anniversary', 'Aniversario') : t('notes.events.special', 'Evento especial')}
+                            </span>
+                            <span className="cu-row-label" style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.title}</span>
+                            {ev.blocks && ev.blocks.length > 0 && getPlainTextFromContent(ev.blocks[0].content).trim() && (
+                              <span className="cu-row-sub" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{getPlainTextFromContent(ev.blocks[0].content)}</span>
+                            )}
+                          </span>
+                          <ChevronRight size={18} className="cu-chevron" />
+                        </button>
+                      ))}
 
-                  {activeDayQuests.map((q) => (
-                    <button
-                      key={q.id}
-                      type="button"
-                      onClick={() => setSelectedQuest(q)}
-                      className="w-full text-left p-3.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 transition-all flex items-center gap-3 group active:scale-[0.99]"
-                    >
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-white/10"
-                        style={{ backgroundColor: `${q.journalIconColor || '#3b82f6'}20`, color: q.journalIconColor || '#3b82f6' }}
-                      >
-                        <ListTodo size={18} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: q.journalIconColor || '#60a5fa' }}>
-                            {q.completed ? t('notes.questCompleted', 'Misión Completada') : t('notes.scheduledQuest', 'Misión Programada')}
+                      {activeDayQuests.map((q) => (
+                        <button key={q.id} type="button" onClick={() => setSelectedQuest(q)} className="cu-row" style={{ minHeight: 64 }}>
+                          <span className="cu-row-tile" style={{ width: 40, height: 40, borderRadius: 12, background: `${q.journalIconColor || '#3b82f6'}33`, color: q.journalIconColor || '#3b82f6' }}>
+                            <ListTodo size={19} />
                           </span>
-                          {q.recurrence && q.recurrence.type !== 'NONE' && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-white/60 font-mono uppercase">Recurrente</span>
-                          )}
-                        </div>
-                        <h4 className={`text-sm font-bold text-white truncate ${q.completed ? 'line-through opacity-60' : ''}`}>{q.title}</h4>
-                        {q.description && (
-                          <p className="text-xs text-white/50 truncate mt-0.5">{q.description}</p>
-                        )}
-                      </div>
-                      <ChevronRight size={16} className="text-white/40 group-hover:text-white transition-colors shrink-0" />
-                    </button>
-                  ))}
+                          <span className="cu-row-main">
+                            <span className="cu-row-sub" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600, color: q.journalIconColor || '#60a5fa' }}>
+                              {q.completed ? t('notes.questCompleted', 'Misión completada') : t('notes.scheduledQuest', 'Misión programada')}
+                              {q.recurrence && q.recurrence.type !== 'NONE' ? ` · ${t('cu.recurring', 'Recurrente')}` : ''}
+                            </span>
+                            <span className="cu-row-label" style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: q.completed ? 'line-through' : undefined, opacity: q.completed ? 0.6 : 1 }}>{q.title}</span>
+                            {q.description && (
+                              <span className="cu-row-sub" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.description}</span>
+                            )}
+                          </span>
+                          <ChevronRight size={18} className="cu-chevron" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
                   {isDraftFuture && activeSpecialEvents.length === 0 && activeDayQuests.length === 0 && (
-                    <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 text-center space-y-1.5">
-                      <p className="text-xs font-bold text-white/60">No hay eventos especiales ni misiones programadas para este día.</p>
-                      <p className="text-[11px] text-white/35">La edición del diario estará disponible cuando llegue esta fecha.</p>
+                    <div className="cu-group cu-pad" style={{ textAlign: 'center' }}>
+                      <p className="cu-row-label" style={{ fontSize: 15, fontWeight: 600 }}>{t('cu.noEvents', 'No hay eventos ni misiones programadas para este día.')}</p>
+                      <p className="cu-row-sub" style={{ marginTop: 4 }}>{t('cu.editLater', 'Podrás escribir en tu diario cuando llegue esta fecha.')}</p>
                     </div>
                   )}
                 </div>
               )}
 
-              <div className={`${isDraftFuture ? 'hidden' : 'inline-flex'} items-center gap-1.5 bg-white/5 p-1.5 rounded-2xl border border-white/5 flex-wrap justify-center`}>
-                {MOODS.map(m => (
-                  <button 
-                    key={m.id} 
-                    onClick={() => { 
-                      if (draftMood === m.id) {
-                        setDraftMood(undefined);
-                        setDraftCustomEmoji(undefined);
-                      } else {
-                        setDraftMood(m.id); 
-                        setMoodSplash(m.id); 
-                      }
-                    }} 
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center text-xl transition-transform ${draftMood === m.id ? 'bg-white/10 scale-110 shadow-sm ring-1 ring-white/20' : 'opacity-40 hover:opacity-100 hover:bg-white/5'}`}
-                  >
-                    {m.icon}
-                  </button>
-                ))}
-                {draftMood && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const emoji = window.prompt('Ingresa un emoji personalizado para este día:', draftCustomEmoji || '');
-                      if (emoji !== null) setDraftCustomEmoji(emoji.trim() || undefined);
-                    }}
-                    className="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-white/80 transition-all border border-white/10 flex items-center gap-1 active:scale-95"
-                    title="Personalizar Emoji"
-                  >
-                    <span>{draftCustomEmoji || '✨'}</span>
-                    <span className="text-[9px] font-black uppercase tracking-wider opacity-70">Personalizar</span>
-                  </button>
-                )}
-              </div>
+              {!isDraftFuture && (
+                <div className="cu-section">
+                  <h3 className="cu-section-label">{t('cu.mood', '¿Cómo te sientes?')}</h3>
+                  <div className="cu-moods">
+                    {MOODS.map(m => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        aria-pressed={draftMood === m.id}
+                        onClick={() => {
+                          if (draftMood === m.id) {
+                            setDraftMood(undefined);
+                            setDraftCustomEmoji(undefined);
+                          } else {
+                            setDraftMood(m.id);
+                            setMoodSplash(m.id);
+                          }
+                        }}
+                        className={`cu-mood ${draftMood === m.id ? 'cu-on' : ''}`}
+                      >
+                        {m.icon}
+                      </button>
+                    ))}
+                    {draftMood && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const emoji = window.prompt(t('cu.customEmojiPrompt', 'Ingresa un emoji personalizado para este día:'), draftCustomEmoji || '');
+                          if (emoji !== null) setDraftCustomEmoji(emoji.trim() || undefined);
+                        }}
+                        className="cu-chip"
+                        title={t('cu.customEmoji', 'Personalizar emoji')}
+                      >
+                        <span>{draftCustomEmoji || '✨'}</span>
+                        {t('cu.customize', 'Personalizar')}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {(!isDraftFuture || draftBlocks.some(b => b.type === 'image' || (b.content && getPlainTextFromContent(b.content).trim().length > 0))) && (
-                <div className="text-left">
+                <div className="cu-ed-editor">
                   <BlockEditor key={`${editorMode}-${draftId}`} blocks={draftBlocks} onChange={handleBlockEditorChange} readOnly={editorMode === 'JOURNAL' && isDraftFuture} />
                 </div>
               )}
@@ -2720,12 +2695,10 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
           )}
         </div>
 
-        {/* Editor Bottom Footer Stats Bar */}
-        <div className="px-6 py-2 bg-[#0a0a10] border-t border-white/5 flex items-center justify-between text-[11px] text-white/40 font-mono">
-          <div className="flex items-center gap-4">
-            <span>Palabras: <strong className="text-white/80">{getCleanWordCount(draftBlocks)}</strong></span>
-            <span>Caracteres: <strong className="text-white/80">{getCleanCharacterCount(draftBlocks)}</strong></span>
-          </div>
+        {/* Footer stats */}
+        <div className="cu-footer cu-ed-stats">
+          <span>{t('cu.words', 'Palabras')} <strong>{getCleanWordCount(draftBlocks)}</strong></span>
+          <span>{t('cu.characters', 'Caracteres')} <strong>{getCleanCharacterCount(draftBlocks)}</strong></span>
         </div>
       </div>
     </div>,

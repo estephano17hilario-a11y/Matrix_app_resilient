@@ -180,7 +180,7 @@ class RoutineWidgetProvider : AppWidgetProvider() {
                 prefs.contains("widget_background_opacity_com.luxresilient.app.widget.RoutineWidgetProvider") -> prefs.getInt("widget_background_opacity_com.luxresilient.app.widget.RoutineWidgetProvider", 85)
                 else -> prefs.getInt("widget_background_opacity", 85)
             }
-            views.setFloat(R.id.routine_background, "setAlpha", bgOpacity / 100f)
+            WidgetTheme.apply(context, views, R.id.routine_background, manager, widgetId, RoutineWidgetProvider::class.java.name, default = WidgetTheme.Style.MIDNIGHT)
 
             // ── Size-aware header ──
             val options: Bundle = manager.getAppWidgetOptions(widgetId)

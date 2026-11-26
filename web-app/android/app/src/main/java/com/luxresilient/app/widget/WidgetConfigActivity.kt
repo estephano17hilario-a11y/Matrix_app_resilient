@@ -5,6 +5,9 @@ import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
+import android.view.Gravity
+import android.view.ViewGroup
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
@@ -53,6 +56,8 @@ class WidgetConfigActivity : Activity() {
     private lateinit var cardOpacityContainer: LinearLayout
     
     private var widgetId = AppWidgetManager.INVALID_APPWIDGET_ID
+    private var selectedStyle: WidgetTheme.Style = WidgetTheme.Style.OBSIDIAN
+    private val styleSwatches = mutableMapOf<WidgetTheme.Style, View>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -108,6 +113,7 @@ class WidgetConfigActivity : Activity() {
 
         // Load saved preferences
         loadPreferences()
+        buildStylePicker()
 
         // Toggle sections visibility based on widget class (different UI for each widget)
         try {
@@ -258,6 +264,62 @@ class WidgetConfigActivity : Activity() {
             }
             setResult(RESULT_OK, resultValue)
             finish()
+        }
+    }
+
+    /** Swatches for every [WidgetTheme.Style]; the chosen one gets a white ring. */
+    private fun buildStylePicker() {
+        val prefs = getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
+        val className = try { AppWidgetManager.getInstance(this).getAppWidgetInfo(widgetId)?.provider?.className ?: "" } catch (e: Exception) { "" }
+        selectedStyle = WidgetTheme.styleFor(prefs, widgetId, className)
+
+        val density = resources.displayMetrics.density
+        val row = findViewById<LinearLayout>(R.id.config_theme_row)
+        row.removeAllViews()
+        for (style in WidgetTheme.Style.values()) {
+            val palette = WidgetTheme.palette(style)
+            val chip = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER_HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { marginEnd = (10 * density).toInt() }
+            }
+            val swatch = View(this).apply {
+                layoutParams = LinearLayout.LayoutParams((68 * density).toInt(), (46 * density).toInt())
+            }
+            val label = TextView(this).apply {
+                text = style.label
+                textSize = 10.5f
+                gravity = Gravity.CENTER
+                setPadding(0, (4 * density).toInt(), 0, 0)
+            }
+            chip.addView(swatch)
+            chip.addView(label)
+            styleSwatches[style] = swatch
+            swatch.tag = palette
+            label.tag = style
+            chip.setOnClickListener {
+                selectedStyle = style
+                refreshStylePicker(row)
+            }
+            row.addView(chip)
+        }
+        refreshStylePicker(row)
+    }
+
+    private fun refreshStylePicker(row: LinearLayout) {
+        val density = resources.displayMetrics.density
+        for (i in 0 until row.childCount) {
+            val chip = row.getChildAt(i) as LinearLayout
+            val swatch = chip.getChildAt(0)
+            val label = chip.getChildAt(1) as TextView
+            val style = label.tag as WidgetTheme.Style
+            val p = swatch.tag as WidgetTheme.Palette
+            val selected = style == selectedStyle
+            swatch.background = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(p.swatchA, p.swatchB)).apply {
+                cornerRadius = 14 * density
+                setStroke(((if (selected) 2.5f else 1f) * density).toInt(), if (selected) Color.WHITE else Color.parseColor("#33FFFFFF"))
+            }
+            label.setTextColor(if (selected) Color.WHITE else Color.parseColor("#99FFFFFF"))
         }
     }
 
@@ -498,6 +560,8 @@ class WidgetConfigActivity : Activity() {
                 }
             }
         }
+
+        WidgetTheme.saveStyle(editor, widgetId, className, selectedStyle)
 
         if (className.isNotEmpty()) {
             editor.putInt("card_opacity_$className", seekOpacity.progress)

@@ -1,7 +1,12 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as LucideIcons from '@/utils/lucideRegistry';
-import { Check, Flame, MoreVertical, ChevronDown } from 'lucide-react';
+import { Check, MoreVertical, ChevronDown, Zap } from 'lucide-react';
+import { StreakFlame } from '../../superHabits/StreakFlame';
+import { BadgeEmblem } from '../../superHabits/BadgeEmblem';
+import { BannerBackdrop } from '../../superHabits/BannerBackdrop';
+import { getSuperTheme } from '../../superHabits/catalog';
+import { earnedMilestones, SUPER_MILESTONES } from '../../superHabits/engine';
 import { Habit, Attribute } from '../../../types';
 import { cn } from '../../../utils/cn';
 import { QuantityUpdateModal } from './QuantityUpdateModal';
@@ -53,10 +58,12 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
     if (!habit.iconName) return null;
     return (LucideIcons as any)[habit.iconName] || null;
   }, [habit.iconName]);
-  const Icon = CustomIcon || attribute?.icon;
+  const superTheme = getSuperTheme(habit.superHabit);
+  const earnedBadges = React.useMemo(() => (superTheme ? earnedMilestones(habit.streak || 0) : []), [superTheme, habit.streak]);
+  const Icon = CustomIcon || superTheme?.icon || attribute?.icon;
 
   // Fallback color if none provided
-  const baseColor = habit.customColor || attribute?.color || '#6366f1'; // Indigo default
+  const baseColor = habit.customColor || superTheme?.colors.primary || attribute?.color || '#6366f1'; // Indigo default
 
   // Helper to format progress text
   const isCompletedToday = completedOverride ?? habit.completedToday;
@@ -267,6 +274,16 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
       <div 
         {...wrapperProps}
       >
+        {/* Super habit: themed banner + animated border */}
+        {superTheme && (
+          <>
+            <div className="absolute inset-0 opacity-45 pointer-events-none">
+              <BannerBackdrop motif={superTheme.motif} primary={superTheme.colors.primary} secondary={superTheme.colors.secondary} deep={superTheme.colors.deep} animate={false} />
+            </div>
+            <div className="sh-card-glow" style={{ ['--sh-c1' as any]: superTheme.colors.primary, ['--sh-c2' as any]: superTheme.colors.secondary }} />
+          </>
+        )}
+
         {/* Animated Background Progress for partial checklists */}
         {habit.type === 'CHECKLIST' && percentage > 0 && percentage < 100 && (
           <div 
@@ -294,25 +311,31 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
           className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm shrink-0 border border-white/5"
           style={{ backgroundColor: `${baseColor}20` }}
         >
-          {attribute && Icon && (
+          {(attribute || superTheme) && Icon && (
             <Icon size={21} style={{ color: baseColor }} strokeWidth={2} />
           )}
         </div>
         
         <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
           <h4 className="text-white font-bold text-[15px] leading-tight tracking-tight truncate flex items-center gap-2">
-            {habit.title}
+            <span className="truncate">{habit.title}</span>
+            {superTheme && (
+                <span
+                    className="shrink-0 w-4 h-4 rounded-[5px] flex items-center justify-center"
+                    style={{ background: `linear-gradient(135deg, ${superTheme.colors.primary}, ${superTheme.colors.secondary})` }}
+                    title="Super hábito"
+                >
+                    <Zap size={9} className="text-white" fill="currentColor" />
+                </span>
+            )}
             {habit.streak > 0 && (
                 <span className={cn(
-                    "text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 border transition-colors",
-                    isCompletedToday 
-                        ? "text-orange-400 bg-orange-500/10 border-orange-500/20" 
+                    "shrink-0 text-[10px] font-black pl-1 pr-1.5 py-0.5 rounded flex items-center gap-0.5 border transition-colors",
+                    isCompletedToday
+                        ? "text-white bg-white/10 border-white/20"
                         : "text-zinc-400 bg-zinc-800/50 border-white/5"
                 )}>
-                    <Flame size={10} className={cn(
-                        "transition-colors",
-                        isCompletedToday ? "fill-orange-400" : "fill-zinc-500 text-zinc-500"
-                    )} /> 
+                    <StreakFlame streak={habit.streak} size={14} lit={isCompletedToday} />
                     {habit.streak}
                 </span>
             )}
@@ -338,6 +361,17 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
             >
                 {progressText}
             </span>
+
+            {superTheme && (
+                <span className="flex items-center gap-1 pl-1 border-l border-white/10" title="Insignias activas · roadmap de 60 días">
+                    {earnedBadges.length > 0 ? (
+                        <BadgeEmblem level={SUPER_MILESTONES.indexOf(earnedBadges[earnedBadges.length - 1])} icon={superTheme.icon} size={20} accent={superTheme.colors.primary} animate={false} />
+                    ) : null}
+                    <span className="text-[10px] font-black tracking-wide" style={{ color: superTheme.colors.secondary }}>
+                        {earnedBadges.length}/8
+                    </span>
+                </span>
+            )}
 
             {timeDisplay && (
                 <span 

@@ -51,19 +51,18 @@
                     android:layout_height="wrap_content"
                     android:text="Protocolos"
                     android:textColor="#FFFFFF"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="0.02" />
+                    android:textSize="17sp"
+                    android:fontFamily="sans-serif-black"
+                    android:letterSpacing="0.01" />
 
                 <TextView
                     android:id="@+id/widget_count"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:textColor="#4DFFFFFF"
+                    android:textColor="#80FFFFFF"
                     android:textSize="12sp"
-                    android:fontFamily="sans-serif" />
+                    android:fontFamily="sans-serif-medium" />
 
             </LinearLayout>
 

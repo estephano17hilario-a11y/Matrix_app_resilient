@@ -435,7 +435,7 @@ export const VisualsSection = () => {
                     <div className="flex items-center gap-1.5">
                       <span className="font-semibold text-white/80">Opacidad Relleno Interior</span>
                       {!isPro && (
-                        <span className="flex items-center gap-0.5 text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-full">
+                        <span className="flex items-center gap-0.5 text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">
                           <Crown size={8} /> DELUXE <Lock size={8} />
                         </span>
                       )}
@@ -465,7 +465,7 @@ export const VisualsSection = () => {
                     <div className="flex items-center gap-1.5">
                       <span className="font-semibold text-white/80">Tamaño de Puntos</span>
                       {!isPro && (
-                        <span className="flex items-center gap-0.5 text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-full">
+                        <span className="flex items-center gap-0.5 text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">
                           <Crown size={8} /> DELUXE <Lock size={8} />
                         </span>
                       )}
@@ -522,7 +522,7 @@ export const VisualsSection = () => {
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-semibold text-white/80">Color Líneas (Borde)</span>
                     {!isPro && (
-                      <span className="flex items-center gap-0.5 text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-full">
+                      <span className="flex items-center gap-0.5 text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">
                         <Crown size={8} /> DELUXE <Lock size={8} />
                       </span>
                     )}
@@ -563,7 +563,7 @@ export const VisualsSection = () => {
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-semibold text-white/80">Color Puntos</span>
                     {!isPro && (
-                      <span className="flex items-center gap-0.5 text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-full">
+                      <span className="flex items-center gap-0.5 text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">
                         <Crown size={8} /> DELUXE <Lock size={8} />
                       </span>
                     )}
@@ -605,7 +605,7 @@ export const VisualsSection = () => {
                     <div className="flex items-center gap-1.5">
                       <span className="font-semibold text-white/80">Opacidad Puntos</span>
                       {!isPro && (
-                        <span className="flex items-center gap-0.5 text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded-full">
+                        <span className="flex items-center gap-0.5 text-[9px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-full">
                           <Crown size={8} /> DELUXE <Lock size={8} />
                         </span>
                       )}

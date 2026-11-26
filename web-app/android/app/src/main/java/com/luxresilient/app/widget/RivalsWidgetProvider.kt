@@ -156,7 +156,7 @@ class RivalsWidgetProvider : AppWidgetProvider() {
             else -> configPrefs.getInt("widget_background_opacity", 85)
         }
         val views = RemoteViews(context.packageName, R.layout.widget_rivals)
-        views.setFloat(R.id.rivals_background_image, "setAlpha", bgOpacity / 100f)
+        WidgetTheme.apply(context, views, R.id.rivals_background_image, appWidgetManager, widgetId, RivalsWidgetProvider::class.java.name, default = WidgetTheme.Style.EMBER)
 
         // Calculate precision comparison colors per category (User vs Rival)
         // User < Rival: User=RED (#EF4444), Rival=GREEN (#10B981)

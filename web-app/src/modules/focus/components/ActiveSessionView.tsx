@@ -1121,7 +1121,7 @@ toggleTimer();
                 className={cn("w-full flex flex-col items-center pt-0.5 pb-1 relative overflow-y-auto pr-1 scrollbar-thin", dynamicCardHeight)}
               >
                 <div className="absolute top-4 bottom-4 w-0.5 bg-white/10 left-1/2 -translate-x-1/2 z-0" />
-                <div className="relative z-10 bg-[#161622] border border-white/15 px-1.5 py-0.2 rounded-full text-[6px] font-black text-white uppercase tracking-wider mb-2">START</div>
+                <div className="relative z-10 bg-[#161622] border border-white/15 px-1.5 py-0.5 rounded-full text-[6px] font-black text-white uppercase tracking-wider mb-2">START</div>
                 
                 <div className={cn("w-full flex flex-col px-3 relative z-10", dynamicGap)}>
                   {routineSteps.map((step, idx) => {
@@ -1169,7 +1169,7 @@ toggleTimer();
                     );
                   })}
                 </div>
-                <div className="relative z-10 bg-[#161622] border border-white/15 px-1.5 py-0.2 rounded-full text-[6px] font-black text-white uppercase tracking-wider mt-2">END</div>
+                <div className="relative z-10 bg-[#161622] border border-white/15 px-1.5 py-0.5 rounded-full text-[6px] font-black text-white uppercase tracking-wider mt-2">END</div>
               </div>
 
               {/* Floating scroll bottom-arrow indicator */}

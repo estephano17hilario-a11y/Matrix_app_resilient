@@ -26,6 +26,28 @@ class DuelWidgetProvider : AppWidgetProvider() {
         const val PREFS = "lux_social_widgets"
         fun friendKey(widgetId: Int) = "duel_friend_$widgetId"
 
+        /** Today's score share: your side (cyan) pushes against theirs (rose), with a notch at the meeting point. */
+        private fun tugOfWar(context: Context, mine: Float): android.graphics.Bitmap {
+            val d = minOf(context.resources.displayMetrics.density, 3f)
+            val w = (220 * d).toInt(); val h = (10 * d).toInt()
+            val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
+            val c = android.graphics.Canvas(bmp)
+            val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+            val r = h / 2f
+            val clip = android.graphics.Path().apply { addRoundRect(android.graphics.RectF(0f, 0f, w.toFloat(), h.toFloat()), r, r, android.graphics.Path.Direction.CW) }
+            c.clipPath(clip)
+            val split = (w * mine.coerceIn(0.04f, 0.96f))
+            p.shader = android.graphics.LinearGradient(0f, 0f, split, 0f, android.graphics.Color.parseColor("#0891B2"), android.graphics.Color.parseColor("#22D3EE"), android.graphics.Shader.TileMode.CLAMP)
+            c.drawRect(0f, 0f, split, h.toFloat(), p)
+            p.shader = android.graphics.LinearGradient(split, 0f, w.toFloat(), 0f, android.graphics.Color.parseColor("#FB7185"), android.graphics.Color.parseColor("#BE123C"), android.graphics.Shader.TileMode.CLAMP)
+            c.drawRect(split, 0f, w.toFloat(), h.toFloat(), p)
+            p.shader = android.graphics.LinearGradient(0f, 0f, 0f, h.toFloat(), android.graphics.Color.argb(80, 255, 255, 255), android.graphics.Color.argb(0, 255, 255, 255), android.graphics.Shader.TileMode.CLAMP)
+            c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), p)
+            p.shader = null; p.color = android.graphics.Color.WHITE
+            c.drawRect(split - d, 0f, split + d, h.toFloat(), p)
+            return bmp
+        }
+
         fun refreshAll(context: Context) {
             val mgr = AppWidgetManager.getInstance(context)
             val ids = mgr.getAppWidgetIds(ComponentName(context, DuelWidgetProvider::class.java))
@@ -34,6 +56,7 @@ class DuelWidgetProvider : AppWidgetProvider() {
 
         fun update(context: Context, mgr: AppWidgetManager, widgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.widget_duel)
+            WidgetTheme.apply(context, views, R.id.duel_background_image, mgr, widgetId, DuelWidgetProvider::class.java.name, android.graphics.Color.parseColor("#F43F5E"), 170, 170, WidgetTheme.Style.EMBER)
             val friendId = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(friendKey(widgetId), null)
 
             // Tap anywhere: open Lux on the Friends screen. Tap the gear: choose another friend.
@@ -71,6 +94,8 @@ class DuelWidgetProvider : AppWidgetProvider() {
                 views.setTextViewText(R.id.duel_status, lines["status"] ?: "")
                 views.setTextViewText(R.id.duel_today, lines["today"] ?: "")
                 views.setTextViewText(R.id.duel_updated, footer)
+                val ratio = lines["ratio"]?.toFloatOrNull() ?: 0.5f
+                views.setImageViewBitmap(R.id.duel_bar, tugOfWar(context, ratio))
             }
 
             // Paint the last good data immediately so the widget never flashes empty.
@@ -107,6 +132,10 @@ class DuelWidgetProvider : AppWidgetProvider() {
                             "status" to status,
                             "today" to "Hoy: tú ${Math.round(tm?.score ?: 0.0)} pts · ${tm?.focus ?: 0} min — $name ${Math.round(tt?.score ?: 0.0)} pts · ${tt?.focus ?: 0} min",
                             "at" to at,
+                            "ratio" to run {
+                                val mine = (tm?.score ?: 0.0); val theirs = (tt?.score ?: 0.0)
+                                if (mine + theirs <= 0.0) "0.5" else (mine / (mine + theirs)).toString()
+                            },
                         )
                         show(lines, "Actualizado $at · cierra a las 24:00")
                         prefs.edit().putString(cacheKey, org.json.JSONObject(lines).toString()).apply()

@@ -1,3 +1,4 @@
+import { StreakFlame } from '../../superHabits/StreakFlame';
 import React, { useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -123,11 +124,7 @@ export const StreakCelebrationOverlay: React.FC<StreakCelebrationOverlayProps> =
                                     className="absolute inset-0 pointer-events-none"
                                     style={{ background: 'radial-gradient(circle, rgba(249,115,22,0.5) 0%, transparent 70%)' }}
                                 />
-                                <Flame 
-                                    size={110} 
-                                    className="text-orange-500 drop-shadow-[0_0_30px_rgba(249,115,22,1)] relative z-10" 
-                                    fill="currentColor"
-                                />
+                                <StreakFlame streak={streak} size={118} className="relative z-10" />
                             </motion.div>
 
                             {/* Streak Number */}

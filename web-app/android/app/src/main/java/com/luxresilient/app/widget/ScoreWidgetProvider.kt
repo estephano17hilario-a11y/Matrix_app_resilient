@@ -93,25 +93,24 @@ class ScoreWidgetProvider : AppWidgetProvider() {
 
         val views = RemoteViews(context.packageName, R.layout.widget_score)
 
-        val configPrefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
-        val bgOpacity = when {
-            configPrefs.contains("widget_background_opacity_$widgetId") -> configPrefs.getInt("widget_background_opacity_$widgetId", 85)
-            configPrefs.contains("widget_background_opacity_com.luxresilient.app.widget.ScoreWidgetProvider") -> configPrefs.getInt("widget_background_opacity_com.luxresilient.app.widget.ScoreWidgetProvider", 85)
-            else -> configPrefs.getInt("widget_background_opacity", 85)
-        }
+        val configPrefs = WidgetTheme.prefs(context)
+        val providerClass = ScoreWidgetProvider::class.java.name
+        val style = WidgetTheme.styleFor(configPrefs, widgetId, providerClass, WidgetTheme.Style.AURORA)
+        val bgOpacity = WidgetTheme.opacityFor(configPrefs, widgetId, providerClass)
         views.setFloat(R.id.score_background_image, "setAlpha", bgOpacity / 100f)
+
+        val options = appWidgetManager.getAppWidgetOptions(widgetId)
+        val (widthDp, heightDp) = WidgetTheme.sizeDp(options, 150, 150)
+        val density = context.resources.displayMetrics.density
+        val (tintFrom, tintTo) = WidgetArt.scoreColors(if (score < 0) 0 else score)
+        views.setImageViewBitmap(R.id.score_background_image, WidgetTheme.background(context, widthDp, heightDp, style, tintFrom, if (widthDp < 100) 22f else 26f))
 
         if (userId.isNullOrEmpty() && score < 0) {
             views.setViewVisibility(R.id.score_login_required, View.VISIBLE)
             views.setViewVisibility(R.id.score_configured_layout, View.GONE)
-            
-            // Set up login click launch
             val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
             if (launchIntent != null) {
-                val pendingIntent = PendingIntent.getActivity(
-                    context, widgetId, launchIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
+                val pendingIntent = PendingIntent.getActivity(context, widgetId, launchIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
                 views.setOnClickPendingIntent(R.id.score_login_required, pendingIntent)
             }
             appWidgetManager.updateAppWidget(widgetId, views)
@@ -121,44 +120,45 @@ class ScoreWidgetProvider : AppWidgetProvider() {
         views.setViewVisibility(R.id.score_login_required, View.GONE)
         views.setViewVisibility(R.id.score_configured_layout, View.VISIBLE)
 
-        // Set score percentage string (matching feed score %)
         val scoreStr = if (score >= 0) "$score%" else "--"
+        val message = when {
+            score < 0 -> "Sin datos aún"
+            score >= 100 -> "¡Día perfecto!"
+            score >= 80 -> "¡Casi perfecto!"
+            score >= 60 -> "¡Vas muy bien!"
+            score >= 40 -> "Buen ritmo"
+            score >= 20 -> "Calentando motores"
+            else -> "Arranca tu día"
+        }
+        val pct = if (score < 0) 0 else score
         views.setTextViewText(R.id.score_widget_value_vert, scoreStr)
         views.setTextViewText(R.id.score_widget_value_horiz, scoreStr)
         views.setTextViewText(R.id.score_widget_title_vert, "FEED DE HOY")
-        views.setTextViewText(R.id.score_widget_sub_vert, "Rendimiento Diario")
+        views.setTextViewText(R.id.score_widget_sub_vert, message)
+        views.setTextViewText(R.id.score_widget_sub_horiz, message)
+        views.setImageViewBitmap(R.id.score_ring_vert, WidgetArt.ring(density, 120, pct, tintFrom, tintTo, 9f))
+        views.setImageViewBitmap(R.id.score_ring_horiz, WidgetArt.ring(density, 58, pct, tintFrom, tintTo, 6f))
+        views.setImageViewBitmap(R.id.score_bar_horiz, WidgetArt.bar(density, 140, 8, pct, tintFrom, tintTo))
 
-        // Determine resizing options / responsiveness
-        val options = appWidgetManager.getAppWidgetOptions(widgetId)
-        val minWidth = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH)
-        val minHeight = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT)
-
-        Log.d(TAG, "Responsive dimensions for widget $widgetId: minWidth=$minWidth, minHeight=$minHeight")
-
-        if (minWidth > 0 && minHeight > 0) {
-            if (minWidth < 100 && minHeight < 100) {
-                // Pure circular 1x1 mode
-                views.setViewVisibility(R.id.score_layout_vertical, View.VISIBLE)
-                views.setViewVisibility(R.id.score_layout_horizontal, View.GONE)
-                views.setViewVisibility(R.id.score_widget_title_vert, View.GONE)
-                views.setViewVisibility(R.id.score_widget_sub_vert, View.GONE)
-            } else if (minWidth >= 100 && minHeight < 100) {
-                // 2x1 landscape mode
-                views.setViewVisibility(R.id.score_layout_vertical, View.GONE)
-                views.setViewVisibility(R.id.score_layout_horizontal, View.VISIBLE)
-            } else {
-                // 2x2, 3x3, 1x2 vertical modes
-                views.setViewVisibility(R.id.score_layout_vertical, View.VISIBLE)
-                views.setViewVisibility(R.id.score_layout_horizontal, View.GONE)
-                views.setViewVisibility(R.id.score_widget_title_vert, View.VISIBLE)
-                views.setViewVisibility(R.id.score_widget_sub_vert, View.VISIBLE)
-            }
+        val minWidth = widthDp
+        val minHeight = heightDp
+        if (minWidth < 100 && minHeight < 100) {
+            // 1x1: just the ring
+            views.setViewVisibility(R.id.score_layout_vertical, View.VISIBLE)
+            views.setViewVisibility(R.id.score_layout_horizontal, View.GONE)
+            views.setViewVisibility(R.id.score_widget_title_vert, View.GONE)
+            views.setViewVisibility(R.id.score_flipper_vert, View.GONE)
+            views.setFloat(R.id.score_widget_value_vert, "setTextSize", 17f)
+        } else if (minWidth >= 100 && minHeight < 100) {
+            // wide strip
+            views.setViewVisibility(R.id.score_layout_vertical, View.GONE)
+            views.setViewVisibility(R.id.score_layout_horizontal, View.VISIBLE)
         } else {
-            // Default 2x2 vertical mode
             views.setViewVisibility(R.id.score_layout_vertical, View.VISIBLE)
             views.setViewVisibility(R.id.score_layout_horizontal, View.GONE)
             views.setViewVisibility(R.id.score_widget_title_vert, View.VISIBLE)
-            views.setViewVisibility(R.id.score_widget_sub_vert, View.VISIBLE)
+            views.setViewVisibility(R.id.score_flipper_vert, View.VISIBLE)
+            views.setFloat(R.id.score_widget_value_vert, "setTextSize", if (minWidth >= 150) 28f else 22f)
         }
 
         // Set up click on configured layout to launch app

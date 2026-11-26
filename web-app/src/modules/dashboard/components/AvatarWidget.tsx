@@ -1,5 +1,6 @@
+import { StreakFlame } from '../../superHabits/StreakFlame';
 import React, { useState, useEffect } from 'react';
-import { Heart, Zap, Flame, Coins, Settings, ShoppingBag, Activity, Swords, PenLine } from 'lucide-react';
+import { Heart, Zap, Coins, Settings, ShoppingBag, Activity, Swords, PenLine } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DailyLimits } from '@/types/User';
 import { GoldCounter } from '@/modules/store/components/GoldCounter';
@@ -348,14 +349,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
                             ? "bg-orange-500/10 border-orange-500/20 shadow-[0_0_10px_-3px_rgba(249,115,22,0.4)]" 
                             : "bg-white/5 border-white/10"
                     }`}>
-                        <Flame 
-                            size={10} 
-                            className={`transition-all duration-500 ${
-                                isHabitsCompleted 
-                                    ? "text-orange-400 fill-orange-400 animate-pulse drop-shadow-[0_0_5px_rgba(249,115,22,0.8)]" 
-                                    : "text-white/20 fill-none"
-                            }`} 
-                        />
+                        <StreakFlame streak={streak} size={13} lit={isHabitsCompleted} />
                         <span className={`text-[9px] font-mono font-bold transition-colors duration-500 ${
                             isHabitsCompleted ? "text-orange-400" : "text-white/40"
                         }`}>{streak}</span>

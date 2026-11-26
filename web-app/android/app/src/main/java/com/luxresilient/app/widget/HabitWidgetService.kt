@@ -940,13 +940,8 @@ class HabitWidgetFactory(
         
         // Background: dark gray (#050505) with user's opacity
         val alphaInt = (opacity * 2.55).toInt().coerceIn(0, 255)
-        val bgPaint = Paint().apply {
-            this.color = Color.parseColor("#050505")
-            this.alpha = alphaInt
-            this.isAntiAlias = true
-        }
         val rect = RectF(0f, 0f, width.toFloat(), height.toFloat())
-        canvas.drawRoundRect(rect, 24f, 24f, bgPaint)
+        WidgetArt.glassCard(canvas, width, height, alphaInt, 36f)
         
         // Apply Gradient Style
         if (gradientStyle == "radial") {
@@ -966,7 +961,7 @@ class HabitWidgetFactory(
                     Shader.TileMode.CLAMP
                 )
             }
-            canvas.drawRoundRect(rect, 24f, 24f, glowPaint)
+            canvas.drawRoundRect(rect, 36f, 36f, glowPaint)
         } else if (gradientStyle == "vertical") {
             // Full vertical gradient from bottom to top
             val glowPaint = Paint().apply {
@@ -982,7 +977,7 @@ class HabitWidgetFactory(
                     Shader.TileMode.CLAMP
                 )
             }
-            canvas.drawRoundRect(rect, 24f, 24f, glowPaint)
+            canvas.drawRoundRect(rect, 36f, 36f, glowPaint)
         } else if (gradientStyle == "center_radial") {
             val glowPaint = Paint().apply {
                 this.isAntiAlias = true
@@ -999,7 +994,7 @@ class HabitWidgetFactory(
                     Shader.TileMode.CLAMP
                 )
             }
-            canvas.drawRoundRect(rect, 24f, 24f, glowPaint)
+            canvas.drawRoundRect(rect, 36f, 36f, glowPaint)
         }
 
         // Draw card border if enabled
@@ -1011,7 +1006,7 @@ class HabitWidgetFactory(
                 this.strokeWidth = 2.5f
                 this.color = Color.argb((alphaInt * 0.35).toInt(), Color.red(color), Color.green(color), Color.blue(color))
             }
-            canvas.drawRoundRect(rect, 24f, 24f, borderPaint)
+            canvas.drawRoundRect(rect, 36f, 36f, borderPaint)
         }
 
         return bitmap

@@ -132,8 +132,8 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                     onToggle?.(newState);
                 }}
                 className={cn(
-                    "w-full h-14 rounded-xl border flex items-center justify-between px-4 transition-all relative group",
-                    selectedIcon || isOpen ? "bg-white/5 border-white/10" : "bg-black/20 border-dashed border-white/10 hover:border-white/30"
+                    "w-full h-14 rounded-2xl border flex items-center justify-between px-4 transition-all relative group active:scale-[0.99]",
+                    selectedIcon || isOpen ? "bg-white/[0.07] border-white/[0.06]" : "bg-white/[0.04] border-white/[0.06] hover:bg-white/[0.07]"
                 )}
             >
                 <div className="flex items-center gap-4">
@@ -171,7 +171,7 @@ export const IconPicker = ({ selectedIcon, onSelectIcon, selectedColor, onSelect
                         transition={{ type: "spring", stiffness: 450, damping: 25 }}
                         className="relative z-10"
                     >
-                        <div className="p-4 bg-[#151516] rounded-2xl border border-white/10 shadow-md space-y-4 mt-2">
+                        <div className="p-4 bg-black/25 rounded-2xl border border-white/[0.06] space-y-4 mt-2">
                             
                             {/* Tabs - Only show if onSelectColor is provided */}
                             {onSelectColor && (

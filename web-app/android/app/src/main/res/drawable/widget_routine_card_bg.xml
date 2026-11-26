@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Routine row: translucent glass, so the chosen widget style shows through. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#F20B0B11" />
-    <corners android:radius="18dp" />
+    <gradient
+        android:angle="270"
+        android:startColor="#26FFFFFF"
+        android:endColor="#0FFFFFFF"
+        android:type="linear" />
+    <corners android:radius="20dp" />
+    <stroke android:width="0.5dp" android:color="#26FFFFFF" />
 </shape>

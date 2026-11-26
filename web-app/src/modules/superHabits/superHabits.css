@@ -1,0 +1,83 @@
+/* Super habits + evolving streak flame. Every loop honours prefers-reduced-motion. */
+
+/* ── Streak flame ─────────────────────────────────────────────────────────── */
+.sf-flick { transform-box: fill-box; transform-origin: 50% 100%; animation: sf-flick 1.6s ease-in-out infinite; }
+.sf-tongue-l { transform-box: fill-box; transform-origin: 100% 100%; animation: sf-tongue 1.9s ease-in-out infinite; }
+.sf-tongue-r { transform-box: fill-box; transform-origin: 0% 100%; animation: sf-tongue 1.9s ease-in-out -0.8s infinite; }
+.sf-spark { transform-box: fill-box; transform-origin: center; animation: sf-spark 2.2s ease-out infinite; opacity: 0; }
+.sf-spin { transform-box: fill-box; transform-origin: center; animation: sf-spin 14s linear infinite; }
+.sf-hue { animation: sf-hue 6s linear infinite; }
+.sf-twinkle { animation: sf-twinkle 2.4s ease-in-out infinite; }
+.sf-sheen { animation: sf-sheen 3.2s ease-in-out infinite; }
+.sf-veins { stroke-dasharray: 5 4; animation: sf-dash 2.4s linear infinite; }
+
+@keyframes sf-flick { 0%, 100% { transform: scale(1, 1) skewX(0); } 30% { transform: scale(0.97, 1.05) skewX(-2deg); } 65% { transform: scale(1.02, 0.97) skewX(2deg); } }
+@keyframes sf-tongue { 0%, 100% { transform: scaleY(1) rotate(0); } 50% { transform: scaleY(1.18) rotate(-4deg); } }
+@keyframes sf-spark { 0% { transform: translateY(6px) scale(0.4); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-16px) scale(0.1); opacity: 0; } }
+@keyframes sf-spin { to { transform: rotate(360deg); } }
+@keyframes sf-hue { to { filter: hue-rotate(360deg); } }
+@keyframes sf-twinkle { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+@keyframes sf-sheen { 0% { transform: translateX(-70px); } 55%, 100% { transform: translateX(80px); } }
+@keyframes sf-dash { to { stroke-dashoffset: -18; } }
+
+/* ── Banner motifs ────────────────────────────────────────────────────────── */
+.sh-rays { animation: sf-spin 60s linear infinite; }
+.sh-grid {
+  background-image:
+    linear-gradient(var(--sh-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--sh-line) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(180deg, transparent, #000 40%, #000 100%);
+}
+.sh-scan { top: -30%; animation: sh-scan 5s linear infinite; }
+.sh-stripes { background-image: repeating-linear-gradient(115deg, var(--sh-a) 0 14px, var(--sh-b) 14px 28px); }
+.sh-rain {
+  background-image: repeating-linear-gradient(90deg, transparent 0 17px, var(--sh-line) 17px 18px),
+                    repeating-linear-gradient(180deg, transparent 0 9px, rgba(0,0,0,0.85) 9px 15px);
+  background-size: 18px 100%, 100% 30px;
+  mask-image: linear-gradient(180deg, #000, transparent 85%);
+  animation: sh-rain 2.4s linear infinite;
+  opacity: 0.45;
+}
+.sh-wave-0 { animation: sh-wave 9s linear infinite; }
+.sh-wave-1 { animation: sh-wave 13s linear infinite reverse; }
+.sh-wave-2 { animation: sh-wave 18s linear infinite; }
+.sh-bubble { animation: sh-bubble 9s ease-in infinite; }
+
+@keyframes sh-scan { to { top: 110%; } }
+@keyframes sh-rain { to { background-position: 0 0, 0 30px; } }
+@keyframes sh-wave { to { transform: translateX(-50%); } }
+@keyframes sh-bubble { 0% { transform: translateY(0) scale(0.8); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-420px) scale(1.1); opacity: 0; } }
+
+.sh-still, .sh-still * { animation: none !important; }
+
+/* ── Super habit card + button ────────────────────────────────────────────── */
+.sh-card-glow { position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: linear-gradient(120deg, var(--sh-c1), transparent 35%, var(--sh-c2) 70%, transparent);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+  background-size: 250% 100%; animation: sh-border 6s linear infinite; }
+@keyframes sh-border { to { background-position: -250% 0; } }
+
+.sh-cta { position: relative; overflow: hidden; }
+.sh-cta::after { content: ''; position: absolute; inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.45) 50%, transparent 70%);
+  transform: translateX(-120%); animation: sh-cta 2.6s ease-in-out infinite; }
+@keyframes sh-cta { 0%, 55% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+
+.sh-pulse { animation: sh-pulse 1.8s ease-in-out infinite; }
+@keyframes sh-pulse { 0%, 100% { box-shadow: 0 0 0 0 var(--sh-pulse, rgba(255,255,255,0.5)); } 50% { box-shadow: 0 0 0 8px transparent; } }
+
+/* Title row when the super-habit button sits beside it (Cupertino hero). */
+.cu-hero.sh-hero { gap: 10px; }
+.cu-hero.sh-hero .cu-hero-input { font-size: 17px; letter-spacing: -0.02em; }
+
+/* ── Completion FX ────────────────────────────────────────────────────────── */
+.sh-shake { animation: sh-shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes sh-shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-3px, 0, 0); } 40%, 60% { transform: translate3d(3px, 0, 0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-flick, .sf-tongue-l, .sf-tongue-r, .sf-spark, .sf-spin, .sf-hue, .sf-twinkle, .sf-sheen, .sf-veins,
+  .sh-rays, .sh-scan, .sh-rain, .sh-wave-0, .sh-wave-1, .sh-wave-2, .sh-bubble, .sh-card-glow, .sh-cta::after,
+  .sh-pulse, .sh-shake { animation: none !important; }
+  .sf-spark { opacity: 0.6; }
+}

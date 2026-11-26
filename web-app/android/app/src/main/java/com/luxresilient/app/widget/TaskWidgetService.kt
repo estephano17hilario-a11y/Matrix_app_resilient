@@ -291,13 +291,8 @@ class TaskWidgetFactory(private val context: Context, private val widgetId: Int)
         val canvas = Canvas(bitmap)
         
         val alphaInt = (opacity * 2.55).toInt().coerceIn(0, 255)
-        val bgPaint = Paint().apply {
-            this.color = Color.parseColor("#050505")
-            this.alpha = alphaInt
-            this.isAntiAlias = true
-        }
         val rect = RectF(0f, 0f, width.toFloat(), height.toFloat())
-        canvas.drawRoundRect(rect, 24f, 24f, bgPaint)
+        WidgetArt.glassCard(canvas, width, height, alphaInt, 36f)
         
         if (gradientStyle == "radial") {
             val glowPaint = Paint().apply {
@@ -315,7 +310,7 @@ class TaskWidgetFactory(private val context: Context, private val widgetId: Int)
                     Shader.TileMode.CLAMP
                 )
             }
-            canvas.drawRoundRect(rect, 24f, 24f, glowPaint)
+            canvas.drawRoundRect(rect, 36f, 36f, glowPaint)
         } else if (gradientStyle == "vertical") {
             val glowPaint = Paint().apply {
                 this.isAntiAlias = true
@@ -330,7 +325,7 @@ class TaskWidgetFactory(private val context: Context, private val widgetId: Int)
                     Shader.TileMode.CLAMP
                 )
             }
-            canvas.drawRoundRect(rect, 24f, 24f, glowPaint)
+            canvas.drawRoundRect(rect, 36f, 36f, glowPaint)
         } else if (gradientStyle == "center_radial") {
             val glowPaint = Paint().apply {
                 this.isAntiAlias = true
@@ -347,7 +342,7 @@ class TaskWidgetFactory(private val context: Context, private val widgetId: Int)
                     Shader.TileMode.CLAMP
                 )
             }
-            canvas.drawRoundRect(rect, 24f, 24f, glowPaint)
+            canvas.drawRoundRect(rect, 36f, 36f, glowPaint)
         }
 
         val drawBorder = (borderStyle == "card" || borderStyle == "both")
@@ -358,7 +353,7 @@ class TaskWidgetFactory(private val context: Context, private val widgetId: Int)
                 this.strokeWidth = 2.5f
                 this.color = Color.argb((alphaInt * 0.35).toInt(), Color.red(color), Color.green(color), Color.blue(color))
             }
-            canvas.drawRoundRect(rect, 24f, 24f, borderPaint)
+            canvas.drawRoundRect(rect, 36f, 36f, borderPaint)
         }
 
         return bitmap

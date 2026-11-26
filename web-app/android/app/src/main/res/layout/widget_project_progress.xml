@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Overall background image -->
+    <!-- Themed card (style + opacity chosen in the widget settings) -->
     <ImageView
         android:id="@+id/project_background_image"
         android:layout_width="match_parent"
@@ -11,7 +11,7 @@
         android:scaleType="fitXY"
         android:src="@drawable/widget_background" />
 
-    <!-- Unconfigured State -->
+    <!-- Unconfigured state -->
     <LinearLayout
         android:id="@+id/project_unconfigured_layout"
         android:layout_width="match_parent"
@@ -21,140 +21,118 @@
         android:padding="8dp"
         android:visibility="gone">
 
-        <Button
+        <TextView
             android:id="@+id/btn_select_project"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Selecciona el proyecto"
+            android:background="@drawable/widget_chip_dark"
+            android:fontFamily="sans-serif-medium"
+            android:paddingStart="18dp"
+            android:paddingTop="9dp"
+            android:paddingEnd="18dp"
+            android:paddingBottom="9dp"
+            android:text="Elegir proyecto"
             android:textColor="#FFFFFF"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:backgroundTint="#26FFFFFF"
-            android:textAllCaps="false" />
+            android:textSize="13sp"
+            android:textStyle="bold" />
 
     </LinearLayout>
 
-    <!-- Configured State -->
-    <RelativeLayout
+    <!-- Configured state: [play] [title ........ pill / time / bar] -->
+    <LinearLayout
         android:id="@+id/project_configured_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="10dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="14dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="12dp"
         android:visibility="visible">
 
-        <!-- Custom Glow/Gradient Card Background -->
-        <ImageView
-            android:id="@+id/project_glow_background"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:scaleType="fitXY" />
+        <FrameLayout
+            android:id="@+id/project_play_btn"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_marginEnd="14dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:id="@+id/project_play_image"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitXY" />
+
+        </FrameLayout>
 
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
 
-            <!-- Left: Play Button Frame -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/project_title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-black"
+                    android:maxLines="1"
+                    android:text="Proyecto"
+                    android:textColor="#F59E0B"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/project_range_pill"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/widget_chip_dark"
+                    android:fontFamily="sans-serif-black"
+                    android:paddingStart="11dp"
+                    android:paddingTop="4dp"
+                    android:paddingEnd="11dp"
+                    android:paddingBottom="4dp"
+                    android:text="Hoy"
+                    android:textColor="#F59E0B"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/project_time_fraction"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:fontFamily="sans-serif-black"
+                android:maxLines="1"
+                android:text="00:00 / 1:00:00"
+                android:textColor="#FFFFFF"
+                android:textSize="24sp" />
+
             <FrameLayout
-                android:id="@+id/project_play_btn"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="12dp"
-                android:layout_marginEnd="10dp"
-                android:clickable="true"
-                android:focusable="true">
+                android:layout_width="match_parent"
+                android:layout_height="12dp"
+                android:layout_marginTop="5dp">
 
                 <ImageView
-                    android:id="@+id/project_play_image"
+                    android:id="@+id/project_progress_bar_fill"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:scaleType="fitXY" />
 
             </FrameLayout>
 
-            <!-- Middle: Title, Details, Progress Bar -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <!-- Title & Time Row -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="bottom">
-
-                    <TextView
-                        android:id="@+id/project_title"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="#FFFFFF"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:maxLines="1"
-                        android:ellipsize="end"
-                        android:text="Proyecto X"
-                        android:layout_marginEnd="6dp" />
-
-                    <TextView
-                        android:id="@+id/project_time_fraction"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="#A0A0A0"
-                        android:textSize="11sp"
-                        android:text="0h 00m / 1h 10m" />
-
-                </LinearLayout>
-
-                <!-- Progress Row -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginTop="5dp">
-
-                    <FrameLayout
-                        android:layout_width="0dp"
-                        android:layout_height="6dp"
-                        android:layout_weight="1"
-                        android:background="@android:color/transparent">
-
-                        <ImageView
-                            android:id="@+id/project_progress_bar_fill"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:scaleType="fitXY" />
-
-                    </FrameLayout>
-
-                    <TextView
-                        android:id="@+id/project_percentage_text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="#A0A0A0"
-                        android:textSize="10sp"
-                        android:layout_marginStart="8dp"
-                        android:text="0%" />
-
-                </LinearLayout>
-
-            </LinearLayout>
-
-            <!-- Far Right: Chevron Icon -->
-            <TextView
-                android:id="@+id/project_chevron"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:textColor="#4DFFFFFF"
-                android:textSize="16sp"
-                android:text="›" />
-
         </LinearLayout>
 
-    </RelativeLayout>
+    </LinearLayout>
 </FrameLayout>

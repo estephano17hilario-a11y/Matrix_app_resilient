@@ -95,7 +95,7 @@ class JournalWidgetProvider : AppWidgetProvider() {
         val views = RemoteViews(context.packageName, R.layout.widget_journal_calendar)
 
         // Apply Overall Widget Background Opacity
-        views.setFloat(R.id.widget_background_image, "setAlpha", bgOpacity / 100f)
+        WidgetTheme.apply(context, views, R.id.widget_background_image, appWidgetManager, widgetId, JournalWidgetProvider::class.java.name, default = WidgetTheme.Style.AURORA)
 
         // Get calendar instance for current month offset
         val offset = prefs.getInt("journal_widget_offset_$widgetId", 0)
@@ -175,9 +175,9 @@ class JournalWidgetProvider : AppWidgetProvider() {
                         // Highlight cells (e.g. today vs other days)
                         val isToday = dateStr == todayStr
                         if (isToday) {
-                            views.setInt(cellId, "setBackgroundResource", R.drawable.widget_subtask_checked) // distinct highlight style
+                            views.setInt(cellId, "setBackgroundResource", R.drawable.widget_day_today)
                         } else {
-                            views.setInt(cellId, "setBackgroundResource", R.drawable.widget_refresh_bg)
+                            views.setInt(cellId, "setBackgroundResource", R.drawable.widget_day_cell)
                         }
 
                         // Get mood emoji

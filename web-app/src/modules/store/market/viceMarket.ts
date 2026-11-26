@@ -98,6 +98,49 @@ export const availableUses = (habit: BadHabit) => habit.vicePasses || 0;
 export const streakAtStake = (habit: BadHabit) =>
   habit.intelligentStreak ? habit.reachedDays || 0 : habit.streak || 0;
 
+// ── Shelf info: how bad is it, when did I last do it ─────────────────────────
+
+/** Local midnight of a stored relapse day ("2026-11-20") or timestamp. */
+const toLocalTime = (value: string | number): number | null => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (day) return new Date(+day[1], +day[2] - 1, +day[3]).getTime();
+  const parsed = new Date(value).getTime();
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+/**
+ * The last time this vice was actually done: a relapse OR a paid indulgence.
+ * `null` means never (no history at all).
+ */
+export const lastDoneAt = (habit: BadHabit, ledger: ViceLedgerEntry[] = []): number | null => {
+  const stamps: number[] = [];
+  (habit.history || []).forEach(d => { const t = toLocalTime(d); if (t !== null) stamps.push(t); });
+  (habit.indulgences || []).forEach(d => { const t = toLocalTime(d); if (t !== null) stamps.push(t); });
+  ledger.forEach(e => { if (e.habitId === habit.id && e.kind === 'PASS_USE' && !e.deleted) stamps.push(e.createdAt); });
+  return stamps.length ? Math.max(...stamps) : null;
+};
+
+/** Whole calendar days between `then` and `now` (0 = today). */
+export const calendarDaysSince = (then: number, now = Date.now()) => {
+  const a = new Date(now); a.setHours(0, 0, 0, 0);
+  const b = new Date(then); b.setHours(0, 0, 0, 0);
+  return Math.max(0, Math.round((a.getTime() - b.getTime()) / DAY));
+};
+
+/** Short, human "ago" bucket: key + count, so the UI can translate it. */
+export const agoBucket = (then: number | null, now = Date.now()): { key: 'never' | 'today' | 'yesterday' | 'days' | 'weeks' | 'months'; count: number } => {
+  if (then === null) return { key: 'never', count: 0 };
+  const days = calendarDaysSince(then, now);
+  if (days === 0) return { key: 'today', count: 0 };
+  if (days === 1) return { key: 'yesterday', count: 1 };
+  if (days < 14) return { key: 'days', count: days };
+  if (days < 60) return { key: 'weeks', count: Math.floor(days / 7) };
+  return { key: 'months', count: Math.floor(days / 30) };
+};
+
+export const SEVERITY_LABELS = ['Leve', 'Moderado', 'Dañino', 'Grave', 'Crítico'] as const;
+
 export const formatCountdown = (ms: number) => {
   if (ms <= 0) return '0m';
   const h = Math.floor(ms / (60 * 60 * 1000));

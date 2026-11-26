@@ -18,6 +18,7 @@ import { ReorderModal } from '../../components/ui/ReorderModal';
 import { useLongPress } from '../../hooks/useLongPress';
 import { BadHabitDetailModal } from './components/BadHabitDetailModal';
 import { HabitMasteryModal } from './components/HabitMasteryModal';
+import { SuperHabitRoadmap } from '../superHabits/SuperHabitRoadmap';
 import { cn } from '../../utils/cn';
 import { getHistoryDateKey } from '../../utils/dateUtils';
 import { revealAndFlash, useLocateTarget } from '../../utils/locateBus';
@@ -147,6 +148,12 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
     const [selectedDetailBadHabit, setSelectedDetailBadHabit] = useState<BadHabit | null>(null);
     const [quantityModalHabit, setQuantityModalHabit] = useState<Habit | null>(null);
     const [masteryHabit, setMasteryHabit] = useState<Habit | null>(null);
+    // Super habits open their 60-day roadmap instead of the regular mastery card.
+    const [roadmapHabitId, setRoadmapHabitId] = useState<string | null>(null);
+    const openHabit = useCallback((h: Habit) => {
+        if (h.superHabit) setRoadmapHabitId(h.id); else setMasteryHabit(h);
+    }, []);
+    const roadmapHabit = useMemo(() => (roadmapHabitId ? habits.find(h => h.id === roadmapHabitId) ?? null : null), [roadmapHabitId, habits]);
     const [isChartMaximized, setIsChartMaximized] = useState(defaultChartVisibility?.habits !== false);
     
     // Header State
@@ -700,7 +707,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                         animate={{ opacity: 1, y: 0 }}
                                         className={cn("w-full flex items-center gap-3 bg-[#050505]/90 border rounded-[14px] px-3.5 py-2 touch-manipulation cursor-pointer hover:bg-[#0a0a0a] transition-all relative overflow-hidden", !item.isDue && !item.isCompleted && "opacity-60 grayscale")}
                                         style={{ borderColor: item.isCompleted ? 'rgba(255,255,255,0.05)' : `${item.color}42` }}
-                                        onClick={() => setMasteryHabit(item.habit)}
+                                        onClick={() => openHabit(item.habit)}
                                         onContextMenu={(e) => {
                                             e.preventDefault();
                                             if (onEditHabit) {
@@ -884,7 +891,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                                                     habit={habit}
                                                     attribute={attributeMap.get(habit.attribute)}
                                                     onComplete={onCompleteHabit}
-                                                    onClick={setMasteryHabit}
+                                                    onClick={openHabit}
                                                     onUpdate={onUpdateHabit}
                                                     onEdit={onEditHabit}
                                                     onShowActions={onShowActions}
@@ -931,7 +938,7 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                     ) : (
                         <div
                             key="vices"
-                            className="w-full flex flex-col items-center gap-3 relative px-4 sm:px-6 animate-fade-in-fast"
+                            className="w-full flex flex-col items-center gap-2 relative px-4 sm:px-6 animate-fade-in-fast"
                         >
                             {/* Floating Mini Action */}
                             {/* REMOVED: Create button */}
@@ -1062,6 +1069,17 @@ export const HabitVisualView: React.FC<HabitVisualViewProps> = React.memo(({
                     onUpdate={onUpdateHabit}
                 />
             )}
+
+            <AnimatePresence>
+                {roadmapHabit && (
+                    <SuperHabitRoadmap
+                        key={roadmapHabit.id}
+                        habit={roadmapHabit}
+                        onClose={() => setRoadmapHabitId(null)}
+                        onOpenStats={(h) => { setRoadmapHabitId(null); setMasteryHabit(h); }}
+                    />
+                )}
+            </AnimatePresence>
 
             <HabitMasteryModal
                 isOpen={!!masteryHabit}

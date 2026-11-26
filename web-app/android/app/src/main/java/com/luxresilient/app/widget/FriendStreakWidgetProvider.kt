@@ -41,6 +41,7 @@ class FriendStreakWidgetProvider : AppWidgetProvider() {
             val friendId = prefs.getString(friendKey(widgetId), null)
             val offset = prefs.getInt(offsetKey(widgetId), 0)
             val views = RemoteViews(context.packageName, R.layout.widget_journal_calendar)
+            WidgetTheme.apply(context, views, R.id.widget_background_image, mgr, widgetId, FriendStreakWidgetProvider::class.java.name, android.graphics.Color.parseColor("#F97316"), 250, 250, WidgetTheme.Style.EMBER)
 
             fun broadcast(action: String, code: Int) = PendingIntent.getBroadcast(
                 context, widgetId * 100 + code,
@@ -84,7 +85,7 @@ class FriendStreakWidgetProvider : AppWidgetProvider() {
                     val m = data?.mine?.contains(key) == true
                     val f = data?.theirs?.contains(key) == true
                     views.setTextViewText(emojiId, if (!inStreak) "" else if (m && f) "🔥" else if (m || f) "½" else "·")
-                    views.setInt(cellId, "setBackgroundResource", if (key == today) R.drawable.widget_subtask_checked else R.drawable.widget_refresh_bg)
+                    views.setInt(cellId, "setBackgroundResource", if (key == today) R.drawable.widget_day_today else R.drawable.widget_day_cell)
                     views.setOnClickPendingIntent(cellId, openPending)
                 }
                 mgr.updateAppWidget(widgetId, views)

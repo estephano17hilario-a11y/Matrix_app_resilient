@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import { useTranslation } from 'react-i18next';
+import '../../../components/cupertino/cupertino.css';
 
 const springTransition: Transition = {
     type: "spring",
@@ -872,10 +873,8 @@ export const StrategyTutorial: React.FC<StrategyTutorialProps> = ({ isOpen, onCl
     
     return createPortal(
         <div 
-            className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-[#050505]"
-            style={{ 
-                willChange: 'opacity'
-            }}
+            className="cu-root cu-stage"
+            style={{ zIndex: 9999, willChange: 'opacity' }}
         >
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div 
@@ -888,9 +887,11 @@ export const StrategyTutorial: React.FC<StrategyTutorialProps> = ({ isOpen, onCl
             
             <button 
                 onClick={handleClose}
-                className="absolute top-4 right-4 p-3 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all z-50 border border-white/5"
+                className="cu-icon-btn z-50"
+                style={{ position: 'absolute', top: 'max(16px, env(safe-area-inset-top))', right: 16 }}
+                aria-label="Cerrar"
             >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
