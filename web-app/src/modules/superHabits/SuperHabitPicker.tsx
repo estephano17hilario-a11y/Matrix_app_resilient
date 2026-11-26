@@ -1,13 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Zap, Check, X } from 'lucide-react';
+import { Sparkles, Check, X, Crown } from 'lucide-react';
 import { SUPER_HABIT_LIST, getSuperTheme, type SuperHabitId } from './catalog';
 import './superHabits.css';
 
 /** The loud button next to the title in the habit form. */
-export const SuperHabitButton: React.FC<{ value: SuperHabitId | null; open: boolean; onToggle: () => void }> = ({ value, open, onToggle }) => {
+export const SuperHabitButton: React.FC<{ value: SuperHabitId | null; open: boolean; onToggle: () => void; /** Free account: shows a Deluxe crown (tapping explains the feature). */ locked?: boolean }> = ({ value, open, onToggle, locked }) => {
   const theme = getSuperTheme(value);
-  const Icon = theme?.icon ?? Zap;
+  const Icon = theme?.icon ?? Sparkles;
   return (
     <button
       type="button"
@@ -25,10 +25,10 @@ export const SuperHabitButton: React.FC<{ value: SuperHabitId | null; open: bool
       }}
     >
       <span className="w-7 h-7 rounded-lg bg-black/25 flex items-center justify-center shrink-0">
-        <Icon size={15} className="text-white" fill={theme ? 'none' : 'currentColor'} />
+        {locked ? <Crown size={15} className="text-white" fill="currentColor" /> : <Icon size={15} className="text-white" fill={theme ? 'none' : 'currentColor'} />}
       </span>
       <span className="flex flex-col leading-none">
-        <span className="text-[8px] font-black tracking-[0.18em] uppercase text-white/85">{theme ? 'Activo' : 'Activar'}</span>
+        <span className="text-[8px] font-black tracking-[0.18em] uppercase text-white/85">{theme ? 'Activo' : locked ? 'Deluxe' : 'Activar'}</span>
         <span className="text-[11px] font-black tracking-tight text-white mt-0.5 whitespace-nowrap">
           {theme ? theme.shortName.slice(0, 11) : 'SUPER HÁBITO'}
         </span>

@@ -7,6 +7,7 @@ import {
 import { cn } from '../../utils/cn';
 import { useMountTransition } from '../../hooks/useMountTransition';
 import { formatHourRange, type RoutineConfig } from './routineEngine';
+import { DeluxeBadge } from '../monetization/DeluxeBadge';
 
 interface RoutineConfigSheetProps {
   open: boolean;
@@ -16,11 +17,15 @@ interface RoutineConfigSheetProps {
   journalTimes: string[];
   onEditJournalTimes: () => void;
   es: boolean;
+  /** Hour blocks and projects are Deluxe options. */
+  isDeluxe: boolean;
+  /** A free account touched a Deluxe option. */
+  onLocked: () => void;
 }
 
 const Row: React.FC<{
-  icon: React.ElementType; tint: string; label: string; hint?: string; on: boolean; onChange: (v: boolean) => void;
-}> = ({ icon: Icon, tint, label, hint, on, onChange }) => (
+  icon: React.ElementType; tint: string; label: string; hint?: string; on: boolean; onChange: (v: boolean) => void; locked?: boolean;
+}> = ({ icon: Icon, tint, label, hint, on, onChange, locked }) => (
   <button
     type="button"
     onClick={() => onChange(!on)}
@@ -33,12 +38,16 @@ const Row: React.FC<{
       <span className="block text-[13px] font-bold text-white leading-tight">{label}</span>
       {hint && <span className="block text-[11px] text-white/40 font-medium leading-snug mt-0.5">{hint}</span>}
     </span>
-    <span className={cn('w-11 h-[26px] rounded-full relative shrink-0 transition-colors duration-200', on ? 'bg-emerald-500' : 'bg-white/10')}>
-      <span
-        className="absolute top-[3px] left-[3px] w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-200 ease-out"
-        style={{ transform: `translateX(${on ? 18 : 0}px)` }}
-      />
-    </span>
+    {locked ? (
+      <DeluxeBadge />
+    ) : (
+      <span className={cn('w-11 h-[26px] rounded-full relative shrink-0 transition-colors duration-200', on ? 'bg-emerald-500' : 'bg-white/10')}>
+        <span
+          className="absolute top-[3px] left-[3px] w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-200 ease-out"
+          style={{ transform: `translateX(${on ? 18 : 0}px)` }}
+        />
+      </span>
+    )}
   </button>
 );
 
@@ -46,7 +55,7 @@ const Title: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mt-5 mb-2 px-1">{children}</h3>
 );
 
-export const RoutineConfigSheet: React.FC<RoutineConfigSheetProps> = ({ open, onClose, config, onChange, journalTimes, onEditJournalTimes, es }) => {
+export const RoutineConfigSheet: React.FC<RoutineConfigSheetProps> = ({ open, onClose, config, onChange, journalTimes, onEditJournalTimes, es, isDeluxe, onLocked }) => {
   const mounted = useMountTransition(open, 320);
   const tr = (a: string, b: string) => (es ? a : b);
   const hours = [1, 2, 3, 4, 5, 6];
@@ -84,6 +93,19 @@ export const RoutineConfigSheet: React.FC<RoutineConfigSheetProps> = ({ open, on
 
         {/* ── Division ─────────────────────────────────────────────── */}
         <Title>{tr('División del día', 'Day division')}</Title>
+        {!isDeluxe && (
+          <button
+            type="button"
+            onClick={onLocked}
+            className="w-full mb-2 flex items-center gap-2.5 rounded-2xl border px-3.5 py-2.5 text-left active:scale-[0.985] transition-transform"
+            style={{ background: 'linear-gradient(110deg, rgba(99,102,241,0.16), rgba(236,72,153,0.12))', borderColor: 'rgba(168,85,247,0.35)' }}
+          >
+            <DeluxeBadge size="xs" />
+            <span className="flex-1 text-[11.5px] font-semibold text-white/70 leading-snug">
+              {tr('Dividir por horas, proyectos y el calendario son de Deluxe', 'Hour blocks, projects and the calendar are Deluxe')}
+            </span>
+          </button>
+        )}
         <div className="relative flex p-1 rounded-2xl bg-white/[0.05] border border-white/[0.07]">
           {/* Sliding pill: plain transform, no shared-layout animation */}
           <span
@@ -100,7 +122,7 @@ export const RoutineConfigSheet: React.FC<RoutineConfigSheetProps> = ({ open, on
               <button
                 key={String(opt.id)}
                 type="button"
-                onClick={() => onChange({ divideByHour: opt.id })}
+                onClick={() => { if (opt.id && !isDeluxe) { onLocked(); return; } onChange({ divideByHour: opt.id }); }}
                 className="relative z-10 flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[12px] font-black"
               >
                 <span className={cn('flex items-center gap-1.5 transition-colors duration-200', active ? 'text-black' : 'text-white/50')}>
@@ -193,7 +215,7 @@ export const RoutineConfigSheet: React.FC<RoutineConfigSheetProps> = ({ open, on
         <div className="space-y-2">
           <Row icon={Flame} tint="#fb923c" label={tr('Hábitos', 'Habits')} hint={tr('Con su alarma y subtareas', 'With their alarm and subtasks')} on={config.showHabits} onChange={v => onChange({ showHabits: v })} />
           <Row icon={CheckSquare} tint="#22d3ee" label={tr('Tareas', 'Tasks')} hint={tr('Con hora límite si la tienen', 'With a due time when set')} on={config.showTasks} onChange={v => onChange({ showTasks: v })} />
-          <Row icon={Target} tint="#34d399" label={tr('Proyectos', 'Projects')} hint={tr('Los que tienen un aviso programado', 'Those with a scheduled reminder')} on={config.showProjects} onChange={v => onChange({ showProjects: v })} />
+          <Row icon={Target} tint="#34d399" label={tr('Proyectos', 'Projects')} hint={tr('Los que tienen un aviso programado', 'Those with a scheduled reminder')} on={config.showProjects} locked={!isDeluxe} onChange={v => (isDeluxe ? onChange({ showProjects: v }) : onLocked())} />
           <Row icon={BookOpen} tint="#818cf8" label="Journaling" hint={tr('Tus horarios de recordatorio', 'Your reminder times')} on={config.showJournal} onChange={v => onChange({ showJournal: v })} />
           <button
             type="button"

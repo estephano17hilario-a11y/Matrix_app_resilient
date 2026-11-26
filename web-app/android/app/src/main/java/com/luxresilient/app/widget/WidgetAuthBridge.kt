@@ -122,12 +122,40 @@ class WidgetAuthBridge : Plugin() {
             val editor = context.getSharedPreferences(RoutineWidgetData.PREFS_ROUTINE, Context.MODE_PRIVATE).edit()
             call.getObject("config")?.let { editor.putString(RoutineWidgetData.KEY_CONFIG, it.toString()) }
             call.getArray("journalTimes")?.let { editor.putString(RoutineWidgetData.KEY_JOURNAL_TIMES, it.toString()) }
+            call.getArray("reminders")?.let { editor.putString(RoutineWidgetData.KEY_REMINDERS, it.toString()) }
             editor.apply()
             Thread { RoutineWidgetProvider.refreshAll(context) }.start()
             call.resolve()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to update routine config: ${e.message}", e)
             call.reject("Failed to update routine config: ${e.message}")
+        }
+    }
+
+    /**
+     * Whether the signed-in account is Deluxe (PRO). Routine / Calendar / Journal-calendar widgets draw a locked
+     * card for free accounts (see [ProGate]); when the value changes they are redrawn right away.
+     */
+    @PluginMethod
+    fun updateProStatus(call: PluginCall) {
+        val isPro = call.getBoolean("isPro")
+        if (isPro == null) {
+            call.reject("isPro is required")
+            return
+        }
+        try {
+            val context = activity ?: context
+            if (ProGate.setPro(context, isPro)) {
+                // Routine redraw also redraws the Calendar widgets; Journal has its own provider.
+                Thread { RoutineWidgetProvider.refreshAll(context) }.start()
+                context.sendBroadcast(Intent(context, JournalWidgetProvider::class.java).apply {
+                    action = JournalWidgetProvider.ACTION_REFRESH_JOURNAL
+                })
+            }
+            call.resolve()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update pro status: ${e.message}", e)
+            call.reject("Failed to update pro status: ${e.message}")
         }
     }
 

@@ -3,10 +3,12 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import * as LucideIcons from '@/utils/lucideRegistry';
 import { useTranslation } from 'react-i18next';
 import {
-  BookOpen, CalendarClock, Check, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, Clock, Flame, Moon, PenLine,
-  Play, Plus, Settings2, SlidersHorizontal, Sparkles, Sun, Sunset, Target, AlertCircle, PartyPopper,
+  BookOpen, CalendarClock, CalendarDays, Check, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, Clock, Flame, ListTodo, Moon, PenLine,
+  Play, Plus, Settings2, SlidersHorizontal, Sparkles, Sun, Sunset, Target, AlertCircle, PartyPopper, Crown,
 } from 'lucide-react';
+import { RoutineCalendar } from './RoutineCalendar';
 import type { Attribute, Habit, Project, Quest } from '../../types';
+import type { EditPatch } from './routineEdits';
 import { JournalRemindersModal } from '../notes/components/JournalRemindersModal';
 import { getJournalReminders, saveJournalReminders } from '../../services/journalReminders';
 import { notificationService } from '../../services/notificationService';
@@ -14,7 +16,10 @@ import { QuantityUpdateModal } from '../dashboard/components/QuantityUpdateModal
 import { addDays, formatClock, getHistoryDateKey, startOfWeek, toLocalISOString } from '../../utils/dateUtils';
 import { cn } from '../../utils/cn';
 import { RoutineConfigSheet } from './RoutineConfigSheet';
-import { syncRoutineWidget } from './routineWidgetSync';
+import { syncReminderItemsWidget, syncRoutineWidget } from './routineWidgetSync';
+import { useReminderItems } from './useReminderItems';
+import { ReminderSheet } from './ReminderSheet';
+import { useIsDeluxe, promptDeluxe } from '../monetization/deluxe';
 import {
   buildRoutineItems, countByPart, dayPartOf, formatHourRange, hideCompleted, hourBlockOf, loadRoutineConfig, saveRoutineConfig, sectionize,
   type DayPart, type DayPartFilter, type RoutineConfig, type RoutineItem, type RoutineSection,
@@ -42,6 +47,9 @@ interface RoutineViewProps {
   onAddHabit?: (e?: React.MouseEvent) => void;
   onFocusProject?: (projectId: string) => void;
   onOpenJournal?: (dateStr: string) => void;
+  /** Calendar edits: merge these fields into a habit / task (hour, length, one-day overrides). */
+  onScheduleHabit?: (data: Partial<Habit>) => void;
+  onScheduleQuest?: (data: Partial<Quest>) => void;
 }
 
 // One spring for everything interactive, so the whole screen moves with the same feel.
@@ -269,14 +277,21 @@ RoutineCard.displayName = 'RoutineCard';
 
 export const RoutineView: React.FC<RoutineViewProps> = ({
   userId, habits, quests, projects, attributes, isActive = true, journalEntries = [],
-  onCompleteHabit, onUpdateHabit, onEditHabit, onLocateHabit, onLocateQuest, onCompleteQuest, onEditQuest, onAddQuest, onAddHabit, onFocusProject, onOpenJournal,
+  onCompleteHabit, onUpdateHabit, onEditHabit, onLocateHabit, onLocateQuest, onCompleteQuest, onEditQuest, onAddQuest, onAddHabit, onFocusProject, onOpenJournal, onScheduleHabit, onScheduleQuest,
 }) => {
   const { i18n } = useTranslation();
   const es = !!i18n.language?.startsWith('es');
   const tr = (a: string, b: string) => (es ? a : b);
   const reduce = !!useReducedMotion();
 
-  const [config, setConfig] = useState<RoutineConfig>(() => loadRoutineConfig(userId));
+  const [storedConfig, setConfig] = useState<RoutineConfig>(() => loadRoutineConfig(userId));
+  const isDeluxe = useIsDeluxe();
+  // Calendar view, hour blocks and projects are Deluxe: free accounts always get the plain chronological list
+  // (this also covers a subscription that lapsed after the user had picked them).
+  const config = useMemo<RoutineConfig>(
+    () => (isDeluxe ? storedConfig : { ...storedConfig, view: 'LIST', divideByHour: false, showProjects: false }),
+    [storedConfig, isDeluxe],
+  );
   const [date, setDate] = useState(() => new Date());
   const [filter, setFilter] = useState<string>('ALL');
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -287,6 +302,11 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
   const [journalTimes, setJournalTimes] = useState<string[]>(() => getJournalReminders(userId).times);
   const [journalModalOpen, setJournalModalOpen] = useState(false);
   const [burstId, setBurstId] = useState<string | null>(null);
+  // Calendar: full screen (the dashboard is hidden behind a little arrow) or embedded in the page.
+  const [immersive, setImmersive] = useState(true);
+  // Reminders pinned on the Journal calendar (shown here as blocks too).
+  const reminders = useReminderItems(userId);
+  const [reminderSheet, setReminderSheet] = useState<{ id?: string; date: string } | null>(null);
 
   useEffect(() => { setConfig(loadRoutineConfig(userId)); setJournalTimes(getJournalReminders(userId).times); }, [userId]);
 
@@ -306,6 +326,7 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
 
   // The native Routine widget draws the same day: keep it on the same settings and reminder times.
   useEffect(() => { syncRoutineWidget(config, journalTimes); }, [config, journalTimes]);
+  useEffect(() => { syncReminderItemsWidget(reminders.items); }, [reminders.items]);
 
   const updateConfig = useCallback((patch: Partial<RoutineConfig>) => {
     setConfig(prev => {
@@ -315,9 +336,26 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
     });
   }, [userId]);
 
+  // The calendar widget opens the Routine on its calendar: it leaves a note that is read on mount or on the event.
+  useEffect(() => {
+    const apply = () => {
+      try {
+        const wanted = localStorage.getItem('routine_open_view');
+        if (!wanted) return;
+        localStorage.removeItem('routine_open_view');
+        if (wanted === 'CALENDAR' && !isDeluxe) { promptDeluxe('routineCalendar'); return; }
+        if (wanted === 'CALENDAR' || wanted === 'LIST') updateConfig({ view: wanted });
+      } catch { /* storage unavailable */ }
+    };
+    apply();
+    window.addEventListener('routine-open-view', apply);
+    return () => window.removeEventListener('routine-open-view', apply);
+  }, [updateConfig, isDeluxe]);
+
   const dayKey = toLocalISOString(date);
   const todayKey = toLocalISOString(now);
   const isToday = dayKey === todayKey;
+  const isCalendar = config.view === 'CALENDAR';
 
   const attrColor = useMemo(() => {
     const map = new Map(attributes.map(a => [a.id, a.color]));
@@ -346,6 +384,7 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
   const labels = useMemo(() => ({
     journal: tr('Escribir en el journal', 'Write in your journal'),
     journalSub: tr('Recordatorio', 'Reminder'),
+    reminder: tr('Recordatorio', 'Reminder'),
     overdue: tr('Atrasada', 'Overdue'),
     project: tr('Sesión de enfoque', 'Focus session'),
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -353,8 +392,8 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
 
   const itemsFor = useCallback((d: Date) => buildRoutineItems({
     date: d, habits, quests, projects, journalTimes, journalDone: writtenDays.has(toLocalISOString(d)), config,
-    colorForAttribute: attrColor, labels,
-  }), [habits, quests, projects, journalTimes, writtenDays, config, attrColor, labels]);
+    colorForAttribute: attrColor, labels, reminderItems: reminders.items,
+  }), [habits, quests, projects, journalTimes, writtenDays, config, attrColor, labels, reminders.items]);
 
   // Every item of the day, done or not: the counters, ring and "up next" read from this.
   const allItems = useMemo(() => itemsFor(date), [itemsFor, date]);
@@ -434,21 +473,24 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
   const shortDate = date.toLocaleDateString(es ? 'es-ES' : 'en-US', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\./g, '');
   const fmt = (t: string) => formatClock(t, !config.use24h);
 
-  const toggleItem = useCallback((e: React.MouseEvent, item: RoutineItem) => {
+  const toggleItem = useCallback((e: React.MouseEvent, item: RoutineItem, dayKeyOverride?: string) => {
     e.stopPropagation();
-    if (!item.done && item.kind !== 'PROJECT' && item.kind !== 'JOURNAL') {
+    // The calendar can show several days: the action belongs to the day the block is on.
+    const target = dayKeyOverride && dayKeyOverride !== dayKey ? new Date(`${dayKeyOverride}T00:00:00`) : date;
+    const targetKey = dayKeyOverride || dayKey;
+    if (!item.done && item.kind !== 'PROJECT' && (item.kind !== 'JOURNAL' || item.reminderId)) {
       setBurstId(item.id);
       window.setTimeout(() => setBurstId(cur => (cur === item.id ? null : cur)), 700);
     }
     switch (item.kind) {
       case 'HABIT':
         if (item.isQuantity && item.habit && onUpdateHabit) setQuantityHabit(item.habit);
-        else if (item.habit) onCompleteHabit(e, item.habit, date);
+        else if (item.habit) onCompleteHabit(e, item.habit, target);
         break;
       case 'SUBHABIT':
         if (item.habit && onUpdateHabit) {
           const checklist = (item.habit.checklist || []).map(s => (s.id === item.subtaskId ? { ...s, completed: !s.completed } : s));
-          onUpdateHabit(item.habit.id, { checklist }, date);
+          onUpdateHabit(item.habit.id, { checklist }, target);
         }
         break;
       case 'TASK':
@@ -458,10 +500,11 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
         if (item.project) onFocusProject?.(item.project.id);
         break;
       case 'JOURNAL':
-        onOpenJournal?.(dayKey);
+        if (item.reminderId) reminders.toggleDone(item.reminderId, targetKey);
+        else onOpenJournal?.(targetKey);
         break;
     }
-  }, [date, dayKey, onCompleteHabit, onUpdateHabit, onCompleteQuest, onFocusProject, onOpenJournal]);
+  }, [date, dayKey, onCompleteHabit, onUpdateHabit, onCompleteQuest, onFocusProject, onOpenJournal, reminders]);
 
   const openItem = useCallback((item: RoutineItem) => {
     // Tapping a card never edits: it takes you to where the item lives and flashes it.
@@ -471,8 +514,17 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
       if (onLocateHabit) onLocateHabit(item.habit.id, item.kind === 'SUBHABIT' ? item.subtaskId : undefined, date);
       else onEditHabit?.({ ...item.habit, _initialTab: item.kind === 'SUBHABIT' ? 'checklist' : 'alarm', _targetSubtaskId: item.subtaskId });
     } else if (item.kind === 'PROJECT' && item.project) onFocusProject?.(item.project.id);
+    else if (item.kind === 'JOURNAL' && item.reminderId) setReminderSheet({ id: item.reminderId, date: dayKey });
     else if (item.kind === 'JOURNAL') onOpenJournal?.(dayKey);
   }, [date, dayKey, onLocateHabit, onLocateQuest, onEditQuest, onEditHabit, onFocusProject, onOpenJournal]);
+
+  // Calendar edits (moved / resized blocks): habits and tasks are merged by the dashboard's own handlers.
+  const applyEdit = useCallback((patch: EditPatch) => {
+    if (patch.kind === 'habit') onScheduleHabit?.(patch.data);
+    else if (patch.kind === 'quest') onScheduleQuest?.(patch.data);
+    else if (patch.remove) reminders.remove(patch.reminderId);
+    else reminders.patch(patch.reminderId, patch.data);
+  }, [onScheduleHabit, onScheduleQuest, reminders]);
 
   const onSaveJournalTimes = (times: string[]) => {
     if (userId) {
@@ -535,6 +587,31 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
           <p className="text-[12px] font-semibold text-white/40 first-letter:uppercase truncate mt-1.5">{fullDate}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0 relative">
+          {/* List ↔ calendar */}
+          <div className="relative flex h-10 p-1 rounded-2xl bg-white/[0.06] border border-white/10" role="tablist" aria-label={tr('Vista', 'View')}>
+            <span
+              className="absolute top-1 bottom-1 left-1 w-8 rounded-xl bg-white pointer-events-none transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+              style={{ transform: `translateX(${isCalendar ? 100 : 0}%)`, boxShadow: '0 4px 14px -6px rgba(255,255,255,0.6)' }}
+            />
+            {([['LIST', ListTodo, tr('Lista', 'List')], ['CALENDAR', CalendarDays, tr('Calendario', 'Calendar')]] as const).map(([id, VIcon, label]) => (
+              <button
+                key={id} type="button" role="tab" aria-selected={config.view === id} aria-label={label}
+                onClick={() => {
+                  if (id === 'CALENDAR' && !isDeluxe) { promptDeluxe('routineCalendar'); return; }
+                  updateConfig({ view: id });
+                  if (id === 'CALENDAR') setImmersive(true);
+                }}
+                className="relative z-10 w-8 flex items-center justify-center active:scale-90 transition-transform"
+              >
+                <VIcon size={15} className={cn('transition-colors duration-200', config.view === id ? 'text-black' : 'text-white/55')} />
+                {id === 'CALENDAR' && !isDeluxe && (
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#a855f7,#ec4899)', boxShadow: '0 0 0 1.5px #0a0a10' }} aria-hidden="true">
+                    <Crown size={8} className="text-white" fill="currentColor" />
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
           <motion.button
             type="button" whileTap={{ scale: 0.88 }} transition={SPRING}
             onClick={() => setAddOpen(v => !v)} aria-label={tr('Añadir', 'Add')}
@@ -568,7 +645,34 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
         </div>
       </motion.div>
 
+      {isCalendar && (isActive || !immersive) && (
+        <RoutineCalendar
+          date={date}
+          onDateChange={setDate}
+          config={config}
+          onConfig={updateConfig}
+          now={now}
+          es={es}
+          reduce={reduce}
+          itemsFor={itemsFor}
+          iconFor={iconFor}
+          nextId={isToday ? next?.id ?? null : null}
+          burstId={burstId}
+          onToggle={toggleItem}
+          onOpen={openItem}
+          onApplyEdit={applyEdit}
+          immersive={immersive}
+          onToggleImmersive={() => setImmersive(v => !v)}
+          onOpenSettings={() => setConfigOpen(true)}
+          onAddQuest={onAddQuest}
+          onAddHabit={onAddHabit}
+          onAddReminder={d => setReminderSheet({ date: d })}
+          onEditReminder={id => setReminderSheet({ id, date: dayKey })}
+        />
+      )}
+
       {/* Hero */}
+      {!isCalendar && (<>
       <motion.section
         className="relative overflow-hidden rounded-[24px] p-3 mb-3 border border-white/10"
         style={{ background: 'linear-gradient(135deg, rgba(56,189,248,0.16) 0%, rgba(99,102,241,0.14) 48%, rgba(168,85,247,0.12) 100%)' }}
@@ -835,6 +939,19 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
           })}
         </div>
       )}
+      </>)}
+
+      {reminderSheet && (
+        <ReminderSheet
+          key={reminderSheet.id ?? 'new'}
+          reminder={reminderSheet.id ? reminders.items.find(r => r.id === reminderSheet.id) ?? null : null}
+          defaultDate={reminderSheet.date}
+          es={es}
+          onSave={reminders.upsert}
+          onDelete={reminders.remove}
+          onClose={() => setReminderSheet(null)}
+        />
+      )}
 
       <RoutineConfigSheet
         open={configOpen}
@@ -844,6 +961,8 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
         journalTimes={journalTimes}
         onEditJournalTimes={() => setJournalModalOpen(true)}
         es={es}
+        isDeluxe={isDeluxe}
+        onLocked={() => promptDeluxe('routineCustom')}
       />
 
       <JournalRemindersModal

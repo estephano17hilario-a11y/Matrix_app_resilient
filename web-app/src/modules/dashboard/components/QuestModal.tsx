@@ -10,7 +10,8 @@ import { DateSelectionModal } from './DateSelectionModal';
 import { TimePicker } from '../../../components/ui/TimePicker';
 import {
     CupertinoSheet, Stack, Section, Hero, Row, Segmented, Toggle, Stepper, Chip, DateNumberGrid, Swatches, TraitGrid,
-    OptionList, RewardPreview, SheetSkeleton, Pad, Tiles, Tile, resolveTraitIcon, traitLabelOf,
+    OptionList, RewardPreview, SheetSkeleton, Pad, Tiles, Tile, WizardSheet, resolveTraitIcon, traitLabelOf,
+    type WizardStep,
 } from '../../../components/cupertino';
 
 // Full lucide set is loaded lazily the first time the trait picker opens (keeps modal entry light on Android).
@@ -89,6 +90,7 @@ export const QuestModal = React.memo(({
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [panel, setPanel] = useState<Panel>(null);
+    const [step, setStep] = useState(0);
     const [, setIconsLoaded] = useState(false);
 
     const openPanel = useCallback(async (next: Exclude<Panel, null>) => {
@@ -120,6 +122,7 @@ export const QuestModal = React.memo(({
         if (!isOpen) return;
         setIsSubmitting(false);
         setPanel(null);
+        setStep(0);
         if (initialValues) {
             setTitle(initialValues.title || '');
             setDesc(initialValues.description || '');
@@ -431,6 +434,182 @@ export const QuestModal = React.memo(({
         </Stack>
     ) : null;
 
+    const useWizard = !initialValues?.id;
+    const dateRow = lockedDate ? (
+        <div className="cu-desc" style={{ justifyContent: 'space-between' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}><CalendarDays size={17} />{t('modals.quest.dueDate')}</span>
+            <b style={{ fontWeight: 600 }}>{dateObj.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</b>
+        </div>
+    ) : (
+        <Segmented<DateMode>
+            tall
+            value={dateMode}
+            onChange={(m) => {
+                if (m === 'today') setDeadline(todayISO);
+                else if (m === 'tomorrow') setDeadline(tomorrowISO);
+                else setIsDateModalOpen(true);
+            }}
+            options={[
+                { value: 'today', label: t('dashboard.today', 'Hoy') },
+                { value: 'tomorrow', label: t('cu.tomorrow', 'Mañana') },
+                { value: 'custom', label: customLabel, icon: <CalendarDays size={13} /> },
+            ]}
+        />
+    );
+    const timeTile = (
+        <Tile icon={<Clock size={14} />} color="#ff9f0a" label={t('modals.quest.dueTime', 'Hora')}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <TimePicker value={deadlineTime} onChange={setDeadlineTime} className="cu-time" label={t('modals.quest.dueTime', 'Hora')} />
+                {deadlineTime && (
+                    <button type="button" className="cu-mini" style={{ width: 22, height: 22 }} onClick={() => setDeadlineTime('')} aria-label={t('common.clear', 'Quitar')}>
+                        <X size={12} strokeWidth={2.6} />
+                    </button>
+                )}
+            </span>
+        </Tile>
+    );
+    const repeatTile = (span?: 2) => (
+        <Tile span={span} icon={<Repeat size={14} />} color="#30d158" label={t('cu.repeat', 'Repetición')} value={repeatValue} onClick={() => openPanel('repeat')} />
+    );
+    const traitTile = (
+        <Tile
+            icon={<SelectedIcon size={14} />}
+            color={activeColor}
+            label={t('cu.trait', 'Rasgo')}
+            value={activeLabel}
+            onClick={() => !lockedAttributeId && openPanel('trait')}
+            disabled={!!lockedAttributeId}
+        />
+    );
+    const projectTile = (
+        <Tile
+            icon={<Target size={14} />}
+            color="#0a84ff"
+            label={t('cu.project', 'Proyecto')}
+            value={linkedProjectTitle || t('modals.quest.noProject')}
+            onClick={() => openPanel('project')}
+        />
+    );
+    const subpanel = panel ? { title: panelTitle[panel], onBack: () => setPanel(null), children: panelBody } : null;
+    const dateOverlay = (
+        <DateSelectionModal
+            isOpen={isDateModalOpen}
+            onClose={() => setIsDateModalOpen(false)}
+            onSelect={(date) => setDeadline(toLocalISOString(date))}
+            mode="DAY"
+            currentDate={parseLocalDate(deadline)}
+        />
+    );
+    const rewardPreview = (
+        <RewardPreview
+            xp={prediction.xp}
+            traitXp={prediction.traitXp}
+            coins={prediction.coins}
+            traitColor={activeColor}
+            TraitIcon={SelectedIcon}
+            traitLabel={activeLabel}
+            bonus={prediction.bonusApplied}
+            xpLabel={t('common.xp', 'XP')}
+            goldLabel={t('common.gold', 'Oro')}
+        />
+    );
+
+    // ── Creation: four blocks, one at a time ─────────────────────────────────
+    if (useWizard) {
+        const steps: WizardStep[] = [
+            {
+                key: 'what',
+                title: t('cu.wiz.task.t1', '¿Qué quieres hacer?'),
+                hint: t('cu.wiz.task.h1', 'Dale un nombre claro a tu tarea. Puedes añadir una nota si quieres.'),
+                icon: <Star size={16} />,
+                valid: !!title.trim(),
+                missing: t('cu.wiz.nameFirst', 'Escribe un nombre para continuar'),
+                content: (
+                    <>
+                        <div>
+                            <p className="cu-field-label">{t('cu.wiz.name', 'Nombre')}</p>
+                            <div className="cu-bigfield">
+                                <input
+                                    className="cu-input"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    placeholder={t('modals.quest.namePlaceholder')}
+                                    aria-label={t('cu.wiz.name', 'Nombre')}
+                                    autoFocus
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <p className="cu-field-label">{t('cu.wiz.note', 'Nota (opcional)')}</p>
+                            <div className="cu-desc">
+                                <FileText size={17} />
+                                <input className="cu-input" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={t('modals.quest.briefingPlaceholder')} aria-label={t('cu.wiz.note', 'Nota (opcional)')} />
+                            </div>
+                        </div>
+                    </>
+                ),
+            },
+            {
+                key: 'when',
+                title: t('cu.wiz.task.t2', '¿Cuándo lo harás?'),
+                hint: t('cu.wiz.task.h2', 'Elige el día y, si quieres, la hora y si se repite.'),
+                icon: <CalendarDays size={16} />,
+                valid: true,
+                content: (
+                    <>
+                        {dateRow}
+                        <Tiles cols={2}>{timeTile}{repeatTile()}</Tiles>
+                    </>
+                ),
+            },
+            {
+                key: 'effort',
+                title: t('cu.wiz.task.t3', '¿Cuánto esfuerzo requiere?'),
+                hint: t('cu.wiz.task.h3', 'Esto define cuánta recompensa recibes al completarla.'),
+                icon: <Timer size={16} />,
+                valid: true,
+                content: (
+                    <>
+                        <Segmented<Difficulty> tall value={difficulty} onChange={setDifficulty} options={difficulties} />
+                        <DurationPicker value={estimatedTime} onChange={setEstimatedTime} />
+                    </>
+                ),
+            },
+            {
+                key: 'organize',
+                title: t('cu.wiz.task.t4', 'Organízala'),
+                hint: t('cu.wiz.task.h4', 'Elige a qué rasgo pertenece y si forma parte de un proyecto.'),
+                icon: <Target size={16} />,
+                valid: !!attrId,
+                missing: t('cu.wiz.traitFirst', 'Elige un rasgo para continuar'),
+                content: <Tiles cols={2}>{traitTile}{projectTile}</Tiles>,
+            },
+        ];
+        return (
+            <WizardSheet
+                isOpen={isOpen}
+                onClose={onClose}
+                accent={activeColor}
+                steps={steps}
+                index={step}
+                onIndex={setStep}
+                onFinish={handleConfirm}
+                finishLabel={t('cu.wiz.createTask', 'Crear tarea')}
+                finishing={isSubmitting}
+                glyph={<SelectedIcon size={34} />}
+                name={title}
+                lastExtra={rewardPreview}
+                subpanel={subpanel}
+                overlays={dateOverlay}
+                nextLabel={t('cu.wiz.next', 'Siguiente')}
+                backLabel={t('cu.wiz.back', 'Atrás')}
+                doneLabel={t('cu.done', 'Listo')}
+                stepOf={(i, n) => t('cu.wiz.stepOf', { defaultValue: 'Paso {{i}} de {{n}}', i: i + 1, n })}
+            />
+        );
+    }
+
+    // ── Editing: every control on one page ───────────────────────────────────
     return (
         <CupertinoSheet
             isOpen={isOpen}
@@ -438,39 +617,18 @@ export const QuestModal = React.memo(({
             accent={activeColor}
             title={sheetTitle}
             subtitle={sheetSubtitle}
-            primaryLabel={isEditing ? t('cu.save', 'Guardar') : t('cu.create', 'Crear')}
+            primaryLabel={t('cu.save', 'Guardar')}
             onPrimary={handleConfirm}
             primaryDisabled={!canSubmit}
             primaryLoading={isSubmitting}
             maxWidth={460}
             doneLabel={t('cu.done', 'Listo')}
-            subpanel={panel ? { title: panelTitle[panel], onBack: () => setPanel(null), children: panelBody } : null}
-            footer={isContentReady ? (
-                <RewardPreview
-                    xp={prediction.xp}
-                    traitXp={prediction.traitXp}
-                    coins={prediction.coins}
-                    traitColor={activeColor}
-                    TraitIcon={SelectedIcon}
-                    traitLabel={activeLabel}
-                    bonus={prediction.bonusApplied}
-                    xpLabel={t('common.xp', 'XP')}
-                    goldLabel={t('common.gold', 'Oro')}
-                />
-            ) : undefined}
-            overlays={
-                <DateSelectionModal
-                    isOpen={isDateModalOpen}
-                    onClose={() => setIsDateModalOpen(false)}
-                    onSelect={(date) => setDeadline(toLocalISOString(date))}
-                    mode="DAY"
-                    currentDate={parseLocalDate(deadline)}
-                />
-            }
+            subpanel={subpanel}
+            footer={isContentReady ? rewardPreview : undefined}
+            overlays={dateOverlay}
         >
             {!isContentReady ? <SheetSkeleton /> : (
                 <Stack className="cu-tight">
-                    {/* Name */}
                     <Hero
                         tile={<SelectedIcon size={28} />}
                         tileColor={activeColor}
@@ -478,7 +636,6 @@ export const QuestModal = React.memo(({
                         onChange={setTitle}
                         placeholder={t('modals.quest.namePlaceholder')}
                     />
-
                     <div className="cu-desc">
                         <FileText size={17} />
                         <input
@@ -489,45 +646,10 @@ export const QuestModal = React.memo(({
                             aria-label={t('modals.quest.briefingPlaceholder')}
                         />
                     </div>
-
-                    {/* When — one tap for the common cases */}
-                    {lockedDate ? (
-                        <div className="cu-desc" style={{ justifyContent: 'space-between' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}><CalendarDays size={17} />{t('modals.quest.dueDate')}</span>
-                            <b style={{ fontWeight: 600 }}>{dateObj.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</b>
-                        </div>
-                    ) : (
-                        <Segmented<DateMode>
-                            tall
-                            value={dateMode}
-                            onChange={(m) => {
-                                if (m === 'today') setDeadline(todayISO);
-                                else if (m === 'tomorrow') setDeadline(tomorrowISO);
-                                else setIsDateModalOpen(true);
-                            }}
-                            options={[
-                                { value: 'today', label: t('dashboard.today', 'Hoy') },
-                                { value: 'tomorrow', label: t('cu.tomorrow', 'Mañana') },
-                                { value: 'custom', label: customLabel, icon: <CalendarDays size={13} /> },
-                            ]}
-                        />
-                    )}
-
-                    {/* Effort */}
+                    {dateRow}
                     <Segmented<Difficulty> tall value={difficulty} onChange={setDifficulty} options={difficulties} />
-
-                    {/* Details as tiles */}
                     <Tiles cols={3}>
-                        <Tile icon={<Clock size={14} />} color="#ff9f0a" label={t('modals.quest.dueTime', 'Hora')}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <TimePicker value={deadlineTime} onChange={setDeadlineTime} className="cu-time" label={t('modals.quest.dueTime', 'Hora')} />
-                                {deadlineTime && (
-                                    <button type="button" className="cu-mini" style={{ width: 22, height: 22 }} onClick={() => setDeadlineTime('')} aria-label={t('common.clear', 'Quitar')}>
-                                        <X size={12} strokeWidth={2.6} />
-                                    </button>
-                                )}
-                            </span>
-                        </Tile>
+                        {timeTile}
                         <Tile
                             icon={<Timer size={14} />}
                             color="#5e5ce6"
@@ -535,29 +657,9 @@ export const QuestModal = React.memo(({
                             value={estimatedTime > 0 ? formatMinutes(estimatedTime) : t('cu.undefined', 'Sin definir')}
                             onClick={() => openPanel('duration')}
                         />
-                        <Tile
-                            icon={<SelectedIcon size={14} />}
-                            color={activeColor}
-                            label={t('cu.trait', 'Rasgo')}
-                            value={activeLabel}
-                            onClick={() => !lockedAttributeId && openPanel('trait')}
-                            disabled={!!lockedAttributeId}
-                        />
-                        <Tile
-                            icon={<Target size={14} />}
-                            color="#0a84ff"
-                            label={t('cu.project', 'Proyecto')}
-                            value={linkedProjectTitle || t('modals.quest.noProject')}
-                            onClick={() => openPanel('project')}
-                        />
-                        <Tile
-                            span={2}
-                            icon={<Repeat size={14} />}
-                            color="#30d158"
-                            label={t('cu.repeat', 'Repetición')}
-                            value={repeatValue}
-                            onClick={() => openPanel('repeat')}
-                        />
+                        {traitTile}
+                        {projectTile}
+                        {repeatTile(2)}
                     </Tiles>
                 </Stack>
             )}
@@ -567,4 +669,3 @@ export const QuestModal = React.memo(({
     if (!prev.isOpen && !next.isOpen) return true;
     return false;
 });
-

@@ -8,6 +8,8 @@
     <string name="focus_service_description">Lux mantiene el temporizador de sesiones de enfoque activo para sincronizar hábitos y estadísticas de productividad en segundo plano.</string>
     <string name="widget_routine_title">Lux · Rutina</string>
     <string name="widget_routine_description">Tu día en orden cronológico: lo siguiente por hacer, tu progreso y hábitos y tareas que se marcan con un toque</string>
+    <string name="widget_calendar_title">Lux · Calendario</string>
+    <string name="widget_calendar_description">Tu rutina como un calendario tipo Google: día, 3 días o semana, ordenada por bloques de horas con la hora actual marcada</string>
     <string name="widget_tasks_description">Tus quests pendientes con XP, oro y fecha límite; complétalas con un toque</string>
     <string name="widget_focus_description">Gráfica de tu tiempo de enfoque por proyecto y periodo</string>
     <string name="widget_project_description">Progreso de la meta de un proyecto y tiempo enfocado hoy</string>

@@ -94,6 +94,8 @@ const ImprovementFeedView = preloadable(() => import('./modules/feed/Improvement
 import { useNotesContext } from './modules/notes/context/NotesContext';
 const RoutineView = preloadable(() => import('./modules/routine/RoutineView').then(m => ({ default: m.RoutineView })));
 import { DeluxSuccessOverlay } from './modules/monetization/DeluxSuccessOverlay';
+import { DeluxePromptHost, isDeluxePromptOpen, closeDeluxePrompt } from './modules/monetization/DeluxePrompt';
+import { promptDeluxe, isDeluxePlan } from './modules/monetization/deluxe';
 
 // Sections laid out left → right in the world. The dock's own order comes
 // first, so travelling right in the dock moves the camera right.
@@ -616,7 +618,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  };
  const handleOpenBadHabit = () => setActiveModal('BAD_HABIT');
  const handleNavigateToStore = () => setCurrentView('STORE');
- const handleOpenProModal = () => setIsProModalOpen(true);
+ const handleOpenProModal = () => setProOverlayOpen(true);
  
  window.addEventListener('open-quest-modal', handleOpenQuest);
  window.addEventListener('open-habit-modal', handleOpenHabit);
@@ -701,8 +703,14 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  ? smartProjects.find(p => p.id === activeSmartProjectId) || null
  : null;
   const [isWizardOpen, setIsWizardOpen] = useState(false);
-  const isProModalOpen = activeModal === 'PRO';
- const setIsProModalOpen = (open: boolean) => open ? setActiveModal('PRO') : setActiveModal(null);
+  // The purchase screen can open on top of another sheet (e.g. a half-filled habit form) without closing it.
+  const [proOverlayOpen, setProOverlayOpen] = useState(false);
+  const isProModalOpen = activeModal === 'PRO' || proOverlayOpen;
+ const setIsProModalOpen = (open: boolean) => {
+   if (open) { setActiveModal('PRO'); return; }
+   setProOverlayOpen(false);
+   if (activeModal === 'PRO') setActiveModal(null);
+ };
  const [taskViewMode, setTaskViewMode] = useState<'LIST' | 'STRATEGY'>('LIST');
  const [habitViewMode, setHabitViewMode] = useState<'PROTOCOLS' | 'VICES'>('PROTOCOLS');
  const [noteViewMode, setNoteViewMode] = useState<'NOTES' | 'JOURNAL'>('NOTES');
@@ -841,6 +849,17 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
     };
     window.addEventListener('cold_start_routine_trigger', handleRoutineTrigger);
 
+    // A locked Deluxe widget on the home screen was tapped: explain it and offer the upgrade.
+    if (localStorage.getItem('cold_start_open_deluxe')) {
+      localStorage.removeItem('cold_start_open_deluxe');
+      setTimeout(() => promptDeluxe('widgets'), 900);
+    }
+    const handleDeluxeTrigger = () => {
+      localStorage.removeItem('cold_start_open_deluxe');
+      promptDeluxe('widgets');
+    };
+    window.addEventListener('cold_start_deluxe_trigger', handleDeluxeTrigger);
+
     const handleOpenDockConfig = () => {
       setIsDockOpen(false);
       setIsDockConfigOpen(true);
@@ -894,6 +913,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
       window.removeEventListener('cold_start_focus_trigger', handleFocusTrigger);
       window.removeEventListener('cold_start_journal_trigger', handleJournalTrigger);
       window.removeEventListener('cold_start_routine_trigger', handleRoutineTrigger);
+      window.removeEventListener('cold_start_deluxe_trigger', handleDeluxeTrigger);
     };
   }, [setCurrentView, setFocusTargetProjectId, setFocusAutoStartProjectId, setIsPomodoroActive, setNoteViewMode]);
 
@@ -906,6 +926,14 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
     window.addEventListener('journal-reminders-updated', push);
     return () => window.removeEventListener('journal-reminders-updated', push);
   }, [user?.id]);
+
+  // Tell the native widgets whether this account is Deluxe: Routine / Calendar / Journal-calendar widgets
+  // draw a locked card (and cannot be added) for free accounts.
+  useEffect(() => {
+    // The placeholder profile shown while the real one loads is always FREE: never tell the widgets about it.
+    if (!user?.id || (user as any).isSkeleton || !Capacitor.isNativePlatform()) return;
+    WidgetAuthBridge.updateProStatus?.({ isPro: isDeluxePlan(user.plan) }).catch(() => {});
+  }, [user?.id, user?.plan, (user as any)?.isSkeleton]);
 
  const [forceFocusOpen, setForceFocusOpen] = useState(false);
 
@@ -1572,6 +1600,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  const backButtonStateRef = useRef<any>({});
  useEffect(() => {
    backButtonStateRef.current = {
+     proOverlayOpen,
      isProgressOpen,
      activeModal,
      validationHabit,
@@ -1617,6 +1646,14 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
    const handleBackButton = async () => {
      const state = backButtonStateRef.current;
      // 1. Modals & Overlays (Highest Priority)
+     if (isDeluxePromptOpen()) {
+       closeDeluxePrompt();
+       return;
+     }
+     if (state.proOverlayOpen) {
+       state.setIsProModalOpen(false);
+       return;
+     }
      if (state.isProgressOpen) {
        state.setIsProgressOpen(false);
        return;
@@ -1749,13 +1786,16 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  
  <Suspense fallback={null}>
  <ProUpgradeModal 
- isOpen={isProModalOpen || activeModal === 'PRO'}
+ isOpen={isProModalOpen}
  onClose={() => {
  setIsProModalOpen(false);
  if (activeModal === 'PRO') setActiveModal(null);
  }}
  />
  </Suspense>
+
+ {/* Explains locked Deluxe features (super habits, routine calendar, widgets…) and links to the purchase screen */}
+ <DeluxePromptHost />
 
  {/* Global Streak Celebration Overlay */}
  <StreakCelebrationOverlay 
@@ -2229,6 +2269,8 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  onAddQuest={handleAddQuest}
  onAddHabit={handleAddHabit}
  onFocusProject={(projectId) => handleFocusProject(projectId)}
+ onScheduleHabit={handleHabitConfirm}
+ onScheduleQuest={handleQuestConfirm}
  onOpenJournal={(dateStr) => {
   setCurrentView('NOTES');
   setNoteViewMode('JOURNAL');

@@ -3047,6 +3047,58 @@
     "goalTime": "Time goal",
     "routine": "Routine",
     "icon": "Icon",
-    "impactShort": "Impact"
+    "impactShort": "Impact",
+    "wiz": {
+      "next": "Next",
+      "back": "Back",
+      "stepOf": "Step {{i}} of {{n}}",
+      "name": "Name",
+      "note": "Note (optional)",
+      "nameFirst": "Enter a name to continue",
+      "traitFirst": "Pick a trait to continue",
+      "createTask": "Create task",
+      "createHabit": "Create habit",
+      "createProject": "Create project",
+      "task": {
+        "t1": "What do you want to do?",
+        "h1": "Give your task a clear name. You can add a note if you like.",
+        "t2": "When will you do it?",
+        "h2": "Pick the day and, if you want, the time and repetition.",
+        "t3": "How much effort does it take?",
+        "h3": "This sets how much reward you get for finishing it.",
+        "t4": "Organize it",
+        "h4": "Choose which trait it belongs to and whether it is part of a project."
+      },
+      "habit": {
+        "t1": "What habit do you want to build?",
+        "h1": "Name it and pick the trait it strengthens.",
+        "t2": "How often will you do it?",
+        "h2": "Choose the days you want to complete it.",
+        "t3": "How will you measure it?",
+        "h3": "Define what completing it means and what it is worth.",
+        "t4": "Remind me",
+        "h4": "Set an alarm and personalize it."
+      },
+      "project": {
+        "t1": "Which project do you want to move forward?",
+        "h1": "Name it and pick the trait it strengthens.",
+        "t2": "How much time will you give it?",
+        "h2": "Pick your time goal; we split it into daily goals.",
+        "t3": "Your focus sessions",
+        "h3": "Set how long each work block lasts.",
+        "t4": "Reminder and done",
+        "h4": "Set an alarm so you do not forget."
+      },
+      "habitName": "E.g. Read, Meditate…",
+      "pickDays": "Pick at least one day to continue",
+      "goalFirst": "Enter your goal to continue",
+      "splitFirst": "Finish splitting your goal",
+      "stepsFirst": "Add at least one step",
+      "alarmFirst": "Pick your alarm time to create the habit",
+      "alarmFirstProject": "Pick your alarm time to create the project",
+      "sessionFirst": "Set the session length"
+    },
+    "everyDayHint": "It will repeat every day.",
+    "advanced": "Advanced"
   }
 }

@@ -38,7 +38,11 @@ data class RoutineConfig(
     val exactTime: Boolean = false,
     val timeLeft: Boolean = true,
     val habitIcons: Boolean = true,
-    val use24h: Boolean = false
+    val use24h: Boolean = false,
+    /** Days the app's calendar view shows at once (1, 3 or 7): the calendar widget starts on it. */
+    val calendarSpan: Int = 1,
+    /** How the calendar paints blocks: OWN (assigned colour), TRAIT or IMPORTANCE. */
+    val calendarColor: String = "OWN"
 ) {
     companion object {
         /** Parses the JSON the app pushes through WidgetAuthBridge.updateRoutineConfig (defaults for anything missing). */
@@ -62,7 +66,10 @@ data class RoutineConfig(
                     exactTime = b("exactTime", d.exactTime),
                     timeLeft = b("timeLeft", d.timeLeft),
                     habitIcons = b("habitIcons", d.habitIcons),
-                    use24h = b("use24h", d.use24h)
+                    use24h = b("use24h", d.use24h),
+                    calendarSpan = (o.get("calendarSpan")?.takeIf { it.isJsonPrimitive }?.let { runCatching { it.asDouble.toInt() }.getOrNull() } ?: d.calendarSpan)
+                        .let { if (it == 3 || it == 7) it else 1 },
+                    calendarColor = o.get("calendarColor")?.takeIf { it.isJsonPrimitive }?.asString?.takeIf { it == "TRAIT" || it == "IMPORTANCE" } ?: "OWN"
                 )
             } catch (_: Exception) {
                 d
@@ -91,7 +98,17 @@ data class RoutineItem(
     val taskId: String? = null,
     val projectId: String? = null,
     /** Amount a tap adds to a quantity habit (a fixed slot's amount, else 1). */
-    val slotAmount: Int = 1
+    val slotAmount: Int = 1,
+    /** Length of its block in the calendar, in minutes. */
+    val durationMin: Int = 30,
+    /** Moved to another hour for this day only. */
+    val overridden: Boolean = false,
+    /** The colour the user assigned / the trait colour / how important (1..4, 0 = unrated). */
+    val colorOwn: Int? = null,
+    val colorTrait: Int? = null,
+    val importance: Int = 0,
+    /** A reminder pinned on the Journal calendar. */
+    val reminderId: String? = null
 )
 
 enum class DayPart { MORNING, AFTERNOON, NIGHT }
@@ -146,10 +163,52 @@ object RoutineEngine {
     private fun JsonObject.str(k: String): String? = prim(k)?.asString?.takeIf { it.isNotEmpty() }
     private fun JsonObject.bool(k: String): Boolean = prim(k)?.let { runCatching { it.asBoolean }.getOrNull() } ?: false
     private fun JsonObject.dbl(k: String): Double? = prim(k)?.let { runCatching { it.asDouble }.getOrNull() }
+    private fun JsonObject.obj(k: String): JsonObject? = get(k)?.takeIf { it.isJsonObject }?.asJsonObject
     private fun JsonObject.arr(k: String): JsonArray? = get(k)?.takeIf { it.isJsonArray }?.asJsonArray
     private fun JsonObject.objs(k: String): List<JsonObject> = arr(k)?.mapNotNull { it.takeIf { e -> e.isJsonObject }?.asJsonObject } ?: emptyList()
     private fun JsonObject.ints(k: String): List<Int> = arr(k)?.mapNotNull { e -> e.takeIf { it.isJsonPrimitive }?.let { runCatching { it.asDouble.toInt() }.getOrNull() } } ?: emptyList()
     private fun JsonObject.strs(k: String): List<String> = arr(k)?.mapNotNull { e -> e.takeIf { it.isJsonPrimitive }?.asString } ?: emptyList()
+
+    /** Colour of a block under a colour mode (twin of colorForMode in routineEngine.ts). */
+    fun colorForMode(item: RoutineItem, mode: String): Int {
+        if (mode == "IMPORTANCE" && item.importance >= 1) return Color.parseColor(IMPORTANCE_COLORS[minOf(4, item.importance) - 1])
+        if (mode == "TRAIT") return item.colorTrait ?: item.colorOwn ?: item.color
+        return item.colorOwn ?: item.colorTrait ?: item.color
+    }
+
+    val IMPORTANCE_COLORS = listOf("#30d158", "#0a84ff", "#ff9f0a", "#ff453a")
+    private val DIFFICULTY_IMPORTANCE = mapOf("C" to 1, "B" to 2, "A" to 3, "S" to 4)
+    private fun importanceOf(v: Double?): Int = (v?.let { Math.round(it).toInt() } ?: 1).coerceIn(1, 4)
+
+    /** Does a pinned reminder fall on this day? (twin of reminderOccursOn in reminderItems.ts) */
+    private fun reminderOccursOn(r: JsonObject, key: String, cal: Calendar): Boolean {
+        val date = r.str("date") ?: return false
+        if (key < date) return false
+        return when (r.str("repeat")) {
+            "DAILY" -> true
+            "WEEKLY" -> {
+                val a = date.split("-").map { it.toInt() }
+                val first = Calendar.getInstance().apply { set(a[0], a[1] - 1, a[2], 12, 0, 0) }
+                first.get(Calendar.DAY_OF_WEEK) == cal.get(Calendar.DAY_OF_WEEK)
+            }
+            "MONTHLY" -> {
+                val d = date.split("-")[2].toInt()
+                cal.get(Calendar.DAY_OF_MONTH) == minOf(d, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
+            }
+            "YEARLY" -> {
+                val a = date.split("-").map { it.toInt() }
+                cal.get(Calendar.MONTH) == a[1] - 1 && cal.get(Calendar.DAY_OF_MONTH) == minOf(a[2], cal.getActualMaximum(Calendar.DAY_OF_MONTH))
+            }
+            else -> key == date
+        }
+    }
+
+    /** Calendar block length: the first value given, else a default by kind (twin of DEFAULT_DURATION in routineEngine.ts). */
+    private fun duration(kind: String, vararg candidates: Double?): Int {
+        val v = candidates.firstOrNull { it != null }
+        val def = when (kind) { RoutineKind.SUBHABIT -> 15; RoutineKind.PROJECT -> 45; RoutineKind.JOURNAL -> 20; else -> 30 }
+        return (v?.toInt() ?: def).coerceIn(5, 720)
+    }
 
     // ── Dates ───────────────────────────────────────────────────────────────────
 
@@ -280,7 +339,9 @@ object RoutineEngine {
         val projects: JsonArray?,
         val journal: JsonArray?,
         val attributeColors: Map<String, String>,
-        val journalTimes: List<String>
+        val journalTimes: List<String>,
+        /** Reminders pinned on the Journal calendar (pushed by the app). */
+        val reminders: List<JsonObject> = emptyList()
     )
 
     private fun emojiForHabit(habit: JsonObject, config: RoutineConfig): String? =
@@ -305,12 +366,18 @@ object RoutineEngine {
         fun attrColor(id: String?): String = if (id == null) "" else src.attributeColors[id] ?: ""
 
         // Habits ───────────────────────────────────────────────────────────────
+        val habitColors = HashMap<String, Triple<Int?, Int?, Int>>()
         if (config.showHabits) {
             for (habit in src.habits?.mapNotNull { it.takeIf { e -> e.isJsonObject }?.asJsonObject } ?: emptyList()) {
                 val habitId = habit.str("id") ?: continue
                 if (habit.bool("archived") || !isHabitDueOn(habit, day)) continue
                 val colorStr = habit.str("customColor") ?: attrColor(habit.str("attribute")).ifEmpty { null } ?: habit.str("color") ?: DEFAULT_COLOR
                 val color = parseColor(colorStr)
+                habitColors[habitId] = Triple(
+                    (habit.str("customColor") ?: habit.str("color"))?.let { parseColor(it) },
+                    attrColor(habit.str("attribute")).ifEmpty { null }?.let { parseColor(it) },
+                    importanceOf(habit.dbl("impact"))
+                )
                 val habitDone = isHabitDoneOn(habit, key)
                 // Live progress (quantity, ticked sub-habits) only counts if recorded today: until the
                 // app's daily reset runs it still describes the previous day (twin of routineEngine.ts).
@@ -327,9 +394,13 @@ object RoutineEngine {
                         val subDays = sub.ints("days")
                         if (subDays.isNotEmpty() && !subDays.contains(day.get(Calendar.DAY_OF_WEEK) - 1)) continue
                         val subDone = if (isToday) (sub.bool("completed") && live) else sub.strs("history").any { historyKey(it) == key }
-                        val time = normalizeTime(sub.str("reminderTime") ?: habit.str("reminderTime"))
+                        val subBase = normalizeTime(sub.str("reminderTime") ?: habit.str("reminderTime"))
+                        val subOv = sub.obj("dayOverrides")?.obj(key)
+                        val time = normalizeTime(subOv?.str("time")) ?: subBase
                         items.add(RoutineItem(
                             id = "$habitId-sub-$subId", kind = RoutineKind.SUBHABIT, title = sub.str("text") ?: "",
+                            durationMin = duration(RoutineKind.SUBHABIT, subOv?.dbl("duration"), sub.dbl("calendarDuration")),
+                            overridden = time != subBase,
                             subtitle = title, time = time, minutes = timeToMinutes(time), done = subDone,
                             color = sub.str("color")?.let { parseColor(it) } ?: color, emoji = emoji,
                             habitId = habitId, subtaskId = subId
@@ -343,12 +414,16 @@ object RoutineEngine {
                     var accumulated = 0.0
                     val current = if (live) habit.dbl("currentValue") ?: 0.0 else 0.0
                     val unit = habit.str("unit") ?: ""
+                    val dayOv = habit.obj("dayOverrides")?.obj(key)
                     slots.forEachIndexed { i, slot ->
                         val amount = slot.dbl("amount") ?: 0.0
                         val slotDone = habitDone || (isToday && current >= accumulated + amount)
-                        val time = normalizeTime(slot.str("time"))
+                        val slotBase = normalizeTime(slot.str("time"))
+                        val time = normalizeTime(slot.str("id")?.let { id -> dayOv?.obj("slots")?.str(id) }) ?: slotBase
                         items.add(RoutineItem(
                             id = "$habitId-time-$i", kind = RoutineKind.HABIT, title = title,
+                            durationMin = duration(RoutineKind.HABIT, dayOv?.dbl("duration"), habit.dbl("calendarDuration")),
+                            overridden = time != slotBase,
                             subtitle = "${trimNumber(amount)} $unit".trim(), time = time, minutes = timeToMinutes(time),
                             done = slotDone, color = color, isQuantity = true, emoji = emoji, habitId = habitId,
                             slotAmount = amount.toInt().coerceAtLeast(1)
@@ -359,6 +434,7 @@ object RoutineEngine {
                 }
 
                 var time = normalizeTime(habit.str("reminderTime"))
+                val habitOv = habit.obj("dayOverrides")?.obj(key)
                 val isQuantity = type == "QUANTITY"
                 if (isToday && isQuantity && habit.bool("isDivided")) {
                     val next = habit.str("nextInstanceTime")?.let { parseDate(it) }
@@ -367,12 +443,16 @@ object RoutineEngine {
                         if (dayKey(c) == key) time = String.format(Locale.US, "%02d:%02d", c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE))
                     }
                 }
+                val baseTime = time
+                normalizeTime(habitOv?.str("time"))?.let { time = it }
                 val target = habit.dbl("targetValue") ?: 0.0
                 val current = if (live) habit.dbl("currentValue") ?: 0.0 else 0.0
                 val unit = habit.str("unit") ?: ""
                 val shown = if (isToday) current else if (habitDone) target else 0.0
                 items.add(RoutineItem(
                     id = habitId, kind = RoutineKind.HABIT, title = title,
+                    durationMin = duration(RoutineKind.HABIT, habitOv?.dbl("duration"), habit.dbl("calendarDuration")),
+                    overridden = time != baseTime,
                     subtitle = if (isQuantity) "${trimNumber(shown)} / ${trimNumber(target)} $unit".trim() else null,
                     time = time, minutes = timeToMinutes(time), done = habitDone, color = color,
                     isQuantity = isQuantity,
@@ -382,6 +462,11 @@ object RoutineEngine {
                     slotAmount = (habit.dbl("dividedQuantity")?.toInt() ?: 1).coerceAtLeast(1)
                 ))
             }
+        }
+
+        for (i in items.indices) {
+            val c = items[i].habitId?.let { habitColors[it] } ?: continue
+            items[i] = items[i].copy(colorOwn = c.first, colorTrait = c.second, importance = c.third)
         }
 
         // Tasks ────────────────────────────────────────────────────────────────
@@ -401,7 +486,10 @@ object RoutineEngine {
                 items.add(RoutineItem(
                     id = "task-$id", kind = RoutineKind.TASK, title = quest.str("title") ?: "",
                     subtitle = if (overdue) "Atrasada" else null, time = time, minutes = timeToMinutes(time),
-                    done = completed, color = parseColor(colorStr), overdue = overdue, taskId = id
+                    done = completed, color = parseColor(colorStr), overdue = overdue, taskId = id,
+                    colorOwn = quest.str("color")?.let { parseColor(it) }, colorTrait = attrColor(quest.str("attribute")).ifEmpty { null }?.let { parseColor(it) },
+                    importance = DIFFICULTY_IMPORTANCE[quest.str("difficulty")] ?: 1,
+                    durationMin = duration(RoutineKind.TASK, quest.dbl("calendarDuration"))
                 ))
             }
         }
@@ -424,8 +512,25 @@ object RoutineEngine {
                     subtitle = if (target > 0) "$minutes/$target min" else if (minutes > 0) "$minutes min" else "Sesión de enfoque",
                     time = reminder, minutes = timeToMinutes(reminder), done = minutes >= maxOf(1, target),
                     color = parseColor(project.str("color"), "#8b5cf6"),
+                    colorOwn = project.str("color")?.let { parseColor(it) }, importance = importanceOf(project.dbl("impact")),
                     progress = if (target > 0) (minutes.toFloat() / target).coerceIn(0f, 1f) else null,
-                    projectId = id
+                    projectId = id,
+                    durationMin = duration(RoutineKind.PROJECT, if (target > 0) minOf(target, 180).toDouble() else null)
+                ))
+            }
+        }
+
+        // Reminders pinned on the Journal calendar ───────────────────────────
+        if (config.showJournal) {
+            for (r in src.reminders) {
+                val id = r.str("id") ?: continue
+                if (!reminderOccursOn(r, key, day)) continue
+                val time = normalizeTime(r.str("time"))
+                val doneDates = r.strs("doneDates")
+                items.add(RoutineItem(
+                    id = "reminder-$id", kind = RoutineKind.JOURNAL, title = r.str("title") ?: "", subtitle = "Recordatorio",
+                    time = time, minutes = timeToMinutes(time), done = doneDates.contains(key),
+                    color = parseColor(r.str("color"), "#818cf8"), reminderId = id, durationMin = duration(RoutineKind.JOURNAL, r.dbl("duration"))
                 ))
             }
         }
@@ -437,7 +542,7 @@ object RoutineEngine {
                 val time = normalizeTime(raw)
                 items.add(RoutineItem(
                     id = "journal-$i", kind = RoutineKind.JOURNAL, title = "Escribir en el journal", subtitle = "Recordatorio",
-                    time = time, minutes = timeToMinutes(time), done = written, color = parseColor("#818cf8")
+                    time = time, minutes = timeToMinutes(time), done = written, color = parseColor("#818cf8"), durationMin = 20
                 ))
             }
         }

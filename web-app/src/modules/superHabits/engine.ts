@@ -113,3 +113,28 @@ export const nextFlameTier = (streak: number): { tier: FlameTier; daysLeft: numb
   const next = FLAME_TIERS[cur.index + 1];
   return next ? { tier: next, daysLeft: next.min - clampStreak(streak) } : null;
 };
+
+// ── World progress ───────────────────────────────────────────────────────────
+
+/** Level (0..1) of milestone `i` in a world: the 8 milestones are evenly spaced. */
+export const milestoneLevel = (i: number) => (Math.max(0, Math.min(7, i)) + 1) / 8;
+
+/**
+ * 0..1 fill of a world's metaphor (water level, rocket altitude, sun position…).
+ * Each milestone is one eighth, and the days in between interpolate linearly,
+ * so the 2/4/7 early badges don't pile up in the first 10% of the scene.
+ */
+export const worldLevel = (streak: number): number => {
+  const s = clampStreak(streak);
+  if (s <= 0) return 0;
+  let prevDay = 0;
+  let prevLvl = 0;
+  for (let i = 0; i < SUPER_MILESTONES.length; i++) {
+    const day = SUPER_MILESTONES[i];
+    const lvl = milestoneLevel(i);
+    if (s <= day) return prevLvl + (lvl - prevLvl) * ((s - prevDay) / (day - prevDay));
+    prevDay = day;
+    prevLvl = lvl;
+  }
+  return 1;
+};

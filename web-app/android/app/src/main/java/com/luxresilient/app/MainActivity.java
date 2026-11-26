@@ -80,6 +80,11 @@ public class MainActivity extends BridgeActivity {
             android.content.Intent routineIntent = new android.content.Intent("com.luxresilient.app.REFRESH_ROUTINE");
             routineIntent.setComponent(new android.content.ComponentName(this, com.luxresilient.app.widget.RoutineWidgetProvider.class));
             sendBroadcast(routineIntent);
+
+            // Refresh Calendar widget
+            android.content.Intent calendarIntent = new android.content.Intent("com.luxresilient.app.REFRESH_CALENDAR");
+            calendarIntent.setComponent(new android.content.ComponentName(this, com.luxresilient.app.widget.CalendarWidgetProvider.class));
+            sendBroadcast(calendarIntent);
         } catch (Exception e) {
             e.printStackTrace();
         }

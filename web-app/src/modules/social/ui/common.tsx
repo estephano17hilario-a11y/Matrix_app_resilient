@@ -8,6 +8,7 @@ import { useProgression } from '@/modules/progression/progressionStore';
 import { LEGEND_INDEX, getRank } from '@/modules/progression/engine/ranks';
 import type { PublicProfile } from '../socialService';
 import type { Record2 } from '../engine';
+import { DeluxeBadge } from '@/modules/monetization/DeluxeBadge';
 
 export { EmptyState as Empty } from '@/modules/progression/ui/arena';
 
@@ -77,7 +78,10 @@ export const ProfileLine: React.FC<{ profile: PublicProfile; right?: React.React
         {dot && <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full" style={{ background: dot === 'on' ? '#22c55e' : 'rgb(var(--p-text-3))', boxShadow: '0 0 0 2.5px rgb(var(--p-surface))' }} />}
       </div>
       <div className="flex-1 min-w-0 text-left">
-        <p className="text-[15px] font-black truncate leading-tight">{displayName(profile)}</p>
+        <p className="text-[15px] font-black leading-tight flex items-center gap-1.5 min-w-0">
+          <span className="truncate">{displayName(profile)}</span>
+          {profile.is_deluxe && <DeluxeBadge size="xs" />}
+        </p>
         <p className="mt-0.5 text-[11.5px] tabular-nums truncate flex items-center gap-1.5">
           <span className="font-bold" style={{ color: getRank(profile.rank_index).color }}>{rankLabel(profile)}</span>
           <span className="prog-text-3">· {profile.elo} ELO</span>

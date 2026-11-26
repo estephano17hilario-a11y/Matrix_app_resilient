@@ -48,6 +48,7 @@ const PREFIXES: { prefix: string; perUser: boolean }[] = [
   { prefix: 'matrix_project_routine_', perUser: false },   // mode + per-weekday focus routines
   { prefix: 'blueprint_order_', perUser: true },
   { prefix: 'journal_reminders_v1_', perUser: true },
+  { prefix: 'journal_reminder_items_v1_', perUser: true },
   { prefix: 'routine_config_v1_', perUser: true },
   { prefix: 'matrix_stats_tutorial_seen_', perUser: true },
   { prefix: 'matrix_tour_seen_', perUser: true },

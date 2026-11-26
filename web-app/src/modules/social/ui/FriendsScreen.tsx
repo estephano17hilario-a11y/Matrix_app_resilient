@@ -16,6 +16,9 @@ import { DuelCard } from './DuelCard';
 import { DuelCreateSheet } from './DuelCreateSheet';
 import { FriendProfileSheet } from './FriendProfileSheet';
 import { StreakCard } from './StreakCard';
+import { useAuth } from '@/context/AuthContext';
+import { isDeluxePlan } from '@/modules/monetization/deluxe';
+import { DeluxeBadge } from '@/modules/monetization/DeluxeBadge';
 import { Avatar, FramedAvatar, GhostButton, PrimaryButton, ProfileLine, Section, displayName, rankLabel, useMyFrame } from './common';
 
 type Tab = 'FRIENDS' | 'DUELS' | 'STREAKS' | 'INBOX';
@@ -33,9 +36,11 @@ const useMyProfile = (snap: SocialSnapshot): PublicProfile => {
   const prog = useProgression();
   const me = snap.userId ?? 'me';
   const base = snap.profiles[me];
+  const { profile } = useAuth();
   return {
     user_id: me, display_name: base?.display_name ?? null, avatar_id: base?.avatar_id ?? null, hud_streak: base?.hud_streak ?? 0,
     elo: prog.summary.elo, rank_index: prog.summary.rankIndex, division: prog.standing.division, level: prog.level.level,
+    is_deluxe: isDeluxePlan(profile?.plan),
   };
 };
 
@@ -236,7 +241,10 @@ const FriendsTab: React.FC<{ onOpen: (f: FriendEntry) => void; onGo: (t: Tab) =>
             <div className="p-2"><FramedAvatar profile={meP} frame={myFrame} size={64} animate /></div>
             <div className="flex-1 min-w-0">
               <p className="arena-kicker">Tu carta</p>
-              <p className="text-[19px] font-black truncate leading-tight">{displayName(meP)}</p>
+              <p className="text-[19px] font-black leading-tight flex items-center gap-2 min-w-0">
+                <span className="truncate">{displayName(meP)}</span>
+                {meP.is_deluxe && <DeluxeBadge size="sm" />}
+              </p>
               <p className="text-[12px] font-bold" style={{ color: 'rgb(var(--rank))' }}>{rankLabel(meP)} · <span className="tabular-nums">{meP.elo} ELO</span></p>
             </div>
           </div>

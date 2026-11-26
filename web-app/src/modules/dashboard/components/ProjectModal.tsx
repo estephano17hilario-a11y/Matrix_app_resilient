@@ -11,7 +11,8 @@ import { TimePicker } from '../../../components/ui/TimePicker';
 import { ColorPicker } from './ColorPicker';
 import {
     CupertinoSheet, Stack, Section, Hero, Row, InputRow, Segmented, Toggle, Stepper, BigStepper, Chip, DayPicker,
-    DateNumberGrid, Notice, RewardPreview, Hint, Pad, TraitGrid, Tiles, Tile, MiniMeter, resolveTraitIcon, traitLabelOf,
+    DateNumberGrid, Notice, RewardPreview, Hint, Pad, TraitGrid, Tiles, Tile, MiniMeter, WizardSheet, resolveTraitIcon, traitLabelOf,
+    type WizardStep,
 } from '../../../components/cupertino';
 
 type Panel = null | 'trait' | 'color' | 'monthly' | 'pomo' | 'smart';
@@ -23,6 +24,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
     const { t } = useTranslation();
     const { permissions, requestPermissions, openSystemSettings } = usePermissions();
     const [panel, setPanel] = useState<Panel>(null);
+    const [step, setStep] = useState(0);
 
     // Identity
     const [title, setTitle] = useState('');
@@ -60,6 +62,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
     useEffect(() => {
         if (!isOpen) return;
         setPanel(null);
+        setStep(0);
         setIsSubmitting(false);
         setSelectedStepId(null);
         if (initialData) {
@@ -464,14 +467,244 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
         </Section>
     ) : null;
 
+    const useWizard = !initialData?.id;
+    const subpanel = panel ? { title: panelTitle[panel], onBack: () => setPanel(null), children: panelBody } : null;
+
+    const rewardPreview = (
+        <RewardPreview
+            xp={prediction.xp}
+            traitXp={prediction.traitXp}
+            coins={prediction.coins}
+            traitColor={activeColor}
+            TraitIcon={SelectedIcon}
+            traitLabel={activeLabel}
+            bonus={prediction.bonusApplied}
+            xpLabel={t('common.xp', 'XP')}
+            goldLabel={t('common.gold', 'Oro')}
+        />
+    );
+
+    // ── Shared fragments ─────────────────────────────────────────────────────
+    const goalBlock = (
+        <>
+            <Segmented
+                tall
+                value={goalFreq}
+                onChange={(f) => {
+                    setGoalFreq(f);
+                    if (f === 'WEEKLY') setWorkingDays([1, 2, 3, 4, 5]);
+                    else if (f === 'MONTHLY') setWorkingDays([]);
+                }}
+                options={['DAILY', 'WEEKLY', 'MONTHLY'].map(f => ({ value: f, label: t(`modals.project.frequencies.${f}`) }))}
+            />
+            <div className="cu-group">
+                <div className="cu-row" style={{ minHeight: 48 }}>
+                    <span className="cu-row-tile" style={{ background: '#0a84ff' }}><Hourglass size={17} /></span>
+                    <span className="cu-row-main"><span className="cu-row-label">{t('cu.goalTime', 'Meta de tiempo')}</span></span>
+                    <div style={{ width: 118, flex: 'none' }}>
+                        <Segmented<'HOURS' | 'MINUTES'>
+                            value={goalUnit}
+                            onChange={(u) => {
+                                setGoalUnit(u);
+                                if (u === 'HOURS' && (goalTarget > 24 || goalTarget < 1)) setGoalTarget(1);
+                                if (u === 'MINUTES' && goalTarget < 15) setGoalTarget(30);
+                            }}
+                            options={[
+                                { value: 'HOURS', label: t('common.hoursShort', 'HRS') },
+                                { value: 'MINUTES', label: t('common.minUpper', 'MIN') },
+                            ]}
+                        />
+                    </div>
+                </div>
+                <BigStepper
+                    value={goalTarget}
+                    unit={`${unitLabel} / ${perLabel}`}
+                    onMinus={() => setGoalTarget(Math.max(goalUnit === 'HOURS' ? 0.5 : 5, goalTarget - (goalUnit === 'HOURS' ? 0.5 : 5)))}
+                    onPlus={() => setGoalTarget(Math.min(goalUnit === 'HOURS' ? 24 : 720, goalTarget + (goalUnit === 'HOURS' ? 0.5 : 5)))}
+                />
+            </div>
+            {goalFreq === 'WEEKLY' && <DayPicker days={DAYS} selected={workingDays} onToggle={toggleDay} />}
+            {goalFreq === 'MONTHLY' && (
+                <Tiles cols={1}>
+                    <Tile icon={<Calendar size={14} />} color="#ff453a" label={t('cu.monthDays', 'Días del mes')} value={monthlySummary || t('cu.choose', 'Elegir')} onClick={() => setPanel('monthly')} />
+                </Tiles>
+            )}
+            {goalFreq !== 'DAILY' && (
+                <Notice tone="info" icon={<Calculator size={16} />}>
+                    {t('modals.project.dailyTarget', 'Objetivo diario')}:{' '}
+                    <b style={{ marginLeft: 0, textDecoration: 'none' }}>
+                        {calculatedDailyGoal < 1 ? `${Math.round(calculatedDailyGoal * 60)} ${t('modals.project.minutes', 'minutos')}` : `${calculatedDailyGoal} ${t('modals.project.hours', 'horas')}`}
+                    </b>{' '}/ {String(t('modals.project.day')).toLowerCase()}
+                </Notice>
+            )}
+        </>
+    );
+
+    const traitTile = (
+        <Tile icon={<SelectedIcon size={14} />} color={selectedAttr?.color || '#0a84ff'} label={t('cu.trait', 'Rasgo')} value={hasTrait ? activeLabel : t('habits.selectTrait', 'Elegir')} onClick={() => setPanel('trait')} />
+    );
+    const colorTile = (
+        <Tile icon={<Palette size={14} />} color={customColor || '#bf5af2'} label={t('cu.color', 'Color')} value={customColor ? t('cu.custom', 'Personal') : t('cu.auto', 'Automático')} onClick={() => setPanel('color')} />
+    );
+    const impactTile = (
+        <Tile icon={<Zap size={14} />} color={IMPACT_COLORS[impact - 1]} label={t('cu.impactShort', 'Impacto')} onClick={() => setImpact(impact >= 4 ? 1 : impact + 1)}>
+            <MiniMeter value={impact} colors={IMPACT_COLORS} />
+        </Tile>
+    );
+    const focusTile = (
+        <Tile
+            icon={<Timer size={14} />}
+            color="#ff9f0a"
+            label={useWizard ? t('cu.advanced', 'Avanzado') : t('cu.focus', 'Enfoque')}
+            value={useWizard ? (focusRoutine.length ? t('cu.routine', 'Rutina') : t('cu.customize', 'Personalizar')) : (focusRoutine.length ? t('cu.routine', 'Rutina') : `${pomoDuration || 25} min`)}
+            onClick={() => setPanel('pomo')}
+        />
+    );
+    const alarmTile = (span?: 2) => (
+        <Tile span={span} icon={<Bell size={14} />} color="#bf5af2" label={t('modals.project.alert', 'Alarma')} active={!alarmOk && !isEditing}>
+            <TimePicker
+                value={reminder}
+                className="cu-time"
+                onChange={(val) => {
+                    setReminder(val);
+                    if (val && permissions.notifications !== 'granted') requestPermissions();
+                }}
+            />
+        </Tile>
+    );
+    const smartTile = hasSmart ? (
+        <Tile icon={<Target size={14} />} color="#5e5ce6" label={t('cu.strategy', 'Estrategia')} value={linkedSmart?.mainGoal || t('common.none', 'Ninguna')} onClick={() => setPanel('smart')} />
+    ) : null;
+    const alarmNotices = (
+        <>
+            {reminder && (permissions.notifications !== 'granted' && permissions.notifications !== 'unknown') && (
+                <Notice tone="danger" icon={<AlertCircle size={16} />} action={t('common.fix', 'Arreglar')} onClick={requestPermissions}>
+                    {t('habits.activateNotifications', 'Activa las notificaciones')}
+                </Notice>
+            )}
+            {reminder && (
+                <div className="cu-linkrow">
+                    <button type="button" className="cu-link" style={{ fontSize: 13, color: 'var(--cu-label-2)' }} onClick={openSystemSettings}>
+                        <Zap size={13} /> {t('habits.batteryOptimization', 'Optimización de batería')} · {t('common.review', 'Revisar')}
+                    </button>
+                </div>
+            )}
+        </>
+    );
+
+    // ── Creation: four blocks, one at a time ─────────────────────────────────
+    if (useWizard) {
+        const steps: WizardStep[] = [
+            {
+                key: 'what',
+                title: t('cu.wiz.project.t1', '¿Qué proyecto quieres avanzar?'),
+                hint: t('cu.wiz.project.h1', 'Ponle nombre y elige el rasgo que fortalece.'),
+                icon: <Briefcase size={16} />,
+                valid: hasName && hasTrait,
+                missing: !hasName ? t('cu.wiz.nameFirst', 'Escribe un nombre para continuar') : t('cu.wiz.traitFirst', 'Elige un rasgo para continuar'),
+                content: (
+                    <>
+                        <div>
+                            <p className="cu-field-label">{t('cu.wiz.name', 'Nombre')}</p>
+                            <div className="cu-bigfield">
+                                <input className="cu-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('modals.project.namePlaceholder')} aria-label={t('cu.wiz.name', 'Nombre')} autoFocus />
+                            </div>
+                        </div>
+                        <div className="cu-desc">
+                            <FileText size={17} />
+                            <input className="cu-input" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={t('cu.wiz.note', 'Nota (opcional)')} aria-label={t('cu.wiz.note', 'Nota (opcional)')} />
+                        </div>
+                        <Tiles cols={2}>{traitTile}{colorTile}</Tiles>
+                    </>
+                ),
+            },
+            {
+                key: 'goal',
+                title: t('cu.wiz.project.t2', '¿Cuánto tiempo le dedicarás?'),
+                hint: t('cu.wiz.project.h2', 'Elige tu meta de tiempo; la repartimos en días.'),
+                icon: <Hourglass size={16} />,
+                valid: goalOk,
+                missing: t('cu.wiz.pickDays', 'Elige al menos un día para continuar'),
+                content: goalBlock,
+            },
+            {
+                key: 'focus',
+                title: t('cu.wiz.project.t3', 'Tus sesiones de enfoque'),
+                hint: t('cu.wiz.project.h3', 'Define cuánto dura cada bloque de trabajo.'),
+                icon: <Timer size={16} />,
+                valid: sessionOk,
+                missing: t('cu.wiz.sessionFirst', 'Define la duración de la sesión'),
+                content: (
+                    <>
+                        <div className="cu-chips" style={{ justifyContent: 'center' }}>
+                            {pomoPresets.map(p => (
+                                <Chip key={p} on={pomoDuration === p} onClick={() => setPomoDuration(p)}>{p} min</Chip>
+                            ))}
+                        </div>
+                        <div className="cu-mini-field">
+                            <span style={{ flex: 1 }}>{t('modals.project.custom', 'Personalizado')}</span>
+                            <input
+                                className="cu-input cu-num"
+                                style={{ width: 64 }}
+                                type="number"
+                                inputMode="numeric"
+                                value={String(pomoDuration)}
+                                onChange={(e) => setPomoDuration(e.target.value === '' ? '' : (parseInt(e.target.value) || 25))}
+                                aria-label="min"
+                            />
+                            <span>min</span>
+                        </div>
+                        <Tiles cols={2}>{impactTile}{focusTile}</Tiles>
+                    </>
+                ),
+            },
+            {
+                key: 'remind',
+                title: t('cu.wiz.project.t4', 'Recordatorio y listo'),
+                hint: t('cu.wiz.project.h4', 'Pon una alarma para no olvidarlo.'),
+                icon: <Bell size={16} />,
+                valid: alarmOk,
+                missing: t('cu.wiz.alarmFirstProject', 'Elige la hora de tu alarma para crear el proyecto'),
+                content: (
+                    <>
+                        <Tiles cols={2}>{alarmTile(hasSmart ? undefined : 2)}{smartTile}</Tiles>
+                        {alarmNotices}
+                    </>
+                ),
+            },
+        ];
+        return (
+            <WizardSheet
+                isOpen={isOpen}
+                onClose={onClose}
+                accent={activeColor}
+                steps={steps}
+                index={step}
+                onIndex={setStep}
+                onFinish={handleConfirm}
+                finishLabel={t('cu.wiz.createProject', 'Crear proyecto')}
+                finishing={isSubmitting}
+                glyph={<SelectedIcon size={34} />}
+                name={title}
+                lastExtra={canSubmit ? rewardPreview : null}
+                subpanel={subpanel}
+                nextLabel={t('cu.wiz.next', 'Siguiente')}
+                backLabel={t('cu.wiz.back', 'Atrás')}
+                doneLabel={t('cu.done', 'Listo')}
+                stepOf={(i, n) => t('cu.wiz.stepOf', { defaultValue: 'Paso {{i}} de {{n}}', i: i + 1, n })}
+            />
+        );
+    }
+
+    // ── Editing: every control on one page ───────────────────────────────────
     return (
         <CupertinoSheet
             isOpen={isOpen}
             onClose={onClose}
             accent={activeColor}
-            title={isEditing ? t('projects.editProject', 'Editar proyecto') : t('projects.newProject', 'Nuevo proyecto')}
+            title={t('projects.editProject', 'Editar proyecto')}
             subtitle={t('modals.project.subtitle')}
-            primaryLabel={isEditing ? t('cu.save', 'Guardar') : t('cu.create', 'Crear')}
+            primaryLabel={t('cu.save', 'Guardar')}
             onPrimary={handleConfirm}
             primaryDisabled={!canSubmit}
             primaryLoading={isSubmitting}
@@ -479,22 +712,8 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
             scrollRef={scrollRef}
             maxWidth={460}
             doneLabel={t('cu.done', 'Listo')}
-            subpanel={panel ? { title: panelTitle[panel], onBack: () => setPanel(null), children: panelBody } : null}
-            footer={canSubmit
-                ? (
-                    <RewardPreview
-                        xp={prediction.xp}
-                        traitXp={prediction.traitXp}
-                        coins={prediction.coins}
-                        traitColor={activeColor}
-                        TraitIcon={SelectedIcon}
-                        traitLabel={activeLabel}
-                        bonus={prediction.bonusApplied}
-                        xpLabel={t('common.xp', 'XP')}
-                        goldLabel={t('common.gold', 'Oro')}
-                    />
-                )
-                : <Hint>{t('cu.missingPrefix', 'Falta')}: <b>{missing.join(' · ')}</b></Hint>}
+            subpanel={subpanel}
+            footer={canSubmit ? rewardPreview : <Hint>{t('cu.missingPrefix', 'Falta')}: <b>{missing.join(' · ')}</b></Hint>}
         >
             <Stack className="cu-tight">
                 <Hero
@@ -504,7 +723,6 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                     onChange={setTitle}
                     placeholder={t('modals.project.namePlaceholder')}
                 />
-
                 <div className="cu-desc">
                     <FileText size={17} />
                     <input
@@ -515,106 +733,17 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
                         aria-label={t('modals.project.descPlaceholder')}
                     />
                 </div>
-
-                {/* Time goal */}
-                <Segmented
-                    tall
-                    value={goalFreq}
-                    onChange={(f) => {
-                        setGoalFreq(f);
-                        if (f === 'WEEKLY') setWorkingDays([1, 2, 3, 4, 5]);
-                        else if (f === 'MONTHLY') setWorkingDays([]);
-                    }}
-                    options={['DAILY', 'WEEKLY', 'MONTHLY'].map(f => ({ value: f, label: t(`modals.project.frequencies.${f}`) }))}
-                />
-
-                <div className="cu-group">
-                    <div className="cu-row" style={{ minHeight: 48 }}>
-                        <span className="cu-row-tile" style={{ background: '#0a84ff' }}><Hourglass size={17} /></span>
-                        <span className="cu-row-main"><span className="cu-row-label">{t('cu.goalTime', 'Meta de tiempo')}</span></span>
-                        <div style={{ width: 118, flex: 'none' }}>
-                            <Segmented<'HOURS' | 'MINUTES'>
-                                value={goalUnit}
-                                onChange={(u) => {
-                                    setGoalUnit(u);
-                                    if (u === 'HOURS' && (goalTarget > 24 || goalTarget < 1)) setGoalTarget(1);
-                                    if (u === 'MINUTES' && goalTarget < 15) setGoalTarget(30);
-                                }}
-                                options={[
-                                    { value: 'HOURS', label: t('common.hoursShort', 'HRS') },
-                                    { value: 'MINUTES', label: t('common.minUpper', 'MIN') },
-                                ]}
-                            />
-                        </div>
-                    </div>
-                    <BigStepper
-                        value={goalTarget}
-                        unit={`${unitLabel} / ${perLabel}`}
-                        onMinus={() => setGoalTarget(Math.max(goalUnit === 'HOURS' ? 0.5 : 5, goalTarget - (goalUnit === 'HOURS' ? 0.5 : 5)))}
-                        onPlus={() => setGoalTarget(Math.min(goalUnit === 'HOURS' ? 24 : 720, goalTarget + (goalUnit === 'HOURS' ? 0.5 : 5)))}
-                    />
-                </div>
-
-                {goalFreq === 'WEEKLY' && <DayPicker days={DAYS} selected={workingDays} onToggle={toggleDay} />}
-
-                {goalFreq === 'MONTHLY' && (
-                    <Tiles cols={1}>
-                        <Tile icon={<Calendar size={14} />} color="#ff453a" label={t('cu.monthDays', 'Días del mes')} value={monthlySummary || t('cu.choose', 'Elegir')} onClick={() => setPanel('monthly')} />
-                    </Tiles>
-                )}
-
-                {goalFreq !== 'DAILY' && (
-                    <Notice tone="info" icon={<Calculator size={16} />}>
-                        {t('modals.project.dailyTarget', 'Objetivo diario')}:{' '}
-                        <b style={{ marginLeft: 0, textDecoration: 'none' }}>
-                            {calculatedDailyGoal < 1 ? `${Math.round(calculatedDailyGoal * 60)} ${t('modals.project.minutes', 'minutos')}` : `${calculatedDailyGoal} ${t('modals.project.hours', 'horas')}`}
-                        </b>{' '}/ {String(t('modals.project.day')).toLowerCase()}
-                    </Notice>
-                )}
-
-                {/* Details as tiles */}
+                {goalBlock}
                 <Tiles cols={3}>
-                    <Tile icon={<SelectedIcon size={14} />} color={selectedAttr?.color || '#0a84ff'} label={t('cu.trait', 'Rasgo')} value={hasTrait ? activeLabel : t('habits.selectTrait', 'Elegir')} onClick={() => setPanel('trait')} />
-                    <Tile icon={<Palette size={14} />} color={customColor || '#bf5af2'} label={t('cu.color', 'Color')} value={customColor ? t('cu.custom', 'Personal') : t('cu.auto', 'Automático')} onClick={() => setPanel('color')} />
-                    <Tile icon={<Zap size={14} />} color={IMPACT_COLORS[impact - 1]} label={t('cu.impactShort', 'Impacto')} onClick={() => setImpact(impact >= 4 ? 1 : impact + 1)}>
-                        <MiniMeter value={impact} colors={IMPACT_COLORS} />
-                    </Tile>
-                    <Tile
-                        icon={<Timer size={14} />}
-                        color="#ff9f0a"
-                        label={t('cu.focus', 'Enfoque')}
-                        value={focusRoutine.length ? t('cu.routine', 'Rutina') : `${pomoDuration || 25} min`}
-                        onClick={() => setPanel('pomo')}
-                    />
-                    <Tile span={hasSmart ? undefined : 2} icon={<Bell size={14} />} color="#bf5af2" label={t('modals.project.alert', 'Alarma')} active={!alarmOk && !isEditing}>
-                        <TimePicker
-                            value={reminder}
-                            className="cu-time"
-                            onChange={(val) => {
-                                setReminder(val);
-                                if (val && permissions.notifications !== 'granted') requestPermissions();
-                            }}
-                        />
-                    </Tile>
-                    {hasSmart && (
-                        <Tile icon={<Target size={14} />} color="#5e5ce6" label={t('cu.strategy', 'Estrategia')} value={linkedSmart?.mainGoal || t('common.none', 'Ninguna')} onClick={() => setPanel('smart')} />
-                    )}
+                    {traitTile}
+                    {colorTile}
+                    {impactTile}
+                    {focusTile}
+                    {alarmTile(hasSmart ? undefined : 2)}
+                    {smartTile}
                 </Tiles>
-
-                {reminder && (permissions.notifications !== 'granted' && permissions.notifications !== 'unknown') && (
-                    <Notice tone="danger" icon={<AlertCircle size={16} />} action={t('common.fix', 'Arreglar')} onClick={requestPermissions}>
-                        {t('habits.activateNotifications', 'Activa las notificaciones')}
-                    </Notice>
-                )}
-                {reminder && (
-                    <div className="cu-linkrow">
-                        <button type="button" className="cu-link" style={{ fontSize: 13, color: 'var(--cu-label-2)' }} onClick={openSystemSettings}>
-                            <Zap size={13} /> {t('habits.batteryOptimization', 'Optimización de batería')} · {t('common.review', 'Revisar')}
-                        </button>
-                    </div>
-                )}
-
-                {isEditing && initialData?.id && onDelete && (
+                {alarmNotices}
+                {initialData?.id && onDelete && (
                     <div className="cu-linkrow">
                         <button type="button" className="cu-link" style={{ color: 'var(--cu-red)' }} disabled={isSubmitting} onClick={() => onDelete(initialData.id as string)}>
                             <Trash2 size={14} /> {t('common.delete', 'Eliminar')}

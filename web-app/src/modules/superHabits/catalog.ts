@@ -3,7 +3,7 @@
 
 import {
   Rocket, GraduationCap, Dumbbell, Languages, Droplets, MessageCircle, Apple, BookOpen, Briefcase,
-  Brain, Code2, Flower2, PersonStanding, Sparkles, Cross, Coins, Zap, Heart, Leaf, Star, Lightbulb,
+  Brain, Code2, Flower2, PersonStanding, Sparkles, Cross, Coins, Heart, Leaf, Star, Lightbulb,
   Bird, Sun, Waves, type LucideIcon,
 } from 'lucide-react';
 
@@ -77,7 +77,7 @@ export const SUPER_HABITS: Record<SuperHabitId, SuperHabitTheme> = {
   gym: {
     id: 'gym', name: 'Gym', shortName: 'Gym',
     tagline: 'El hierro no miente', description: 'Entrena aunque no tengas ganas. Ahí se forja todo.',
-    icon: Dumbbell, particles: [Dumbbell, Zap, Heart], colors: { primary: '#ef4444', secondary: '#f97316', deep: '#1c0606' }, motif: 'stripes',
+    icon: Dumbbell, particles: [Dumbbell, Sparkles, Heart], colors: { primary: '#ef4444', secondary: '#f97316', deep: '#1c0606' }, motif: 'stripes',
     startLine: 'Día 1: la barra pesa lo mismo para todos. Levántala.',
     legendLine: '60 días de hierro. Tu cuerpo ya es otro argumento.',
     doneLines: ['Sudor pagado, músculo ganado.', 'Una serie más cerca de tu mejor versión.', 'Descansa, que el progreso se construye ahora.'],
@@ -191,7 +191,7 @@ export const SUPER_HABITS: Record<SuperHabitId, SuperHabitTheme> = {
   trabajo: {
     id: 'trabajo', name: 'Trabajo', shortName: 'Trabajo',
     tagline: 'Constancia que se nota', description: 'Rinde, entrega y avanza en tu carrera.',
-    icon: Briefcase, particles: [Briefcase, Zap, Star], colors: { primary: '#3b82f6', secondary: '#94a3b8', deep: '#07111f' }, motif: 'grid',
+    icon: Briefcase, particles: [Briefcase, Sparkles, Star], colors: { primary: '#3b82f6', secondary: '#94a3b8', deep: '#07111f' }, motif: 'grid',
     startLine: 'Día 1: ficha, enfócate y entrega algo tangible.',
     legendLine: '60 días de rendimiento. Eres referente de tu equipo.',
     doneLines: ['Tarea cerrada, reputación sólida.', 'Resultados, no excusas.', 'Constancia profesional: lo que te hace crecer.'],
@@ -210,7 +210,7 @@ export const SUPER_HABITS: Record<SuperHabitId, SuperHabitTheme> = {
   iq: {
     id: 'iq', name: 'Mejorar IQ', shortName: 'Mejorar IQ',
     tagline: 'Entrena tu mente como un músculo', description: 'Lógica, memoria y razonamiento a diario.',
-    icon: Brain, particles: [Brain, Zap, Lightbulb], colors: { primary: '#a855f7', secondary: '#22d3ee', deep: '#12062a' }, motif: 'grid',
+    icon: Brain, particles: [Brain, Sparkles, Lightbulb], colors: { primary: '#a855f7', secondary: '#22d3ee', deep: '#12062a' }, motif: 'grid',
     startLine: 'Día 1: un acertijo, una pregunta, una neurona nueva.',
     legendLine: '60 días de entrenamiento mental. Piensas distinto, piensas mejor.',
     doneLines: ['Sinapsis reforzadas.', 'Tu cerebro acaba de subir de nivel.', 'Pensar duro hoy es pensar rápido mañana.'],
@@ -229,7 +229,7 @@ export const SUPER_HABITS: Record<SuperHabitId, SuperHabitTheme> = {
   programacion: {
     id: 'programacion', name: 'Programación', shortName: 'Programación',
     tagline: 'Escribe código, escribe futuro', description: 'Practica, construye y despliega a diario.',
-    icon: Code2, particles: [Code2, Zap, Star], colors: { primary: '#22c55e', secondary: '#4ade80', deep: '#02140a' }, motif: 'rain',
+    icon: Code2, particles: [Code2, Sparkles, Star], colors: { primary: '#22c55e', secondary: '#4ade80', deep: '#02140a' }, motif: 'rain',
     startLine: 'Día 1: console.log("empiezo"). Y no paras.',
     legendLine: '60 días de commits. Compilas sin errores.',
     doneLines: ['Build verde. Día cerrado.', 'git push y a dormir tranquilo.', 'Un bug menos, una skill más.'],

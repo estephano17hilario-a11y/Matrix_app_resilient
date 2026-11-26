@@ -7,6 +7,8 @@ import FocusSession from '../plugins/FocusPlugin';
 import { PersistenceService } from './persistence';
 import { getQuestDueDate } from '../utils/dateUtils';
 import { getJournalReminders, MAX_JOURNAL_REMINDERS } from './journalReminders';
+import { getReminderItems } from './journalReminderItems';
+import type { JournalReminderItem } from '../modules/routine/reminderItems';
 
 // VAPID Key from Firebase Console -> Project Settings -> Cloud Messaging -> Web Push Certificates
 // const VAPID_KEY = 'YOUR_VAPID_KEY_HERE'; 
@@ -29,6 +31,25 @@ export interface NotificationInitResult {
  };
 
 const JOURNAL_REMINDER_BASE_ID = 6100000;
+const REMINDER_ITEM_BASE_ID = 7000000;
+
+/** The local notification of a reminder pinned on the Journal calendar (null when it can no longer fire). */
+const buildReminderItemNotification = (r: JournalReminderItem) => {
+  const [y, mo, d] = r.date.split('-').map(Number);
+  const [h, m] = (r.time || '09:00').split(':').map(Number);
+  if ([y, mo, d, h, m].some(n => Number.isNaN(n))) return null;
+  const base = { id: generateId(r.id, REMINDER_ITEM_BASE_ID), title: '📓 Recordatorio', body: r.title, channelId: 'lux_daily', smallIcon: 'ic_stat_lux', iconColor: r.color || '#818cf8', actionTypeId: 'OPEN_APP' };
+  if (r.repeat === 'NONE') {
+    const at = new Date(y, mo - 1, d, h, m, 0, 0);
+    return at.getTime() > Date.now() ? { ...base, schedule: { at, allowWhileIdle: true } } : null;
+  }
+  const on =
+    r.repeat === 'DAILY' ? { hour: h, minute: m }
+      : r.repeat === 'WEEKLY' ? { weekday: new Date(y, mo - 1, d).getDay() + 1, hour: h, minute: m }
+        : r.repeat === 'MONTHLY' ? { day: d, hour: h, minute: m }
+          : { month: mo, day: d, hour: h, minute: m };
+  return { ...base, schedule: { on, allowWhileIdle: true } };
+};
 
 const buildJournalNotifications = (times: string[]) =>
   times.slice(0, MAX_JOURNAL_REMINDERS).flatMap((time, i) => {
@@ -518,6 +539,30 @@ export const notificationService = {
  }
  },
 
+ /** Reminders pinned on the Journal calendar: (re)schedule one, or cancel it. */
+ scheduleReminderItem: async (r: JournalReminderItem) => {
+ if (!Capacitor.isNativePlatform()) return;
+ try {
+ await LocalNotifications.cancel({ notifications: [{ id: generateId(r.id, REMINDER_ITEM_BASE_ID) }] });
+ const n = buildReminderItemNotification(r);
+ if (!n) return;
+ const hasExact = await notificationService.ensureExactAlarmPermission();
+ if (!hasExact) return;
+ await LocalNotifications.schedule({ notifications: [n as any] });
+ } catch (e) {
+ console.error("Failed to schedule reminder item", e);
+ }
+ },
+
+ cancelReminderItem: async (id: string) => {
+ if (!Capacitor.isNativePlatform()) return;
+ try {
+ await LocalNotifications.cancel({ notifications: [{ id: generateId(id, REMINDER_ITEM_BASE_ID) }] });
+ } catch (e) {
+ console.error("Failed to cancel reminder item", e);
+ }
+ },
+
  cancelTaskReminder: async (taskId: string) => {
  if (!Capacitor.isNativePlatform()) return;
  try {
@@ -801,6 +846,10 @@ export const notificationService = {
       // Journaling reminders live in localStorage; this sync must put them back
       // because it cancels every pending notification first.
       notificationsToSchedule.push(...buildJournalNotifications(getJournalReminders(uid).times));
+      for (const r of getReminderItems(uid)) {
+        const n = buildReminderItemNotification(r);
+        if (n) notificationsToSchedule.push(n);
+      }
 
       specialEvents.forEach(event => {
         if (!event.notifyTime) return;

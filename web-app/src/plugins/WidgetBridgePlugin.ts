@@ -7,8 +7,10 @@ export interface WidgetBridgePlugin {
   /** Re-renders the friend duel and shared-streak widgets (they fetch their own data). */
   refreshSocialWidgets?(): Promise<void>;
   updateScore(options: { score: number }): Promise<void>;
+  /** Whether the account is Deluxe (PRO): Routine / Calendar / Journal-calendar widgets lock for free accounts. */
+  updateProStatus?(options: { isPro: boolean }): Promise<void>;
   /** Routine screen settings + journal reminder times, so the native Routine widget draws the same day. */
-  updateRoutineConfig?(options: { config: Record<string, unknown>; journalTimes: string[] }): Promise<void>;
+  updateRoutineConfig?(options: { config?: Record<string, unknown>; journalTimes?: string[]; reminders?: Record<string, unknown>[] }): Promise<void>;
   updateRivalsData(options: {
     rivalName: string;
     rivalAvatar: string;

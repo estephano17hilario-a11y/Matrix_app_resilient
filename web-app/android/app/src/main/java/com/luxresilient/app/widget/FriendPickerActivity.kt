@@ -60,7 +60,25 @@ class FriendPickerActivity : Activity() {
             setPadding(0, dp(10), 0, dp(10))
         }
         val list = ListView(this).apply { dividerHeight = dp(1) }
+        // Same style / background / opacity screen as the other widgets.
+        val styleBtn = TextView(this).apply {
+            text = "Estilo y fondo del widget  ›"
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = dp(14).toFloat()
+                setColor(Color.parseColor("#1AFFFFFF"))
+                setStroke(dp(1), Color.parseColor("#33FFFFFF"))
+            }
+            setOnClickListener {
+                startActivity(Intent(this@FriendPickerActivity, WidgetConfigActivity::class.java).putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId))
+            }
+        }
         root.addView(title)
+        root.addView(styleBtn, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(14) })
         root.addView(status)
         root.addView(list, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         setContentView(root)

@@ -32,7 +32,19 @@ object WidgetTheme {
         GLASS("glass", "Cristal"),
         MIDNIGHT("midnight", "Medianoche"),
         AURORA("aurora", "Aurora"),
-        EMBER("ember", "Brasa");
+        EMBER("ember", "Brasa"),
+        VIOLET("violet", "Violeta"),
+        COBALT("cobalt", "Cobalto"),
+        OCEAN("ocean", "Océano"),
+        MINT("mint", "Menta"),
+        FOREST("forest", "Bosque"),
+        GOLD("gold", "Oro"),
+        SUNSET("sunset", "Atardecer"),
+        CRIMSON("crimson", "Carmesí"),
+        SAKURA("sakura", "Sakura"),
+        NEON("neon", "Neón"),
+        ICE("ice", "Hielo"),
+        MOCHA("mocha", "Café");
 
         companion object {
             fun from(key: String?): Style? = values().firstOrNull { it.key == key }
@@ -50,7 +62,15 @@ object WidgetTheme {
         /** Swatch colours for the picker. */
         val swatchA: Int,
         val swatchB: Int
-    )
+    ) {
+        /** Opaque flat colour used by the "solid" background mode. */
+        val solid: Int get() {
+            val t = Color.argb(255, Color.red(top), Color.green(top), Color.blue(top))
+            val b = Color.argb(255, Color.red(bottom), Color.green(bottom), Color.blue(bottom))
+            // a touch of the theme colour so every solid card keeps its identity
+            return mix(mix(t, b, 0.35f), swatchA, 0.12f)
+        }
+    }
 
     class Glow(val x: Float, val y: Float, val radius: Float, val color: Int)
 
@@ -100,6 +120,79 @@ object WidgetTheme {
             rimStrong = c("#52FDBA74"), rimSoft = c("#0FFDBA74"), sheen = c("#10FFFFFF"),
             swatchA = c("#B8430F"), swatchB = c("#2B1210")
         )
+
+        Style.VIOLET -> Palette(
+            top = c("#FF22103F"), bottom = c("#FF0B0618"),
+            glows = listOf(Glow(0.0f, 0.0f, 0.9f, c("#608B5CF6")), Glow(1.0f, 1.0f, 0.7f, c("#40C026D3"))),
+            rimStrong = c("#5CD8B4FE"), rimSoft = c("#10D8B4FE"), sheen = c("#12FFFFFF"),
+            swatchA = c("#7C3AED"), swatchB = c("#0B0618")
+        )
+        Style.COBALT -> Palette(
+            top = c("#FF0F2A66"), bottom = c("#FF040C26"),
+            glows = listOf(Glow(0.9f, 0.0f, 0.9f, c("#552563EB")), Glow(0.0f, 1.0f, 0.6f, c("#3338BDF8"))),
+            rimStrong = c("#5C93C5FD"), rimSoft = c("#1093C5FD"), sheen = c("#14BFDBFE"),
+            swatchA = c("#2563EB"), swatchB = c("#040C26")
+        )
+        Style.OCEAN -> Palette(
+            top = c("#FF083344"), bottom = c("#FF02121A"),
+            glows = listOf(Glow(0.05f, 0.0f, 0.9f, c("#4D06B6D4")), Glow(1.0f, 1.0f, 0.8f, c("#3314B8A6"))),
+            rimStrong = c("#5C67E8F9"), rimSoft = c("#1067E8F9"), sheen = c("#12CFFAFE"),
+            swatchA = c("#0E7490"), swatchB = c("#02121A")
+        )
+        Style.MINT -> Palette(
+            top = c("#FF0D2F2B"), bottom = c("#FF03100F"),
+            glows = listOf(Glow(0.95f, 0.0f, 0.8f, c("#4D2DD4BF")), Glow(0.0f, 1.0f, 0.7f, c("#3334D399"))),
+            rimStrong = c("#5C99F6E4"), rimSoft = c("#1099F6E4"), sheen = c("#12CCFBF1"),
+            swatchA = c("#14B8A6"), swatchB = c("#03100F")
+        )
+        Style.FOREST -> Palette(
+            top = c("#FF10281B"), bottom = c("#FF040E08"),
+            glows = listOf(Glow(0.0f, 0.0f, 0.9f, c("#4D22C55E")), Glow(1.0f, 1.0f, 0.7f, c("#2684CC16"))),
+            rimStrong = c("#5C86EFAC"), rimSoft = c("#1086EFAC"), sheen = c("#10DCFCE7"),
+            swatchA = c("#15803D"), swatchB = c("#040E08")
+        )
+        Style.GOLD -> Palette(
+            top = c("#FF2E2208"), bottom = c("#FF0F0B03"),
+            glows = listOf(Glow(1.0f, 0.0f, 0.9f, c("#55F59E0B")), Glow(0.0f, 1.0f, 0.6f, c("#33EAB308"))),
+            rimStrong = c("#66FCD34D"), rimSoft = c("#12FCD34D"), sheen = c("#14FEF3C7"),
+            swatchA = c("#D97706"), swatchB = c("#0F0B03")
+        )
+        Style.SUNSET -> Palette(
+            top = c("#FF35122E"), bottom = c("#FF12070F"),
+            glows = listOf(Glow(0.0f, 1.0f, 0.95f, c("#66FB923C")), Glow(1.0f, 0.0f, 0.85f, c("#55EC4899")), Glow(0.5f, 0.5f, 0.5f, c("#1FFACC15"))),
+            rimStrong = c("#5CFDBA74"), rimSoft = c("#10F9A8D4"), sheen = c("#12FFFFFF"),
+            swatchA = c("#EA580C"), swatchB = c("#7E1D6B")
+        )
+        Style.CRIMSON -> Palette(
+            top = c("#FF330A14"), bottom = c("#FF0E0307"),
+            glows = listOf(Glow(0.0f, 0.0f, 0.9f, c("#55E11D48")), Glow(1.0f, 1.0f, 0.7f, c("#33BE123C"))),
+            rimStrong = c("#5CFDA4AF"), rimSoft = c("#10FDA4AF"), sheen = c("#10FFFFFF"),
+            swatchA = c("#BE123C"), swatchB = c("#0E0307")
+        )
+        Style.SAKURA -> Palette(
+            top = c("#FF35142B"), bottom = c("#FF12050E"),
+            glows = listOf(Glow(0.95f, 0.0f, 0.9f, c("#55F472B6")), Glow(0.0f, 1.0f, 0.7f, c("#33C084FC"))),
+            rimStrong = c("#5CFBCFE8"), rimSoft = c("#10FBCFE8"), sheen = c("#14FCE7F3"),
+            swatchA = c("#DB2777"), swatchB = c("#12050E")
+        )
+        Style.NEON -> Palette(
+            top = c("#FF0A0B1C"), bottom = c("#FF030308"),
+            glows = listOf(Glow(0.0f, 0.0f, 0.8f, c("#6600E5FF")), Glow(1.0f, 1.0f, 0.8f, c("#66FF2BD6")), Glow(1.0f, 0.0f, 0.4f, c("#2639FF14"))),
+            rimStrong = c("#8000E5FF"), rimSoft = c("#2AFF2BD6"), sheen = c("#0EFFFFFF"),
+            swatchA = c("#00B8D4"), swatchB = c("#C026D3")
+        )
+        Style.ICE -> Palette(
+            top = c("#FF1B2A3A"), bottom = c("#FF0A121B"),
+            glows = listOf(Glow(0.1f, 0.0f, 0.95f, c("#4D7DD3FC")), Glow(1.0f, 1.0f, 0.6f, c("#26E0F2FE"))),
+            rimStrong = c("#80E0F2FE"), rimSoft = c("#18E0F2FE"), sheen = c("#1CFFFFFF"),
+            swatchA = c("#5C7C99"), swatchB = c("#0A121B")
+        )
+        Style.MOCHA -> Palette(
+            top = c("#FF2E1F17"), bottom = c("#FF110A07"),
+            glows = listOf(Glow(0.0f, 0.0f, 0.9f, c("#4DB4793E")), Glow(1.0f, 1.0f, 0.7f, c("#26D6A06A"))),
+            rimStrong = c("#5CE7C39A"), rimSoft = c("#10E7C39A"), sheen = c("#12FFEBD6"),
+            swatchA = c("#8B5E3C"), swatchB = c("#110A07")
+        )
     }
 
     // ── Preferences ──────────────────────────────────────────────────────────
@@ -109,7 +202,7 @@ object WidgetTheme {
     /** Each widget keeps its own personality until the user picks another style. */
     fun defaultFor(provider: String): Style = when {
         provider.contains("ProjectWidgetProvider") || provider.contains("TaskWidgetProvider") -> Style.GRAPHITE
-        provider.contains("FocusWidgetProvider") || provider.contains("RoutineWidgetProvider") -> Style.MIDNIGHT
+        provider.contains("FocusWidgetProvider") || provider.contains("RoutineWidgetProvider") || provider.contains("CalendarWidgetProvider") -> Style.MIDNIGHT
         provider.contains("ScoreWidgetProvider") || provider.contains("JournalWidgetProvider") -> Style.AURORA
         provider.contains("RivalsWidgetProvider") || provider.contains("DuelWidgetProvider") || provider.contains("FriendStreakWidgetProvider") -> Style.EMBER
         else -> Style.OBSIDIAN
@@ -128,11 +221,30 @@ object WidgetTheme {
         if (provider.isNotEmpty()) prefs.putString("${KEY_STYLE}_$provider", style.key)
     }
 
-    /** Overall background opacity (0..100) for one widget, same lookup order the providers already use. */
-    fun opacityFor(prefs: SharedPreferences, widgetId: Int, provider: String, default: Int = 85): Int = when {
-        prefs.contains("widget_background_opacity_$widgetId") -> prefs.getInt("widget_background_opacity_$widgetId", default)
-        provider.isNotEmpty() && prefs.contains("widget_background_opacity_$provider") -> prefs.getInt("widget_background_opacity_$provider", default)
-        else -> prefs.getInt("widget_background_opacity", default)
+    /** "fade" (the glass gradient with its glows) or "solid" (one flat opaque colour). */
+    private const val KEY_MODE = "widget_bg_mode"
+
+    fun isSolid(prefs: SharedPreferences, widgetId: Int, provider: String): Boolean {
+        val mode = prefs.getString("${KEY_MODE}_$widgetId", null)
+            ?: prefs.getString("${KEY_MODE}_$provider", null)
+            ?: prefs.getString(KEY_MODE, null)
+        return mode == "solid"
+    }
+
+    fun saveMode(prefs: SharedPreferences.Editor, widgetId: Int, provider: String, solid: Boolean) {
+        val v = if (solid) "solid" else "fade"
+        if (widgetId != android.appwidget.AppWidgetManager.INVALID_APPWIDGET_ID) prefs.putString("${KEY_MODE}_$widgetId", v)
+        if (provider.isNotEmpty()) prefs.putString("${KEY_MODE}_$provider", v)
+    }
+
+    /** Overall background opacity (0..100) for one widget. A solid background is always fully opaque. */
+    fun opacityFor(prefs: SharedPreferences, widgetId: Int, provider: String, default: Int = 85): Int {
+        if (isSolid(prefs, widgetId, provider)) return 100
+        return when {
+            prefs.contains("widget_background_opacity_$widgetId") -> prefs.getInt("widget_background_opacity_$widgetId", default)
+            provider.isNotEmpty() && prefs.contains("widget_background_opacity_$provider") -> prefs.getInt("widget_background_opacity_$provider", default)
+            else -> prefs.getInt("widget_background_opacity", default)
+        }
     }
 
     // ── Rendering ────────────────────────────────────────────────────────────
@@ -161,7 +273,8 @@ object WidgetTheme {
         heightDp: Int,
         style: Style,
         accent: Int? = null,
-        radiusDp: Float = 26f
+        radiusDp: Float = 26f,
+        solid: Boolean = false
     ): Bitmap {
         val scale = minOf(context.resources.displayMetrics.density, 2.4f)
         val w = (widthDp.coerceIn(60, 700) * scale).toInt().coerceAtLeast(64)
@@ -177,6 +290,19 @@ object WidgetTheme {
         canvas.clipPath(clip)
 
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+        if (solid) {
+            // Flat, opaque card: one colour and a faint hairline, no glows or gloss.
+            paint.color = p.solid
+            canvas.drawRect(rect, paint)
+            canvas.restore()
+            val hair = 1f * scale
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = hair
+            paint.color = withAlpha(p.rimStrong, Color.alpha(p.rimStrong) / 2)
+            canvas.drawRoundRect(RectF(hair / 2, hair / 2, w - hair / 2, h - hair / 2), r - hair / 2, r - hair / 2, paint)
+            return bmp
+        }
 
         // body
         paint.shader = LinearGradient(0f, 0f, w * 0.35f, h.toFloat(), p.top, p.bottom, Shader.TileMode.CLAMP)
@@ -256,7 +382,7 @@ object WidgetTheme {
         val style = styleFor(prefs, widgetId, providerClass, default)
         val opacity = opacityFor(prefs, widgetId, providerClass)
         val size = sizeDp(manager.getAppWidgetOptions(widgetId), fallbackW, fallbackH)
-        views.setImageViewBitmap(bgViewId, background(context, size.first, size.second, style, accent, radiusDp))
+        views.setImageViewBitmap(bgViewId, background(context, size.first, size.second, style, accent, radiusDp, isSolid(prefs, widgetId, providerClass)))
         views.setFloat(bgViewId, "setAlpha", opacity / 100f)
         return size
     }

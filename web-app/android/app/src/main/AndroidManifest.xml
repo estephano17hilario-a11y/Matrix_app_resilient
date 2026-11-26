@@ -256,9 +256,42 @@
                 android:resource="@xml/routine_widget_info" />
         </receiver>
 
+        <!-- Calendar Widget: the routine as a Google-Calendar style time grid (day / 3 days / week) -->
+        <receiver
+            android:name=".widget.CalendarWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_calendar_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.luxresilient.app.REFRESH_CALENDAR" />
+                <action android:name="com.luxresilient.app.CALENDAR_PREV" />
+                <action android:name="com.luxresilient.app.CALENDAR_NEXT" />
+                <action android:name="com.luxresilient.app.CALENDAR_TODAY" />
+                <action android:name="com.luxresilient.app.CALENDAR_SPAN" />
+                <action android:name="com.luxresilient.app.CALENDAR_SCROLL_UP" />
+                <action android:name="com.luxresilient.app.CALENDAR_SCROLL_DOWN" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/calendar_widget_info" />
+        </receiver>
+
         <service
             android:name=".widget.RoutineWidgetService"
             android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
+
+        <!-- Info card of a block tapped on the Calendar widget -->
+        <activity
+            android:name=".widget.CalendarEventInfoActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:taskAffinity=""
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
             android:exported="false" />
 
         <!-- Invisible trampoline for taps on the Routine widget list -->

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { Capacitor } from '@capacitor/core';
 import { 
  X, 
@@ -9,7 +10,9 @@ import {
  FolderGit2,
  Hexagon,
  Smartphone,
- Crown
+ Crown,
+ Sparkles,
+ CalendarDays
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useRevenueCat } from '../../hooks/useRevenueCat';
@@ -175,6 +178,20 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  description: t('pro.features.traits.desc', 'Accede al espectro completo de personalización de tu avatar.'),
  color: 'from-pink-500 to-rose-400',
  shadow: 'shadow-pink-500/20'
+ },
+ {
+ icon: Sparkles,
+ title: t('pro.features.superHabits.title', 'Súper Hábitos'),
+ description: t('pro.features.superHabits.desc', 'Roadmap de 60 días, insignias, llama evolutiva y efectos temáticos para tus hábitos.'),
+ color: 'from-amber-500 to-pink-500',
+ shadow: 'shadow-amber-500/20'
+ },
+ {
+ icon: CalendarDays,
+ title: t('pro.features.routine.title', 'Rutina y Widgets Pro'),
+ description: t('pro.features.routine.desc', 'Calendario de rutina, división por horas y widgets de Rutina, Calendario y Diario.'),
+ color: 'from-sky-500 to-indigo-400',
+ shadow: 'shadow-sky-500/20'
  }
  ];
 
@@ -188,10 +205,12 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
 
  if (!mounted && !isOpen) return null;
 
- return (
+ // Portaled to <body>: the purchase screen can open over sheets that live there (habit form, routine settings…),
+ // and inside the Dashboard's own stacking context it would always end up underneath them.
+ return createPortal(
  <AnimatePresence onExitComplete={() => setMounted(false)}>
  {isOpen && (
- <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden">
+ <div className="fixed inset-0 z-[100000] flex items-center justify-center overflow-hidden">
  {/* Background Backdrop - Pure black for OLEDs, NO blur for maximum GPU performance on mobile */}
  <motion.div 
  initial={{ opacity: 0 }}
@@ -450,7 +469,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  initial={{ opacity: 0 }}
  animate={{ opacity: 1 }}
  exit={{ opacity: 0 }}
- className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#050010] overflow-hidden"
+ className="fixed inset-0 z-[100001] flex flex-col items-center justify-center bg-[#050010] overflow-hidden"
  >
  {/* Background Particles/Rays */}
  <motion.div 
@@ -534,6 +553,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
  </motion.div>
  )}
 
- </AnimatePresence>
+ </AnimatePresence>,
+ document.body
  );
 };

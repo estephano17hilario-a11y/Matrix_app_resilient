@@ -78,6 +78,37 @@ const boot = async () => {
     ]);
   }
 
+  // ?routine → seed a busy day (habits + tasks with hours) to review the Routine calendar.
+  if (new URLSearchParams(location.search).has('routine')) {
+    const today = new Date();
+    const dayStr = (back: number) => { const d = new Date(today); d.setDate(d.getDate() - back); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+    const hab = (id: string, title: string, time: string | undefined, over: Record<string, unknown> = {}) => ({
+      id, title, streak: 3, completedToday: false, attribute: 'DISCIPLINA', totalCompletions: 3, frequency: 'DAILY',
+      type: 'BOOLEAN', estimatedTime: 20, impact: 2, createdAt: Date.now() - 5 * 86400000, reminderTime: time, history: [dayStr(1)], ...over,
+    });
+    const quest = (id: string, title: string, time: string | undefined, back = 0, over: Record<string, unknown> = {}) => ({
+      id, title, completed: false, attribute: 'INTELECTO', deadline: dayStr(back), deadlineTime: time, createdAt: Date.now(), ...over,
+    });
+    PersistenceService.saveCollection(LAB_UID, 'habits', [
+      hab('r1', 'Despertar y agua', '06:30', { completedToday: true, lastUpdatedDate: dayStr(0), history: [dayStr(0)] }),
+      hab('r2', 'Meditar', '07:00', { completedToday: true, lastUpdatedDate: dayStr(0), history: [dayStr(0)] }),
+      hab('r3', 'Gimnasio', '07:15'),
+      hab('r4', 'Leer 10 min', '07:30'),
+      hab('r5', 'Estudiar inglés', '09:00'),
+      hab('r6', 'Tomar agua', '12:30', { type: 'QUANTITY', targetValue: 8, currentValue: 3, unit: 'vasos', lastUpdatedDate: dayStr(0) }),
+      hab('r7', 'Caminar', '18:00'),
+      hab('r8', 'Journaling', '21:30'),
+      hab('r9', 'Sin hora', undefined),
+    ]);
+    PersistenceService.saveCollection(LAB_UID, 'quests', [
+      quest('q1', 'Entregar informe', '09:00'),
+      quest('q2', 'Llamar al banco', '15:30'),
+      quest('q3', 'Comprar víveres', undefined),
+      quest('q4', 'Pagar alquiler', '11:00', 2),
+      quest('q5', 'Reunión de equipo', '15:00', 0, { completed: true }),
+    ]);
+  }
+
   const profile: any = {
     id: LAB_UID,
     uid: LAB_UID,
@@ -85,8 +116,9 @@ const boot = async () => {
     displayName: 'Explorador',
     photoURL: null,
     avatarId: undefined,
-    plan: 'PRO',
-    es_pro: true,
+    // ?free → check what a free account sees (Deluxe-gated features).
+    plan: new URLSearchParams(location.search).has('free') ? 'FREE' : 'PRO',
+    es_pro: !new URLSearchParams(location.search).has('free'),
     archetype: 'NEO',
     stats: { ...DEFAULT_USER_STATS, level: 7, xp: 640, gold: 1280, streak: 12 },
     preferences: {},
@@ -111,8 +143,9 @@ const boot = async () => {
   };
 
   // ?flames → component gallery (flame tiers, badges, themes, FX triggers) instead of the app.
-  if (new URLSearchParams(location.search).has('flames')) {
-    const { SuperHabitsGallery } = await import('./SuperHabitsGallery');
+  if (new URLSearchParams(location.search).has('flames') || new URLSearchParams(location.search).has('world')) {
+    const { SuperHabitsGallery, WorldPreview } = await import('./SuperHabitsGallery');
+    if (new URLSearchParams(location.search).has('world')) { createRoot(document.getElementById('root')!).render(React.createElement(WorldPreview)); return; }
     createRoot(document.getElementById('root')!).render(React.createElement(SuperHabitsGallery));
     return;
   }

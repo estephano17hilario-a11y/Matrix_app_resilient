@@ -4,6 +4,7 @@ import { RankBadge } from '@/modules/progression/ui/RankBadge';
 import { ArenaSheet } from '@/modules/progression/ui/arena';
 import { getRank } from '@/modules/progression/engine/ranks';
 import { rankStyle } from '@/modules/progression/ui/tokens';
+import { DeluxeBadge } from '@/modules/monetization/DeluxeBadge';
 import { SOCIAL_CONFIG, localDayKey } from '../engine';
 import type { PublicProfile } from '../socialService';
 import { recordAgainst, socialStore, standingOf, type SocialSnapshot } from '../socialStore';
@@ -60,6 +61,11 @@ export const FriendProfileSheet: React.FC<{
         <div className="relative flex flex-col items-center text-center">
           <div className="p-4"><FramedAvatar profile={profile} size={92} animate /></div>
           <h2 className="text-[26px] font-black leading-tight">{displayName(profile)}</h2>
+          {profile.is_deluxe && (
+            <div className="mt-1.5">
+              <DeluxeBadge size="md" title="Suscriptor Deluxe" />
+            </div>
+          )}
           <div className="mt-1.5 flex items-center gap-2">
             <RankBadge rankIndex={profile.rank_index} division={legend ? null : profile.division ?? 0} size={30} />
             <span className={`text-[15px] font-black ${legend ? 'arena-rainbow-text' : ''}`} style={legend ? undefined : { color: getRank(profile.rank_index).color }}>{rankLabel(profile)}</span>

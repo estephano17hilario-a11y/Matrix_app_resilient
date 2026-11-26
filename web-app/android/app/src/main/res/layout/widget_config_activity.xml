@@ -70,6 +70,95 @@
 
             </HorizontalScrollView>
 
+            <!-- Background mode: fade (glass gradient) or solid -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="FONDO"
+                android:textColor="#6366f1"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05"
+                android:layout_marginBottom="6dp" />
+
+            <RadioGroup
+                android:id="@+id/config_bg_mode_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp"
+                android:background="#0DFFFFFF"
+                android:padding="2dp">
+
+                <RadioButton
+                    android:id="@+id/config_bg_fade"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Fade (cristal)"
+                    android:textColor="#E0E0E0"
+                    android:textSize="11sp"
+                    android:button="@null"
+                    android:gravity="center"
+                    android:padding="8dp" />
+
+                <RadioButton
+                    android:id="@+id/config_bg_solid"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Sólido"
+                    android:textColor="#E0E0E0"
+                    android:textSize="11sp"
+                    android:button="@null"
+                    android:gravity="center"
+                    android:padding="8dp" />
+
+            </RadioGroup>
+
+            <!-- routine section -->
+            <LinearLayout
+                android:id="@+id/config_routine_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="RUTINA"
+                    android:textColor="#6366f1"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"
+                    android:layout_marginBottom="6dp" />
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:text="Mostrar completadas"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp" />
+
+                    <Switch
+                        android:id="@+id/config_routine_show_done_switch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:checked="false" />
+
+                </RelativeLayout>
+
+            </LinearLayout>
+
             <!-- habits section container 1 -->
             <LinearLayout
                 android:id="@+id/config_habits_section_container_1"

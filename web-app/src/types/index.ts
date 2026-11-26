@@ -62,6 +62,8 @@ export interface Quest {
   deadline?: string;
   /** Optional time of day for the deadline, "HH:mm" (24h). Absent = the whole day. */
   deadlineTime?: string;
+  /** Calendar: length of the block in minutes (default 30). */
+  calendarDuration?: number;
   subtasks?: Subtask[];
   fractalStructure?: any; // Stores the smart task structure
   isSmartQuest?: boolean;
@@ -84,6 +86,16 @@ export interface Quest {
     monthlyType?: 'SPECIFIC_DATES' | 'LAST_DAY';
     months?: number[]; // Months of the year (0-11)
   };
+}
+
+/** What the calendar changed about one habit / sub-habit on ONE day only (the habit itself is untouched). */
+export interface DayOverride {
+  /** "HH:mm" the item is moved to that day. */
+  time?: string;
+  /** Block length in minutes for that day. */
+  duration?: number;
+  /** Divided habits with fixed times: new "HH:mm" per slot id, for that day. */
+  slots?: Record<string, string>;
 }
 
 export interface Habit {
@@ -121,8 +133,16 @@ export interface Habit {
     allowSkip?: boolean;
     skippedHistory?: string[]; // Date keys when this subtask was skipped
     deleted?: boolean; // Track if the subtask is deleted
+    /** Calendar: length of the block in minutes (default 15). */
+    calendarDuration?: number;
+    /** Calendar: moved to another hour (or resized) for one day only, keyed by date. */
+    dayOverrides?: Record<string, DayOverride>;
   }[];
   reminderTime?: string;
+  /** Calendar: length of the block in minutes (default 30). */
+  calendarDuration?: number;
+  /** Calendar: moved to another hour (or resized) for one day only, keyed by date. */
+  dayOverrides?: Record<string, DayOverride>;
   history?: string[]; // ISO date strings of completions
   valueHistory?: Record<string, number>; // Date key to quantity value mapping
   projectId?: string;

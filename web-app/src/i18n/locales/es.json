@@ -3039,6 +3039,58 @@
     "goalTime": "Meta de tiempo",
     "routine": "Rutina",
     "icon": "Icono",
-    "impactShort": "Impacto"
+    "impactShort": "Impacto",
+    "wiz": {
+      "next": "Siguiente",
+      "back": "Atrás",
+      "stepOf": "Paso {{i}} de {{n}}",
+      "name": "Nombre",
+      "note": "Nota (opcional)",
+      "nameFirst": "Escribe un nombre para continuar",
+      "traitFirst": "Elige un rasgo para continuar",
+      "createTask": "Crear tarea",
+      "createHabit": "Crear hábito",
+      "createProject": "Crear proyecto",
+      "task": {
+        "t1": "¿Qué quieres hacer?",
+        "h1": "Dale un nombre claro a tu tarea. Puedes añadir una nota si quieres.",
+        "t2": "¿Cuándo lo harás?",
+        "h2": "Elige el día y, si quieres, la hora y si se repite.",
+        "t3": "¿Cuánto esfuerzo requiere?",
+        "h3": "Esto define cuánta recompensa recibes al completarla.",
+        "t4": "Organízala",
+        "h4": "Elige a qué rasgo pertenece y si forma parte de un proyecto."
+      },
+      "habit": {
+        "t1": "¿Qué hábito quieres crear?",
+        "h1": "Ponle nombre y elige el rasgo que fortalece.",
+        "t2": "¿Cada cuánto lo harás?",
+        "h2": "Elige los días en que quieres cumplirlo.",
+        "t3": "¿Cómo lo medirás?",
+        "h3": "Define qué significa cumplirlo y cuánto vale.",
+        "t4": "Recuérdamelo",
+        "h4": "Pon una alarma y personalízalo."
+      },
+      "project": {
+        "t1": "¿Qué proyecto quieres avanzar?",
+        "h1": "Ponle nombre y elige el rasgo que fortalece.",
+        "t2": "¿Cuánto tiempo le dedicarás?",
+        "h2": "Elige tu meta de tiempo; la repartimos en días.",
+        "t3": "Tus sesiones de enfoque",
+        "h3": "Define cuánto dura cada bloque de trabajo.",
+        "t4": "Recordatorio y listo",
+        "h4": "Pon una alarma para no olvidarlo."
+      },
+      "habitName": "Ej. Leer, Meditar…",
+      "pickDays": "Elige al menos un día para continuar",
+      "goalFirst": "Escribe tu meta para continuar",
+      "splitFirst": "Completa el reparto de tu meta",
+      "stepsFirst": "Añade al menos un paso",
+      "alarmFirst": "Elige la hora de tu alarma para crear el hábito",
+      "alarmFirstProject": "Elige la hora de tu alarma para crear el proyecto",
+      "sessionFirst": "Define la duración de la sesión"
+    },
+    "everyDayHint": "Se repetirá todos los días.",
+    "advanced": "Avanzado"
   }
 }

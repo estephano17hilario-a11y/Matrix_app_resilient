@@ -85,6 +85,10 @@ class JournalWidgetProvider : AppWidgetProvider() {
             appWidgetManager.updateAppWidget(widgetId, views)
             return
         }
+        if (!ProGate.isPro(context)) {
+            appWidgetManager.updateAppWidget(widgetId, ProGate.lockedViews(context, widgetId, "Matrix Diario Calendario"))
+            return
+        }
 
         val prefs = context.getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE)
         val bgOpacity = when {

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Reorder } from 'framer-motion';
 import * as LucideIcons from '@/utils/lucideRegistry';
-import { Plus, Hash, List, Star, Target, Zap, AlertCircle, Calendar, Palette, Trash2, GripVertical, Sliders, Bell, CheckCircle2, FileText, Layers, Repeat, X, Check } from 'lucide-react';
+import { Plus, Hash, List, Star, Target, Zap, AlertCircle, Calendar, Palette, Trash2, GripVertical, Sliders, Bell, CheckCircle2, FileText, Layers, Repeat, X, Check, Sparkles } from 'lucide-react';
 import { Attribute, Habit, Project } from '../../../types';
 import { SmartProject } from '../../../types/SmartGoal';
 import { calculateTaskRewards } from '../../../utils/rewardCalculator';
@@ -13,9 +13,12 @@ import { TimePicker } from '../../../components/ui/TimePicker';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { SUPER_HABIT_LIST, getSuperTheme, type SuperHabitId } from '../../superHabits/catalog';
 import { SuperHabitButton } from '../../superHabits/SuperHabitPicker';
+import { useIsDeluxe, promptDeluxe } from '../../monetization/deluxe';
+import { DeluxeBadge } from '../../monetization/DeluxeBadge';
 import {
     CupertinoSheet, Stack, Section, Hero, Row, InputRow, Expand, Segmented, Toggle, DayPicker, DateNumberGrid, Notice,
-    RewardPreview, Hint, Pad, TraitGrid, OptionList, Swatches, Tiles, Tile, MiniMeter, resolveTraitIcon, traitLabelOf,
+    RewardPreview, Hint, Pad, TraitGrid, OptionList, Swatches, Tiles, Tile, MiniMeter, WizardSheet, resolveTraitIcon, traitLabelOf,
+    type WizardStep,
 } from '../../../components/cupertino';
 
 type Logic = 'SIMPLE' | 'QUANTITY' | 'CHECKLIST' | 'BOOLEAN';
@@ -31,7 +34,9 @@ const IMPACT_COLORS = ['#30d158', '#0a84ff', '#ff9f0a', '#ff453a'];
 export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projects = [], onConfirm, initialData, onSwitchToBadHabit }: { isOpen: boolean, onClose: () => void, attributes?: Attribute[], smartProjects?: SmartProject[], projects?: Project[], onConfirm: (data: Partial<Habit>) => Promise<void> | void, initialData?: Habit & { _initialTab?: 'alarm' | 'checklist', _targetSubtaskId?: string }, onSwitchToBadHabit?: () => void }) => {
     const { t } = useTranslation();
     const { permissions, requestPermissions, openSystemSettings } = usePermissions();
+    const isDeluxe = useIsDeluxe();
     const [panel, setPanel] = useState<Panel>(null);
+    const [step, setStep] = useState(0);
 
     // Identity
     const [title, setTitle] = useState('');
@@ -77,6 +82,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
         if (!isOpen) return;
         setIsSubmitting(false);
         setPanel(null);
+        setStep(0);
         setOpenMenu(null);
         setNewSubtask('');
 
@@ -153,12 +159,20 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
 
     // Picking a super habit pre-fills only what the user left empty
     const handleSuperSelect = (id: SuperHabitId | null) => {
+        // Super habits are a Deluxe feature: free accounts can only remove one, never pick one.
+        if (id && !isDeluxe) { promptDeluxe('superHabits'); return; }
         setSuperId(id);
         setPanel(null);
         const theme = getSuperTheme(id);
         if (!theme) return;
         setTitle(prev => prev.trim() ? prev : theme.shortName.slice(0, 15));
         setDesc(prev => prev.trim() ? prev : theme.description);
+    };
+
+    // Free accounts get the Deluxe explanation instead of the picker (unless they already have one to remove).
+    const openSuperPanel = () => {
+        if (!isDeluxe && !superId) { promptDeluxe('superHabits'); return; }
+        setPanel(p => (p === 'super' ? null : 'super'));
     };
 
     // Smart auto-linking by keywords in the title
@@ -292,7 +306,8 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                 projectId: projectId || undefined,
                 smartProjectId: smartProjectId || undefined,
                 subAttribute: (subAttrId || null) as any,
-                superHabit: superId ?? undefined,
+                // Free accounts keep a super habit they already had but can never gain one.
+                superHabit: (isDeluxe || superId === (getSuperTheme(initialData?.superHabit)?.id ?? null) ? superId : null) ?? undefined,
                 ...(initialData?.id ? { id: initialData.id } : {})
             });
             onClose();
@@ -570,6 +585,16 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
         </Section>
     ) : panel === 'super' ? (
         <Stack className="cu-tight">
+            {!isDeluxe && (
+                <Section footer={t('cu.superDeluxeHint', 'Los súper hábitos son parte de Deluxe. Conserva el que ya tienes o quítalo.')}>
+                    <Row
+                        icon={<Sparkles size={16} />}
+                        iconColor="#a855f7"
+                        label={t('cu.getDeluxe', 'Conseguir Deluxe')}
+                        onClick={() => promptDeluxe('superHabits')}
+                    />
+                </Section>
+            )}
             <div className="cu-group">
                 <div className="cu-trait-grid">
                     {SUPER_HABIT_LIST.map((theme) => {
@@ -659,14 +684,270 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
       : panel === 'list' ? itemList
       : null;
 
+    const useWizard = !initialData?.id;
+    const subpanel = panel ? { title: panelTitle[panel], onBack: () => setPanel(null), children: panelBody } : null;
+    const superTheme = getSuperTheme(superId);
+
+    const rewardPreview = (
+        <RewardPreview
+            xp={prediction.xp}
+            traitXp={prediction.traitXp}
+            coins={prediction.coins}
+            traitColor={selectedAttr?.color || activeColor}
+            TraitIcon={TraitIcon}
+            traitLabel={activeLabel}
+            bonus={prediction.bonusApplied}
+            xpLabel={t('common.xp', 'XP')}
+            goldLabel={t('common.gold', 'Oro')}
+        />
+    );
+
+    // ── Shared fragments (used by both the wizard blocks and the edit page) ──
+    const freqBlock = (
+        <>
+            <Segmented
+                tall
+                value={freq}
+                onChange={(f) => { if (f !== freq) setWeekDays([]); setFreq(f); }}
+                options={['DAILY', 'WEEKLY', 'MONTHLY'].map(f => ({ value: f, label: t(`modals.habit.frequencies.${f}`) }))}
+            />
+            {freq === 'DAILY' && (
+                <p className="cu-section-footer" style={{ textAlign: 'center' }}>{t('cu.everyDayHint', 'Se repetirá todos los días.')}</p>
+            )}
+            {freq === 'WEEKLY' && (
+                <>
+                    {weeklyType === 'SPECIFIC_DAYS' ? (
+                        <DayPicker days={weekDaysList} selected={weekDays} onToggle={(i) => setWeekDays(p => p.includes(i) ? p.filter(d => d !== i) : [...p, i])} />
+                    ) : (
+                        <div className="cu-mini-field">
+                            <span style={{ flex: 1 }}>{t('timesPerWeek', 'Veces por semana')}</span>
+                            <input className="cu-input cu-num" style={{ width: 60 }} type="number" inputMode="numeric" min={1} max={7} value={String(weeklyFlexibleCount)} onChange={(e) => clampCount(setWeeklyFlexibleCount, 7)(e.target.value)} aria-label={t('timesPerWeek', 'Veces por semana')} />
+                        </div>
+                    )}
+                    <div className="cu-linkrow">
+                        <button type="button" className="cu-link" style={{ fontSize: 13.5 }} onClick={() => setWeeklyType(weeklyType === 'SPECIFIC_DAYS' ? 'FLEXIBLE_COUNT' : 'SPECIFIC_DAYS')}>
+                            {weeklyType === 'SPECIFIC_DAYS' ? t('cu.useCount', 'Prefiero un número de veces por semana') : t('cu.useDays', 'Prefiero elegir los días')}
+                        </button>
+                    </div>
+                </>
+            )}
+            {freq === 'MONTHLY' && (
+                <Tiles cols={1}>
+                    <Tile icon={<Calendar size={14} />} color="#ff453a" label={t('cu.monthDays', 'Días del mes')} value={monthlySummary || t('cu.choose', 'Elegir')} onClick={() => setPanel('monthly')} />
+                </Tiles>
+            )}
+        </>
+    );
+
+    const trackBlock = (
+        <>
+            <Segmented<Logic> tall value={logic} onChange={setLogic} options={logicOptions} />
+            {logic === 'BOOLEAN' && (
+                <p className="cu-section-footer" style={{ textAlign: 'center' }}>{t('cu.trackBoolean', 'Se marca como hecho o no hecho.')}</p>
+            )}
+            {logic === 'QUANTITY' && (
+                <>
+                    <div className="cu-pair">
+                        <div className="cu-mini-field">
+                            <span>{t('modals.habit.target', 'Meta')}</span>
+                            <input className="cu-input cu-num" type="number" inputMode="numeric" placeholder="10" value={target} onChange={(e) => setTarget(e.target.value)} aria-label={t('modals.habit.target', 'Meta')} />
+                        </div>
+                        <div className="cu-mini-field">
+                            <span>{t('modals.habit.unit', 'Unidad')}</span>
+                            <input className="cu-input" placeholder={t('habits.pagesPlaceholder', 'páginas')} value={unit} onChange={(e) => setUnit(e.target.value)} aria-label={t('modals.habit.unit', 'Unidad')} />
+                        </div>
+                    </div>
+                    <div className="cu-linkrow">
+                        <button type="button" className="cu-link" style={{ fontSize: 13.5 }} onClick={() => setPanel('split')}>
+                            <Repeat size={14} /> {isDivided ? t('cu.splitOn', 'Meta dividida · editar') : t('cu.splitGoal', 'Dividir la meta')}
+                        </button>
+                    </div>
+                </>
+            )}
+            {logic === 'CHECKLIST' && (
+                <Tiles cols={1}>
+                    <Tile
+                        icon={<List size={14} />}
+                        color="#ffd60a"
+                        label={t('cu.steps', 'Pasos')}
+                        value={activeSteps.length ? t('cu.stepsCount', { defaultValue: '{{n}} pasos · editar', n: activeSteps.length }) : t('cu.addSteps', 'Añadir pasos')}
+                        onClick={() => setPanel('list')}
+                    />
+                </Tiles>
+            )}
+        </>
+    );
+
+    const traitTile = (
+        <Tile icon={<TraitIcon size={14} />} color={selectedAttr?.color || '#0a84ff'} label={t('cu.trait', 'Rasgo')} value={hasTrait ? activeLabel : t('habits.selectTrait', 'Elegir')} onClick={() => setPanel('trait')} />
+    );
+    const iconTile = (
+        <Tile icon={<Palette size={14} />} color="#bf5af2" label={t('cu.icon', 'Icono')} value={customIconName || customColor ? t('cu.custom', 'Personal') : t('cu.auto', 'Automático')} onClick={() => setPanel('icon')} />
+    );
+    const impactTile = (
+        <Tile icon={<Zap size={14} />} color={IMPACT_COLORS[impact - 1]} label={t('cu.impactShort', 'Impacto')} onClick={() => setImpact(impact >= 4 ? 1 : impact + 1)}>
+            <MiniMeter value={impact} colors={IMPACT_COLORS} />
+        </Tile>
+    );
+    const alarmTile = (span?: 2) => (
+        <Tile span={span} icon={<Bell size={14} />} color="#ff9f0a" label={t('modals.habit.alert', 'Alarma')} active={!alarmOk && !isEditing}>
+            <TimePicker value={reminder} onChange={onAlarmChange} className="cu-time" />
+        </Tile>
+    );
+    const durationTile = (
+        <Tile
+            icon={<Layers size={14} />}
+            color="#5e5ce6"
+            label={t('cu.duration', 'Duración')}
+            value={estimatedTime > 0 ? (estimatedTime >= 60 ? `${+(estimatedTime / 60).toFixed(1)} h` : `${estimatedTime} min`) : t('cu.undefined', 'Sin definir')}
+            onClick={() => setPanel('duration')}
+        />
+    );
+    const projectTile = (span?: 3 | 2) => (
+        <Tile span={span} icon={<Target size={14} />} color="#64d2ff" label={t('cu.project', 'Proyecto')} value={linkedProject?.title || t('habits.noProject', 'Ninguno')} onClick={() => setPanel('project')} />
+    );
+    const alarmNotices = (
+        <>
+            {reminder && (permissions.notifications !== 'granted' && permissions.notifications !== 'unknown') && (
+                <Notice tone="danger" icon={<AlertCircle size={16} />} action={t('common.activate', 'Activar')} onClick={requestPermissions}>
+                    {t('habits.missingPermissions', 'Faltan permisos de notificación')}
+                </Notice>
+            )}
+            {reminder && (
+                <div className="cu-linkrow">
+                    <button type="button" className="cu-link" style={{ fontSize: 13, color: 'var(--cu-label-2)' }} onClick={openSystemSettings}>
+                        <Zap size={13} /> {t('habits.batteryBackground', 'Batería / segundo plano')} · {t('common.review', 'Revisar')}
+                    </button>
+                </div>
+            )}
+        </>
+    );
+
+    // ── Creation: four blocks, one at a time ─────────────────────────────────
+    if (useWizard) {
+        const steps: WizardStep[] = [
+            {
+                key: 'what',
+                title: t('cu.wiz.habit.t1', '¿Qué hábito quieres crear?'),
+                hint: t('cu.wiz.habit.h1', 'Ponle nombre y elige el rasgo que fortalece.'),
+                icon: <Star size={16} />,
+                valid: hasName && hasTrait,
+                missing: !hasName ? t('cu.wiz.nameFirst', 'Escribe un nombre para continuar') : t('cu.wiz.traitFirst', 'Elige un rasgo para continuar'),
+                content: (
+                    <>
+                        {onSwitchToBadHabit && (
+                            <Segmented<'habit' | 'vice'>
+                                value="habit"
+                                onChange={(v) => { if (v === 'vice') onSwitchToBadHabit(); }}
+                                options={[
+                                    { value: 'habit', label: t('habits.habit', 'Hábito') },
+                                    { value: 'vice', label: t('habits.vice', 'Vicio'), dataTour: 'habit-modal-vice-switch' },
+                                ]}
+                            />
+                        )}
+                        <div>
+                            <p className="cu-field-label">{t('cu.wiz.name', 'Nombre')}</p>
+                            <div className="cu-bigfield">
+                                <input
+                                    className="cu-input"
+                                    value={title}
+                                    maxLength={15}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    placeholder={t('cu.wiz.habitName', 'Ej. Leer, Meditar…')}
+                                    aria-label={t('cu.wiz.name', 'Nombre')}
+                                    autoFocus
+                                />
+                                <span className="cu-counter">{title.length}/15</span>
+                            </div>
+                        </div>
+                        <div className="cu-desc">
+                            <FileText size={17} />
+                            <input className="cu-input" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={t('cu.wiz.note', 'Nota (opcional)')} aria-label={t('cu.wiz.note', 'Nota (opcional)')} />
+                        </div>
+                        <Tiles cols={2}>
+                            {traitTile}
+                            <Tile
+                                data-tour="habit-modal-super-habit"
+                                icon={superTheme ? <superTheme.icon size={14} /> : <Sparkles size={14} />}
+                                color={superTheme ? superTheme.colors.primary : '#ec4899'}
+                                label={t('cu.superHabit', 'Súper hábito')}
+                                value={superTheme ? superTheme.shortName : isDeluxe ? t('common.none', 'Ninguno') : <DeluxeBadge size="xs" />}
+                                onClick={openSuperPanel}
+                            />
+                        </Tiles>
+                    </>
+                ),
+            },
+            {
+                key: 'when',
+                title: t('cu.wiz.habit.t2', '¿Cada cuánto lo harás?'),
+                hint: t('cu.wiz.habit.h2', 'Elige los días en que quieres cumplirlo.'),
+                icon: <Calendar size={16} />,
+                valid: scheduleOk,
+                missing: t('cu.wiz.pickDays', 'Elige al menos un día para continuar'),
+                content: freqBlock,
+            },
+            {
+                key: 'how',
+                title: t('cu.wiz.habit.t3', '¿Cómo lo medirás?'),
+                hint: t('cu.wiz.habit.h3', 'Define qué significa cumplirlo y cuánto vale.'),
+                icon: <CheckCircle2 size={16} />,
+                valid: targetOk && splitOk && stepsOk,
+                missing: !targetOk ? t('cu.wiz.goalFirst', 'Escribe tu meta para continuar') : !splitOk ? t('cu.wiz.splitFirst', 'Completa el reparto de tu meta') : t('cu.wiz.stepsFirst', 'Añade al menos un paso'),
+                content: (
+                    <>
+                        {trackBlock}
+                        <Tiles cols={1}>{impactTile}</Tiles>
+                    </>
+                ),
+            },
+            {
+                key: 'remind',
+                title: t('cu.wiz.habit.t4', 'Recuérdamelo'),
+                hint: t('cu.wiz.habit.h4', 'Pon una alarma y personalízalo.'),
+                icon: <Bell size={16} />,
+                valid: alarmOk,
+                missing: t('cu.wiz.alarmFirst', 'Elige la hora de tu alarma para crear el hábito'),
+                content: (
+                    <>
+                        <Tiles cols={2}>{alarmTile()}{durationTile}{iconTile}{projectTile()}</Tiles>
+                        {alarmNotices}
+                    </>
+                ),
+            },
+        ];
+        return (
+            <WizardSheet
+                isOpen={isOpen}
+                onClose={onClose}
+                accent={activeColor}
+                steps={steps}
+                index={step}
+                onIndex={setStep}
+                onFinish={handleConfirm}
+                finishLabel={t('cu.wiz.createHabit', 'Crear hábito')}
+                finishing={isSubmitting}
+                glyph={<SelectedIcon size={34} />}
+                name={title}
+                lastExtra={canSubmit ? rewardPreview : null}
+                subpanel={subpanel}
+                nextLabel={t('cu.wiz.next', 'Siguiente')}
+                backLabel={t('cu.wiz.back', 'Atrás')}
+                doneLabel={t('cu.done', 'Listo')}
+                stepOf={(i, n) => t('cu.wiz.stepOf', { defaultValue: 'Paso {{i}} de {{n}}', i: i + 1, n })}
+            />
+        );
+    }
+
+    // ── Editing: every control on one page ───────────────────────────────────
     return (
         <CupertinoSheet
             isOpen={isOpen}
             onClose={onClose}
             accent={activeColor}
-            title={isEditing ? t('habits.editHabit', 'Editar hábito') : t('habits.newHabit', 'Nuevo hábito')}
+            title={t('habits.editHabit', 'Editar hábito')}
             subtitle={t('habits.lifeProtocol', 'Protocolo de vida')}
-            primaryLabel={isEditing ? t('cu.save', 'Guardar') : t('cu.create', 'Crear')}
+            primaryLabel={t('cu.save', 'Guardar')}
             onPrimary={handleConfirm}
             primaryDisabled={!canSubmit}
             primaryLoading={isSubmitting}
@@ -674,35 +955,10 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
             scrollRef={scrollRef}
             maxWidth={460}
             doneLabel={t('cu.done', 'Listo')}
-            subpanel={panel ? { title: panelTitle[panel], onBack: () => setPanel(null), children: panelBody } : null}
-            headerExtra={!isEditing && onSwitchToBadHabit ? (
-                <Segmented<'habit' | 'vice'>
-                    value="habit"
-                    onChange={(v) => { if (v === 'vice') onSwitchToBadHabit(); }}
-                    options={[
-                        { value: 'habit', label: t('habits.habit', 'Hábito') },
-                        { value: 'vice', label: t('habits.vice', 'Vicio'), dataTour: 'habit-modal-vice-switch' },
-                    ]}
-                />
-            ) : undefined}
-            footer={canSubmit
-                ? (
-                    <RewardPreview
-                        xp={prediction.xp}
-                        traitXp={prediction.traitXp}
-                        coins={prediction.coins}
-                        traitColor={selectedAttr?.color || activeColor}
-                        TraitIcon={TraitIcon}
-                        traitLabel={activeLabel}
-                        bonus={prediction.bonusApplied}
-                        xpLabel={t('common.xp', 'XP')}
-                        goldLabel={t('common.gold', 'Oro')}
-                    />
-                )
-                : <Hint>{t('cu.missingPrefix', 'Falta')}: <b>{missing.join(' · ')}</b></Hint>}
+            subpanel={subpanel}
+            footer={canSubmit ? rewardPreview : <Hint>{t('cu.missingPrefix', 'Falta')}: <b>{missing.join(' · ')}</b></Hint>}
         >
             <Stack className="cu-tight">
-                {/* Name + super habit */}
                 <Hero
                     tile={<SelectedIcon size={28} />}
                     tileColor={activeColor}
@@ -714,11 +970,11 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                         <SuperHabitButton
                             value={superId}
                             open={panel === 'super'}
-                            onToggle={() => setPanel(p => p === 'super' ? null : 'super')}
+                            locked={!isDeluxe && !superId}
+                            onToggle={openSuperPanel}
                         />
                     }
                 />
-
                 <div className="cu-desc">
                     <FileText size={17} />
                     <input
@@ -729,138 +985,17 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                         aria-label={t('habits.descriptionPlaceholder', 'Descripción…')}
                     />
                 </div>
-
-                {/* When it repeats */}
-                <Segmented
-                    tall
-                    value={freq}
-                    onChange={(f) => { if (f !== freq) setWeekDays([]); setFreq(f); }}
-                    options={['DAILY', 'WEEKLY', 'MONTHLY'].map(f => ({ value: f, label: t(`modals.habit.frequencies.${f}`) }))}
-                />
-
-                {freq === 'WEEKLY' && (
-                    <>
-                        {weeklyType === 'SPECIFIC_DAYS' ? (
-                            <DayPicker days={weekDaysList} selected={weekDays} onToggle={(i) => setWeekDays(p => p.includes(i) ? p.filter(d => d !== i) : [...p, i])} />
-                        ) : (
-                            <div className="cu-mini-field">
-                                <span style={{ flex: 1 }}>{t('timesPerWeek', 'Veces por semana')}</span>
-                                <input className="cu-input cu-num" style={{ width: 60 }} type="number" inputMode="numeric" min={1} max={7} value={String(weeklyFlexibleCount)} onChange={(e) => clampCount(setWeeklyFlexibleCount, 7)(e.target.value)} aria-label={t('timesPerWeek', 'Veces por semana')} />
-                            </div>
-                        )}
-                        <div className="cu-linkrow">
-                            <button type="button" className="cu-link" style={{ fontSize: 13.5 }} onClick={() => setWeeklyType(weeklyType === 'SPECIFIC_DAYS' ? 'FLEXIBLE_COUNT' : 'SPECIFIC_DAYS')}>
-                                {weeklyType === 'SPECIFIC_DAYS' ? t('cu.useCount', 'Prefiero un número de veces por semana') : t('cu.useDays', 'Prefiero elegir los días')}
-                            </button>
-                        </div>
-                    </>
-                )}
-
-                {freq === 'MONTHLY' && (
-                    <Tiles cols={1}>
-                        <Tile
-                            icon={<Calendar size={14} />}
-                            color="#ff453a"
-                            label={t('cu.monthDays', 'Días del mes')}
-                            value={monthlySummary || t('cu.choose', 'Elegir')}
-                            onClick={() => setPanel('monthly')}
-                        />
-                    </Tiles>
-                )}
-
-                {/* How it is measured */}
-                <Segmented<Logic> tall value={logic} onChange={setLogic} options={logicOptions} />
-
-                {logic === 'QUANTITY' && (
-                    <>
-                        <div className="cu-pair">
-                            <div className="cu-mini-field">
-                                <span>{t('modals.habit.target', 'Meta')}</span>
-                                <input className="cu-input cu-num" type="number" inputMode="numeric" placeholder="10" value={target} onChange={(e) => setTarget(e.target.value)} aria-label={t('modals.habit.target', 'Meta')} />
-                            </div>
-                            <div className="cu-mini-field">
-                                <span>{t('modals.habit.unit', 'Unidad')}</span>
-                                <input className="cu-input" placeholder={t('habits.pagesPlaceholder', 'páginas')} value={unit} onChange={(e) => setUnit(e.target.value)} aria-label={t('modals.habit.unit', 'Unidad')} />
-                            </div>
-                        </div>
-                        <div className="cu-linkrow">
-                            <button type="button" className="cu-link" style={{ fontSize: 13.5 }} onClick={() => setPanel('split')}>
-                                <Repeat size={14} /> {isDivided ? t('cu.splitOn', 'Meta dividida · editar') : t('cu.splitGoal', 'Dividir la meta')}
-                            </button>
-                        </div>
-                    </>
-                )}
-
-                {logic === 'CHECKLIST' && (
-                    <Tiles cols={1}>
-                        <Tile
-                            icon={<List size={14} />}
-                            color="#ffd60a"
-                            label={t('cu.steps', 'Pasos')}
-                            value={activeSteps.length ? t('cu.stepsCount', { defaultValue: '{{n}} pasos · editar', n: activeSteps.length }) : t('cu.addSteps', 'Añadir pasos')}
-                            onClick={() => setPanel('list')}
-                        />
-                    </Tiles>
-                )}
-
-                {/* Details as tiles */}
+                {freqBlock}
+                {trackBlock}
                 <Tiles cols={3}>
-                    <Tile
-                        icon={<TraitIcon size={14} />}
-                        color={selectedAttr?.color || '#0a84ff'}
-                        label={t('cu.trait', 'Rasgo')}
-                        value={hasTrait ? activeLabel : t('habits.selectTrait', 'Elegir')}
-                        onClick={() => setPanel('trait')}
-                    />
-                    <Tile
-                        icon={<Palette size={14} />}
-                        color="#bf5af2"
-                        label={t('cu.icon', 'Icono')}
-                        value={customIconName || customColor ? t('cu.custom', 'Personal') : t('cu.auto', 'Automático')}
-                        onClick={() => setPanel('icon')}
-                    />
-                    <Tile
-                        icon={<Zap size={14} />}
-                        color={IMPACT_COLORS[impact - 1]}
-                        label={t('cu.impactShort', 'Impacto')}
-                        onClick={() => setImpact(impact >= 4 ? 1 : impact + 1)}
-                    >
-                        <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                            <MiniMeter value={impact} colors={IMPACT_COLORS} />
-                        </span>
-                    </Tile>
-                    <Tile span={2} icon={<Bell size={14} />} color="#ff9f0a" label={t('modals.habit.alert', 'Alarma')} active={!alarmOk && !isEditing}>
-                        <TimePicker value={reminder} onChange={onAlarmChange} className="cu-time" />
-                    </Tile>
-                    <Tile
-                        icon={<Layers size={14} />}
-                        color="#5e5ce6"
-                        label={t('cu.duration', 'Duración')}
-                        value={estimatedTime > 0 ? (estimatedTime >= 60 ? `${+(estimatedTime / 60).toFixed(1)} h` : `${estimatedTime} min`) : t('cu.undefined', 'Sin definir')}
-                        onClick={() => setPanel('duration')}
-                    />
-                    <Tile
-                        span={3}
-                        icon={<Target size={14} />}
-                        color="#64d2ff"
-                        label={t('cu.project', 'Proyecto')}
-                        value={linkedProject?.title || t('habits.noProject', 'Ninguno')}
-                        onClick={() => setPanel('project')}
-                    />
+                    {traitTile}
+                    {iconTile}
+                    {impactTile}
+                    {alarmTile(2)}
+                    {durationTile}
+                    {projectTile(3)}
                 </Tiles>
-
-                {reminder && (permissions.notifications !== 'granted' && permissions.notifications !== 'unknown') && (
-                    <Notice tone="danger" icon={<AlertCircle size={16} />} action={t('common.activate', 'Activar')} onClick={requestPermissions}>
-                        {t('habits.missingPermissions', 'Faltan permisos de notificación')}
-                    </Notice>
-                )}
-                {reminder && (
-                    <div className="cu-linkrow">
-                        <button type="button" className="cu-link" style={{ fontSize: 13, color: 'var(--cu-label-2)' }} onClick={openSystemSettings}>
-                            <Zap size={13} /> {t('habits.batteryBackground', 'Batería / segundo plano')} · {t('common.review', 'Revisar')}
-                        </button>
-                    </div>
-                )}
+                {alarmNotices}
             </Stack>
         </CupertinoSheet>
     );

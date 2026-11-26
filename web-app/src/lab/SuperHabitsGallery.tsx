@@ -4,9 +4,11 @@ import { StreakFlame } from '@/modules/superHabits/StreakFlame';
 import { BadgeEmblem, BADGE_METALS } from '@/modules/superHabits/BadgeEmblem';
 import { BannerBackdrop } from '@/modules/superHabits/BannerBackdrop';
 import { FLAME_TIERS } from '@/modules/superHabits/engine';
-import { SUPER_HABIT_LIST } from '@/modules/superHabits/catalog';
+import { SUPER_HABIT_LIST, SUPER_HABITS } from '@/modules/superHabits/catalog';
 import { SUPER_HABIT_EVENT } from '@/modules/superHabits/superHabitEvents';
 import { SuperHabitFX } from '@/modules/superHabits/SuperHabitFX';
+import { WorldShell } from '@/modules/superHabits/worlds/WorldShell';
+import { getWorld } from '@/modules/superHabits/worlds/registry';
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <section style={{ padding: 16 }}>
@@ -66,4 +68,16 @@ export const SuperHabitsGallery = () => {
       </Section>
     </div>
   );
+};
+
+// ?world=agua&streak=17 → a single world, full screen.
+export const WorldPreview = () => {
+  const q = new URLSearchParams(location.search);
+  const id = (q.get('world') || 'agua') as any;
+  const streak = Number(q.get('streak') ?? 17);
+  const theme = SUPER_HABITS[id as keyof typeof SUPER_HABITS];
+  const def = getWorld(id);
+  if (!def) return <div style={{ color: '#fff', padding: 24 }}>Sin mundo para «{id}»</div>;
+  const habit: any = { id: 'p', title: theme.name, streak, completedToday: streak % 2 === 0, history: [], superHabit: id };
+  return <WorldShell habit={habit} theme={theme} def={def} onClose={() => {}} />;
 };

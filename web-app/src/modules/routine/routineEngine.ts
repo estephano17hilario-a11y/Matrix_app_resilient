@@ -7,6 +7,7 @@ import { isLastDayOfMonth } from 'date-fns';
 import type { Habit, Project, Quest } from '../../types';
 import { getHistoryDateKey, timeToMinutes, toLocalISOString } from '../../utils/dateUtils';
 import { isFreshOn, isHabitDoneOn, isProjectActive } from '../../utils/productivityScore';
+import { reminderOccursOn, type JournalReminderItem } from './reminderItems';
 
 export type RoutineKind = 'HABIT' | 'SUBHABIT' | 'TASK' | 'PROJECT' | 'JOURNAL';
 export type DayPart = 'MORNING' | 'AFTERNOON' | 'NIGHT';
@@ -33,7 +34,38 @@ export interface RoutineItem {
   isQuantity?: boolean;
   /** 0..1 when the item has measurable progress (quantity habit, project goal). */
   progress?: number;
+  /** Length of its block in the calendar, in minutes (override > the item's own setting > a default by kind). */
+  durationMin: number;
+  /** The hour it has when no day override applies ("HH:mm" or null). */
+  baseTime?: string | null;
+  /** Moved to another hour for this day only. */
+  overridden?: boolean;
+  /** Fixed-time divided habit: id of the slot this item stands for. */
+  slotId?: string;
+  /** The colour the user assigned (custom colour / task colour / project colour), '' when none. */
+  colorOwn: string;
+  /** The colour of the trait it trains, '' when none. */
+  colorTrait: string;
+  /** 0 = not rated, 1..4 = how important (habit / project impact, task difficulty C B A S). */
+  importance: number;
+  /** A reminder pinned on the Journal calendar (kind JOURNAL). */
+  reminderId?: string;
 }
+
+/** How the calendar paints its blocks. */
+export type CalendarColorMode = 'OWN' | 'TRAIT' | 'IMPORTANCE';
+export const IMPORTANCE_COLORS = ['#30d158', '#0a84ff', '#ff9f0a', '#ff453a'];
+export const IMPORTANCE_LABELS = { es: ['Leve', 'Normal', 'Alta', 'Crítica'], en: ['Low', 'Normal', 'High', 'Critical'] };
+
+export const colorForMode = (item: Pick<RoutineItem, 'color' | 'colorOwn' | 'colorTrait' | 'importance'>, mode: CalendarColorMode): string => {
+  if (mode === 'IMPORTANCE' && item.importance >= 1) return IMPORTANCE_COLORS[Math.min(4, item.importance) - 1];
+  if (mode === 'TRAIT') return item.colorTrait || item.colorOwn || item.color;
+  if (mode === 'OWN') return item.colorOwn || item.colorTrait || item.color;
+  return item.color;
+};
+
+const DIFFICULTY_IMPORTANCE: Record<string, number> = { C: 1, B: 2, A: 3, S: 4 };
+const clampImportance = (n: unknown) => { const v = Math.round(Number(n)); return Number.isFinite(v) ? Math.min(4, Math.max(1, v)) : 1; };
 
 export interface RoutineConfig {
   showHabits: boolean;
@@ -59,6 +91,12 @@ export interface RoutineConfig {
   habitIcons: boolean;
   /** 24h clock instead of AM/PM. */
   use24h: boolean;
+  /** Calendar block colours: the colour assigned, the trait colour, or how important the item is. */
+  calendarColor: CalendarColorMode;
+  /** Routine screen layout: the chronological list or the calendar grid. */
+  view: 'LIST' | 'CALENDAR';
+  /** Days the calendar shows at once: 1 (day), 3 or 7 (week). */
+  calendarSpan: 1 | 3 | 7;
 }
 
 export const DEFAULT_ROUTINE_CONFIG: RoutineConfig = {
@@ -76,6 +114,9 @@ export const DEFAULT_ROUTINE_CONFIG: RoutineConfig = {
   timeLeft: true,
   habitIcons: true,
   use24h: false,
+  calendarColor: 'OWN',
+  view: 'LIST',
+  calendarSpan: 1,
 };
 
 const configKey = (uid?: string | null) => `routine_config_v1_${uid || 'anon'}`;
@@ -86,6 +127,9 @@ export const loadRoutineConfig = (uid?: string | null): RoutineConfig => {
     if (raw) {
       const merged = { ...DEFAULT_ROUTINE_CONFIG, ...JSON.parse(raw) } as RoutineConfig;
       merged.hourBlock = Math.min(6, Math.max(1, Math.round(Number(merged.hourBlock)) || DEFAULT_ROUTINE_CONFIG.hourBlock));
+      if (merged.view !== 'CALENDAR') merged.view = 'LIST';
+      if (![1, 3, 7].includes(Number(merged.calendarSpan))) merged.calendarSpan = 1;
+      if (!['OWN', 'TRAIT', 'IMPORTANCE'].includes(merged.calendarColor)) merged.calendarColor = 'OWN';
       return merged;
     }
   } catch { /* unreadable: defaults */ }
@@ -111,10 +155,23 @@ export const dayPartOf = (minutes: number): DayPart =>
 
 const KIND_RANK: Record<RoutineKind, number> = { HABIT: 0, SUBHABIT: 0, TASK: 1, PROJECT: 2, JOURNAL: 3 };
 
-const makeItem = (partial: Omit<RoutineItem, 'minutes'>): RoutineItem => ({
+/** Calendar block length when nothing says otherwise. */
+export const DEFAULT_DURATION: Record<RoutineKind, number> = { HABIT: 30, SUBHABIT: 15, TASK: 30, PROJECT: 45, JOURNAL: 20 };
+export const MIN_DURATION = 5;
+export const MAX_DURATION = 12 * 60;
+export const clampDuration = (n: number) => Math.min(MAX_DURATION, Math.max(MIN_DURATION, Math.round(n)));
+
+type ItemInput = Omit<RoutineItem, 'minutes' | 'durationMin' | 'colorOwn' | 'colorTrait' | 'importance'> &
+  Partial<Pick<RoutineItem, 'colorOwn' | 'colorTrait' | 'importance'>> & { durationMin?: number };
+
+const makeItem = (partial: ItemInput): RoutineItem => ({
   ...partial,
+  colorOwn: partial.colorOwn ?? partial.color,
+  colorTrait: partial.colorTrait ?? partial.color,
+  importance: partial.importance ?? 0,
   time: timeToMinutes(partial.time) === null ? null : partial.time,
   minutes: timeToMinutes(partial.time),
+  durationMin: clampDuration(partial.durationMin ?? DEFAULT_DURATION[partial.kind]),
 });
 
 /** Frequency rule shared with the habits view: is this habit expected on `date`? */
@@ -140,16 +197,18 @@ export interface BuildRoutineInput {
   quests: Quest[];
   projects: Project[];
   journalTimes: string[];
+  /** Reminders pinned on the Journal calendar. */
+  reminderItems?: JournalReminderItem[];
   /** A journal entry already exists for `date`. */
   journalDone: boolean;
   config: RoutineConfig;
   /** Colour of a trait, or '' when unknown. */
   colorForAttribute: (attributeId: string) => string;
-  labels: { journal: string; journalSub: string; overdue: string; project: string };
+  labels: { journal: string; journalSub: string; overdue: string; project: string; reminder?: string };
 }
 
 export const buildRoutineItems = (input: BuildRoutineInput): RoutineItem[] => {
-  const { date, habits, quests, projects, journalTimes, journalDone, config, colorForAttribute, labels } = input;
+  const { date, habits, quests, projects, journalTimes, journalDone, config, colorForAttribute, labels, reminderItems = [] } = input;
   const key = toLocalISOString(date);
   const isToday = key === toLocalISOString(new Date());
   const items: RoutineItem[] = [];
@@ -159,6 +218,9 @@ export const buildRoutineItems = (input: BuildRoutineInput): RoutineItem[] => {
     for (const habit of habits) {
       if (habit.archived || !isHabitDueOn(habit, date)) continue;
       const color = habit.customColor || colorForAttribute(habit.attribute) || habit.color || '#6366f1';
+      const colorOwn = habit.customColor || habit.color || '';
+      const colorTrait = colorForAttribute(habit.attribute);
+      const importance = clampImportance(habit.impact);
       const habitDone = isHabitDoneOn(habit, key);
       // Today's live progress (quantity, ticked sub-habits) is only real if it was recorded today:
       // until the daily reset runs it still describes the previous day.
@@ -169,15 +231,23 @@ export const buildRoutineItems = (input: BuildRoutineInput): RoutineItem[] => {
         for (const sub of habit.checklist) {
           if (sub.deleted) continue;
           if (sub.days && sub.days.length > 0 && !sub.days.includes(date.getDay())) continue;
+          const subOv = sub.dayOverrides?.[key];
+          const subBase = sub.reminderTime || habit.reminderTime || null;
           const subDone = isToday ? (!!sub.completed && live) : (sub.history || []).some(d => getHistoryDateKey(d) === key);
           items.push(makeItem({
             id: `${habit.id}-sub-${sub.id}`,
             kind: 'SUBHABIT',
             title: sub.text,
             subtitle: habit.title,
-            time: sub.reminderTime || habit.reminderTime || null,
+            time: subOv?.time || subBase,
+            baseTime: subBase,
+            overridden: !!subOv?.time && subOv.time !== subBase,
+            durationMin: subOv?.duration ?? sub.calendarDuration,
             done: subDone,
             color: sub.color || color,
+            colorOwn: sub.color || colorOwn,
+            colorTrait,
+            importance,
             habit,
             subtaskId: sub.id,
           }));
@@ -185,16 +255,22 @@ export const buildRoutineItems = (input: BuildRoutineInput): RoutineItem[] => {
       } else if (habit.type === 'QUANTITY' && habit.isDivided && habit.dividedMode === 'FIXED' && habit.dividedTimes && habit.dividedTimes.length > 0) {
         const slots = [...habit.dividedTimes].sort((a, b) => a.time.localeCompare(b.time));
         let accumulated = 0;
+        const dayOv = habit.dayOverrides?.[key];
         slots.forEach((slot, i) => {
           const slotDone = habitDone || (live && liveValue >= accumulated + slot.amount);
+          const slotTime = dayOv?.slots?.[slot.id] || slot.time;
           items.push(makeItem({
             id: `${habit.id}-time-${i}`,
             kind: 'HABIT',
             title: habit.title,
             subtitle: `${slot.amount} ${habit.unit || ''}`.trim(),
-            time: slot.time,
+            time: slotTime,
+            baseTime: slot.time,
+            overridden: slotTime !== slot.time,
+            slotId: slot.id,
+            durationMin: dayOv?.duration ?? habit.calendarDuration,
             done: slotDone,
-            color,
+            color, colorOwn, colorTrait, importance,
             habit,
             isQuantity: true,
           }));
@@ -209,14 +285,20 @@ export const buildRoutineItems = (input: BuildRoutineInput): RoutineItem[] => {
           }
         }
         const isQuantity = habit.type === 'QUANTITY';
+        const baseTime = time;
+        const habitOv = habit.dayOverrides?.[key];
+        if (habitOv?.time) time = habitOv.time;
         items.push(makeItem({
           id: habit.id,
           kind: 'HABIT',
+          baseTime,
+          overridden: !!habitOv?.time && habitOv.time !== baseTime,
+          durationMin: habitOv?.duration ?? habit.calendarDuration,
           title: habit.title,
           subtitle: isQuantity ? `${isToday ? liveValue : (habitDone ? habit.targetValue || 0 : 0)} / ${habit.targetValue || 0} ${habit.unit || ''}`.trim() : undefined,
           time,
           done: habitDone,
-          color,
+          color, colorOwn, colorTrait, importance,
           habit,
           isQuantity,
           progress: isQuantity && habit.targetValue
@@ -243,8 +325,13 @@ export const buildRoutineItems = (input: BuildRoutineInput): RoutineItem[] => {
         subtitle: overdue ? labels.overdue : undefined,
         time: sameDay ? (quest.deadlineTime || null) : null,
         done: !!quest.completed,
+        baseTime: sameDay ? (quest.deadlineTime || null) : null,
+        durationMin: quest.calendarDuration,
         // Tasks wear the colour of the trait they belong to.
         color: colorForAttribute(quest.attribute) || quest.color || '#6366f1',
+        colorOwn: quest.color || '',
+        colorTrait: colorForAttribute(quest.attribute),
+        importance: DIFFICULTY_IMPORTANCE[quest.difficulty] ?? 1,
         overdue,
         quest,
       }));
@@ -268,8 +355,13 @@ export const buildRoutineItems = (input: BuildRoutineInput): RoutineItem[] => {
         title: project.title,
         subtitle: target > 0 ? `${minutes}/${target} min` : (minutes > 0 ? `${minutes} min` : labels.project),
         time: project.reminder,
+        baseTime: project.reminder,
+        durationMin: target > 0 ? Math.min(target, 180) : undefined,
         done: minutes >= Math.max(1, target),
         color: project.color || '#8b5cf6',
+        colorOwn: project.color || '',
+        colorTrait: '',
+        importance: clampImportance(project.impact),
         project,
         progress: target > 0 ? Math.max(0, Math.min(1, minutes / target)) : undefined,
       }));
@@ -287,8 +379,26 @@ export const buildRoutineItems = (input: BuildRoutineInput): RoutineItem[] => {
         time,
         done: journalDone,
         color: '#818cf8',
+        importance: 0,
       }));
     });
+    // Reminders pinned on a day of the Journal calendar.
+    for (const r of reminderItems) {
+      if (!reminderOccursOn(r, key)) continue;
+      items.push(makeItem({
+        id: `reminder-${r.id}`,
+        kind: 'JOURNAL',
+        reminderId: r.id,
+        title: r.title,
+        subtitle: labels.reminder || labels.journalSub,
+        time: r.time || null,
+        baseTime: r.time || null,
+        durationMin: r.duration,
+        done: r.doneDates.includes(key),
+        color: r.color || '#818cf8',
+        importance: 0,
+      }));
+    }
   }
 
   // `showCompleted` is purely visual and is NOT applied here: the day's counters (hechas / pendientes /

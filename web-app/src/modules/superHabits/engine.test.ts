@@ -81,3 +81,19 @@ describe('streak flame tiers', () => {
     expect(nextFlameTier(60)).toBeNull();
   });
 });
+
+describe('world level', () => {
+  it('puts every milestone on its own eighth', async () => {
+    const { worldLevel, milestoneLevel } = await import('./engine');
+    expect(worldLevel(0)).toBe(0);
+    expect(worldLevel(2)).toBeCloseTo(1 / 8);
+    expect(worldLevel(7)).toBeCloseTo(3 / 8);
+    expect(worldLevel(60)).toBe(1);
+    expect(worldLevel(500)).toBe(1);
+    expect(worldLevel(1)).toBeCloseTo(1 / 16);
+    expect(worldLevel(3)).toBeCloseTo(1 / 8 + 1 / 16);
+    expect(milestoneLevel(7)).toBe(1);
+    let prev = -1;
+    for (let d = 0; d <= 70; d++) { const l = worldLevel(d); expect(l).toBeGreaterThanOrEqual(prev); prev = l; }
+  });
+});

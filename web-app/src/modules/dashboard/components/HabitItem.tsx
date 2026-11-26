@@ -1,12 +1,11 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as LucideIcons from '@/utils/lucideRegistry';
-import { Check, MoreVertical, ChevronDown, Zap } from 'lucide-react';
+import { Check, MoreVertical, ChevronDown, Sparkles } from 'lucide-react';
 import { StreakFlame } from '../../superHabits/StreakFlame';
-import { BadgeEmblem } from '../../superHabits/BadgeEmblem';
-import { BannerBackdrop } from '../../superHabits/BannerBackdrop';
 import { getSuperTheme } from '../../superHabits/catalog';
-import { earnedMilestones, SUPER_MILESTONES } from '../../superHabits/engine';
+import { earnedMilestones, nextMilestone, worldLevel, milestoneLevel, SUPER_MILESTONES } from '../../superHabits/engine';
+import { isHabitScheduledOn } from '../../../utils/streakRules';
 import { Habit, Attribute } from '../../../types';
 import { cn } from '../../../utils/cn';
 import { QuantityUpdateModal } from './QuantityUpdateModal';
@@ -61,6 +60,16 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
   const superTheme = getSuperTheme(habit.superHabit);
   const earnedBadges = React.useMemo(() => (superTheme ? earnedMilestones(habit.streak || 0) : []), [superTheme, habit.streak]);
   const Icon = CustomIcon || superTheme?.icon || attribute?.icon;
+  const week = React.useMemo(() => {
+    const done = new Set((habit.history || []).map(h => getHistoryDateKey(h)));
+    const base = currentDate || new Date();
+    return Array.from({ length: 7 }, (_, k) => {
+      const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() - (6 - k));
+      const key = getHistoryDateKey(toLocalISOString(d));
+      const isToday = k === 6;
+      return { key, isToday, done: isToday ? !!(completedOverride ?? habit.completedToday) : done.has(key), scheduled: isHabitScheduledOn(habit, d) };
+    });
+  }, [habit, completedOverride, currentDate]);
 
   // Fallback color if none provided
   const baseColor = habit.customColor || superTheme?.colors.primary || attribute?.color || '#6366f1'; // Indigo default
@@ -247,8 +256,8 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
         onClick: handleWrapperClick,
         'data-locate-habit': habit.id,
         className: cn(
-          "group relative bg-[#050505]/90 border rounded-[24px] pl-5 pr-4 py-3 w-[102%] -translate-x-[1%] transition-all duration-200 cursor-pointer overflow-hidden hover:bg-[#0a0a0a] hover:border-white/10 active:scale-95 clickable",
-          allChecklistCompleted ? "border-emerald-500/30" : "border-white/5",
+          "group relative bg-[#08080c]/95 border rounded-[22px] pl-5 pr-4 py-3 w-[102%] -translate-x-[1%] transition-all duration-200 cursor-pointer overflow-hidden hover:bg-[#0a0a0a] hover:border-white/10 active:scale-95 clickable",
+          allChecklistCompleted ? "border-emerald-500/30" : "border-white/[0.07]",
           !isDue && "opacity-60 grayscale",
           isCompletedToday ? "opacity-60 grayscale-[0.3]" : ""
         ),
@@ -274,15 +283,10 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
       <div 
         {...wrapperProps}
       >
-        {/* Super habit: themed banner + animated border */}
-        {superTheme && (
-          <>
-            <div className="absolute inset-0 opacity-45 pointer-events-none">
-              <BannerBackdrop motif={superTheme.motif} primary={superTheme.colors.primary} secondary={superTheme.colors.secondary} deep={superTheme.colors.deep} animate={false} />
-            </div>
-            <div className="sh-card-glow" style={{ ['--sh-c1' as any]: superTheme.colors.primary, ['--sh-c2' as any]: superTheme.colors.secondary }} />
-          </>
-        )}
+        {/* Accent spine: the habit colour, always visible */}
+        <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full pointer-events-none"
+          style={{ background: superTheme ? `linear-gradient(180deg, ${superTheme.colors.primary}, ${superTheme.colors.secondary})` : baseColor, boxShadow: `0 0 12px ${baseColor}88` }} />
+        {superTheme && <div className="absolute inset-0 rounded-[inherit] pointer-events-none" style={{ boxShadow: `inset 0 0 0 1px ${superTheme.colors.primary}40` }} />}
 
         {/* Animated Background Progress for partial checklists */}
         {habit.type === 'CHECKLIST' && percentage > 0 && percentage < 100 && (
@@ -294,13 +298,13 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
 
         {/* Subtle gradient background based on color - reduced opacity for premium feel */}
         <div 
-            className="absolute inset-0 opacity-[0.09] group-hover:opacity-[0.14] transition-opacity duration-200" 
+            className="absolute inset-0 opacity-[0.05] group-hover:opacity-[0.09] transition-opacity duration-200" 
             style={{ backgroundColor: baseColor }}
         />
 
         {/* Radial Gradient Blur Background */}
         <div 
-            className="absolute top-0 right-0 w-48 h-48 opacity-[0.50] pointer-events-none group-hover:opacity-[0.60] transition-opacity duration-200" 
+            className="absolute top-0 right-0 w-44 h-44 opacity-[0.26] pointer-events-none group-hover:opacity-[0.34] transition-opacity duration-200" 
             style={{ 
                 background: `radial-gradient(circle, ${baseColor} 0%, transparent 70%)`
             }} 
@@ -317,20 +321,14 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
         </div>
         
         <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
-          <h4 className="text-white font-bold text-[15px] leading-tight tracking-tight truncate flex items-center gap-2">
+          <div className="text-[9px] font-extrabold uppercase tracking-[0.18em] leading-none truncate" style={{ color: superTheme ? superTheme.colors.secondary : `${baseColor}cc` }}>
+            {superTheme ? `Mundo · ${superTheme.shortName}` : attribute ? t(attribute.label, attribute.label.replace('traits.', '')) : 'Hábito'}
+          </div>
+          <h4 className="text-white font-bold text-[16px] leading-tight tracking-tight truncate flex items-center gap-2">
             <span className="truncate">{habit.title}</span>
-            {superTheme && (
-                <span
-                    className="shrink-0 w-4 h-4 rounded-[5px] flex items-center justify-center"
-                    style={{ background: `linear-gradient(135deg, ${superTheme.colors.primary}, ${superTheme.colors.secondary})` }}
-                    title="Super hábito"
-                >
-                    <Zap size={9} className="text-white" fill="currentColor" />
-                </span>
-            )}
             {habit.streak > 0 && (
                 <span className={cn(
-                    "shrink-0 text-[10px] font-black pl-1 pr-1.5 py-0.5 rounded flex items-center gap-0.5 border transition-colors",
+                    "shrink-0 text-[10px] font-black pl-1 pr-1.5 py-0.5 rounded-full flex items-center gap-0.5 border transition-colors",
                     isCompletedToday
                         ? "text-white bg-white/10 border-white/20"
                         : "text-zinc-400 bg-zinc-800/50 border-white/5"
@@ -362,17 +360,6 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                 {progressText}
             </span>
 
-            {superTheme && (
-                <span className="flex items-center gap-1 pl-1 border-l border-white/10" title="Insignias activas · roadmap de 60 días">
-                    {earnedBadges.length > 0 ? (
-                        <BadgeEmblem level={SUPER_MILESTONES.indexOf(earnedBadges[earnedBadges.length - 1])} icon={superTheme.icon} size={20} accent={superTheme.colors.primary} animate={false} />
-                    ) : null}
-                    <span className="text-[10px] font-black tracking-wide" style={{ color: superTheme.colors.secondary }}>
-                        {earnedBadges.length}/8
-                    </span>
-                </span>
-            )}
-
             {timeDisplay && (
                 <span 
                     className="text-[11px] text-white/30 font-medium tracking-wider pl-1 border-l border-white/10 flex items-center gap-1 cursor-pointer hover:text-white/60 transition-colors"
@@ -398,6 +385,34 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                 <ChevronDown size={16} className={cn("transition-transform duration-200", isExpanded && "rotate-180")} />
             </button>
           </div>
+
+          {/* Strategic strip: 7-day consistency, or the 60-day path for super habits */}
+          {superTheme ? (
+            <div className="mt-2" aria-label="Camino de 60 días">
+              <div className="relative h-[14px]">
+                <div className="absolute left-0 right-0 top-1/2 h-[4px] -translate-y-1/2 rounded-full bg-white/10" />
+                <div className="absolute left-0 top-1/2 h-[4px] -translate-y-1/2 rounded-full" style={{ width: `${worldLevel(habit.streak || 0) * 100}%`, background: `linear-gradient(90deg, ${superTheme.colors.primary}, ${superTheme.colors.secondary})`, boxShadow: `0 0 8px ${superTheme.colors.primary}88` }} />
+                {SUPER_MILESTONES.map((m, i) => {
+                  const on = (habit.streak || 0) >= m;
+                  return <span key={m} className="absolute top-1/2 w-[9px] h-[9px] rounded-[2px]" style={{ left: `${milestoneLevel(i) * 100}%`, transform: 'translate(-50%, -50%) rotate(45deg)', background: on ? superTheme.colors.secondary : '#0b0b10', border: `1.5px solid ${on ? superTheme.colors.secondary : 'rgba(255,255,255,0.28)'}` }} />;
+                })}
+              </div>
+              <div className="flex justify-between mt-1 text-[9.5px] font-bold text-white/40">
+                <span className="shrink-0 whitespace-nowrap">{earnedBadges.length}/8 insignias</span>
+                <span className="truncate pl-2">{(() => { const n = nextMilestone(habit.streak || 0); return n ? `Día ${n} · ${superTheme.badges[SUPER_MILESTONES.indexOf(n)]}` : 'Roadmap completo'; })()}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 mt-2.5" aria-label="Últimos 7 días">
+              {week.map(d => (
+                <span key={d.key} className="h-[5px] flex-1 rounded-full" title={d.key}
+                  style={{
+                    background: d.done ? baseColor : d.scheduled ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.035)',
+                    boxShadow: d.done ? `0 0 6px ${baseColor}77` : d.isToday ? `inset 0 0 0 1px ${baseColor}` : 'none',
+                  }} />
+              ))}
+            </div>
+          )}
 
           {/* Inline Subtasks for Chronological View */}
           {viewPreference === 'CHRONOLOGICAL' && habit.type === 'CHECKLIST' && habit.checklist && (
@@ -519,7 +534,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                          {/* Rewards */}
                          <div className="bg-white/5 rounded-lg p-2 flex items-center gap-2">
                              <div className="flex gap-1 flex-wrap">
-                                 <span className="text-fuchsia-400 font-bold text-xs flex items-center gap-0.5"><LucideIcons.Zap size={10} /> +{rewards.xp}</span>
+                                 <span className="text-fuchsia-400 font-bold text-xs flex items-center gap-0.5"><Sparkles size={10} /> +{rewards.xp}</span>
                                  <span className="text-amber-400 font-bold text-xs flex items-center gap-0.5"><LucideIcons.Coins size={10} /> +{rewards.gold}</span>
                                  {attribute && (
                                      <span className="text-cyan-400 font-bold text-xs flex items-center gap-0.5" style={{ color: attribute.color }}>
@@ -760,7 +775,7 @@ export const HabitItem = React.memo(({ habit, attribute, onComplete, onClick, on
                                     triggerFlyingIcon(rect, "gold-counter-pill", <LucideIcons.Coins size={24} className="text-amber-400 drop-shadow-[0_0_15px_rgba(245,158,11,1)]" />, 0);
                                 }
                                 if (rewards.xp > 0) {
-                                    triggerFlyingIcon(rect, "xp-bar-container", <LucideIcons.Zap size={24} className="text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,1)]" />, 0.15);
+                                    triggerFlyingIcon(rect, "xp-bar-container", <Sparkles size={24} className="text-emerald-400 drop-shadow-[0_0_15px_rgba(16,185,129,1)]" />, 0.15);
                                 }
                                 if (rewards.traitXp > 0 && attribute && Icon) {
                                     triggerFlyingIcon(rect, "xp-bar-container", <Icon size={24} style={{ color: baseColor }} className="drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]" />, 0.3);

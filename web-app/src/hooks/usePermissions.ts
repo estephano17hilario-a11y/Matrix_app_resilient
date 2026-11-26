@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { toast } from 'react-hot-toast';
@@ -107,17 +108,39 @@ export const usePermissions = () => {
     useEffect(() => {
         checkPermissions();
         
-        // Re-check on app resume
-        const resumeListener = (window as any).Capacitor?.Plugins?.App?.addListener('appStateChange', (state: any) => {
-            if (state.isActive) {
-                checkPermissions();
-            }
-        });
+        // Re-check on app resume.
+        // NOTE: `addListener` returns a *Promise* of the handle. Calling `.remove()` on the promise itself
+        // threw "remove is not a function" during unmount, which crashed the React tree (the whole app
+        // stopped responding after closing/unmounting the habit or project modal).
+        let disposed = false;
+        let handle: { remove?: () => unknown } | null = null;
+        try {
+            const pending = App.addListener('appStateChange', (state) => {
+                if (state.isActive) checkPermissions();
+            });
+            Promise.resolve(pending)
+                .then((h) => {
+                    if (disposed) {
+                        try { void Promise.resolve(h?.remove?.()).catch(() => {}); } catch { /* ignore */ }
+                    } else {
+                        handle = h;
+                    }
+                })
+                .catch(() => { /* plugin unavailable on this platform */ });
+        } catch {
+            /* plugin unavailable on this platform */
+        }
 
         return () => {
-            if (resumeListener) {
-                resumeListener.remove();
+            disposed = true;
+            try {
+                if (handle && typeof handle.remove === 'function') {
+                    void Promise.resolve(handle.remove()).catch(() => {});
+                }
+            } catch {
+                /* never let a listener cleanup crash the tree */
             }
+            handle = null;
         };
     }, [checkPermissions]);
 

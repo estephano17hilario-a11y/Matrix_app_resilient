@@ -21,6 +21,8 @@ import { SaveBlueprintModal } from './components/SaveBlueprintModal';
 import { SecurityGate } from '../../components/ui/SecurityGate';
 import { TourLightbulb } from '../../components/TourLightbulb';
 import { toLocalISOString, getDaysInMonth, calculateStreak, parseLocalDate, getWeekStartDay } from '../../utils/dateUtils';
+import { JournalCalendar } from './components/JournalCalendar';
+import { loadRoutineConfig } from '../routine/routineEngine';
 import { useNotesLogic } from './hooks/useNotesLogic';
 import { DynamicIcon } from '../../components/DynamicIcon';
 import { useAuth } from '@/context/AuthContext';
@@ -217,6 +219,8 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  }, [currentSubView]);
 
  const [journalViewMode, setJournalViewMode] = useState<'CALENDAR' | 'LIST'>('CALENDAR');
+ // The Journal calendar is fullscreen by default (the dashboard hides behind a little arrow).
+ const [journalImmersive, setJournalImmersive] = useState(true);
  const [editorMode, setEditorMode] = useState<'NONE' | 'NOTE' | 'JOURNAL'>('NONE');
  const [draftId, setDraftId] = useState<string | null>(null);
  const [draftTitle, setDraftTitle] = useState('');
@@ -2169,115 +2173,32 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   </div>
  
  {journalViewMode === 'CALENDAR' ? (
- <>
- <div className="grid grid-cols-7 gap-2 px-4 text-center mb-2">{(() => {
-      const rawInitials = t('common.weekdays.initials', { returnObjects: true });
-      let weekdayInitials = Array.isArray(rawInitials) ? rawInitials : ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
-      
-      const weekStartDay = getWeekStartDay();
-      if (weekStartDay === 1) {
-          weekdayInitials = [...weekdayInitials.slice(1), weekdayInitials[0]];
-      }
-
-      return weekdayInitials.map((d: string, i: number) => (
-        <span key={i} className="text-[10px] font-bold text-white/30">{d}</span>
-      ));
-    })()}</div>
- <div className="grid grid-cols-7 gap-3 px-4 pb-24 flex-1 content-start animate-in fade-in duration-200">
- {emptyDays.map((_, i) => <div key={`empty-${i}`} />)}
- {monthMeta.map(({ day, date, mood, isToday, isFuture, entry, specialEvent, dayQuests }) => {
- const entryThemeId = entry?.theme || 'slate';
- const entryColor = themeColorMap.get(entryThemeId);
- const hasEntry = !!entry;
-
- const borderColor = hasEntry && entryColor ? entryColor : (isToday ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)');
- const bgColor = hasEntry && entryColor ? `${entryColor}10` : (mood ? `${mood.color}10` : (isToday ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.2)'));
- 
- // Future day and visibility handling
- const isCellHidden = isFuture && !calendarShowFuture;
- 
- if (isCellHidden) {
-   return (
-     <div 
-       key={day} 
-       className="aspect-[4/5] rounded-[18px] opacity-0 pointer-events-none cursor-default"
-     />
-   );
- }
-
- // Calculate actual cell opacity based on configuration
- const actualOpacity = isToday ? 1.0 : (isFuture ? 0.35 * calendarCellOpacity : calendarCellOpacity);
-
- return (
- <button 
- key={day} 
- onClick={() => {
-   if (true) {
-     openJournal(date);
-   }
- }} 
- data-tour={isToday ? "journal-today-btn" : undefined}
- style={{ 
- borderColor: borderColor,
- backgroundColor: bgColor,
- opacity: actualOpacity,
- boxShadow: mood ? `0 0 10px ${mood.color}15` : (hasEntry && entryColor ? `0 0 5px ${entryColor}10` : 'none')
- }}
- className="aspect-[4/5] rounded-[18px] flex flex-col items-center justify-center relative transition-transform active:scale-95 group border hover:bg-white/5 cursor-pointer animate-in fade-in duration-200"
- >
- {/* Mood color overlay */}
- {mood && <div className="absolute inset-0 opacity-10 bg-gradient-to-b from-transparent to-current transition-opacity pointer-events-none animate-in fade-in" style={{ color: mood.color }} />}
- 
- {/* Mood / Custom Emoji / Writing icon centered */}
- {entry?.customEmoji ? (
-    <span className="text-2xl group-hover:scale-110 transition-transform duration-200 drop-shadow-md z-10">
-      {entry.customEmoji}
-    </span>
-  ) : mood ? (
-    <span className="text-2xl group-hover:scale-110 transition-transform duration-200 drop-shadow-md z-10">
-      {mood.icon}
-    </span>
-  ) : isFuture ? (
-    <Lock size={14} className="text-white/20 z-10" />
-  ) : (entry?.blocks && entry.blocks.some(b => b.content && b.content.trim().length > 0)) ? (
-    <span className="text-lg opacity-60 group-hover:opacity-100 transition-opacity z-10">📝</span>
-  ) : null}
- 
- {/* Special Event in top-left */}
- {specialEvent && (
-   <div className="absolute top-1.5 left-2 text-[10px] sm:text-xs hover:scale-110 transition-transform duration-200 drop-shadow-md z-20">
-     {specialEvent.type === 'BIRTHDAY' ? '🎂' : (specialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
-   </div>
- )}
-
- {/* Quest indicators in bottom-left */}
- {dayQuests && dayQuests.length > 0 && (
-   <div className="absolute bottom-1.5 left-2 flex gap-0.5 items-center z-20">
-     {dayQuests.slice(0, 3).map((q, i) => (
-       <div 
-         key={q.id || i} 
-         className="w-1.5 h-1.5 rounded-full" 
-         style={{ backgroundColor: q.journalIconColor || '#3b82f6' }}
-         title={q.title}
-       />
-     ))}
-     {dayQuests.length > 3 && (
-       <span className="text-[7px] font-black text-white/50 leading-none ml-0.5">+</span>
-     )}
-   </div>
- )}
-
- {/* Date number in bottom-right */}
- <div className="absolute bottom-1.5 right-2 z-20">
-   <span className={`text-[10px] sm:text-[11px] font-black tracking-tight ${isToday ? 'text-white' : 'text-white/30 group-hover:text-white/80'} drop-shadow-sm`}>
-     {day}
-   </span>
- </div>
- </button>
- );
- })}
- </div>
- </>
+ <JournalCalendar
+   userId={user?.id}
+   es={!!i18n.language?.startsWith('es')}
+   immersive={journalImmersive}
+   visible={!!isActive && subView === 'JOURNAL' && !isLocked && editorMode === 'NONE'}
+   onToggleImmersive={() => setJournalImmersive(v => !v)}
+   currentMonth={currentMonth}
+   onMonthChange={setCurrentMonth}
+   monthMeta={monthMeta as any}
+   leadingBlanks={emptyDays.length}
+   weekdayInitials={(() => {
+     const rawInitials = t('common.weekdays.initials', { returnObjects: true });
+     let initials: string[] = Array.isArray(rawInitials) ? (rawInitials as string[]) : ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+     if (getWeekStartDay() === 1) initials = [...initials.slice(1), initials[0]];
+     return initials;
+   })()}
+   themeColorMap={themeColorMap}
+   cellOpacity={calendarCellOpacity}
+   showFuture={calendarShowFuture}
+   onShowFuture={setCalendarShowFuture}
+   streak={streak}
+   use24h={loadRoutineConfig(user?.id).use24h}
+   onOpenDay={(d) => openJournal(d)}
+   onListView={() => setJournalViewMode('LIST')}
+   onDailyReminderTimes={() => openJournalReminders(false)}
+ />
  ) : (
  <div className="flex-1 px-4 pb-24 animate-in slide-in-from-right-8 duration-200">
  <div className="relative">

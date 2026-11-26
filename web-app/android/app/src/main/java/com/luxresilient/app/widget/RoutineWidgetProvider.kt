@@ -34,6 +34,14 @@ object RoutineWidgetData {
     const val PREFS_ROUTINE = "lux_routine_widget"
     const val KEY_CONFIG = "config_json"
     const val KEY_JOURNAL_TIMES = "journal_times_json"
+    const val KEY_REMINDERS = "reminders_json"
+
+    /** Reminders pinned on the Journal calendar, as pushed by the app. */
+    fun reminders(prefs: android.content.SharedPreferences): List<com.google.gson.JsonObject> = try {
+        JsonParser.parseString(prefs.getString(KEY_REMINDERS, "[]") ?: "[]").asJsonArray.mapNotNull { it.takeIf { e -> e.isJsonObject }?.asJsonObject }
+    } catch (_: Exception) {
+        emptyList()
+    }
     const val PREFS_WIDGET = "lux_widget_config"
 
     class Snapshot(
@@ -72,7 +80,7 @@ object RoutineWidgetData {
 
         val now = Calendar.getInstance()
         val nowMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
-        val source = RoutineEngine.Source(habits, quests, projects, journal, RoutineEngine.attributeColors(attributes), journalTimes)
+        val source = RoutineEngine.Source(habits, quests, projects, journal, RoutineEngine.attributeColors(attributes), journalTimes, reminders(routinePrefs))
         // Always build with completed items: the progress ring must reflect the whole day, the list hides them per widget.
         val all = RoutineEngine.build(now, source, config.copy(showCompleted = true))
         val summary = RoutineEngine.summarize(all, true, nowMinutes, config.use24h)
@@ -101,6 +109,8 @@ class RoutineWidgetProvider : AppWidgetProvider() {
         /** Redraws every Routine widget (header and list) from the current data. Safe on any thread. */
         fun refreshAll(context: Context) {
             val app = context.applicationContext
+            // The calendar widget draws the same routine: it follows every data change.
+            try { CalendarWidgetProvider.refreshAll(app) } catch (e: Exception) { Log.e(TAG, "calendar refresh failed: ${e.message}") }
             val manager = AppWidgetManager.getInstance(app)
             val ids = widgetIds(app)
             if (ids.isEmpty()) return
@@ -163,6 +173,10 @@ class RoutineWidgetProvider : AppWidgetProvider() {
                     login.setOnClickPendingIntent(R.id.widget_login_required, PendingIntent.getActivity(context, 0, it, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
                 }
                 manager.updateAppWidget(widgetId, login)
+                return
+            }
+            if (!ProGate.isPro(context)) {
+                manager.updateAppWidget(widgetId, ProGate.lockedViews(context, widgetId, "Lux · Rutina"))
                 return
             }
 
@@ -280,7 +294,7 @@ class RoutineWidgetProvider : AppWidgetProvider() {
     }
 
     override fun onDisabled(context: Context) {
-        RoutineAlarms.cancel(context)
+        if (CalendarWidgetProvider.widgetIds(context).isEmpty()) RoutineAlarms.cancel(context)
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
@@ -365,7 +379,7 @@ object RoutineAlarms {
     )
 
     fun ensure(context: Context) {
-        if (RoutineWidgetProvider.widgetIds(context).isEmpty()) return
+        if (RoutineWidgetProvider.widgetIds(context).isEmpty() && CalendarWidgetProvider.widgetIds(context).isEmpty()) return
         val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val now = System.currentTimeMillis()
         val midnight = Calendar.getInstance().apply {

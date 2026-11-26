@@ -103,7 +103,7 @@ class ScoreWidgetProvider : AppWidgetProvider() {
         val (widthDp, heightDp) = WidgetTheme.sizeDp(options, 150, 150)
         val density = context.resources.displayMetrics.density
         val (tintFrom, tintTo) = WidgetArt.scoreColors(if (score < 0) 0 else score)
-        views.setImageViewBitmap(R.id.score_background_image, WidgetTheme.background(context, widthDp, heightDp, style, tintFrom, if (widthDp < 100) 22f else 26f))
+        views.setImageViewBitmap(R.id.score_background_image, WidgetTheme.background(context, widthDp, heightDp, style, tintFrom, if (widthDp < 100) 22f else 26f, WidgetTheme.isSolid(configPrefs, widgetId, providerClass)))
 
         if (userId.isNullOrEmpty() && score < 0) {
             views.setViewVisibility(R.id.score_login_required, View.VISIBLE)

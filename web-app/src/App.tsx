@@ -241,7 +241,16 @@ export default function App() {
       } else if (event.url.includes('luxapp://routine')) {
         // Routine widget: open the Routine section (the Dashboard picks this up on mount or via the event).
         localStorage.setItem('cold_start_open_routine', '1');
+        // The calendar widget opens the Routine straight on its calendar view.
+        if (event.url.includes('view=calendar')) {
+          localStorage.setItem('routine_open_view', 'CALENDAR');
+          window.dispatchEvent(new CustomEvent('routine-open-view'));
+        }
         window.dispatchEvent(new CustomEvent('cold_start_routine_trigger'));
+      } else if (event.url.includes('luxapp://deluxe')) {
+        // A locked Deluxe widget was tapped: the Dashboard explains it and offers the upgrade.
+        localStorage.setItem('cold_start_open_deluxe', '1');
+        window.dispatchEvent(new CustomEvent('cold_start_deluxe_trigger'));
       } else if (event.url.includes('com.luxresilient.app://auth/callback')) {
         try {
           let access_token: string | null = null;

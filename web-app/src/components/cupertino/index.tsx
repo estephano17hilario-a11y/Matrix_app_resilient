@@ -58,6 +58,29 @@ export interface CupertinoSheetProps {
     children: React.ReactNode;
 }
 
+/** Keeps a sheet mounted while it animates out, then ALWAYS unmounts it on a timer.
+ *  (No dependency on animation-complete callbacks: a stuck exit can never leave an invisible layer
+ *  swallowing taps.) */
+const useSheetPresence = (open: boolean, ms = 360) => {
+    const [mounted, setMounted] = useState(open);
+    useEffect(() => {
+        if (open) { setMounted(true); return; }
+        const id = window.setTimeout(() => setMounted(false), ms);
+        return () => window.clearTimeout(id);
+    }, [open, ms]);
+    return { visible: open || mounted, closing: !open };
+};
+
+/** Lock page scroll underneath while a sheet is up; always restored on close/unmount. */
+const useBodyLock = (active: boolean) => {
+    useEffect(() => {
+        if (!active) return;
+        const prev = document.body.style.overscrollBehavior;
+        document.body.style.overscrollBehavior = 'none';
+        return () => { document.body.style.overscrollBehavior = prev; };
+    }, [active]);
+};
+
 export const CupertinoSheet: React.FC<CupertinoSheetProps> = ({
     isOpen, onClose, title, subtitle, accent = '#0a84ff', primaryLabel, onPrimary, primaryDisabled, primaryLoading,
     headerExtra, footer, overlays, closeDisabled, maxWidth, zIndex = 99999, scrollRef, subpanel, doneLabel = 'Listo', children,
@@ -67,8 +90,10 @@ export const CupertinoSheet: React.FC<CupertinoSheetProps> = ({
     const controls = useDragControls();
     const pointerStartedOnBackdrop = useRef(false);
     const titleId = useId();
+    const { visible, closing } = useSheetPresence(isOpen);
+    useBodyLock(isOpen);
 
-    // Escape closes
+    // Escape closes (the detail panel first)
     useEffect(() => {
         if (!isOpen) return;
         const onKey = (e: KeyboardEvent) => {
@@ -80,98 +105,223 @@ export const CupertinoSheet: React.FC<CupertinoSheetProps> = ({
         return () => window.removeEventListener('keydown', onKey);
     }, [isOpen, closeDisabled, onClose, subpanel]);
 
-    if (typeof document === 'undefined' || !document.body) return null;
+    if (typeof document === 'undefined' || !document.body || !visible) return null;
 
     const spring = reduce ? { duration: 0 } : { type: 'spring' as const, stiffness: 420, damping: 38, mass: 0.9 };
-    const variants = isDesktop
-        ? { initial: { opacity: 0, scale: 0.96, y: 18 }, animate: { opacity: 1, scale: 1, y: 0 }, exit: { opacity: 0, scale: 0.97, y: 10 } }
-        : { initial: { y: '100%' }, animate: { y: 0 }, exit: { y: '100%' } };
+    const enter = isDesktop ? { opacity: 1, scale: 1, y: 0 } : { y: 0 };
+    const leave = isDesktop ? { opacity: 0, scale: 0.97, y: 10 } : { y: '100%' };
+    const start = isDesktop ? { opacity: 0, scale: 0.96, y: 18 } : { y: '100%' };
 
     return createPortal(
-        <AnimatePresence>
-            {isOpen && (
-                <motion.div
-                    key="cu-layer"
-                    className="cu-root cu-layer"
-                    style={{ zIndex, ['--cu-accent' as any]: accent }}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: reduce ? 0 : 0.22 }}
+        <div
+            className="cu-root cu-layer"
+            data-closing={closing || undefined}
+            style={{ zIndex, pointerEvents: closing ? 'none' : 'auto', ['--cu-accent' as any]: accent }}
+        >
+            <div
+                className="cu-backdrop"
+                data-closing={closing || undefined}
+                onPointerDown={() => { pointerStartedOnBackdrop.current = true; }}
+                onClick={() => {
+                    // Ignore ghost clicks that did not start on this backdrop
+                    if (!pointerStartedOnBackdrop.current) return;
+                    pointerStartedOnBackdrop.current = false;
+                    if (!closeDisabled) onClose();
+                }}
+            />
+            <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={titleId}
+                className={cn('cu-sheet', subpanel && 'cu-has-sub')}
+                style={maxWidth ? { maxWidth } : undefined}
+                initial={start}
+                animate={closing ? leave : enter}
+                transition={spring}
+                drag={isDesktop ? false : 'y'}
+                dragListener={false}
+                dragControls={controls}
+                dragConstraints={{ top: 0, bottom: 0 }}
+                dragElastic={{ top: 0, bottom: 0.55 }}
+                onDragEnd={(_, info) => {
+                    if (!closeDisabled && (info.offset.y > 120 || info.velocity.y > 700)) onClose();
+                }}
+            >
+                <div
+                    className="cu-header"
+                    onPointerDown={(e) => {
+                        // Never start a drag from a button: taps must stay plain taps
+                        if (isDesktop || (e.target as HTMLElement).closest('button,input,a')) return;
+                        controls.start(e);
+                    }}
                 >
-                    <div
-                        className="cu-backdrop"
-                        onPointerDown={() => { pointerStartedOnBackdrop.current = true; }}
-                        onClick={() => {
-                            // Ignore ghost clicks that did not start on this backdrop
-                            if (!pointerStartedOnBackdrop.current) return;
-                            pointerStartedOnBackdrop.current = false;
-                            if (!closeDisabled) onClose();
-                        }}
-                    />
-                    <motion.div
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby={titleId}
-                        className={cn('cu-sheet', subpanel && 'cu-has-sub')}
-                        style={maxWidth ? { maxWidth } : undefined}
-                        {...variants}
-                        transition={spring}
-                        drag={isDesktop ? false : 'y'}
-                        dragListener={false}
-                        dragControls={controls}
-                        dragConstraints={{ top: 0, bottom: 0 }}
-                        dragElastic={{ top: 0, bottom: 0.55 }}
-                        onDragEnd={(_, info) => {
-                            if (!closeDisabled && (info.offset.y > 120 || info.velocity.y > 700)) onClose();
-                        }}
-                    >
-                        <div className="cu-header" onPointerDown={(e) => { if (!isDesktop) controls.start(e); }}>
-                            <div className="cu-grabber" />
-                            <div className="cu-header-row">
-                                <button type="button" className="cu-icon-btn" onClick={onClose} disabled={closeDisabled} aria-label="Cerrar">
-                                    <X size={18} strokeWidth={2.4} />
-                                </button>
-                                <div className="cu-header-title">
-                                    <h2 id={titleId}>{title}</h2>
-                                    {subtitle ? <p>{subtitle}</p> : null}
-                                </div>
-                                {primaryLabel ? (
-                                    <button type="button" className="cu-primary-btn" onClick={onPrimary} disabled={primaryDisabled || primaryLoading}>
-                                        {primaryLoading ? <Loader2 size={16} className="animate-spin" /> : primaryLabel}
-                                    </button>
-                                ) : <span style={{ width: 36, flex: 'none' }} />}
-                            </div>
-                            {headerExtra ? <div className="cu-header-extra">{headerExtra}</div> : null}
+                    <div className="cu-grabber" />
+                    <div className="cu-header-row">
+                        <button type="button" className="cu-icon-btn" onClick={onClose} disabled={closeDisabled} aria-label="Cerrar">
+                            <X size={18} strokeWidth={2.4} />
+                        </button>
+                        <div className="cu-header-title">
+                            <h2 id={titleId}>{title}</h2>
+                            {subtitle ? <p>{subtitle}</p> : null}
                         </div>
+                        {primaryLabel ? (
+                            <button type="button" className="cu-primary-btn" onClick={onPrimary} disabled={primaryDisabled || primaryLoading}>
+                                {primaryLoading ? <Loader2 size={16} className="animate-spin" /> : primaryLabel}
+                            </button>
+                        ) : <span style={{ width: 36, flex: 'none' }} />}
+                    </div>
+                    {headerExtra ? <div className="cu-header-extra">{headerExtra}</div> : null}
+                </div>
 
-                        <div ref={scrollRef} className="cu-scroll">{children}</div>
-                        {footer ? <div className="cu-footer">{footer}</div> : null}
+                <div ref={scrollRef} className="cu-scroll">{children}</div>
+                {footer ? <div className="cu-footer">{footer}</div> : null}
 
-                        <AnimatePresence>
-                            {subpanel && (
-                                <motion.div
-                                    key="cu-subsheet"
-                                    className="cu-subsheet"
-                                    initial={{ opacity: 0, y: 18, scale: 0.985 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 10, scale: 0.99 }}
-                                    transition={reduce ? { duration: 0 } : { duration: 0.26, ease: EASE }}
-                                >
-                                    <div className="cu-header-row" style={{ padding: '14px 16px 8px' }}>
-                                        <button type="button" className="cu-icon-btn" onClick={subpanel.onBack} aria-label="Volver"><ChevronLeft size={20} strokeWidth={2.4} /></button>
-                                        <div className="cu-header-title"><h2>{subpanel.title}</h2></div>
-                                        <button type="button" className="cu-primary-btn" onClick={subpanel.onBack}>{doneLabel}</button>
-                                    </div>
-                                    <div className="cu-scroll" style={{ paddingTop: 8 }}>{subpanel.children}</div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </motion.div>
-                    {overlays}
-                </motion.div>
-            )}
-        </AnimatePresence>,
+                {subpanel && (
+                    <div className="cu-subsheet">
+                        <div className="cu-header-row" style={{ padding: '14px 16px 8px' }}>
+                            <button type="button" className="cu-icon-btn" onClick={subpanel.onBack} aria-label="Volver"><ChevronLeft size={20} strokeWidth={2.4} /></button>
+                            <div className="cu-header-title"><h2>{subpanel.title}</h2></div>
+                            <button type="button" className="cu-primary-btn" onClick={subpanel.onBack}>{doneLabel}</button>
+                        </div>
+                        <div className="cu-scroll" style={{ paddingTop: 8 }}>{subpanel.children}</div>
+                    </div>
+                )}
+            </motion.div>
+            {overlays}
+        </div>,
+        document.body
+    );
+};
+
+/* ── Wizard (creation by blocks) ─────────────────────────────────────────── */
+
+export interface WizardStep {
+    key: string;
+    title: string;
+    hint: string;
+    icon: React.ReactNode;
+    /** The "Siguiente" button is enabled only when the block is complete */
+    valid: boolean;
+    /** Short human reason shown above the button while the block is incomplete */
+    missing?: string;
+    content: React.ReactNode;
+}
+
+export interface WizardSheetProps {
+    isOpen: boolean;
+    onClose: () => void;
+    accent: string;
+    steps: WizardStep[];
+    index: number;
+    onIndex: (i: number) => void;
+    onFinish: () => void;
+    finishLabel: string;
+    finishing?: boolean;
+    /** Big glyph shown in the hero (trait icon) and the live name chip */
+    glyph: React.ReactNode;
+    name?: string;
+    /** Shown above the button on the last block (reward preview) */
+    lastExtra?: React.ReactNode;
+    subpanel?: CupertinoSheetProps['subpanel'];
+    overlays?: React.ReactNode;
+    nextLabel?: string;
+    backLabel?: string;
+    doneLabel?: string;
+    stepOf?: (i: number, n: number) => string;
+    zIndex?: number;
+}
+
+export const WizardSheet: React.FC<WizardSheetProps> = ({
+    isOpen, onClose, accent, steps, index, onIndex, onFinish, finishLabel, finishing, glyph, name, lastExtra, subpanel, overlays,
+    nextLabel = 'Siguiente', backLabel = 'Atrás', doneLabel = 'Listo', stepOf = (i, n) => `Paso ${i + 1} de ${n}`, zIndex = 99999,
+}) => {
+    const { visible, closing } = useSheetPresence(isOpen);
+    useBodyLock(isOpen);
+    const prevIndex = useRef(index);
+    const dir = index >= prevIndex.current ? 'fwd' : 'back';
+    useEffect(() => { prevIndex.current = index; }, [index]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape') return;
+            if (subpanel) subpanel.onBack();
+            else if (index > 0) onIndex(index - 1);
+            else onClose();
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [isOpen, subpanel, index, onIndex, onClose]);
+
+    if (typeof document === 'undefined' || !document.body || !visible) return null;
+
+    const step = steps[Math.min(index, steps.length - 1)];
+    const isLast = index >= steps.length - 1;
+    const canAdvance = step.valid && !finishing;
+
+    return createPortal(
+        <div
+            className="cu-root cu-wiz-layer"
+            data-closing={closing || undefined}
+            style={{ zIndex, pointerEvents: closing ? 'none' : 'auto', ['--cu-accent' as any]: accent }}
+        >
+            <div className="cu-wiz-top">
+                <button
+                    type="button"
+                    className="cu-icon-btn"
+                    onClick={() => (index > 0 ? onIndex(index - 1) : onClose())}
+                    disabled={finishing}
+                    aria-label={index > 0 ? backLabel : 'Cerrar'}
+                >
+                    {index > 0 ? <ChevronLeft size={20} strokeWidth={2.4} /> : <X size={18} strokeWidth={2.4} />}
+                </button>
+                <div className="cu-wiz-bars" role="progressbar" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={index + 1}>
+                    {steps.map((s, i) => (
+                        <i key={s.key} className={cn(i < index && 'cu-done', i === index && 'cu-on')} />
+                    ))}
+                </div>
+                <button type="button" className="cu-icon-btn" onClick={onClose} disabled={finishing} aria-label="Cerrar" style={{ visibility: index > 0 ? 'visible' : 'hidden' }}>
+                    <X size={18} strokeWidth={2.4} />
+                </button>
+            </div>
+
+            <div className="cu-wiz-hero" key={`hero-${index}`} data-dir={dir}>
+                <div className="cu-wiz-glyph">{glyph}</div>
+                {name && index > 0 ? <span className="cu-wiz-chip">{name}</span> : null}
+                <p className="cu-wiz-step">{stepOf(index, steps.length)}</p>
+                <h2 className="cu-wiz-title">{step.title}</h2>
+                <p className="cu-wiz-hint">{step.hint}</p>
+            </div>
+
+            <div className={cn('cu-wiz-panel', subpanel && 'cu-has-sub')}>
+                <div className="cu-wiz-body" key={`body-${index}`} data-dir={dir}>{step.content}</div>
+
+                <div className="cu-wiz-foot">
+                    {isLast && lastExtra ? lastExtra : null}
+                    {!step.valid && step.missing ? <p className="cu-hint" style={{ margin: 0 }}>{step.missing}</p> : null}
+                    <button
+                        type="button"
+                        className="cu-cta"
+                        disabled={!canAdvance}
+                        onClick={() => { if (isLast) onFinish(); else onIndex(index + 1); }}
+                    >
+                        {finishing ? <Loader2 size={20} className="animate-spin" /> : (isLast ? finishLabel : <>{nextLabel} <ChevronRight size={20} strokeWidth={2.6} /></>)}
+                    </button>
+                </div>
+
+                {subpanel && (
+                    <div className="cu-subsheet">
+                        <div className="cu-header-row" style={{ padding: '14px 16px 8px' }}>
+                            <button type="button" className="cu-icon-btn" onClick={subpanel.onBack} aria-label="Volver"><ChevronLeft size={20} strokeWidth={2.4} /></button>
+                            <div className="cu-header-title"><h2>{subpanel.title}</h2></div>
+                            <button type="button" className="cu-primary-btn" onClick={subpanel.onBack}>{doneLabel}</button>
+                        </div>
+                        <div className="cu-scroll" style={{ paddingTop: 8 }}>{subpanel.children}</div>
+                    </div>
+                )}
+            </div>
+            {overlays}
+        </div>,
         document.body
     );
 };

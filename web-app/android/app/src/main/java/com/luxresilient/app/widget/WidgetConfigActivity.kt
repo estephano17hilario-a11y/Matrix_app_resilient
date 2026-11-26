@@ -45,6 +45,9 @@ class WidgetConfigActivity : Activity() {
     private lateinit var radioGroupBorder: RadioGroup
     private lateinit var radioGroupChecklist: RadioGroup
     private lateinit var radioGroupTaskTimeframe: RadioGroup
+    private lateinit var radioGroupBgMode: RadioGroup
+    private lateinit var routineSection: LinearLayout
+    private lateinit var switchRoutineShowDone: Switch
     
     private lateinit var projectSelectContainer: LinearLayout
     private lateinit var radioGroupProjectSelect: RadioGroup
@@ -62,6 +65,16 @@ class WidgetConfigActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setResult(RESULT_CANCELED)
+
+        // Routine / Calendar / Journal-calendar widgets are Deluxe: a free account cannot add them
+        // (finishing with RESULT_CANCELED makes the launcher discard the widget it was about to place).
+        val requestedId = intent?.extras?.getInt(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID) ?: AppWidgetManager.INVALID_APPWIDGET_ID
+        val requestedClass = try { AppWidgetManager.getInstance(this).getAppWidgetInfo(requestedId)?.provider?.className ?: "" } catch (e: Exception) { "" }
+        if (ProGate.blockIfLocked(this, requestedClass)) {
+            finish()
+            return
+        }
+
         setContentView(R.layout.widget_config_activity)
 
         // Parse Widget ID if called as configure activity
@@ -93,6 +106,9 @@ class WidgetConfigActivity : Activity() {
         radioGroupBorder = findViewById(R.id.config_border_group)
         radioGroupChecklist = findViewById(R.id.config_checklist_group)
         radioGroupTaskTimeframe = findViewById(R.id.config_task_timeframe_group)
+        radioGroupBgMode = findViewById(R.id.config_bg_mode_group)
+        routineSection = findViewById(R.id.config_routine_section)
+        switchRoutineShowDone = findViewById(R.id.config_routine_show_done_switch)
         
         projectSelectContainer = findViewById(R.id.config_project_select_container)
         radioGroupProjectSelect = findViewById(R.id.config_project_select_group)
@@ -110,6 +126,21 @@ class WidgetConfigActivity : Activity() {
         setupHorizontalRadioButtonsUI(radioGroupColumns)
         setupHorizontalRadioButtonsUI(radioGroupChronoColumns)
         setupHorizontalRadioButtonsUI(radioGroupSpacing)
+        setupHorizontalRadioButtonsUI(radioGroupBgMode)
+        radioGroupBgMode.setOnCheckedChangeListener { grp, checkedId ->
+            for (i in 0 until grp.childCount) {
+                val child = grp.getChildAt(i)
+                if (child is RadioButton) {
+                    val on = child.id == checkedId
+                    child.setBackgroundResource(if (on) R.drawable.widget_refresh_bg else android.R.color.transparent)
+                    child.setTextColor(if (on) Color.WHITE else Color.parseColor("#E0E0E0"))
+                }
+            }
+            // A solid background is always opaque, so the opacity slider has nothing to do.
+            val solid = checkedId == R.id.config_bg_solid
+            seekWidgetBgOpacity.isEnabled = !solid
+            seekWidgetBgOpacity.alpha = if (solid) 0.35f else 1f
+        }
 
         // Load saved preferences
         loadPreferences()
@@ -126,6 +157,10 @@ class WidgetConfigActivity : Activity() {
             val isTaskWidget = className.contains("TaskWidgetProvider")
             val isHabitWidget = className.contains("HabitWidgetProvider")
             val isJournalWidget = className.contains("JournalWidgetProvider")
+            val isCalendarWidget = className.contains("CalendarWidgetProvider")
+val isRoutineWidget = className.contains("RoutineWidgetProvider")
+            val isDuelWidget = className.contains("DuelWidgetProvider")
+            val isStreakWidget = className.contains("FriendStreakWidgetProvider")
             
             val txtConfigTitle = findViewById<TextView>(R.id.config_title)
             if (isProjectWidget) {
@@ -138,6 +173,14 @@ class WidgetConfigActivity : Activity() {
                 txtConfigTitle.text = "Ajustes de Hábitos"
             } else if (isJournalWidget) {
                 txtConfigTitle.text = "Ajustes de Diario"
+            } else if (isRoutineWidget) {
+                txtConfigTitle.text = "Ajustes de Rutina"
+            } else if (isDuelWidget) {
+                txtConfigTitle.text = "Ajustes de Duelo"
+            } else if (isStreakWidget) {
+                txtConfigTitle.text = "Ajustes de Racha"
+            } else if (isCalendarWidget) {
+                txtConfigTitle.text = "Ajustes de Calendario"
             } else if (isScoreWidget) {
                 txtConfigTitle.text = "Ajustes de Score"
             } else if (isRivalsWidget) {
@@ -165,7 +208,16 @@ class WidgetConfigActivity : Activity() {
                 habitsSectionContainer2.visibility = View.GONE
                 tasksSectionContainer.visibility = View.VISIBLE
                 cardOpacityContainer.visibility = View.VISIBLE
-            } else if (isJournalWidget || isScoreWidget || isRivalsWidget) {
+            } else if (isRoutineWidget) {
+                projectSelectContainer.visibility = View.GONE
+                habitsSectionContainer1.visibility = View.GONE
+                habitsSectionContainer2.visibility = View.GONE
+                tasksSectionContainer.visibility = View.GONE
+                cardOpacityContainer.visibility = View.GONE
+                routineSection.visibility = View.VISIBLE
+                val appDefault = RoutineConfig.fromJson(getSharedPreferences(RoutineWidgetData.PREFS_ROUTINE, Context.MODE_PRIVATE).getString(RoutineWidgetData.KEY_CONFIG, null)).showCompleted
+                switchRoutineShowDone.isChecked = getSharedPreferences("lux_widget_config", Context.MODE_PRIVATE).getBoolean("routine_show_done_widget_$widgetId", appDefault)
+            } else if (isJournalWidget || isScoreWidget || isRivalsWidget || isDuelWidget || isStreakWidget || isCalendarWidget) {
                 projectSelectContainer.visibility = View.GONE
                 habitsSectionContainer1.visibility = View.GONE
                 habitsSectionContainer2.visibility = View.GONE
@@ -255,6 +307,21 @@ class WidgetConfigActivity : Activity() {
                 action = FocusWidgetProvider.ACTION_REFRESH_FOCUS
             }
             sendBroadcast(refreshFocusIntent)
+
+            // Every other provider (routine, duels, streak...) just gets a regular update request.
+            sendBroadcast(Intent(this, RoutineWidgetProvider::class.java).setAction(RoutineWidgetProvider.ACTION_REFRESH))
+            for (cls in listOf(DuelWidgetProvider::class.java, FriendStreakWidgetProvider::class.java)) {
+                val ids = AppWidgetManager.getInstance(this).getAppWidgetIds(android.content.ComponentName(this, cls))
+                if (ids.isNotEmpty()) {
+                    sendBroadcast(Intent(this, cls).apply {
+                        action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                        putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+                    })
+                }
+            }
+
+            // Broadcast refresh for the calendar
+            sendBroadcast(Intent(this, CalendarWidgetProvider::class.java).apply { action = CalendarWidgetProvider.ACTION_REFRESH })
 
             // Success result if called as a widget configuration activity
             val resultValue = Intent().apply {
@@ -354,6 +421,9 @@ class WidgetConfigActivity : Activity() {
         seekOpacity.progress = opacity
         txtOpacityVal.text = "$opacity%"
         
+        val solidNow = WidgetTheme.isSolid(prefs, widgetId, className)
+        radioGroupBgMode.check(if (solidNow) R.id.config_bg_solid else R.id.config_bg_fade)
+
         val widgetBgOpacity = when {
             widgetId != AppWidgetManager.INVALID_APPWIDGET_ID && prefs.contains("widget_background_opacity_$widgetId") -> prefs.getInt("widget_background_opacity_$widgetId", 85)
             className.isNotEmpty() && prefs.contains("widget_background_opacity_$className") -> prefs.getInt("widget_background_opacity_$className", 85)
@@ -562,6 +632,10 @@ class WidgetConfigActivity : Activity() {
         }
 
         WidgetTheme.saveStyle(editor, widgetId, className, selectedStyle)
+        WidgetTheme.saveMode(editor, widgetId, className, radioGroupBgMode.checkedRadioButtonId == R.id.config_bg_solid)
+        if (className.contains("RoutineWidgetProvider") && widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+            editor.putBoolean("routine_show_done_widget_$widgetId", switchRoutineShowDone.isChecked)
+        }
 
         if (className.isNotEmpty()) {
             editor.putInt("card_opacity_$className", seekOpacity.progress)

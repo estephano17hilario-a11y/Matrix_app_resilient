@@ -15,6 +15,8 @@ export interface PublicProfile {
   level: number;
   hud_streak: number;
   invite_code?: string | null;
+  /** Deluxe (PRO) subscriber. Written only by the server (see 20261126_deluxe_badge.sql). */
+  is_deluxe?: boolean;
 }
 
 export interface Friendship {
@@ -77,7 +79,13 @@ export interface MessageRow {
 
 export const NO_DAY = '1900-01-01';
 
-const PROFILE_COLS = 'user_id, display_name, avatar_id, elo, rank_index, division, level, hud_streak';
+const BASE_PROFILE_COLS = 'user_id, display_name, avatar_id, elo, rank_index, division, level, hud_streak';
+// `is_deluxe` only exists after the 20261126 migration: until then (or if it is ever rolled back) a read that
+// fails because of it is retried without it, so Friends never breaks over a badge.
+let deluxeColumnMissing = false;
+const profileCols = () => (deluxeColumnMissing ? BASE_PROFILE_COLS : `${BASE_PROFILE_COLS}, is_deluxe`);
+const isMissingDeluxeColumn = (error: { message?: string; code?: string } | null) =>
+  !!error && (error.code === '42703' || error.code === 'PGRST204' || /is_deluxe/i.test(error.message ?? ''));
 
 const warn = (what: string, error: { message: string } | null) => {
   if (error) console.warn(`[Social] ${what} failed:`, error.message);
@@ -136,18 +144,22 @@ export const socialService = {
 
   async profiles(ids: string[]): Promise<PublicProfile[]> {
     if (!ids.length) return [];
-    const { data, error } = await supabase.from('public_profiles').select(PROFILE_COLS).in('user_id', ids);
+    const read = () => supabase.from('public_profiles').select(profileCols()).in('user_id', ids);
+    let { data, error } = await read();
+    if (isMissingDeluxeColumn(error)) { deluxeColumnMissing = true; ({ data, error } = await read()); }
     warn('profiles', error);
-    return (data as PublicProfile[]) ?? [];
+    return (data as unknown as PublicProfile[]) ?? [];
   },
 
   async search(query: string, excludeId: string): Promise<PublicProfile[] | null> {
     const q = query.trim().replace(/[%_,()]/g, '');
     if (q.length < 2) return [];
-    const { data, error } = await supabase.from('public_profiles').select(PROFILE_COLS)
+    const read = () => supabase.from('public_profiles').select(profileCols())
       .ilike('display_name', `%${q}%`).neq('user_id', excludeId).order('elo', { ascending: false }).limit(25);
+    let { data, error } = await read();
+    if (isMissingDeluxeColumn(error)) { deluxeColumnMissing = true; ({ data, error } = await read()); }
     if (error) { warn('search', error); return null; }
-    return data as PublicProfile[];
+    return data as unknown as PublicProfile[];
   },
 
   // ── Friendships ──
