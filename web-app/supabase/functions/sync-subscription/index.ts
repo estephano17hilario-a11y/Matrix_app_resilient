@@ -33,7 +33,16 @@ serve(async (req: Request) => {
     if (!force && syncedAgo < 8000) return json({ plan: row.plan, es_pro: row.es_pro, planExpiryDate: row.planExpiryDate, plan_product: row.plan_product, cached: true });
 
     const state = await fetchRevenueCatState(userId);
-    if (state === null) return json({ error: "REVENUECAT_SECRET_API_KEY not configured" }, 501);
+    if (state === null) {
+      // No REST key configured: the webhook is then the only (trusted) writer. Report what it stored,
+      // after expiring a plan whose paid period is over, so the app still shows the real expiry date.
+      if (row?.plan === "PRO" && row?.planExpiryDate && Number(row.planExpiryDate) + 6 * 3600_000 < Date.now()) {
+        const { data: me } = await db.from("users").select("plan_source").eq("id", userId).maybeSingle();
+        if (me?.plan_source === "revenuecat") await applyState(db, userId, { active: false, expiresMs: null, productId: null });
+      }
+      const { data: stored } = await db.from("users").select("plan, es_pro, planExpiryDate, plan_product").eq("id", userId).maybeSingle();
+      return json({ ...stored, source: "webhook" });
+    }
 
     await applyState(db, userId, state);
     const { data: fresh } = await db.from("users").select("plan, es_pro, planExpiryDate, plan_product").eq("id", userId).maybeSingle();

@@ -6,7 +6,7 @@
 // SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import {
-  UUID_RE, adminClient, applyState, corsHeaders, deriveFromEvent, fetchRevenueCatState, json, safeEqual,
+  UUID_RE, adminClient, applyState, corsHeaders, deriveFromEvent, fetchRevenueCatState, getSecret, json, safeEqual,
 } from "../_shared/subscription.ts";
 
 const db = adminClient();
@@ -16,7 +16,7 @@ serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
 
   // Fail closed: with no configured token EVERY request would otherwise match "Bearer undefined".
-  const token = Deno.env.get("REVENUECAT_WEBHOOK_AUTH_TOKEN");
+  const token = await getSecret("REVENUECAT_WEBHOOK_AUTH_TOKEN");
   if (!token) {
     console.error("REVENUECAT_WEBHOOK_AUTH_TOKEN is not configured");
     return json({ error: "webhook not configured" }, 500);

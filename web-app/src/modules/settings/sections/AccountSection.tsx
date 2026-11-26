@@ -14,6 +14,7 @@ import { toast } from 'react-hot-toast';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { deductGoldForNameChange } from '../../../services/economyService';
+import { MembershipStatus } from '../../monetization/MembershipStatus';
 
 export const AccountSection = () => {
   const { t } = useTranslation();
@@ -277,6 +278,8 @@ export const AccountSection = () => {
             <p className="text-[11px] text-white/40 font-mono truncate mt-0.5 tracking-wider">{user?.email}</p>
           </div>
         </div>
+
+        <MembershipStatus className="mt-4 relative z-10" />
 
         <div className="pt-2 relative z-10">
           <AvatarCarouselQuick />

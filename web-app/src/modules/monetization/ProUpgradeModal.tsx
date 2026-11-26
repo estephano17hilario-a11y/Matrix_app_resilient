@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { useRevenueCat } from '../../hooks/useRevenueCat';
 import { useAuth } from '../../context/AuthContext';
 import { syncSubscriptionWithServer } from '../../services/subscriptionService';
+import { MembershipStatus } from './MembershipStatus';
 import { toast } from 'react-hot-toast';
 
 interface ProUpgradeModalProps {
@@ -291,6 +292,7 @@ export const ProUpgradeModal: React.FC<ProUpgradeModalProps> = ({ isOpen, onClos
             {t('pro.activeDesc', 'Tu membresía Premium está activa a través de Google Play Store. ¡Todos los límites y restricciones han sido eliminados!')}
           </p>
         </div>
+        <MembershipStatus className="w-full" />
         <button
           onClick={async () => {
             const { showCustomerCenter } = await import('../../services/revenueCatService');

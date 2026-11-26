@@ -34,6 +34,30 @@ export const safeEqual = (a: string, b: string): boolean => {
   return diff === 0;
 };
 
+/**
+ * Reads a function secret. Order: environment variable (Supabase CLI / Coolify env) and then
+ * Supabase Vault through `public.get_function_secret` (service_role only). Vault survives Coolify
+ * redeploys, which regenerate the container environment from Coolify's own database.
+ * Values are cached per worker for a few minutes.
+ */
+const secretCache = new Map<string, { value: string | null; at: number }>();
+export async function getSecret(name: string): Promise<string | null> {
+  const fromEnv = Deno.env.get(name);
+  if (fromEnv) return fromEnv;
+  const hit = secretCache.get(name);
+  if (hit && Date.now() - hit.at < 5 * 60_000) return hit.value;
+  let value: string | null = null;
+  try {
+    const { data, error } = await adminClient().rpc("get_function_secret", { p_name: name });
+    if (error) console.error(`get_function_secret(${name}) failed:`, error.message);
+    else value = typeof data === "string" && data.length > 0 ? data : null;
+  } catch (err) {
+    console.error(`get_function_secret(${name}) threw:`, err);
+  }
+  secretCache.set(name, { value, at: Date.now() });
+  return value;
+}
+
 export { ENTITLEMENT_ID, INACTIVE, deriveFromEvent, pickEntitlement } from "./logic.ts";
 import { INACTIVE, pickEntitlement } from "./logic.ts";
 import type { PlanState } from "./logic.ts";
@@ -41,7 +65,7 @@ export type { PlanState };
 
 /** Reads the customer's current entitlements from RevenueCat. Returns null when no secret key is configured. */
 export async function fetchRevenueCatState(appUserId: string): Promise<PlanState | null> {
-  const key = Deno.env.get("REVENUECAT_SECRET_API_KEY");
+  const key = await getSecret("REVENUECAT_SECRET_API_KEY");
   if (!key) return null;
 
   const res = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(appUserId)}`, {

@@ -68,6 +68,7 @@ export const useRevenueCat = () => {
     const appStateListener = App.addListener('appStateChange', async ({ isActive }) => {
       if (isActive && Capacitor.isNativePlatform()) {
         try {
+          await initRevenueCat();
           const info = await Purchases.getCustomerInfo();
           setIsPremium(checkPremiumStatus(info.customerInfo));
         } catch (e) {
@@ -126,6 +127,9 @@ export const useRevenueCat = () => {
         throw new Error("Suscripción no disponible en este momento. Inténtalo de nuevo.");
       }
 
+      // The purchase must be attributed to the signed-in Supabase user, otherwise the webhook
+      // receives an anonymous id and the server can never grant the membership.
+      await initRevenueCat();
       console.log("Starting purchase process for package:", pkg);
       const result = await Purchases.purchasePackage({ aPackage: pkg });
       let active = checkPremiumStatus(result.customerInfo);
@@ -169,6 +173,7 @@ export const useRevenueCat = () => {
   const restaurarCompras = async (): Promise<boolean> => {
     setIsLoading(true);
     try {
+      await initRevenueCat();
       const result = await Purchases.restorePurchases();
       let active = checkPremiumStatus(result.customerInfo);
       let info = result.customerInfo;

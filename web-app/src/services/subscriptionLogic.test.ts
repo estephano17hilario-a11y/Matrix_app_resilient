@@ -102,3 +102,36 @@ describe('isPlanExpired (client-side safety net)', () => {
     expect(isPlanExpired(NOW - EXPIRY_GRACE_MS - 1000, NOW)).toBe(true);
   });
 });
+
+import { describeMembership, periodFromProduct } from './subscriptionService';
+
+describe('describeMembership (what the user sees)', () => {
+  it('uses the store entitlement: renewal date + auto-renew', () => {
+    const exp = NOW + 6 * DAY;
+    const m = describeMembership(null, { expirationDate: iso(exp), willRenew: true, productIdentifier: 'lux_weekly:semanal' }, NOW);
+    expect(m).toEqual({ active: true, period: 'weekly', expiresMs: exp, willRenew: true, billingIssue: false });
+  });
+
+  it('reports a cancelled monthly plan that still runs until its expiry', () => {
+    const exp = NOW + 20 * DAY;
+    const m = describeMembership(null, { expirationDate: iso(exp), willRenew: false, productIdentifier: 'lux_monthly' }, NOW);
+    expect(m.active).toBe(true);
+    expect(m.willRenew).toBe(false);
+    expect(m.period).toBe('monthly');
+  });
+
+  it('falls back to the server row', () => {
+    const exp = NOW + 3 * DAY;
+    expect(describeMembership({ plan: 'PRO', planExpiryDate: exp, plan_product: 'lux_monthly' }, null, NOW))
+      .toEqual({ active: true, period: 'monthly', expiresMs: exp, willRenew: null, billingIssue: false });
+    expect(describeMembership({ plan: 'PRO', planExpiryDate: NOW - 2 * DAY }, null, NOW).active).toBe(false);
+    expect(describeMembership({ plan: 'FREE' }, null, NOW).active).toBe(false);
+    expect(describeMembership({ plan: 'PRO', planExpiryDate: null }, null, NOW).expiresMs).toBeNull();
+  });
+
+  it('detects the period from product ids', () => {
+    expect(periodFromProduct('p1w')).toBe('weekly');
+    expect(periodFromProduct('lux_pro_mensual')).toBe('monthly');
+    expect(periodFromProduct(null)).toBe('unknown');
+  });
+});
