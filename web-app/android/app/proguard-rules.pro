@@ -21,3 +21,9 @@
 -keep class com.luxresilient.app.FocusService { *; }
 -keep public class * extends com.getcapacitor.Plugin
 -keep public class * extends android.app.Service
+
+# Rules from com.revenuecat.purchases:purchases-store-amazon, minus its global -dontoptimize
+# (that module's consumer rules are ignored in build.gradle via optimization.keepRules.ignoreFrom).
+-dontwarn com.amazon.**
+-keep class com.amazon.** { *; }
+-keepattributes *Annotation*

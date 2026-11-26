@@ -17,8 +17,8 @@ android {
         applicationId "com.luxresilient.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 49
-        versionName "1.0.49"
+        versionCode 50
+        versionName "1.0.50"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -37,7 +37,17 @@ android {
     buildTypes {
         release {
             minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // The "-optimize" variant: plain proguard-android.txt contains -dontoptimize, which
+            // left R8 optimisation off (Play Console "DEX code optimisation: 0%").
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            optimization {
+                keepRules {
+                    // RevenueCat's Amazon store module ships a global -dontoptimize in its consumer
+                    // rules, which disables optimisation for the whole app. Its other rules are
+                    // re-declared in proguard-rules.pro.
+                    ignoreFrom("com.revenuecat.purchases:purchases-store-amazon")
+                }
+            }
             signingConfig signingConfigs.release
             ndk {
                 debugSymbolLevel 'FULL'
