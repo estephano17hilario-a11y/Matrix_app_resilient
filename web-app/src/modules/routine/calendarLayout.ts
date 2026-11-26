@@ -37,9 +37,13 @@ export interface CalendarEvent {
   end: number;
   top: number;
   height: number;
-  /** Column among the blocks that overlap it, and how many columns that group has. */
+  /** Position among the blocks that start (almost) together with it, side by side, and how many share that row. */
   lane: number;
   lanes: number;
+  /** How many earlier blocks still running it sits on top of: drawn shifted right by that many steps (Google style). */
+  indent: number;
+  /** Paint order inside its day: later blocks go on top. */
+  order: number;
 }
 
 export interface CalendarDayInput {
@@ -71,6 +75,8 @@ export interface BuildCalendarInput {
   pxPerHour?: number;
   /** A block is never drawn shorter than this many px (so a 5-minute habit is still tappable). */
   minBlockPx?: number;
+  /** Height of a block's title line: blocks starting closer than this go side by side, later ones nest on top. */
+  titlePx?: number;
 }
 
 export const DAY_MINUTES = 24 * 60;
@@ -103,46 +109,52 @@ export const minutesToTime = (m: number) => {
 };
 
 export const buildCalendarLayout = (input: BuildCalendarInput): CalendarLayout => {
-  const { days, config, nowMinutes, pxPerHour = DEFAULT_PX_PER_HOUR, minBlockPx = 22 } = input;
+  const { days, config, nowMinutes, pxPerHour = DEFAULT_PX_PER_HOUR, minBlockPx = 20 } = input;
+  const titlePx = input.titlePx ?? minBlockPx;
   const pxPerMin = pxPerHour / 60;
   const minBlockMin = minBlockPx / pxPerMin;
+  const titleMin = titlePx / pxPerMin;
 
   const allDay = days.map(d => d.items.filter(it => !isTimed(it)));
   const events: CalendarEvent[] = [];
 
+  // Google-Calendar placement. Blocks that start within one title line of each other share a ROW and sit side
+  // by side; a block that starts later than that is drawn on top of the ones still running, shifted right one
+  // step (so every title stays readable instead of splitting the column into dozens of slivers). A block that
+  // only *looks* long because of the minimum height is cut where the next one starts.
+  interface Row { first: number; indent: number; members: { e: CalendarEvent; visEnd: number }[] }
   days.forEach((d, day) => {
-    const day_events: CalendarEvent[] = d.items.filter(isTimed).map(item => {
+    const dayEvents: CalendarEvent[] = d.items.filter(isTimed).map(item => {
       const start = item.minutes!;
       const end = Math.min(DAY_MINUTES, start + item.durationMin);
-      return {
-        item, day, start, end,
-        top: start * pxPerMin,
-        height: Math.max((end - start) * pxPerMin, minBlockPx),
-        lane: 0, lanes: 1,
-      };
+      return { item, day, start, end, top: start * pxPerMin, height: 0, lane: 0, lanes: 1, indent: 0, order: 0 };
     });
-    // Longest first on equal starts so the big block takes the first lane.
-    day_events.sort((a, b) => a.start - b.start || b.end - a.end || a.item.title.localeCompare(b.item.title));
+    // Longest first on equal starts so the big block takes the first place of its row.
+    dayEvents.sort((a, b) => a.start - b.start || b.end - a.end || a.item.title.localeCompare(b.item.title));
 
-    // Lanes: a group is a run of blocks that keep overlapping (by what is drawn, not by the clock).
-    let group: CalendarEvent[] = [];
-    let groupEnd = -1;
-    const laneEnds: number[] = [];
-    const flush = () => {
-      for (const e of group) e.lanes = laneEnds.length;
-      group = []; laneEnds.length = 0; groupEnd = -1;
-    };
-    for (const e of day_events) {
-      const visualEnd = e.start + Math.max(e.end - e.start, minBlockMin);
-      if (group.length && e.start >= groupEnd) flush();
-      let lane = laneEnds.findIndex(end => end <= e.start);
-      if (lane === -1) { lane = laneEnds.length; laneEnds.push(visualEnd); } else laneEnds[lane] = visualEnd;
-      e.lane = lane;
-      groupEnd = Math.max(groupEnd, visualEnd);
-      group.push(e);
+    const rows: Row[] = [];
+    dayEvents.forEach((e, order) => {
+      e.order = order;
+      const member = { e, visEnd: e.start + Math.max(e.end - e.start, minBlockMin) };
+      const live = rows.filter(r => r.members.some(m => m.visEnd > e.start));
+      const join = [...live].reverse().find(r => e.start - r.first < titleMin);
+      if (join) { join.members.push(member); e.indent = join.indent; return; }
+      const running = live.filter(r => r.members.some(m => m.e.end > e.start));
+      const indent = running.length ? Math.max(...running.map(r => r.indent)) + 1 : 0;
+      // Rows at this depth or deeper are not really running any more (else the depth would be higher): their
+      // stretched minimum height stops where this block starts.
+      for (const r of live) if (r.indent >= indent) for (const m of r.members) m.visEnd = Math.min(m.visEnd, Math.max(e.start, m.e.end));
+      e.indent = indent;
+      rows.push({ first: e.start, indent, members: [member] });
+    });
+    for (const r of rows) {
+      r.members.forEach((m, i) => {
+        m.e.lane = i;
+        m.e.lanes = r.members.length;
+        m.e.height = Math.max(4, (m.visEnd - m.e.start) * pxPerMin);
+      });
     }
-    flush();
-    events.push(...day_events);
+    events.push(...dayEvents);
   });
 
   // Bands over the whole day (only when the user divided it).

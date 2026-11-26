@@ -865,7 +865,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                             <input className="cu-input" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={t('cu.wiz.note', 'Nota (opcional)')} aria-label={t('cu.wiz.note', 'Nota (opcional)')} />
                         </div>
                         <Tiles cols={2}>
-                            {traitTile}
+                            {iconTile}
                             <Tile
                                 data-tour="habit-modal-super-habit"
                                 icon={superTheme ? <superTheme.icon size={14} /> : <Sparkles size={14} />}
@@ -910,7 +910,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                 missing: t('cu.wiz.alarmFirst', 'Elige la hora de tu alarma para crear el hábito'),
                 content: (
                     <>
-                        <Tiles cols={2}>{alarmTile()}{durationTile}{iconTile}{projectTile()}</Tiles>
+                        <Tiles cols={2}>{alarmTile()}{durationTile}{traitTile}{projectTile()}</Tiles>
                         {alarmNotices}
                     </>
                 ),
@@ -988,8 +988,8 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                 {freqBlock}
                 {trackBlock}
                 <Tiles cols={3}>
-                    {traitTile}
                     {iconTile}
+                    {traitTile}
                     {impactTile}
                     {alarmTile(2)}
                     {durationTile}

@@ -562,3 +562,12 @@ html.lux-lite [class*="backdrop-blur"] {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
+
+/* Gentle idle bob (0 → -7px → 0). A compositor animation: the same motion used
+   to run through framer-motion in JS and restyled the node every frame. */
+@keyframes lux-bob-y {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -7px, 0); }
+}
+.lux-bob-y { animation: lux-bob-y 3.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .lux-bob-y { animation: none; } }

@@ -31,18 +31,32 @@ describe('calendar layout', () => {
     expect(build([item('08:00', 5)]).events[0].height).toBe(20);
   });
 
-  it('puts overlapping blocks side by side', () => {
-    const l = build([item('09:00', 60), item('09:30', 60), item('11:00', 30)]);
+  it('puts blocks that start together side by side', () => {
+    const l = build([item('09:00', 60), item('09:10', 60), item('11:00', 30)]);
     const [a, b, c] = l.events;
-    expect([a.lane, a.lanes]).toEqual([0, 2]);
-    expect([b.lane, b.lanes]).toEqual([1, 2]);
-    expect([c.lane, c.lanes]).toEqual([0, 1]);
+    expect([a.lane, a.lanes, a.indent]).toEqual([0, 2, 0]);
+    expect([b.lane, b.lanes, b.indent]).toEqual([1, 2, 0]);
+    expect([c.lane, c.lanes, c.indent]).toEqual([0, 1, 0]);
   });
 
-  it('treats blocks that only look overlapped (tiny ones close together) as overlapping', () => {
+  it('nests a later overlapping block on top, shifted one step, instead of splitting the column', () => {
+    const l = build([item('09:00', 120), item('09:30', 60), item('10:00', 30)]);
+    expect(l.events.map(e => [e.indent, e.lanes])).toEqual([[0, 1], [1, 1], [2, 1]]);
+    expect(l.events.map(e => e.order)).toEqual([0, 1, 2]);
+  });
+
+  it('treats blocks that only look overlapped (tiny ones close together) as one row', () => {
     // 5 minutes each, 5 minutes apart: drawn at the 20px minimum they would sit on top of each other.
     const l = build([item('08:00', 5), item('08:05', 5)]);
     expect(l.events.map(e => e.lane)).toEqual([0, 1]);
+  });
+
+  it('cuts a stretched minimum height where the next block starts (no fake nesting)', () => {
+    // 30px minimum but a 20px title: 08:22 is past the title line of 08:00, which really ended at 08:05.
+    const l = build([item('08:00', 5), item('08:22', 5)], { minBlockPx: 30, titlePx: 20 });
+    const [a, b] = l.events;
+    expect([a.indent, b.indent, b.lanes]).toEqual([0, 0, 1]);
+    expect(a.height).toBe(22);
   });
 
   it('cuts a block at midnight', () => {

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, Reorder } from 'framer-motion';
 import { useMountTransition } from '../../hooks/useMountTransition';
-import { X, GripVertical, Check, ClipboardList, Flame, Target, Brain, Map, Trophy, Plus, Settings2, PenLine, Activity, AlertCircle, Medal, Users, CalendarClock } from 'lucide-react';
+import { X, GripVertical, Check, ClipboardList, Flame, Target, Brain, Map, Trophy, Plus, Settings2, PenLine, Activity, AlertCircle, Medal, Users, CalendarClock, Swords } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../utils/cn';
 
-export type DockItemId = 'TASKS' | 'HABITS' | 'FOCUS' | 'NOTES' | 'STRATEGY' | 'STORE' | 'ACHIEVEMENTS' | 'FEED' | 'SETTINGS' | 'RANKS' | 'FRIENDS' | 'ROUTINE';
+export type DockItemId = 'TASKS' | 'HABITS' | 'FOCUS' | 'NOTES' | 'STRATEGY' | 'STORE' | 'ACHIEVEMENTS' | 'FEED' | 'SETTINGS' | 'RANKS' | 'FRIENDS' | 'ROUTINE' | 'RIVALS';
 
 export interface DockItemConfig {
   id: DockItemId;
@@ -28,6 +28,7 @@ export const DOCK_ITEMS: DockItemConfig[] = [
   { id: 'ACHIEVEMENTS', icon: Trophy, label: 'LEGACY', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', borderColor: 'border-yellow-500/20' },
   { id: 'FEED', icon: Activity, label: 'FEED', color: 'text-teal-400', bgColor: 'bg-teal-500/20', borderColor: 'border-teal-500/20' },
   { id: 'ROUTINE', icon: CalendarClock, label: 'RUTINA', color: 'text-sky-400', bgColor: 'bg-sky-500/20', borderColor: 'border-sky-500/20' },
+  { id: 'RIVALS', icon: Swords, label: 'DUELOS', color: 'text-amber-400', bgColor: 'bg-amber-500/20', borderColor: 'border-amber-500/20' },
   { id: 'SETTINGS', icon: Settings2, label: 'SETTINGS', color: 'text-slate-300', bgColor: 'bg-slate-500/20', borderColor: 'border-slate-500/20' },
   // Overlays (not sections): opened through window events, see Dock.openOverlay
   { id: 'RANKS', icon: Medal, label: 'RANGOS', color: 'text-amber-300', bgColor: 'bg-amber-500/20', borderColor: 'border-amber-500/20' },
@@ -43,7 +44,7 @@ export interface DockConfig {
 export const DEFAULT_DOCK_CONFIG: DockConfig = {
   enabledItems: ['TASKS', 'HABITS', 'FOCUS', 'NOTES'],
   order: ['TASKS', 'HABITS', 'FOCUS', 'NOTES'],
-  expandedItems: ['HABITS', 'FOCUS', 'STORE', 'ACHIEVEMENTS', 'FEED', 'ROUTINE', 'SETTINGS', 'RANKS', 'FRIENDS'],
+  expandedItems: ['HABITS', 'FOCUS', 'STORE', 'ACHIEVEMENTS', 'FEED', 'ROUTINE', 'SETTINGS', 'RANKS', 'FRIENDS', 'RIVALS'],
 };
 
 interface DockConfigModalProps {
@@ -412,7 +413,7 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
                                 <Icon size={14} />
                               </div>
                               <div className="flex-1">
-                                <span className="text-sm font-bold text-white">{id === 'ACHIEVEMENTS' ? 'LEGACY' : (id === 'FOCUS' ? 'FOCUS (PROJECT)' : (id === 'HABITS' ? 'HABIT' : item.label))}</span>
+                                <span className="text-sm font-bold text-white">{id === 'ACHIEVEMENTS' ? 'LEGACY' : (id === 'FOCUS' ? 'PROYECTO' : (id === 'HABITS' ? 'HABIT' : item.label))}</span>
                               </div>
                               <button
                                 onClick={(e) => {
@@ -445,7 +446,7 @@ export const DockConfigModal = ({ isOpen, onClose, config, onSave }: DockConfigM
                               <div className={cn("w-7 h-7 rounded-full flex items-center justify-center border", item.bgColor, item.color, item.borderColor)}>
                                 <Icon size={12} />
                               </div>
-                              <span className="text-xs font-bold text-white/60">{item.id === 'ACHIEVEMENTS' ? 'LEGACY' : (item.id === 'FOCUS' ? 'FOCUS (PROJECT)' : (item.id === 'HABITS' ? 'HABIT' : item.label))}</span>
+                              <span className="text-xs font-bold text-white/60">{item.id === 'ACHIEVEMENTS' ? 'LEGACY' : (item.id === 'FOCUS' ? 'PROYECTO' : (item.id === 'HABITS' ? 'HABIT' : item.label))}</span>
                               <Plus size={12} className="ml-auto text-white/30" />
                             </button>
                           );

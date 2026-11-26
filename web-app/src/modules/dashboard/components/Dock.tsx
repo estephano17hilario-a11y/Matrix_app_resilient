@@ -1,6 +1,6 @@
 import React from 'react';
 import { Crosshair, Plus, ChevronDown, Swords, Settings2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { DockConfig, DockItemConfig, DOCK_ITEMS, DockItemId } from '@/components/ui/DockConfigModal';
 import { onPress } from '@/immersion/press';
@@ -54,6 +54,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
  const openOverlay = (v: string) => {
    if (v === 'RANKS') window.dispatchEvent(new CustomEvent('open-progression-screen', { detail: { tab: 'LADDER' } }));
    else if (v === 'FRIENDS') window.dispatchEvent(new CustomEvent('open-friends'));
+   else if (v === 'RIVALS') onOpenModal('RIVALS');
    else return false;
    onToggle(false);
    return true;
@@ -80,6 +81,12 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
     onOpenModal(m);
     onToggle(false);
   };
+
+ // The expanded menu is memoized (it doesn't change when "+" is tapped), so its
+ // buttons reach the latest handlers through this ref instead of closing over a
+ // stale render.
+ const act = React.useRef({ handleView, handleModal });
+ act.current = { handleView, handleModal };
 
  // Opens the "which sections show in the dock and the + menu" editor.
  const openDockConfig = () => {
@@ -251,22 +258,26 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
   );
   };
 
- const Backdrop = () => (
-      <AnimatePresence>
-        {isOpen && !isHidden && pointerEvents !== 'none' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[350] bg-black/55 backdrop-blur-sm pointer-events-auto"
-            onClick={() => {
-              onToggle(false);
-            }}
-          />
-        )}
-      </AnimatePresence>
-    );
+ // The dim layer behind the open menu stays mounted and only fades. Inserting
+ // or removing a node in <body> made the browser restyle ~800 elements on the
+ // tap frame (~35ms on a phone), and as a component declared inside render it
+ // was also re-mounted on every Dock render. Opacity is composited; visibility
+ // drops it from paint (and from the backdrop blur) once it has faded out.
+ const backdropOn = isOpen && !isHidden && pointerEvents !== 'none';
+ const backdrop = (
+   <div
+     aria-hidden="true"
+     className="fixed inset-0 z-[350] bg-black/55 backdrop-blur-sm"
+     style={{
+       opacity: backdropOn ? 1 : 0,
+       visibility: backdropOn ? 'visible' : 'hidden',
+       pointerEvents: backdropOn ? 'auto' : 'none',
+       transition: backdropOn ? 'opacity 0.2s ease, visibility 0s' : 'opacity 0.2s ease, visibility 0s linear 0.2s',
+       willChange: 'opacity',
+     }}
+     onClick={() => onToggle(false)}
+   />
+ );
  
   const todayDateStr = React.useMemo(() => {
     const d = new Date();
@@ -298,7 +309,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
   }, [todayDateStr]);
 
   const renderExpandedMenuButton = (id: string, label: string, IconComponent: React.ElementType, color: string, bg: string, border: string, action: (e?: React.MouseEvent) => void, isFullWidth?: boolean) => {
-    const hasExclamation = (id === 'FEED' && hasFeedUnread) || (id === 'FOCUS' && hasRivalsUnread);
+    const hasExclamation = (id === 'FEED' && hasFeedUnread) || (id === 'RIVALS' && hasRivalsUnread);
 
     return (
       <button 
@@ -307,7 +318,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
           if (id === 'FEED') {
             try { localStorage.setItem('matrix_feed_opened_date', todayDateStr); } catch (err) {}
             setHasFeedUnread(false);
-          } else if (id === 'FOCUS') {
+          } else if (id === 'RIVALS') {
             try { localStorage.setItem('matrix_rivals_opened_date', todayDateStr); } catch (err) {}
             setHasRivalsUnread(false);
           }
@@ -332,26 +343,20 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
  const item = DOCK_ITEMS.find(i => i.id === id);
  if (!item) return null;
  
-  let action = (_e?: React.MouseEvent) => handleView(id);
+  let action = (_e?: React.MouseEvent) => act.current.handleView(id);
   let label = item.label;
   let Icon = item.icon;
   let color = item.color;
   let bgColor = item.bgColor;
   let borderColor = item.borderColor;
 
-  if (id === 'HABITS') { action = (e) => handleModal('HABIT', e); label = 'Habit'; }
-  else if (id === 'FOCUS') { 
-    action = (e) => handleModal('RIVALS', e); 
-    label = 'Duelos'; 
-    Icon = Swords; 
-    color = 'text-amber-400'; 
-    bgColor = 'bg-amber-500/20'; 
-    borderColor = 'border-amber-500/20'; 
-  }
+  if (id === 'HABITS') { action = (e) => act.current.handleModal('HABIT', e); label = 'Habit'; }
+  else if (id === 'FOCUS') { action = (e) => act.current.handleModal('PROJECT', e); label = 'Proyecto'; }
+  else if (id === 'RIVALS') { action = (e) => act.current.handleModal('RIVALS', e); label = 'Duelos'; Icon = Swords; color = 'text-amber-400'; bgColor = 'bg-amber-500/20'; borderColor = 'border-amber-500/20'; }
   else if (id === 'ACHIEVEMENTS') { label = 'Legacy'; }
-  else if (id === 'STORE') { action = () => { handleView('NOTES'); setTimeout(() => window.dispatchEvent(new Event('open-note-editor')), 100); }; label = 'Note'; }
+  else if (id === 'STORE') { action = () => { act.current.handleView('NOTES'); setTimeout(() => window.dispatchEvent(new Event('open-note-editor')), 100); }; label = 'Note'; }
   else if (id === 'FEED') { label = 'Feed'; }
-  else if (id === 'SETTINGS') { action = (e) => handleModal('SETTINGS', e); label = 'Config'; }
+  else if (id === 'SETTINGS') { action = (e) => act.current.handleModal('SETTINGS', e); label = 'Config'; }
 
  return renderExpandedMenuButton(id, label, Icon, color, bgColor, borderColor, action, isFullWidth);
  };
@@ -360,28 +365,22 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
  const item = DOCK_ITEMS.find(i => i.id === id);
  if (!item) return null;
  
-  let action = (_e?: React.MouseEvent) => handleView(id);
+  let action = (_e?: React.MouseEvent) => act.current.handleView(id);
   let label = item.label;
   let Icon = item.icon;
   let color = item.color;
   let bgColor = item.bgColor;
   let borderColor = item.borderColor;
 
-  if (id === 'HABITS') { action = (e) => handleModal('HABIT', e); label = t('dock.habit'); }
-  else if (id === 'FOCUS') { 
-    action = (e) => handleModal('RIVALS', e); 
-    label = 'Duelos'; 
-    Icon = Swords; 
-    color = 'text-amber-400'; 
-    bgColor = 'bg-amber-500/20'; 
-    borderColor = 'border-amber-500/20'; 
-  }
+  if (id === 'HABITS') { action = (e) => act.current.handleModal('HABIT', e); label = t('dock.habit'); }
+  else if (id === 'FOCUS') { action = (e) => act.current.handleModal('PROJECT', e); label = 'Proyecto'; }
+  else if (id === 'RIVALS') { action = (e) => act.current.handleModal('RIVALS', e); label = 'Duelos'; Icon = Swords; color = 'text-amber-400'; bgColor = 'bg-amber-500/20'; borderColor = 'border-amber-500/20'; }
   else if (id === 'ACHIEVEMENTS') { label = 'LEGACY'; }
-  else if (id === 'STORE') { action = () => { handleView('NOTES'); setTimeout(() => window.dispatchEvent(new Event('open-note-editor')), 100); }; label = t('dock.note', 'Note'); }
+  else if (id === 'STORE') { action = () => { act.current.handleView('NOTES'); setTimeout(() => window.dispatchEvent(new Event('open-note-editor')), 100); }; label = t('dock.note', 'Note'); }
   else if (id === 'FEED') { label = t('dock.feed', 'Feed'); }
-  else if (id === 'SETTINGS') { action = (e) => handleModal('SETTINGS', e); label = 'Config'; }
+  else if (id === 'SETTINGS') { action = (e) => act.current.handleModal('SETTINGS', e); label = 'Config'; }
 
-  const hasExclamation = (id === 'FEED' && hasFeedUnread) || (id === 'FOCUS' && hasRivalsUnread);
+  const hasExclamation = (id === 'FEED' && hasFeedUnread) || (id === 'RIVALS' && hasRivalsUnread);
 
  return (
  <button 
@@ -390,7 +389,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
    if (id === 'FEED') {
      try { localStorage.setItem('matrix_feed_opened_date', todayDateStr); } catch (err) {}
      setHasFeedUnread(false);
-   } else if (id === 'FOCUS') {
+   } else if (id === 'RIVALS') {
      try { localStorage.setItem('matrix_rivals_opened_date', todayDateStr); } catch (err) {}
      setHasRivalsUnread(false);
    }
@@ -410,12 +409,29 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
  </button>
  );
  };
- 
+
+ // Tapping "+" re-renders the Dock; the menu items don't change with it, so
+ // they are built once per real change instead of on every tap (the tap frame
+ // is where every millisecond shows as delay).
+ const expandedKey = expandedItems.join('|');
+ const menuItems = React.useMemo(() => expandedItems.map((id, index) => {
+   const isLastOdd = index === expandedItems.length - 1 && expandedItems.length % 2 !== 0;
+   if (isGlass) {
+     return (
+       <div key={id} className={isLastOdd ? 'col-span-2' : 'col-span-1'}>
+         {renderGlassExpandedButton(id as DockItemId, isLastOdd)}
+       </div>
+     );
+   }
+   return renderLegacyExpandedButton(id as DockItemId, isLastOdd);
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+ }), [expandedKey, isGlass, hasFeedUnread, hasRivalsUnread, t]);
+
  // --- GLASS STYLE (VISION OS) ---
  if (isGlass) {
  return (
  <>
- <Backdrop />
+ {backdrop}
  <motion.div 
  data-tour="dock"
  data-lux-dock
@@ -477,14 +493,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
  <Plus size={18} className="text-white/20 group-hover:text-white transition-colors" />
  </button>
  
- {expandedItems.map((id, index) => {
- const isLastOdd = index === expandedItems.length - 1 && expandedItems.length % 2 !== 0;
- return (
- <div key={id} className={isLastOdd ? 'col-span-2' : 'col-span-1'}>
- {renderGlassExpandedButton(id as DockItemId, isLastOdd)}
- </div>
- );
- })}
+ {menuItems}
  </div>
  
  <div className="pointer-events-auto absolute bottom-0 left-0 right-0 h-[72px] px-6 flex items-center justify-between gap-2 z-20">
@@ -518,7 +527,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
  if (isAura) {
  return (
  <>
- <Backdrop />
+ {backdrop}
  <motion.div 
  initial={false}
  animate={{ y: isHidden ? '200%' : '0%' }}
@@ -573,10 +582,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
  <Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
  </button>
 
- {expandedItems.map((id, index) => {
- const isLastOdd = index === expandedItems.length - 1 && expandedItems.length % 2 !== 0;
- return renderLegacyExpandedButton(id as DockItemId, isLastOdd);
- })} 
+ {menuItems}
  </div> 
 
  {/* BARRA INFERIOR (Siempre visible) */} 
@@ -629,7 +635,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
 
  return (
  <>
- <Backdrop />
+ {backdrop}
  <motion.div 
  data-tour="dock"
  data-lux-dock
@@ -697,10 +703,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
   <button onClick={(e) => { handleModal('QUEST', e); }} className="col-span-2 h-16 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-[background-color,transform] rounded-[20px] flex items-center justify-between px-5 border border-white/5 group relative overflow-hidden shadow-sm">
   <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)] group-hover:scale-110 transition-transform"><Crosshair size={18} /></div><div className="text-left"><span className="block text-white font-bold text-[14px] tracking-tight">{t('dock.newMission')}</span><span className="block text-white/40 text-[9px] font-bold uppercase tracking-wider">{t('dock.singleTask')}</span></div></div><Plus size={18} className="text-white/30 group-hover:text-white transition-colors" />
   </button>
-  {expandedItems.map((id, index) => {
-  const isLastOdd = index === expandedItems.length - 1 && expandedItems.length % 2 !== 0;
-  return renderLegacyExpandedButton(id as DockItemId, isLastOdd);
-  })}
+  {menuItems}
   </div>
   <div className={`pointer-events-auto absolute bottom-0 left-0 right-0 h-[70px] grid grid-cols-5 items-center px-2 sm:px-6 z-20`}>
   

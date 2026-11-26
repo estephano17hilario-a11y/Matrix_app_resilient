@@ -25,7 +25,8 @@ class SupabaseWidgetClient(private val context: Context) {
 
     companion object {
         private const val TAG = "SupabaseWidgetClient"
-        private const val ALLOW_WIDGET_TOKEN_REFRESH = false
+        private const val ALLOW_WIDGET_TOKEN_REFRESH = true
+        private val REFRESH_LOCK = Any()
         private const val SUPABASE_URL = "https://api.89.117.73.97.sslip.io"
         private const val SUPABASE_ANON_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc4Nzg0OTc2MCwiZXhwIjo0OTQzNTIzMzYwLCJyb2xlIjoiYW5vbiJ9._DvifLx6sViDd5UePak7xswzmT6dQp9FoQZqPnyxeRU"
         private const val REST_PATH = "/rest/v1"
@@ -746,25 +747,67 @@ class SupabaseWidgetClient(private val context: Context) {
      * Attempts to refresh the access token using the stored refresh token.
      * Returns the new access token if successful, or null otherwise.
      */
-    @Synchronized
-    private fun refreshAccessToken(): String? {
-        val prefs = context.getSharedPreferences("lux_widget_auth", Context.MODE_PRIVATE)
-        // The refresh token belongs exclusively to the app: Supabase rotates it on every use, so
-        // redeeming it here invalidates the app's copy and logs the user out. The app pushes a
-        // fresh access token via WidgetAuthBridge.shareSession whenever it refreshes its session.
-        if (!ALLOW_WIDGET_TOKEN_REFRESH) {
-            Log.w(TAG, "Widget token refresh disabled; waiting for the app to share a fresh session")
-            return null
+    /** Expiry of a JWT access token in epoch millis, or null if it cannot be read. */
+    private fun jwtExpiresAtMs(token: String): Long? = try {
+        val part = token.split(".")[1]
+        val json = String(android.util.Base64.decode(part, android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP))
+        JsonParser.parseString(json).asJsonObject.get("exp")?.asLong?.times(1000)
+    } catch (_: Exception) { null }
+
+    /** The access token to use: renewed first when it has expired or is about to (the app is often closed for hours). */
+    private fun validAccessToken(): String? {
+        val (_, token) = getCredentials()
+        if (token.isNullOrEmpty()) return null
+        val exp = jwtExpiresAtMs(token)
+        if (exp != null && exp - System.currentTimeMillis() < 60_000) return refreshAccessToken() ?: token
+        return token
+    }
+
+    /** Writes a renewed session into the store the app reads, so both always hold the same (rotated) refresh token. */
+    private fun shareSessionWithApp(access: String, refresh: String, expiresIn: Long?) {
+        try {
+            val cap = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
+            val json = cap.getString("sb-lux-auth-token", null) ?: return
+            val root = JsonParser.parseString(json).asJsonObject
+            root.addProperty("access_token", access)
+            root.addProperty("refresh_token", refresh)
+            if (expiresIn != null) {
+                root.addProperty("expires_in", expiresIn)
+                root.addProperty("expires_at", System.currentTimeMillis() / 1000 + expiresIn)
+            }
+            cap.edit().putString("sb-lux-auth-token", gson.toJson(root)).commit()
+        } catch (e: Exception) {
+            Log.e(TAG, "shareSessionWithApp: ${e.message}")
         }
-        val refreshToken = prefs.getString("refresh_token", null)
+    }
+
+    /**
+     * Renews the access token with the refresh token. Supabase rotates refresh tokens, so the new pair
+     * is written back into the app's own session store: the app and every widget keep using one chain.
+     * Returns the new access token, or null if it could not be renewed.
+     */
+    private fun refreshAccessToken(): String? = synchronized(REFRESH_LOCK) {
+        if (!ALLOW_WIDGET_TOKEN_REFRESH) return@synchronized null
+        // Another widget (or the app) may have renewed it while we waited for the lock.
+        val (_, current) = getCredentials()
+        val currentExp = current?.let { jwtExpiresAtMs(it) }
+        if (current != null && currentExp != null && currentExp - System.currentTimeMillis() > 60_000) return@synchronized current
+
+        val prefs = context.getSharedPreferences("lux_widget_auth", Context.MODE_PRIVATE)
+        var refreshToken: String? = null
+        try {
+            val sessionJson = context.getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE).getString("sb-lux-auth-token", null)
+            if (!sessionJson.isNullOrEmpty()) refreshToken = JsonParser.parseString(sessionJson).asJsonObject.get("refresh_token")?.asString
+        } catch (_: Exception) {}
+        if (refreshToken.isNullOrEmpty()) refreshToken = prefs.getString("refresh_token", null)
         if (refreshToken.isNullOrEmpty()) {
             Log.w(TAG, "No refresh token available to refresh session")
-            return null
+            return@synchronized null
         }
 
         Log.d(TAG, "Refreshing access token...")
         var connection: HttpURLConnection? = null
-        return try {
+        try {
             val url = URL("$SUPABASE_URL/auth/v1/token?grant_type=refresh_token")
             connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "POST"
@@ -774,9 +817,8 @@ class SupabaseWidgetClient(private val context: Context) {
             connection.connectTimeout = 10000
             connection.readTimeout = 10000
 
-            val payload = mapOf("refresh_token" to refreshToken)
             val writer = OutputStreamWriter(connection.outputStream)
-            writer.write(gson.toJson(payload))
+            writer.write(gson.toJson(mapOf("refresh_token" to refreshToken)))
             writer.flush()
             writer.close()
 
@@ -788,22 +830,21 @@ class SupabaseWidgetClient(private val context: Context) {
 
                 val responseObj = JsonParser.parseString(response).asJsonObject
                 val newAccessToken = responseObj.get("access_token")?.asString
-                val newRefreshToken = responseObj.get("refresh_token")?.asString
-                val userObj = responseObj.getAsJsonObject("user")
-                val userId = userObj?.get("id")?.asString
+                val newRefreshToken = responseObj.get("refresh_token")?.asString ?: refreshToken
+                val expiresIn = responseObj.get("expires_in")?.takeIf { it.isJsonPrimitive }?.asLong
+                val userId = responseObj.getAsJsonObject("user")?.get("id")?.asString
 
                 if (!newAccessToken.isNullOrEmpty() && !userId.isNullOrEmpty()) {
+                    shareSessionWithApp(newAccessToken, newRefreshToken, expiresIn)
                     prefs.edit()
                         .putString("user_id", userId)
                         .putString("access_token", newAccessToken)
-                        .putString("refresh_token", newRefreshToken ?: refreshToken)
+                        .putString("refresh_token", newRefreshToken)
                         .putLong("last_sync", System.currentTimeMillis())
                         .apply()
                     Log.d(TAG, "Token refreshed successfully")
                     newAccessToken
-                } else {
-                    null
-                }
+                } else null
             } else {
                 Log.e(TAG, "Token refresh failed with code $responseCode")
                 try {
@@ -831,16 +872,20 @@ class SupabaseWidgetClient(private val context: Context) {
 
     /** Authenticated GET on the REST API (e.g. "duels?select=*"). Null on failure. */
     fun restGet(pathAndQuery: String): String? {
-        val (_, token) = getCredentials()
+        val token = validAccessToken()
         if (token.isNullOrEmpty()) return null
         return makeGetRequest("$SUPABASE_URL$REST_PATH/$pathAndQuery", token)
     }
 
     /** Authenticated PATCH on the REST API. */
     fun restPatch(pathAndQuery: String, jsonBody: String): Boolean {
-        val (_, token) = getCredentials()
+        val token = validAccessToken()
         if (token.isNullOrEmpty()) return false
-        return makePatchRequest("$SUPABASE_URL$REST_PATH/$pathAndQuery", jsonBody, token)
+        val url = "$SUPABASE_URL$REST_PATH/$pathAndQuery"
+        if (makePatchRequest(url, jsonBody, token)) return true
+        // A rejected token (clock skew, revoked early): renew once and try again.
+        val fresh = refreshAccessToken()
+        return fresh != null && fresh != token && makePatchRequest(url, jsonBody, fresh)
     }
 
     fun currentUserId(): String? = getCredentials().first
@@ -900,12 +945,13 @@ class SupabaseWidgetClient(private val context: Context) {
     fun patchRawRecord(collectionName: String, itemId: String, data: JsonObject): Boolean {
         val (userId, _) = getCredentials()
         if (userId.isNullOrEmpty()) return false
-        val recordId = URLEncoder.encode("${userId}_${collectionName}_$itemId", "UTF-8")
+        // Same filter the app uses: rows saved by older versions live under the bare item id.
+        val either = URLEncoder.encode("(id.eq.${userId}_${collectionName}_$itemId,id.eq.$itemId)", "UTF-8")
         val payload = JsonObject().apply {
             add("data", data)
             addProperty("deleted", false)
         }
-        return restPatch("user_collections?id=eq.$recordId", gson.toJson(payload))
+        return restPatch("user_collections?user_id=eq.${URLEncoder.encode(userId, "UTF-8")}&collection_name=eq.$collectionName&or=$either", gson.toJson(payload))
     }
 
     /**

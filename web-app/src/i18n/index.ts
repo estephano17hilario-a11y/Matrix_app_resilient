@@ -56,7 +56,9 @@ i18n
     lng: getStoredLanguage(), // detecta o usa default
     fallbackLng: 'en', // fallback a inglés
     supportedLngs: ['es', 'en'],
-    debug: true, // Enable debug to see what's happening in console
+    // Debug logs every lookup (and every missing key) to the console; in the
+    // Android WebView that goes to logcat and cost ~1ms per t() on a tap.
+    debug: import.meta.env.DEV && canUseStorage && localStorage.getItem('lux-i18n-debug') === '1',
     interpolation: {
       escapeValue: false 
     },

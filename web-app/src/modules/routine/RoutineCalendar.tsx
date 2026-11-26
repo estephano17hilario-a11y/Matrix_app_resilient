@@ -2,8 +2,8 @@ import React, { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, 
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  AlertCircle, ArrowUpRight, BellRing, CalendarClock, Check, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flame, ListTodo, Moon,
-  Palette, Pencil, Plus, Settings2, SlidersHorizontal, Sparkles, Sun, Sunset, Undo2,
+  AlertCircle, ArrowUpRight, BellRing, CalendarClock, Check, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flame, Layers, ListTodo,
+  Maximize2, Minimize2, Minus, Moon, Palette, Pencil, Plus, Settings2, SlidersHorizontal, Sparkles, Sun, Sunset, Undo2, X, ZoomIn,
 } from 'lucide-react';
 import type { Quest } from '../../types';
 import { addDays, formatClock, startOfWeek, toLocalISOString } from '../../utils/dateUtils';
@@ -11,17 +11,19 @@ import { cn } from '../../utils/cn';
 import { buildCalendarLayout, minutesToTime, snapMinutes, type CalendarEvent } from './calendarLayout';
 import { buildEditPatch, buildPostponePatch, buildResetPatch, isEditable, type EditPatch, type EditRequest } from './routineEdits';
 import { RoutineEventSheet, type EventDraft } from './RoutineEventSheet';
+import { applyTrims, buildTrimPatches, canTrimForGood, scanBunches, trimKey } from './unbunch';
 import {
   clampDuration, colorForMode, formatHourRange, hideCompleted, IMPORTANCE_COLORS, IMPORTANCE_LABELS, MIN_DURATION,
   type CalendarColorMode, type DayPart, type RoutineConfig, type RoutineItem,
 } from './routineEngine';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Calendar view of the Routine: a glass, blurred, Google-Calendar-style time scale where every block is as tall
-// as it lasts (day / 3 days / week). Everything starts minimised and unfolds on demand: the toolbar, the strip of
-// items without an hour, and each block (a tap unfolds a card with its info; "Editar" opens the full sheet).
-// Hold + drag moves a block, its bottom edge resizes it. Layout lives in calendarLayout.ts, data changes in
-// routineEdits.ts; this file draws and handles the gestures.
+// Calendar view of the Routine, Google-Calendar style: solid blocks as tall as they last, titles always readable
+// (blocks that start together go side by side, later overlapping ones nest on top shifted right), day / 3 days /
+// week, pinch to zoom. Full screen covers the whole app (HUD included) but leaves the dock on top. The options
+// panel starts minimised. When blocks really overlap by the clock a small "Tareas abultadas" chip appears: it can
+// shorten them for this view only, or for good (start times never move). Layout: calendarLayout.ts; data changes:
+// routineEdits.ts / unbunch.ts; this file draws and handles the gestures.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PART_STYLE: Record<DayPart, { es: string; en: string; icon: React.ElementType; tint: string }> = {
@@ -30,10 +32,22 @@ const PART_STYLE: Record<DayPart, { es: string; en: string; icon: React.ElementT
   NIGHT: { es: 'Noche', en: 'Night', icon: Moon, tint: '#818cf8' },
 };
 
-const PX_PER_HOUR = 64;
+const ZOOM_KEY = 'routine_calendar_zoom_v1';
+const ZOOM_MIN = 36;
+const ZOOM_MAX = 220;
+const ZOOM_DEFAULT = 76;
 const HOLD_MS = 360;
 const MOVE_SLOP = 9;
+/** Space left under the grid in full screen so the last hours can scroll above the floating dock. */
+const DOCK_RESERVE = 128;
+/** Colour of the gap between overlapping blocks (the grid background). */
+const SEP = '#0a0a12';
 const pad = (n: number) => String(n).padStart(2, '0');
+const clampZoom = (n: number) => Math.round(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, n)));
+
+const readZoom = (): number => {
+  try { const v = Number(localStorage.getItem(ZOOM_KEY)); return v ? clampZoom(v) : ZOOM_DEFAULT; } catch { return ZOOM_DEFAULT; }
+};
 
 /** Dark or white text, whichever reads on this block colour. */
 const textOn = (hex: string): string => {
@@ -51,6 +65,13 @@ const rangeText = (start: number, end: number, use24h: boolean): string => {
   const a = part(start); const b = part(end);
   return a.s === b.s ? `${a.t} – ${b.t} ${b.s}` : `${a.t} ${a.s} – ${b.t} ${b.s}`;
 };
+
+const shortTime = (m: number, use24h: boolean) => {
+  const h = Math.floor(m / 60); const mm = m % 60;
+  return use24h ? `${pad(h)}:${pad(mm)}` : `${h % 12 || 12}${mm ? `:${pad(mm)}` : ''}${h >= 12 ? 'pm' : 'am'}`;
+};
+
+const fmtDuration = (min: number) => (min >= 60 ? `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}` : `${min} min`);
 
 interface Props {
   date: Date;
@@ -70,7 +91,7 @@ interface Props {
   onOpen: (item: RoutineItem) => void;
   /** Applies a change built by routineEdits (habit, task or reminder). */
   onApplyEdit: (patch: EditPatch) => void;
-  /** Full screen (dashboard hidden) or embedded in the Routine page. */
+  /** Full screen (HUD hidden, dock kept) or embedded in the Routine page. */
   immersive: boolean;
   onToggleImmersive: () => void;
   onOpenSettings: () => void;
@@ -106,12 +127,12 @@ interface BlockProps {
   height: number;
   start: number;
   duration: number;
+  z: number;
   dragging: boolean;
   selected: boolean;
   isNext: boolean;
   editable: boolean;
   showCheck: boolean;
-  compact: boolean;
   span: number;
   use24h: boolean;
   bursting: boolean;
@@ -129,14 +150,22 @@ interface BlockProps {
 }
 
 const Block = memo<BlockProps>(({
-  ev, color, left, width, top, height, start, duration, dragging, selected, isNext, editable, showCheck, compact, span, use24h, bursting, reduce, icon: Icon, showIcon, label,
+  ev, color, left, width, top, height, start, duration, z, dragging, selected, isNext, editable, showCheck, span, use24h, bursting, reduce, icon: Icon, showIcon, label,
   onDown, onMove, onUp, onCancel, onKey, onCheck, onResizeStart,
 }) => {
   const it = ev.item;
-  const ink = textOn(color);
   const done = it.done;
-  const tall = height >= 40;
-  const roomy = width >= 96;
+  const ink = done ? 'rgba(255,255,255,0.6)' : textOn(color);
+  const week = span === 7;
+  const titleSize = week ? 8.5 : span === 3 ? 10.5 : 12;
+  const lineH = week ? 10 : span === 3 ? 13 : 14.5;
+  const padX = week ? 2.5 : 6;
+  const padY = week ? 2 : 3;
+  const checkRoom = showCheck ? 26 : 0;
+  const oneLine = height < lineH * 2 + padY * 2 - 2;
+  const showTime = !oneLine && height >= lineH * 2 + 12 && width >= 52;
+  const titleLines = Math.max(1, Math.floor((height - padY * 2 - (showTime ? 12 : 0)) / lineH));
+  const timeTxt = week ? shortTime(start, use24h) : rangeText(start, start + duration, use24h);
   return (
     <div
       role="button"
@@ -148,43 +177,43 @@ const Block = memo<BlockProps>(({
       onPointerCancel={onCancel}
       onContextMenu={e => e.preventDefault()}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onKey(ev); } }}
-      className={cn('absolute select-none cursor-pointer overflow-hidden rounded-[11px] outline-none focus-visible:ring-2 focus-visible:ring-white/80', dragging ? 'z-40' : selected ? 'z-30' : 'z-10')}
+      className="absolute select-none cursor-pointer overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-white/80"
       style={{
-        top, height, left: left + 1, width: width - 2,
-        background: done
-          ? `linear-gradient(160deg, ${color}38, ${color}22)`
-          : `linear-gradient(160deg, ${color}f5 0%, ${color}c2 100%)`,
-        border: `1px solid ${done ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.30)'}`,
-        color: done ? 'rgba(255,255,255,0.62)' : ink,
+        top, height, left, width, zIndex: z,
+        borderRadius: week ? 4 : 7,
+        background: done ? `linear-gradient(${color}4d, ${color}4d), #15151f` : color,
+        color: ink,
         boxShadow: dragging
-          ? '0 22px 40px -12px rgba(0,0,0,0.8), 0 0 0 2px #fff'
+          ? `0 22px 40px -12px rgba(0,0,0,0.85), 0 0 0 2px #fff`
           : selected || isNext
-            ? `0 0 0 2px rgba(255,255,255,0.95), 0 10px 24px -10px ${color}`
-            : done ? 'none' : `inset 0 1px 0 rgba(255,255,255,0.38), 0 8px 18px -10px ${color}aa`,
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
+            ? `0 0 0 1px ${SEP}, 0 0 0 2.5px rgba(255,255,255,0.95)`
+            : `0 0 0 1px ${SEP}`,
+        opacity: dragging ? 0.94 : 1,
         touchAction: 'pan-y',
-        transition: dragging ? 'none' : 'box-shadow 160ms ease, opacity 160ms ease',
+        transition: dragging ? 'none' : 'box-shadow 160ms ease',
         contain: 'layout paint',
       }}
     >
-      <span className="absolute inset-x-0 top-0 h-[40%] pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.16), transparent)' }} />
-      <div className="relative h-full flex flex-col px-[6px] py-[3px] min-w-0" style={{ paddingRight: showCheck ? 28 : 6 }}>
-        {tall && roomy ? (
-          <>
-            <p className={cn('text-[11.5px] font-black leading-[1.15] truncate', done && 'line-through decoration-white/30')}>{it.title}</p>
-            <p className="text-[10px] font-semibold leading-tight truncate opacity-85 tabular-nums">{rangeText(start, start + duration, use24h)}{it.subtitle && it.kind !== 'SUBHABIT' ? ` · ${it.subtitle}` : ''}</p>
-            {height >= 76 && it.kind === 'SUBHABIT' && it.subtitle && <p className="text-[9.5px] font-bold leading-tight truncate opacity-70 mt-0.5">{it.subtitle}</p>}
-            {height >= 76 && showIcon && <Icon size={14} className="absolute right-1.5 bottom-1.5 opacity-40" style={{ color: ink }} />}
-          </>
-        ) : tall ? (
-          <p className={cn('font-black leading-[1.12] break-words', span === 7 ? 'text-[9px]' : 'text-[10.5px]', done && 'line-through decoration-white/30')} style={{ display: '-webkit-box', WebkitLineClamp: Math.max(1, Math.floor((height - 6) / (span === 7 ? 10 : 12))), WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{it.title}</p>
+      <div className="relative h-full min-w-0" style={{ padding: `${padY}px ${padX + checkRoom}px ${padY}px ${padX}px` }}>
+        {oneLine ? (
+          <p className={cn('font-bold truncate', done && 'line-through')} style={{ fontSize: titleSize, lineHeight: `${Math.max(8, height - padY * 2)}px` }}>
+            {it.title}{!week && width >= 110 && <span className="font-semibold opacity-80">{`, ${shortTime(start, use24h)}`}</span>}
+          </p>
         ) : (
-          <p className={cn('font-black leading-none truncate', span === 7 ? 'text-[8.5px]' : 'text-[10px]', done && 'line-through decoration-white/30')} style={{ marginTop: height < 30 ? 1 : 3 }}>{roomy ? `${it.title}, ${formatClock(minutesToTime(start), !use24h)}` : it.title}</p>
+          <>
+            <p
+              className={cn('font-bold', done && 'line-through')}
+              style={{ fontSize: titleSize, lineHeight: `${lineH}px`, letterSpacing: week ? '-0.2px' : undefined, display: '-webkit-box', WebkitLineClamp: titleLines, WebkitBoxOrient: 'vertical', overflow: 'hidden', overflowWrap: 'break-word' }}
+            >
+              {it.title}
+            </p>
+            {showTime && <p className="font-semibold opacity-80 tabular-nums truncate" style={{ fontSize: week ? 8 : 10, lineHeight: '12px' }}>{timeTxt}</p>}
+            {height >= 64 && width >= 90 && showIcon && <Icon size={13} className="absolute right-1.5 bottom-1.5 opacity-50" />}
+          </>
         )}
-        {it.overridden && !dragging && <span className="absolute left-1 bottom-1 w-1.5 h-1.5 rounded-full bg-white/90" />}
-        {it.progress !== undefined && !done && <span className="absolute left-0 right-0 bottom-0 h-[3px] bg-black/25"><span className="block h-full bg-white/85" style={{ width: `${it.progress * 100}%` }} /></span>}
+        {it.overridden && !dragging && <span className="absolute right-1 bottom-1 w-1.5 h-1.5 rounded-full" style={{ background: ink }} />}
       </div>
+      {it.progress !== undefined && !done && <span className="absolute left-0 right-0 bottom-0 h-[3px] bg-black/25"><span className="block h-full bg-white/85" style={{ width: `${it.progress * 100}%` }} /></span>}
 
       {showCheck && (
         <button
@@ -193,20 +222,20 @@ const Block = memo<BlockProps>(({
           onPointerUp={e => e.stopPropagation()}
           onClick={e => { e.stopPropagation(); onCheck(e, ev); }}
           aria-label={done ? 'Done' : 'Mark'}
-          className="absolute right-0 top-0 w-[30px] h-[30px] flex items-center justify-center touch-manipulation"
+          className="absolute right-0 top-0 w-[28px] h-[26px] flex items-center justify-center touch-manipulation"
           style={{ WebkitTapHighlightColor: 'transparent' }}
         >
-          <span className="w-[17px] h-[17px] rounded-full flex items-center justify-center" style={{ background: done ? 'rgba(0,0,0,0.38)' : 'rgba(0,0,0,0.18)', border: `1.5px solid ${done ? 'rgba(255,255,255,0.9)' : `${ink}aa`}` }}>
+          <span className="w-[16px] h-[16px] rounded-full flex items-center justify-center" style={{ background: done ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.16)', border: `1.5px solid ${done ? 'rgba(255,255,255,0.8)' : ink}` }}>
             {done && <Check size={10} strokeWidth={4} className="text-white" />}
           </span>
-          {bursting && !reduce && <motion.span className="absolute w-[17px] h-[17px] rounded-full pointer-events-none" style={{ border: `2px solid ${ink}` }} initial={{ scale: 0.8, opacity: 0.8 }} animate={{ scale: 2.2, opacity: 0 }} transition={{ duration: 0.6 }} />}
+          {bursting && !reduce && <motion.span className="absolute w-[16px] h-[16px] rounded-full pointer-events-none" style={{ border: `2px solid ${ink}` }} initial={{ scale: 0.8, opacity: 0.8 }} animate={{ scale: 2.2, opacity: 0 }} transition={{ duration: 0.6 }} />}
         </button>
       )}
 
       {/* Resize handle: drag the bottom edge to change how long it lasts */}
-      {editable && height >= 30 && !compact && (
-        <span onPointerDown={e => onResizeStart(e, ev)} className="absolute left-0 right-0 bottom-0 h-[14px] flex items-end justify-center pb-[2px]" style={{ touchAction: 'none', cursor: 'ns-resize' }}>
-          <span className="w-6 h-[3px] rounded-full" style={{ background: done ? 'rgba(255,255,255,0.4)' : `${ink}66` }} />
+      {editable && height >= 30 && !week && (
+        <span onPointerDown={e => onResizeStart(e, ev)} className="absolute left-0 right-0 bottom-0 h-[12px] flex items-end justify-center pb-[2px]" style={{ touchAction: 'none', cursor: 'ns-resize' }}>
+          <span className="w-5 h-[3px] rounded-full opacity-40" style={{ background: ink }} />
         </span>
       )}
 
@@ -229,8 +258,8 @@ export const RoutineCalendar: React.FC<Props> = ({
   const span = config.calendarSpan;
   const use24h = config.use24h;
   const colorMode = config.calendarColor;
-  const pxPerHour = PX_PER_HOUR;
 
+  const [pxPerHour, setPxPerHour] = useState(readZoom);
   const [sheet, setSheet] = useState<SheetState | null>(null);
   const [peek, setPeek] = useState<CalendarEvent | null>(null);
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -239,6 +268,9 @@ export const RoutineCalendar: React.FC<Props> = ({
   const [addOpen, setAddOpen] = useState(false);
   const [stripOpen, setStripOpen] = useState(false);
   const [width, setWidth] = useState(360);
+  // "Tareas abultadas": views unbunched for the moment (span + first day), and the dialog step.
+  const [looseViews, setLooseViews] = useState<Set<string>>(() => new Set());
+  const [bunchStep, setBunchStep] = useState<'closed' | 'choose' | 'confirm'>('closed');
 
   const scrollerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -248,6 +280,10 @@ export const RoutineCalendar: React.FC<Props> = ({
   const pointer = useRef({ x: 0, y: 0 });
   const press = useRef<{ timer: number; x: number; y: number; ev: CalendarEvent } | null>(null);
   const toastTimer = useRef<number | null>(null);
+  const zoomRef = useRef(pxPerHour);
+  zoomRef.current = pxPerHour;
+
+  useEffect(() => { try { localStorage.setItem(ZOOM_KEY, String(pxPerHour)); } catch { /* storage unavailable */ } }, [pxPerHour]);
 
   const todayKey = toLocalISOString(now);
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
@@ -258,34 +294,54 @@ export const RoutineCalendar: React.FC<Props> = ({
     return Array.from({ length: span }, (_, i) => addDays(start, i));
   }, [date, span]);
 
-  const days = useMemo(() => dayDates.map(d => {
+  const rawDays = useMemo(() => dayDates.map(d => {
     const key = toLocalISOString(d);
     return { date: d, key, isToday: key === todayKey, items: hideCompleted(itemsFor(d), config) };
   }), [dayDates, itemsFor, config, todayKey]);
 
+  // Overlaps by the clock in the days on screen, and the trims that would undo them.
+  const viewKey = `${span}|${rawDays[0].key}`;
+  const loose = looseViews.has(viewKey);
+  const scan = useMemo(() => scanBunches(rawDays), [rawDays]);
+  const trimMap = useMemo(() => new Map(scan.trims.map(t => [trimKey(t.dayKey, t.item.id), t.to])), [scan]);
+  const days = useMemo(
+    () => (loose ? rawDays.map(d => ({ ...d, items: applyTrims(d.items, d.key, trimMap) })) : rawDays),
+    [loose, rawDays, trimMap],
+  );
+  const bunchedNow = loose ? scan.stuck : scan.bunched;
+  const permanentTrims = useMemo(() => scan.trims.filter(t => canTrimForGood(t.item)), [scan]);
+
   const todayVisible = days.some(d => d.isToday);
+  const week = span === 7;
   // The clock is NOT part of the layout: a tick only moves the marker, it never rebuilds the blocks.
   const layout = useMemo(() => buildCalendarLayout({
     days: days.map(d => ({ key: d.key, isToday: d.isToday, items: d.items })),
     config, nowMinutes: null, pxPerHour,
-  }), [days, config, pxPerHour]);
+    minBlockPx: week ? 15 : 20,
+    titlePx: week ? 15 : 20,
+  }), [days, config, pxPerHour, week]);
   const nowY = todayVisible ? nowMinutes * layout.pxPerMin : null;
 
-  const gutter = span === 1 ? 44 : 36;
-  const rail = layout.bands.length ? 15 : 0;
+  const gutter = span === 1 ? 46 : 38;
+  const rail = layout.bands.length ? 14 : 0;
   const gridLeft = gutter + rail;
   const colW = Math.max(20, (width - gridLeft) / span);
+  const indentStep = week ? Math.max(3, colW * 0.1) : Math.min(16, colW * 0.08);
+  const colGap = week ? 1 : 3;
+  const reserve = immersive ? DOCK_RESERVE : 16;
 
+  // Going in / out of full screen mounts a NEW scroller (portal): measure that one, not the old one (a stale
+  // width is what squeezed every column into slivers).
   useLayoutEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
-    const measure = () => setWidth(el.clientWidth);
+    const measure = () => { if (el.clientWidth > 0) setWidth(el.clientWidth); };
     measure();
     if (typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [immersive]);
 
   // Opening a day / changing the span: scroll to where the action is (the clock, else the first block).
   const firstStart = useMemo(() => (layout.events.length ? Math.min(...layout.events.map(e => e.start)) : 7 * 60), [layout.events]);
@@ -294,9 +350,54 @@ export const RoutineCalendar: React.FC<Props> = ({
     const el = scrollerRef.current;
     if (!el) return;
     const anchor = todayVisible ? nowMinutes - 60 : firstStart;
-    el.scrollTo({ top: Math.max(0, (anchor - 40) * layout.pxPerMin), behavior: 'auto' });
+    el.scrollTo({ top: Math.max(0, (anchor - 30) * layout.pxPerMin), behavior: 'auto' });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollKey]);
+
+  // ── Zoom (pinch on the grid, or the buttons in the panel) keeping the same minute under the fingers ────────
+  const zoomAround = useCallback((next: number, anchorY?: number) => {
+    const el = scrollerRef.current;
+    const cur = zoomRef.current;
+    const target = clampZoom(next);
+    if (!el || target === cur) return;
+    const rect = el.getBoundingClientRect();
+    const y = anchorY ?? rect.top + rect.height / 2;
+    const offset = y - rect.top;
+    const minute = (el.scrollTop + offset - 8) / (cur / 60);
+    zoomRef.current = target;
+    setPxPerHour(target);
+    requestAnimationFrame(() => { el.scrollTop = Math.max(0, minute * (target / 60) + 8 - offset); });
+  }, []);
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    let pinch: { dist: number; base: number } | null = null;
+    const dist = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    const onStart = (e: TouchEvent) => {
+      if (e.touches.length === 2 && !dragRef.current) {
+        pinch = { dist: dist(e.touches), base: zoomRef.current };
+        if (press.current) { window.clearTimeout(press.current.timer); press.current = null; }
+      }
+    };
+    const onMove = (e: TouchEvent) => {
+      if (!pinch || e.touches.length !== 2) return;
+      e.preventDefault();
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      zoomAround(pinch.base * (dist(e.touches) / pinch.dist), midY);
+    };
+    const onEnd = (e: TouchEvent) => { if (e.touches.length < 2) pinch = null; };
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd);
+    el.addEventListener('touchcancel', onEnd);
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+      el.removeEventListener('touchcancel', onEnd);
+    };
+  }, [zoomAround, immersive]);
 
   const showToast = useCallback((text: string, undo?: () => void) => {
     setToast({ text, undo });
@@ -319,6 +420,8 @@ export const RoutineCalendar: React.FC<Props> = ({
     if (first.getMonth() === last.getMonth()) return first.toLocaleDateString(locale, { month: 'long' });
     return `${first.toLocaleDateString(locale, { month: 'short' }).replace('.', '')} – ${last.toLocaleDateString(locale, { month: 'short' }).replace('.', '')}`;
   })();
+  const spanLabel = (() => { const s = SPANS.find(x => x.id === span)!; return es ? s.es : s.en; })();
+  const viewScope = span === 1 ? tr('este día', 'this day') : span === 3 ? tr('estos 3 días', 'these 3 days') : tr('esta semana', 'this week');
 
   // ── Applying edits ───────────────────────────────────────────────────────
   const applyRequest = useCallback((req: EditRequest) => {
@@ -344,6 +447,23 @@ export const RoutineCalendar: React.FC<Props> = ({
   const tap = useCallback((ev: CalendarEvent) => {
     setPeek(cur => (cur && cur.item.id === ev.item.id && cur.day === ev.day ? null : ev));
   }, []);
+
+  // ── Tareas abultadas ─────────────────────────────────────────────────────
+  const unbunchForNow = () => {
+    setLooseViews(prev => new Set(prev).add(viewKey));
+    setBunchStep('closed');
+    showToast(tr(`Desagrupadas solo en ${viewScope}`, `Unbunched for ${viewScope} only`), () => setLooseViews(prev => { const n = new Set(prev); n.delete(viewKey); return n; }));
+  };
+  const rebunch = () => {
+    setLooseViews(prev => { const n = new Set(prev); n.delete(viewKey); return n; });
+    setBunchStep('closed');
+  };
+  const unbunchForGood = () => {
+    const patches = buildTrimPatches(permanentTrims);
+    patches.forEach(onApplyEdit);
+    setBunchStep('closed');
+    showToast(tr(`${permanentTrims.length} duraciones ajustadas`, `${permanentTrims.length} lengths adjusted`));
+  };
 
   // ── Gestures: hold + drag = move, bottom edge = resize ───────────────────
   const stopTouchScroll = useRef((e: TouchEvent) => { if (dragRef.current) e.preventDefault(); });
@@ -404,7 +524,8 @@ export const RoutineCalendar: React.FC<Props> = ({
       if (sc && dragRef.current) {
         const r = sc.getBoundingClientRect();
         const y2 = pointer.current.y;
-        const speed = y2 < r.top + 56 ? -9 : y2 > r.bottom - 56 ? 9 : 0;
+        const bottomEdge = r.bottom - (immersive ? DOCK_RESERVE - 20 : 0);
+        const speed = y2 < r.top + 56 ? -9 : y2 > bottomEdge - 56 ? 9 : 0;
         if (speed) {
           sc.scrollTop += speed;
           const next = computeDrag(dragRef.current, pointer.current.x, y2);
@@ -435,7 +556,7 @@ export const RoutineCalendar: React.FC<Props> = ({
     window.addEventListener('pointerup', end);
     window.addEventListener('pointercancel', end);
     window.addEventListener('touchmove', stopTouchScroll.current, { passive: false });
-  }, [commitDrag, computeDrag, layout.pxPerMin]);
+  }, [commitDrag, computeDrag, layout.pxPerMin, immersive]);
 
   // Handlers handed to the memoised blocks stay the same function for the whole life of the component.
   const latest = useRef({ beginDrag, tap, onToggle, days });
@@ -489,14 +610,14 @@ export const RoutineCalendar: React.FC<Props> = ({
         role="button"
         tabIndex={0}
         onClick={() => (it.reminderId && onEditReminder ? onEditReminder(it.reminderId) : isEditable(it) ? openSheet(it, dayKey) : onOpen(it))}
-        className={cn('flex items-center gap-1 rounded-full max-w-full cursor-pointer active:scale-95 transition-transform backdrop-blur-md', small ? 'px-1.5 py-[2px]' : 'pl-2.5 pr-1.5 py-1')}
-        style={{ background: it.done ? 'rgba(255,255,255,0.05)' : it.overdue ? 'rgba(251,113,133,0.2)' : `${c}30`, border: `1px solid ${it.done ? 'rgba(255,255,255,0.06)' : it.overdue ? 'rgba(251,113,133,0.45)' : `${c}66`}` }}
+        className={cn('flex items-center gap-1 rounded-md max-w-full cursor-pointer active:scale-95 transition-transform', small ? 'px-1 py-[2px]' : 'pl-2 pr-1 py-1')}
+        style={{ background: it.done ? 'rgba(255,255,255,0.05)' : it.overdue ? 'rgba(251,113,133,0.22)' : c, boxShadow: `0 0 0 1px ${SEP}` }}
       >
         {!small && it.overdue && <AlertCircle size={11} className="text-rose-300 shrink-0" />}
-        <span className={cn('font-bold truncate', small ? 'text-[8.5px]' : 'text-[11px]', it.done ? 'text-white/30 line-through' : it.overdue ? 'text-rose-200' : 'text-white')}>{it.title}</span>
+        <span className={cn('font-bold truncate', small ? 'text-[8.5px]' : 'text-[11px]', it.done && 'line-through')} style={{ color: it.done ? 'rgba(255,255,255,0.35)' : it.overdue ? '#fecdd3' : textOn(c) }}>{it.title}</span>
         {!small && (
           <button type="button" onClick={e => { e.stopPropagation(); onToggle(e, it, dayKey); }} aria-label={tr('Marcar', 'Mark')} className="w-6 h-6 -my-1 flex items-center justify-center shrink-0 touch-manipulation">
-            <span className="w-[15px] h-[15px] rounded-full flex items-center justify-center" style={{ background: it.done ? c : 'transparent', border: `1.5px solid ${it.done ? c : `${c}99`}` }}>
+            <span className="w-[15px] h-[15px] rounded-full flex items-center justify-center" style={{ border: `1.5px solid ${it.done || it.overdue ? 'rgba(255,255,255,0.6)' : textOn(c)}` }}>
               {it.done && <Check size={9} strokeWidth={4} className="text-white" />}
             </span>
           </button>
@@ -510,7 +631,7 @@ export const RoutineCalendar: React.FC<Props> = ({
     if (!peek) return null;
     const it = peek.item;
     const c = blockColor(it);
-    const dayKey = days[peek.day].key;
+    const dayKey = days[peek.day]?.key ?? days[0].key;
     const Icon = iconFor(it);
     const cardW = Math.min(304, width - 16);
     const colLeft = peek.day * colW;
@@ -521,13 +642,13 @@ export const RoutineCalendar: React.FC<Props> = ({
     const editable = isEditable(it);
     const kind = it.kind === 'TASK' ? tr('Tarea', 'Task') : it.kind === 'SUBHABIT' ? tr('Subtarea', 'Sub-habit') : it.kind === 'HABIT' ? tr('Hábito', 'Habit') : it.kind === 'PROJECT' ? tr('Proyecto', 'Project') : it.reminderId ? tr('Recordatorio', 'Reminder') : tr('Journal', 'Journal');
     const imp = it.importance >= 1 ? (es ? IMPORTANCE_LABELS.es : IMPORTANCE_LABELS.en)[Math.min(4, it.importance) - 1] : null;
-    const dur = it.durationMin >= 60 ? `${Math.floor(it.durationMin / 60)} h${it.durationMin % 60 ? ` ${it.durationMin % 60} min` : ''}` : `${it.durationMin} min`;
+    const trimmed = loose && trimMap.has(trimKey(dayKey, it.id));
     return (
       <motion.div
         ref={peekRef}
         key={`peek-${peek.day}-${it.id}`}
         initial={reduce ? false : { opacity: 0, y: -6, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ type: 'spring', stiffness: 460, damping: 34 }}
-        className="absolute z-50 rounded-[22px] border border-white/15 bg-[#10101a]/85 backdrop-blur-2xl p-3.5 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85)]"
+        className="absolute z-[600] rounded-[22px] border border-white/15 bg-[#10101a]/90 backdrop-blur-2xl p-3.5 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.85)]"
         style={{ top, left, width: cardW }}
         onPointerDown={e => e.stopPropagation()}
       >
@@ -535,7 +656,7 @@ export const RoutineCalendar: React.FC<Props> = ({
           <span className="w-9 h-9 rounded-2xl flex items-center justify-center shrink-0" style={{ background: `${c}2e`, color: c }}><Icon size={16} /></span>
           <div className="flex-1 min-w-0">
             <p className={cn('text-[14px] font-black leading-tight', it.done ? 'text-white/45 line-through' : 'text-white')}>{it.title}</p>
-            <p className="text-[11px] font-semibold text-white/45 mt-0.5 tabular-nums">{rangeText(peek.start, peek.end, use24h)} · {dur}</p>
+            <p className="text-[11px] font-semibold text-white/45 mt-0.5 tabular-nums">{rangeText(peek.start, peek.end, use24h)} · {fmtDuration(peek.end - peek.start)}</p>
           </div>
           <button type="button" onClick={() => setPeek(null)} aria-label={tr('Cerrar', 'Close')} className="w-7 h-7 rounded-full bg-white/[0.07] flex items-center justify-center text-white/60 active:scale-90 transition-transform"><ChevronUp size={14} /></button>
         </div>
@@ -544,6 +665,7 @@ export const RoutineCalendar: React.FC<Props> = ({
           {imp && <span className="rounded-full px-2 py-[3px] text-[9.5px] font-black uppercase tracking-wider" style={{ background: `${IMPORTANCE_COLORS[it.importance - 1]}26`, color: IMPORTANCE_COLORS[it.importance - 1] }}>{imp}</span>}
           {it.subtitle && <span className="rounded-full bg-white/[0.07] px-2 py-[3px] text-[9.5px] font-bold text-white/60 truncate max-w-[180px]">{it.subtitle}</span>}
           {it.overridden && <span className="rounded-full bg-amber-300/15 px-2 py-[3px] text-[9.5px] font-black uppercase tracking-wider text-amber-200">{tr('Movido hoy', 'Moved today')}</span>}
+          {trimmed && <span className="rounded-full bg-amber-300/15 px-2 py-[3px] text-[9.5px] font-black uppercase tracking-wider text-amber-200">{tr('Acortado en esta vista', 'Shortened in this view')}</span>}
           {it.done && <span className="rounded-full bg-emerald-400/15 px-2 py-[3px] text-[9.5px] font-black uppercase tracking-wider text-emerald-300">{tr('Hecho', 'Done')}</span>}
         </div>
         {it.progress !== undefined && (
@@ -564,36 +686,102 @@ export const RoutineCalendar: React.FC<Props> = ({
     );
   };
 
+  // ── "Tareas abultadas" dialog ────────────────────────────────────────────
+  const renderBunchDialog = () => {
+    if (bunchStep === 'closed') return null;
+    const canFix = scan.trims.length > 0;
+    const preview = permanentTrims.slice(0, 6);
+    return createPortal(
+      <div className="fixed inset-0 z-[2050] flex items-end justify-center" role="dialog" aria-modal="true">
+        <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setBunchStep('closed')} />
+        <motion.div
+          className="relative w-full max-w-md mx-2 mb-[max(10px,env(safe-area-inset-bottom))] rounded-[28px] border border-white/12 bg-[#11111a]/95 backdrop-blur-2xl p-4 shadow-[0_30px_80px_rgba(0,0,0,0.7)]"
+          initial={reduce ? false : { y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 36 }}
+        >
+          <div className="flex items-start gap-3">
+            <span className="w-10 h-10 rounded-2xl bg-amber-300/15 text-amber-300 flex items-center justify-center shrink-0"><Layers size={18} /></span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[16px] font-black text-white leading-tight">{bunchStep === 'confirm' ? tr('¿Estás seguro?', 'Are you sure?') : tr('Tareas abultadas', 'Bunched tasks')}</p>
+              <p className="text-[12px] text-white/55 mt-1 leading-snug">
+                {bunchStep === 'confirm'
+                  ? tr('Cambiarás de forma permanente la duración de tus hábitos y sub-tareas, y de tus tareas. Ninguna hora de inicio se mueve.', 'You will permanently change how long your habits, sub-tasks and tasks last. No start time moves.')
+                  : loose
+                    ? tr(`Ya están desagrupadas en ${viewScope}.`, `Already unbunched for ${viewScope}.`)
+                    : tr(`${scan.bunched} bloques se pisan en ${viewScope}. ¿Quieres desagruparlos? Solo se acortan las duraciones; ningún horario se mueve.`, `${scan.bunched} blocks overlap in ${viewScope}. Unbunch them? Only lengths get shorter; no time moves.`)}
+              </p>
+            </div>
+            <button type="button" onClick={() => setBunchStep('closed')} aria-label={tr('Cerrar', 'Close')} className="w-8 h-8 rounded-full bg-white/[0.07] flex items-center justify-center text-white/60 active:scale-90 transition-transform"><X size={15} /></button>
+          </div>
+
+          {scan.stuck > 0 && bunchStep === 'choose' && (
+            <p className="mt-3 rounded-2xl bg-rose-400/10 border border-rose-400/20 px-3 py-2 text-[11.5px] font-semibold text-rose-200 leading-snug">
+              {tr(`${scan.stuck} empiezan a la misma hora (o casi): esas no se pueden desagrupar sin mover su horario, así que se quedan igual.`, `${scan.stuck} start at (almost) the same time: those cannot be unbunched without moving them, so they stay as they are.`)}
+            </p>
+          )}
+
+          {bunchStep === 'confirm' ? (
+            <>
+              <div className="mt-3 rounded-2xl bg-white/[0.04] border border-white/[0.07] divide-y divide-white/[0.06]">
+                {preview.map(t => (
+                  <div key={trimKey(t.dayKey, t.item.id)} className="flex items-center gap-2 px-3 py-2">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: blockColor(t.item) }} />
+                    <span className="flex-1 min-w-0 truncate text-[12px] font-bold text-white/85">{t.item.title}</span>
+                    <span className="text-[11px] font-black tabular-nums text-white/45 line-through">{t.from}</span>
+                    <span className="text-[11px] font-black tabular-nums text-amber-200">{fmtDuration(t.to)}</span>
+                  </div>
+                ))}
+                {permanentTrims.length > preview.length && <p className="px-3 py-2 text-[11px] font-bold text-white/40">{tr(`y ${permanentTrims.length - preview.length} más`, `and ${permanentTrims.length - preview.length} more`)}</p>}
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                <button type="button" onClick={() => setBunchStep('choose')} className="h-12 rounded-2xl bg-white/[0.08] text-[13px] font-black text-white active:scale-95 transition-transform">{tr('Cancelar', 'Cancel')}</button>
+                <button type="button" onClick={unbunchForGood} className="h-12 rounded-2xl bg-amber-300 text-[13px] font-black text-black active:scale-95 transition-transform">{tr('Sí, cambiar', 'Yes, change')}</button>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col gap-2 mt-4">
+              {loose ? (
+                <button type="button" onClick={rebunch} className="w-full rounded-2xl bg-white/[0.08] px-4 py-3 text-left active:scale-[0.98] transition-transform">
+                  <p className="text-[13.5px] font-black text-white flex items-center gap-2"><Undo2 size={15} /> {tr('Volver a como estaba', 'Put them back')}</p>
+                  <p className="text-[11px] text-white/45 mt-0.5">{tr(`Vuelve a mostrar las duraciones reales en ${viewScope}`, `Show the real lengths again in ${viewScope}`)}</p>
+                </button>
+              ) : (
+                <button type="button" disabled={!canFix} onClick={unbunchForNow} className="w-full rounded-2xl bg-white px-4 py-3 text-left active:scale-[0.98] transition-transform disabled:opacity-40">
+                  <p className="text-[13.5px] font-black text-black">{tr('De forma temporal', 'For now')}</p>
+                  <p className="text-[11px] text-black/55 mt-0.5">{tr(`Solo para ${viewScope}; tus hábitos y tareas no cambian`, `Only for ${viewScope}; your habits and tasks do not change`)}</p>
+                </button>
+              )}
+              <button type="button" disabled={!permanentTrims.length} onClick={() => setBunchStep('confirm')} className="w-full rounded-2xl bg-amber-300/12 border border-amber-300/30 px-4 py-3 text-left active:scale-[0.98] transition-transform disabled:opacity-40">
+                <p className="text-[13.5px] font-black text-amber-200">{tr('De forma permanente', 'For good')}</p>
+                <p className="text-[11px] text-amber-100/55 mt-0.5">{tr(`Acorta ${permanentTrims.length} duraciones para que terminen donde empieza la siguiente`, `Shortens ${permanentTrims.length} lengths so each ends where the next starts`)}</p>
+              </button>
+            </div>
+          )}
+        </motion.div>
+      </div>,
+      document.body,
+    );
+  };
+
   // ── The calendar ─────────────────────────────────────────────────────────
   const body = (
     <div
-      className={cn('flex flex-col min-h-0 overflow-hidden', immersive ? 'fixed inset-0 z-[1000] bg-[#06060d]/95 backdrop-blur-[30px] backdrop-saturate-150' : 'relative rounded-[28px] border border-white/10 bg-[#06060d]/60 backdrop-blur-2xl')}
-      style={immersive ? undefined : { height: 'calc(100dvh - 230px)', minHeight: 440 }}
+      className={cn('flex flex-col min-h-0 overflow-hidden', immersive ? 'fixed inset-0 z-[340] bg-[#08080f]' : 'relative rounded-[28px] border border-white/10 bg-[#08080f]/85 backdrop-blur-2xl')}
+      style={immersive ? undefined : { height: 'calc(100dvh - 210px)', minHeight: 460 }}
     >
       {/* ambient light */}
-      <div className="absolute inset-0 pointer-events-none" aria-hidden style={{ background: 'radial-gradient(60% 40% at 15% 0%, rgba(56,189,248,0.16), transparent 70%), radial-gradient(55% 38% at 100% 8%, rgba(168,85,247,0.14), transparent 70%), radial-gradient(70% 40% at 50% 100%, rgba(244,114,182,0.08), transparent 70%)' }} />
+      <div className="absolute inset-0 pointer-events-none" aria-hidden style={{ background: 'radial-gradient(60% 30% at 15% 0%, rgba(56,189,248,0.10), transparent 70%), radial-gradient(55% 28% at 100% 4%, rgba(168,85,247,0.09), transparent 70%)' }} />
 
-      {/* Top bar: minimised by default */}
-      <div className={cn('relative shrink-0 px-3 pb-2 border-b border-white/[0.08] bg-white/[0.025]', immersive ? 'pt-[max(6px,env(safe-area-inset-top))]' : 'pt-2')}>
-        <div className="flex justify-center -mt-1 mb-1">
-          <button
-            type="button"
-            onClick={onToggleImmersive}
-            aria-label={immersive ? tr('Mostrar el tablero', 'Show the dashboard') : tr('Pantalla completa', 'Full screen')}
-            className="w-14 h-[18px] rounded-b-[10px] rounded-t-sm bg-white/[0.1] border border-white/[0.1] flex items-center justify-center text-white/65 active:scale-90 active:bg-white/20 transition-all"
-          >
-            {immersive ? <ChevronDown size={14} strokeWidth={2.6} /> : <ChevronUp size={14} strokeWidth={2.6} />}
-          </button>
-        </div>
-
+      {/* Top bar: one compact row; the options panel unfolds below it */}
+      <div className={cn('relative shrink-0 px-3 pb-1.5 border-b border-white/[0.07]', immersive ? 'pt-[max(10px,env(safe-area-inset-top))]' : 'pt-2.5')}>
         <div className="flex items-center gap-1.5">
-          <div className="flex-1 min-w-0 flex items-baseline gap-2">
-            <p className="text-[24px] font-black leading-none tracking-tight truncate first-letter:uppercase bg-gradient-to-r from-white via-white to-sky-200 bg-clip-text text-transparent">{title}</p>
-            <p className="text-[12px] font-bold text-white/30 tabular-nums">{dayDates[dayDates.length - 1].getFullYear()}</p>
-          </div>
+          <button type="button" onClick={() => setPanelOpen(v => !v)} className="flex-1 min-w-0 flex items-baseline gap-1.5 text-left active:opacity-70 transition-opacity">
+            <span className="text-[21px] font-black leading-none tracking-tight truncate first-letter:uppercase text-white">{title}</span>
+            {dayDates[dayDates.length - 1].getFullYear() !== now.getFullYear() && <span className="text-[11px] font-bold text-white/30 tabular-nums shrink-0">{dayDates[dayDates.length - 1].getFullYear()}</span>}
+            <span className="text-[10px] font-black uppercase tracking-wider text-sky-300/80 flex items-center gap-0.5 shrink-0">· {spanLabel}<ChevronDown size={11} className={cn('transition-transform duration-200', panelOpen && 'rotate-180')} /></span>
+          </button>
           {!todayVisible && (
-            <button type="button" onClick={() => { setPeek(null); onDateChange(new Date()); }} className="rounded-full bg-sky-400/15 border border-sky-400/30 px-3 h-8 text-[11px] font-black text-sky-300 active:scale-95 transition-transform flex items-center gap-1">
-              <CalendarClock size={12} /> {tr('Hoy', 'Today')}
+            <button type="button" onClick={() => { setPeek(null); onDateChange(new Date()); }} className="rounded-full bg-sky-400/15 border border-sky-400/30 px-2.5 h-8 text-[11px] font-black text-sky-300 active:scale-95 transition-transform">
+              {tr('Hoy', 'Today')}
             </button>
           )}
           <div className="flex items-center rounded-full bg-white/[0.07] border border-white/[0.1]">
@@ -602,9 +790,16 @@ export const RoutineCalendar: React.FC<Props> = ({
           </div>
           <button
             type="button" onClick={() => setPanelOpen(v => !v)} aria-expanded={panelOpen} aria-label={tr('Opciones', 'Options')}
-            className={cn('w-9 h-9 rounded-full border flex items-center justify-center active:scale-90 transition-all', panelOpen ? 'bg-white text-black border-white' : 'bg-white/[0.07] border-white/[0.1] text-white/70')}
+            className={cn('w-8 h-8 rounded-full border flex items-center justify-center active:scale-90 transition-all', panelOpen ? 'bg-white text-black border-white' : 'bg-white/[0.07] border-white/[0.1] text-white/70')}
           >
-            <SlidersHorizontal size={15} />
+            <SlidersHorizontal size={14} />
+          </button>
+          <button
+            type="button" onClick={onToggleImmersive}
+            aria-label={immersive ? tr('Salir de pantalla completa', 'Exit full screen') : tr('Pantalla completa', 'Full screen')}
+            className="w-8 h-8 rounded-full bg-white/[0.07] border border-white/[0.1] flex items-center justify-center text-white/70 active:scale-90 transition-transform"
+          >
+            {immersive ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           </button>
         </div>
 
@@ -613,46 +808,53 @@ export const RoutineCalendar: React.FC<Props> = ({
             <motion.div
               key="panel"
               initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-              transition={reduce ? { duration: 0 } : { duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+              transition={reduce ? { duration: 0 } : { duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
               style={{ overflow: 'hidden' }}
             >
-              <div className="pt-3 flex flex-col gap-2.5">
-                <div className="relative flex p-[3px] rounded-full bg-white/[0.06] border border-white/[0.08]">
-                  <span className="absolute top-[3px] bottom-[3px] left-[3px] w-[calc((100%-6px)/3)] rounded-full bg-white pointer-events-none transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ transform: `translateX(${SPANS.findIndex(s => s.id === span) * 100}%)` }} />
-                  {SPANS.map(s => (
-                    <button key={s.id} type="button" onClick={() => { setPeek(null); onConfig({ calendarSpan: s.id }); }} className="relative z-10 flex-1 h-8 text-[12px] font-black active:scale-95 transition-transform">
-                      <span className={cn('transition-colors', span === s.id ? 'text-black' : 'text-white/55')}>{es ? s.es : s.en}</span>
-                    </button>
-                  ))}
+              <div className="pt-2.5 pb-1 flex flex-col gap-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="relative flex-1 flex p-[3px] rounded-full bg-white/[0.06] border border-white/[0.08]">
+                    <span className="absolute top-[3px] bottom-[3px] left-[3px] w-[calc((100%-6px)/3)] rounded-full bg-white pointer-events-none transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ transform: `translateX(${SPANS.findIndex(s => s.id === span) * 100}%)` }} />
+                    {SPANS.map(s => (
+                      <button key={s.id} type="button" onClick={() => { setPeek(null); onConfig({ calendarSpan: s.id }); setPanelOpen(false); }} className="relative z-10 flex-1 h-7 text-[11.5px] font-black active:scale-95 transition-transform">
+                        <span className={cn('transition-colors', span === s.id ? 'text-black' : 'text-white/55')}>{es ? s.es : s.en}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center rounded-full bg-white/[0.06] border border-white/[0.08] h-[34px]">
+                    <button type="button" onClick={() => zoomAround(zoomRef.current / 1.25)} aria-label={tr('Alejar', 'Zoom out')} className="w-8 h-full flex items-center justify-center text-white/70 active:scale-90 transition-transform"><Minus size={14} /></button>
+                    <ZoomIn size={12} className="text-white/35" />
+                    <button type="button" onClick={() => zoomAround(zoomRef.current * 1.25)} aria-label={tr('Acercar', 'Zoom in')} className="w-8 h-full flex items-center justify-center text-white/70 active:scale-90 transition-transform"><Plus size={14} /></button>
+                  </div>
                 </div>
 
-                <div>
-                  <p className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-white/35 mb-1.5"><Palette size={11} /> {tr('Colores según', 'Colours by')}</p>
-                  <div className="relative flex p-[3px] rounded-full bg-white/[0.06] border border-white/[0.08]">
+                <div className="flex items-center gap-2">
+                  <Palette size={12} className="text-white/35 shrink-0" />
+                  <div className="relative flex-1 flex p-[3px] rounded-full bg-white/[0.06] border border-white/[0.08]">
                     <span className="absolute top-[3px] bottom-[3px] left-[3px] w-[calc((100%-6px)/3)] rounded-full bg-gradient-to-r from-sky-300 to-indigo-300 pointer-events-none transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ transform: `translateX(${COLOR_MODES.findIndex(s => s.id === colorMode) * 100}%)` }} />
                     {COLOR_MODES.map(m => (
-                      <button key={m.id} type="button" onClick={() => onConfig({ calendarColor: m.id })} className="relative z-10 flex-1 h-8 text-[11.5px] font-black active:scale-95 transition-transform">
+                      <button key={m.id} type="button" onClick={() => onConfig({ calendarColor: m.id })} className="relative z-10 flex-1 h-7 text-[11px] font-black active:scale-95 transition-transform">
                         <span className={cn('transition-colors', colorMode === m.id ? 'text-black' : 'text-white/55')}>{es ? m.es : m.en}</span>
                       </button>
                     ))}
                   </div>
-                  {colorMode === 'IMPORTANCE' && (
-                    <div className="flex items-center justify-between mt-2 px-1">
-                      {IMPORTANCE_COLORS.map((c, i) => (
-                        <span key={c} className="flex items-center gap-1.5 text-[10px] font-bold text-white/55"><span className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />{(es ? IMPORTANCE_LABELS.es : IMPORTANCE_LABELS.en)[i]}</span>
-                      ))}
-                    </div>
-                  )}
                 </div>
+                {colorMode === 'IMPORTANCE' && (
+                  <div className="flex items-center justify-between px-1">
+                    {IMPORTANCE_COLORS.map((c, i) => (
+                      <span key={c} className="flex items-center gap-1.5 text-[10px] font-bold text-white/55"><span className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />{(es ? IMPORTANCE_LABELS.es : IMPORTANCE_LABELS.en)[i]}</span>
+                    ))}
+                  </div>
+                )}
 
                 <div className="flex items-center gap-1.5 relative">
-                  <button type="button" onClick={() => onConfig({ view: 'LIST' })} className="flex-1 h-9 rounded-full bg-white/[0.07] border border-white/[0.1] flex items-center justify-center gap-1.5 text-[11.5px] font-black text-white/75 active:scale-95 transition-transform"><ListTodo size={14} /> {tr('Lista', 'List')}</button>
-                  <button type="button" onClick={onOpenSettings} className="flex-1 h-9 rounded-full bg-white/[0.07] border border-white/[0.1] flex items-center justify-center gap-1.5 text-[11.5px] font-black text-white/75 active:scale-95 transition-transform"><Settings2 size={14} /> {tr('Ajustes', 'Settings')}</button>
-                  <button type="button" onClick={() => setAddOpen(v => !v)} className="flex-1 h-9 rounded-full bg-white text-black flex items-center justify-center gap-1.5 text-[11.5px] font-black active:scale-95 transition-transform shadow-[0_6px_18px_-6px_rgba(255,255,255,0.5)]"><Plus size={15} strokeWidth={3} /> {tr('Añadir', 'Add')}</button>
+                  <button type="button" onClick={() => onConfig({ view: 'LIST' })} className="flex-1 h-8 rounded-full bg-white/[0.07] border border-white/[0.1] flex items-center justify-center gap-1.5 text-[11.5px] font-black text-white/75 active:scale-95 transition-transform"><ListTodo size={13} /> {tr('Lista', 'List')}</button>
+                  <button type="button" onClick={onOpenSettings} className="flex-1 h-8 rounded-full bg-white/[0.07] border border-white/[0.1] flex items-center justify-center gap-1.5 text-[11.5px] font-black text-white/75 active:scale-95 transition-transform"><Settings2 size={13} /> {tr('Ajustes', 'Settings')}</button>
+                  <button type="button" onClick={() => setAddOpen(v => !v)} className="flex-1 h-8 rounded-full bg-white text-black flex items-center justify-center gap-1.5 text-[11.5px] font-black active:scale-95 transition-transform"><Plus size={14} strokeWidth={3} /> {tr('Añadir', 'Add')}</button>
                   {addOpen && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setAddOpen(false)} />
-                      <div className="absolute right-0 top-11 z-50 w-52 rounded-[20px] bg-[#14141d]/95 backdrop-blur-xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.6)] p-1.5">
+                      <div className="absolute right-0 top-10 z-50 w-52 rounded-[20px] bg-[#14141d]/95 backdrop-blur-xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.6)] p-1.5">
                         <button type="button" onClick={() => { setAddOpen(false); onAddQuest?.(); }} className="w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[13px] font-bold text-white active:bg-white/10"><span className="w-7 h-7 rounded-xl bg-cyan-400/15 text-cyan-300 flex items-center justify-center"><CheckSquare size={15} /></span>{tr('Nueva tarea', 'New task')}</button>
                         <button type="button" onClick={e => { setAddOpen(false); onAddHabit?.(e); }} className="w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[13px] font-bold text-white active:bg-white/10"><span className="w-7 h-7 rounded-xl bg-orange-400/15 text-orange-300 flex items-center justify-center"><Flame size={15} /></span>{tr('Nuevo hábito', 'New habit')}</button>
                         <button type="button" onClick={() => { setAddOpen(false); onAddReminder?.(days[0].key); }} className="w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[13px] font-bold text-white active:bg-white/10"><span className="w-7 h-7 rounded-xl bg-indigo-400/15 text-indigo-300 flex items-center justify-center"><BellRing size={15} /></span>{tr('Nuevo recordatorio', 'New reminder')}</button>
@@ -667,11 +869,13 @@ export const RoutineCalendar: React.FC<Props> = ({
       </div>
 
       {/* Day headers */}
-      <div className="relative shrink-0 flex border-b border-white/[0.07] pb-1" style={{ paddingLeft: gridLeft }}>
+      <div className="relative shrink-0 flex border-b border-white/[0.07] py-1" style={{ paddingLeft: gridLeft }}>
         {days.map(d => (
-          <button key={d.key} type="button" onClick={() => { setPeek(null); onDateChange(d.date); if (span > 1) onConfig({ calendarSpan: 1 }); }} className="flex-1 min-w-0 flex flex-col items-center gap-0 py-0.5 active:scale-95 transition-transform">
-            <span className={cn('text-[9.5px] font-black uppercase tracking-wider', d.isToday ? 'text-sky-300' : 'text-white/40')}>{d.date.toLocaleDateString(locale, { weekday: 'short' }).replace('.', '').slice(0, 3)}</span>
-            <span className={cn('w-[32px] h-[32px] rounded-full flex items-center justify-center text-[16px] font-black tabular-nums', d.isToday ? 'bg-sky-400 text-[#06121f] shadow-[0_6px_18px_-6px_rgba(56,189,248,0.9)]' : 'text-white/85')}>{d.date.getDate()}</span>
+          <button key={d.key} type="button" onClick={() => { setPeek(null); onDateChange(d.date); if (span > 1) onConfig({ calendarSpan: 1 }); }} className={cn('flex-1 min-w-0 flex items-center justify-center active:scale-95 transition-transform', span === 1 ? 'flex-row gap-2' : 'flex-col gap-0.5')}>
+            <span className={cn('font-black uppercase tracking-wider', week ? 'text-[9px]' : 'text-[10px]', d.isToday ? 'text-sky-300' : 'text-white/45')}>
+              {span === 1 ? d.date.toLocaleDateString(locale, { weekday: 'long' }) : d.date.toLocaleDateString(locale, { weekday: 'short' }).replace('.', '').slice(0, 3)}
+            </span>
+            <span className={cn('rounded-full flex items-center justify-center font-black tabular-nums', week ? 'w-[26px] h-[26px] text-[13px]' : 'w-[30px] h-[30px] text-[15px]', d.isToday ? 'bg-sky-400 text-[#06121f]' : 'text-white/85')}>{d.date.getDate()}</span>
           </button>
         ))}
       </div>
@@ -679,12 +883,12 @@ export const RoutineCalendar: React.FC<Props> = ({
       {/* Items with no hour / overdue tasks: one small pill, unfolds on demand */}
       {stripTotal > 0 && (
         <div className="relative shrink-0 border-b border-white/[0.07]">
-          <button type="button" onClick={() => setStripOpen(v => !v)} aria-expanded={stripOpen} className="w-full flex items-center gap-2 py-1.5 active:bg-white/[0.04] transition-colors" style={{ paddingLeft: Math.max(8, gridLeft - 30) }}>
-            <Sparkles size={12} className="text-white/40" />
-            <span className="text-[11px] font-black text-white/60">{stripTotal} {tr('sin hora', 'untimed')}</span>
+          <button type="button" onClick={() => setStripOpen(v => !v)} aria-expanded={stripOpen} className="w-full flex items-center gap-2 py-1 active:bg-white/[0.04] transition-colors" style={{ paddingLeft: 12 }}>
+            <Sparkles size={11} className="text-white/40" />
+            <span className="text-[10.5px] font-black text-white/55">{stripTotal} {tr('sin hora', 'untimed')}</span>
             {stripOverdue > 0 && <span className="rounded-full bg-rose-400/20 px-2 py-[1px] text-[9.5px] font-black text-rose-300">{stripOverdue} {tr('atrasadas', 'overdue')}</span>}
             <span className="flex-1" />
-            <ChevronDown size={14} className={cn('text-white/40 mr-3 transition-transform duration-200', stripOpen && 'rotate-180')} />
+            <ChevronDown size={13} className={cn('text-white/40 mr-3 transition-transform duration-200', stripOpen && 'rotate-180')} />
           </button>
           <AnimatePresence initial={false}>
             {stripOpen && (
@@ -703,91 +907,121 @@ export const RoutineCalendar: React.FC<Props> = ({
       )}
 
       {/* The grid */}
-      <div ref={scrollerRef} className="relative flex-1 min-h-0 overflow-y-auto overscroll-contain" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }} onPointerDown={() => { if (peek) setPeek(null); }}>
-        <div ref={innerRef} className="relative" style={{ height: layout.height + 28, marginTop: 8 }}>
-          {/* Bands: the way the day was divided in the routine settings */}
-          {layout.bands.map((b, i) => {
-            const p = PART_STYLE[b.band.part];
-            const label = b.band.kind === 'BLOCK' ? formatHourRange(b.band.startHour, b.band.endHour, use24h) : (es ? p.es : p.en);
-            return (
-              <React.Fragment key={b.band.id}>
-                <div className="absolute pointer-events-none" style={{ top: b.top, height: b.height, left: gutter, right: 0, background: i % 2 === 0 ? `${p.tint}10` : `${p.tint}06`, borderTop: `1px solid ${p.tint}40` }} />
-                <div className="absolute flex items-center justify-center pointer-events-none" style={{ top: b.top + 2, height: b.height - 4, left: gutter + 1, width: rail - 2 }}>
-                  <div className="h-full w-full rounded-full flex items-center justify-center overflow-hidden" style={{ background: `${p.tint}22` }}>
-                    <span className="text-[8px] font-black uppercase tracking-wider whitespace-nowrap tabular-nums" style={{ color: p.tint, writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>{label}{b.total ? ` · ${b.done}/${b.total}` : ''}</span>
-                  </div>
-                </div>
-              </React.Fragment>
-            );
-          })}
+      <div className="relative flex-1 min-h-0">
+        {/* "Tareas abultadas": a small chip top-left whenever blocks really overlap by the clock */}
+        <AnimatePresence>
+          {(bunchedNow > 0 || loose) && (
+            <motion.button
+              key="bunch"
+              type="button"
+              onClick={() => { setPeek(null); setBunchStep('choose'); }}
+              initial={reduce ? false : { opacity: 0, y: -6, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+              className={cn('absolute left-2 top-2 z-[700] flex items-center gap-1.5 rounded-full pl-2 pr-2.5 h-7 text-[11px] font-black backdrop-blur-xl shadow-[0_8px_22px_-8px_rgba(0,0,0,0.8)] active:scale-95 transition-transform', bunchedNow > 0 ? 'bg-amber-300/20 border border-amber-300/45 text-amber-200' : 'bg-white/10 border border-white/15 text-white/70')}
+            >
+              <Layers size={12} />
+              {bunchedNow > 0 ? tr('Tareas abultadas', 'Bunched tasks') : tr('Desagrupadas', 'Unbunched')}
+              {bunchedNow > 0 && <span className="rounded-full bg-amber-300 text-black px-1.5 text-[9.5px] leading-[15px] tabular-nums">{bunchedNow}</span>}
+            </motion.button>
+          )}
+        </AnimatePresence>
 
-          {/* Hour lines + labels (each one positioned directly: a zero-height wrapper gets clipped) */}
-          <div className="absolute inset-0 pointer-events-none">
-            {Array.from({ length: 24 }, (_, h) => (
-              <React.Fragment key={h}>
-                {h > 0 && !(nowY !== null && span === 1 && Math.abs(nowY - h * pxPerHour) < 9) && <span className="absolute text-right text-[9.5px] font-bold text-white/40 tabular-nums leading-none pr-1.5 whitespace-nowrap" style={{ left: 0, width: gutter, top: h * pxPerHour - 5 }}>{hourLabel(h)}</span>}
-                <div className="absolute right-0 border-t border-white/[0.09]" style={{ left: gutter, top: h * pxPerHour }} />
-                <div className="absolute right-0 border-t border-dashed border-white/[0.035]" style={{ left: gridLeft, top: h * pxPerHour + pxPerHour / 2 }} />
-              </React.Fragment>
-            ))}
-            {span > 1 && Array.from({ length: span }, (_, i) => <div key={i} className="absolute top-0 bottom-0 border-l border-white/[0.06]" style={{ left: gridLeft + i * colW }} />)}
-            {span === 1 && <div className="absolute top-0 bottom-0 border-l border-white/[0.06]" style={{ left: gutter }} />}
-          </div>
-
-          {/* Blocks */}
-          <div className="absolute top-0 bottom-0 right-0" style={{ left: gridLeft }}>
-            {layout.events.map(ev => {
-              const d = drag && drag.ev === ev ? drag : null;
-              const start = d ? d.start : ev.start;
-              const duration = d ? d.duration : ev.end - ev.start;
-              const top = d ? start * layout.pxPerMin : ev.top;
-              const height = d ? Math.max(duration * layout.pxPerMin, 22) : ev.height;
-              const day = d ? d.day : ev.day;
-              const laneW = d ? colW : colW / ev.lanes;
-              const left = day * colW + (d ? 0 : ev.lane * laneW);
-              const it = ev.item;
+        <div
+          ref={scrollerRef}
+          className="absolute inset-0 overflow-y-auto overscroll-contain"
+          style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+          onPointerDown={() => { if (peek) setPeek(null); }}
+          onTouchStart={() => { if (panelOpen) setPanelOpen(false); }}
+          onWheel={() => { if (panelOpen) setPanelOpen(false); }}
+        >
+          <div ref={innerRef} className="relative" style={{ height: layout.height + 16 + reserve, marginTop: 8 }}>
+            {/* Bands: the way the day was divided in the routine settings */}
+            {layout.bands.map((b, i) => {
+              const p = PART_STYLE[b.band.part];
+              const label = b.band.kind === 'BLOCK' ? formatHourRange(b.band.startHour, b.band.endHour, use24h) : (es ? p.es : p.en);
               return (
-                <Block
-                  key={`${ev.day}-${it.id}`}
-                  ev={ev} color={blockColor(it)} left={left} width={laneW} top={top} height={height} start={start} duration={duration}
-                  dragging={!!d} selected={!!peek && peek.item.id === it.id && peek.day === ev.day}
-                  isNext={nextId === it.id && !!days[ev.day]?.isToday}
-                  editable={isEditable(it)} showCheck={laneW >= 96 && height >= 28 && it.kind !== 'PROJECT' && !d && !(it.kind === 'JOURNAL' && !it.reminderId)}
-                  compact={span > 1} span={span} use24h={use24h} bursting={burstId === it.id} reduce={reduce}
-                  icon={iconFor(it)} showIcon={config.habitIcons}
-                  label={`${it.title}, ${rangeText(start, start + duration, use24h)}`}
-                  onDown={stable.down} onMove={stable.move} onUp={stable.up} onCancel={stable.cancel} onKey={stable.key} onCheck={stable.check} onResizeStart={stable.resize}
-                />
+                <React.Fragment key={b.band.id}>
+                  <div className="absolute pointer-events-none" style={{ top: b.top, height: b.height, left: gutter, right: 0, background: i % 2 === 0 ? `${p.tint}0a` : 'transparent', borderTop: `1px solid ${p.tint}33` }} />
+                  <div className="absolute flex items-center justify-center pointer-events-none" style={{ top: b.top + 2, height: b.height - 4, left: gutter + 1, width: rail - 3 }}>
+                    <div className="h-full w-full rounded-full flex items-center justify-center overflow-hidden" style={{ background: `${p.tint}1c` }}>
+                      <span className="text-[8px] font-black uppercase tracking-wider whitespace-nowrap tabular-nums" style={{ color: p.tint, writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>{label}{b.total ? ` · ${b.done}/${b.total}` : ''}</span>
+                    </div>
+                  </div>
+                </React.Fragment>
               );
             })}
-            {layout.empty && (
-              <div className="absolute inset-x-0 mx-auto w-[230px] text-center pointer-events-none" style={{ top: 8 * pxPerHour + 20 }}>
-                <CalendarClock size={28} className="mx-auto text-sky-300/60 mb-2" />
-                <p className="text-[14px] font-black text-white/70">{tr('Nada con hora', 'Nothing scheduled')}</p>
-                <p className="text-[11px] text-white/35 mt-1 leading-snug">{tr('Ponle hora a tus hábitos y tareas, o añade un recordatorio.', 'Give your habits and tasks a time, or add a reminder.')}</p>
+
+            {/* Hour lines + labels (each one positioned directly: a zero-height wrapper gets clipped) */}
+            <div className="absolute inset-0 pointer-events-none">
+              {Array.from({ length: 24 }, (_, h) => (
+                <React.Fragment key={h}>
+                  {h > 0 && !(nowY !== null && Math.abs(nowY - h * pxPerHour) < 9) && <span className="absolute text-right text-[9.5px] font-bold text-white/40 tabular-nums leading-none pr-1.5 whitespace-nowrap" style={{ left: 0, width: gutter, top: h * pxPerHour - 5 }}>{hourLabel(h)}</span>}
+                  <div className="absolute right-0 border-t border-white/[0.08]" style={{ left: gutter, top: h * pxPerHour }} />
+                  {pxPerHour >= 60 && <div className="absolute right-0 border-t border-dashed border-white/[0.035]" style={{ left: gridLeft, top: h * pxPerHour + pxPerHour / 2 }} />}
+                </React.Fragment>
+              ))}
+              {Array.from({ length: span }, (_, i) => <div key={i} className="absolute top-0 border-l border-white/[0.07]" style={{ left: gridLeft + i * colW, height: layout.height }} />)}
+            </div>
+
+            {/* Blocks */}
+            <div className="absolute top-0 bottom-0 right-0" style={{ left: gridLeft }}>
+              {layout.events.map(ev => {
+                const d = drag && drag.ev === ev ? drag : null;
+                const start = d ? d.start : ev.start;
+                const duration = d ? d.duration : ev.end - ev.start;
+                const top = d ? start * layout.pxPerMin : ev.top;
+                const height = d ? Math.max(duration * layout.pxPerMin, 20) : ev.height;
+                const day = d ? d.day : ev.day;
+                const usable = colW - colGap;
+                const offset = d ? 0 : Math.min(ev.indent * indentStep, usable * 0.5);
+                const rowW = usable - offset;
+                const w = d ? usable : rowW / ev.lanes;
+                const left = day * colW + offset + (d ? 0 : ev.lane * w);
+                const it = ev.item;
+                const selected = !!peek && peek.item.id === it.id && peek.day === ev.day;
+                return (
+                  <Block
+                    key={`${ev.day}-${it.id}`}
+                    ev={ev} color={blockColor(it)} left={left} width={Math.max(3, w)} top={top} height={height} start={start} duration={duration}
+                    z={d ? 500 : selected ? 400 : 10 + ev.order}
+                    dragging={!!d} selected={selected}
+                    isNext={nextId === it.id && !!days[ev.day]?.isToday}
+                    editable={isEditable(it)} showCheck={!week && w >= 88 && height >= 30 && it.kind !== 'PROJECT' && !d && !(it.kind === 'JOURNAL' && !it.reminderId)}
+                    span={span} use24h={use24h} bursting={burstId === it.id} reduce={reduce}
+                    icon={iconFor(it)} showIcon={config.habitIcons}
+                    label={`${it.title}, ${rangeText(start, start + duration, use24h)}`}
+                    onDown={stable.down} onMove={stable.move} onUp={stable.up} onCancel={stable.cancel} onKey={stable.key} onCheck={stable.check} onResizeStart={stable.resize}
+                  />
+                );
+              })}
+              {layout.empty && (
+                <div className="absolute inset-x-0 mx-auto w-[230px] text-center pointer-events-none" style={{ top: 8 * pxPerHour + 20 }}>
+                  <CalendarClock size={28} className="mx-auto text-sky-300/60 mb-2" />
+                  <p className="text-[14px] font-black text-white/70">{tr('Nada con hora', 'Nothing scheduled')}</p>
+                  <p className="text-[11px] text-white/35 mt-1 leading-snug">{tr('Ponle hora a tus hábitos y tareas, o añade un recordatorio.', 'Give your habits and tasks a time, or add a reminder.')}</p>
+                </div>
+              )}
+              <AnimatePresence>{renderPeek()}</AnimatePresence>
+            </div>
+
+            {/* "Now" marker */}
+            {nowY !== null && (
+              <div className="absolute left-0 right-0 pointer-events-none flex items-center z-[450]" style={{ top: nowY - 5, height: 10 }}>
+                <span className="shrink-0 text-right pr-1 text-[8.5px] font-black tabular-nums text-rose-300 leading-none whitespace-nowrap" style={{ width: gutter - 2 }}>{formatClock(`${pad(now.getHours())}:${pad(now.getMinutes())}`, !use24h)}</span>
+                <span className="relative -ml-[1px] flex w-[10px] h-[10px] items-center justify-center shrink-0">
+                  <span className="relative w-[9px] h-[9px] rounded-full bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.9)]" />
+                </span>
+                <span className="flex-1 h-[2px] bg-rose-400" />
               </div>
             )}
-            <AnimatePresence>{renderPeek()}</AnimatePresence>
           </div>
-
-          {/* "Now" marker */}
-          {nowY !== null && (
-            <div className="absolute left-0 right-0 pointer-events-none flex items-center z-20" style={{ top: nowY - 5, height: 10 }}>
-              <span className="shrink-0 text-right pr-1 text-[8.5px] font-black tabular-nums text-rose-300 leading-none whitespace-nowrap" style={{ width: gutter - 2 }}>{span === 1 ? formatClock(`${pad(now.getHours())}:${pad(now.getMinutes())}`, !use24h) : ''}</span>
-              <span className="relative -ml-[1px] flex w-[10px] h-[10px] items-center justify-center shrink-0">
-                <span className="absolute w-full h-full rounded-full bg-rose-400/40 animate-ping" />
-                <span className="relative w-[8px] h-[8px] rounded-full bg-rose-400 shadow-[0_0_10px_rgba(251,113,133,0.9)]" />
-              </span>
-              <span className="flex-1 h-[1.5px] bg-gradient-to-r from-rose-400 via-rose-400/80 to-rose-400/10" />
-            </div>
-          )}
         </div>
       </div>
 
       <AnimatePresence>
         {toast && (
           <motion.div
-            className="absolute left-3 right-3 bottom-[max(14px,env(safe-area-inset-bottom))] z-50 flex items-center gap-3 rounded-2xl bg-[#1a1a24]/90 backdrop-blur-xl border border-white/10 px-4 py-3 shadow-[0_18px_40px_rgba(0,0,0,0.6)]"
+            className="absolute left-3 right-3 z-[800] flex items-center gap-3 rounded-2xl bg-[#1a1a24]/95 backdrop-blur-xl border border-white/10 px-4 py-3 shadow-[0_18px_40px_rgba(0,0,0,0.6)]"
+            style={{ bottom: immersive ? `calc(${DOCK_RESERVE - 14}px + env(safe-area-inset-bottom))` : 14 }}
             initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }}
           >
             <span className="flex-1 text-[12.5px] font-bold text-white truncate">{toast.text}</span>
@@ -795,6 +1029,8 @@ export const RoutineCalendar: React.FC<Props> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {renderBunchDialog()}
 
       {sheet && (
         <RoutineEventSheet

@@ -862,9 +862,13 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
           animate={{ opacity: 1, scale: 1 }}
           transition={SPRING}
         >
-          <motion.div animate={reduce ? undefined : { y: [0, -7, 0] }} transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }} className="mx-auto w-14 h-14 rounded-3xl bg-sky-400/10 border border-sky-400/20 flex items-center justify-center mb-4">
+          {/* Same bob as before (0 → -7px → 0, 3.2s, ease-in-out) but as a CSS
+              animation on the compositor: driven from JS it restyled this node
+              every frame forever, even with Rutina hidden, stealing main-thread
+              time from the dock and every other animation. */}
+          <div className={`${reduce ? '' : 'lux-bob-y '}mx-auto w-14 h-14 rounded-3xl bg-sky-400/10 border border-sky-400/20 flex items-center justify-center mb-4`}>
             <CalendarClock size={26} className="text-sky-300" />
-          </motion.div>
+          </div>
           <p className="text-[15px] font-black text-white/80">
             {allItems.length > 0 ? tr('Todo completado', 'All completed') : tr('Nada programado', 'Nothing scheduled')}
           </p>
