@@ -25,8 +25,26 @@ interface WelcomeViewProps {
   googleLoading: boolean;
 }
 
+/** Visible height, kept in state so the layout can shrink on short phones instead of pushing buttons off-screen. */
+const useViewportHeight = () => {
+  const [h, setH] = useState(() => (typeof window === 'undefined' ? 800 : window.innerHeight));
+  useEffect(() => {
+    const on = () => setH(window.innerHeight);
+    window.addEventListener('resize', on);
+    return () => window.removeEventListener('resize', on);
+  }, []);
+  return h;
+};
+
 export const WelcomeView = ({ onStart, onLogin, onGoogle, googleLoading }: WelcomeViewProps) => {
   const { t } = useTranslation();
+  const vh = useViewportHeight();
+  // Everything is sized from the screen height: tall phones get the full hero,
+  // short ones lose the carousel first and then shrink the mascot.
+  const tall = vh >= 700;
+  const mascot = Math.round(Math.max(104, Math.min(168, vh * 0.205)));
+  const stageH = Math.round(mascot * 1.27);
+  const stageW = Math.round(mascot * 1.6);
   const [mood, setMood] = useState<MascotMood>('excited');
   const [poke, setPoke] = useState(-1);
   const timer = useRef<number>();
@@ -48,14 +66,14 @@ export const WelcomeView = ({ onStart, onLogin, onGoogle, googleLoading }: Welco
     <div className="flex flex-1 flex-col">
       <div className="flex-1 flex flex-col items-center justify-center pt-2">
         {/* Speech bubble */}
-        <div className="h-[58px] flex items-end">
+        <div className="flex items-end" style={{ minHeight: tall ? 58 : 50 }}>
           <motion.div {...rise(0.25)}>
             <SpeechBubble id={`poke-${poke}`} tail="bottom" text={poke < 0 ? t('auth.welcome.hello') : pokes[poke]} />
           </motion.div>
         </div>
 
         {/* Mascot + orbiting chips */}
-        <div className="relative w-[270px] h-[214px] mt-3">
+        <div className="relative mt-2" style={{ width: stageW, height: stageH }}>
           {ORBIT.map(({ Icon, pos, tone, delay, bob }, i) => (
             <motion.div
               key={i}
@@ -81,34 +99,37 @@ export const WelcomeView = ({ onStart, onLogin, onGoogle, googleLoading }: Welco
               whileTap={{ scale: 0.9 }}
               transition={{ type: 'spring', stiffness: 300, damping: 15, delay: 0.05 }}
             >
-              <LuxMascot mood={mood} size={168} />
+              <LuxMascot mood={mood} size={mascot} />
             </motion.button>
           </div>
         </div>
 
-        <motion.h1 {...rise(0.2)} className="mt-5 text-center text-[32px] leading-[1.08] font-black tracking-tight">
+        <motion.h1 {...rise(0.2)} className="mt-4 text-center font-black leading-[1.08] tracking-tight" style={{ fontSize: tall ? 32 : 27 }}>
           {t('auth.welcome.title')}
         </motion.h1>
         <motion.p {...rise(0.28)} className="mt-2.5 text-center text-[15.5px] font-medium text-white/55 max-w-[320px]">
           {t('auth.welcome.subtitle')}
         </motion.p>
 
-        <motion.div {...rise(0.36)} className="w-full mt-6">
-          <FeatureCarousel />
-        </motion.div>
+        {tall && (
+          <motion.div {...rise(0.36)} className="w-full mt-5">
+            <FeatureCarousel />
+          </motion.div>
+        )}
       </div>
 
-      <div className="space-y-3.5 pt-6">
+      {/* Actions: all three always on-screen, Google right under the main CTA. */}
+      <div className="space-y-3 pt-5">
         <motion.div {...rise(0.44)}>
           <ChunkyButton onClick={onStart} shine>{t('auth.welcome.start')}</ChunkyButton>
         </motion.div>
         <motion.div {...rise(0.5)}>
-          <ChunkyButton variant="secondary" onClick={onLogin}>{t('auth.welcome.haveAccount')}</ChunkyButton>
+          <ChunkyButton variant="google" onClick={onGoogle} loading={googleLoading} icon={<GoogleIcon />}>
+            <span className="normal-case tracking-normal text-[15.5px]">{t('auth.continueGoogle')}</span>
+          </ChunkyButton>
         </motion.div>
         <motion.div {...rise(0.56)}>
-          <ChunkyButton variant="google" size="md" onClick={onGoogle} loading={googleLoading} icon={<GoogleIcon />}>
-            <span className="normal-case tracking-normal text-[15px]">{t('auth.continueGoogle')}</span>
-          </ChunkyButton>
+          <ChunkyButton variant="secondary" onClick={onLogin}>{t('auth.welcome.haveAccount')}</ChunkyButton>
         </motion.div>
       </div>
     </div>

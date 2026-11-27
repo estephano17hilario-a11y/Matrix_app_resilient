@@ -452,6 +452,70 @@
       "pick": "Confirm",
       "locked": "Locked in!"
     },
+    "flow": {
+      "continue": "Continue",
+      "finish": "Finish sign-up!",
+      "saving": "Preparing your Lux Matrix…",
+      "savingSub": "Saving your setup",
+      "traits": {
+        "title": "Your traits",
+        "sub": "What you want to train. Pick 3 or 4.",
+        "pick": "Pick 3 or 4"
+      },
+      "traitDesc": {
+        "DISCIPLINA": "Staying on course",
+        "FISICO": "Body strength and health",
+        "MENTAL": "Sharp, clear thinking",
+        "SOCIAL": "Connection and influence",
+        "ESPIRITU": "Purpose and inner peace",
+        "FINANZAS": "Managing resources",
+        "CREATIVIDAD": "Innovation and expression",
+        "ORDEN": "Structure and organization",
+        "LIDERAZGO": "Inspire and guide others",
+        "RESILIENCIA": "Overcoming adversity",
+        "VITALIDAD": "Energy and vigor",
+        "ESTILO": "Presence and aesthetics"
+      },
+      "coach": {
+        "title": "Your coach",
+        "sub": "It texts you like a chat to push you every day.",
+        "nameLabel": "Its name",
+        "placeholder": "e.g. Nova",
+        "toneLabel": "Its personality",
+        "preview": "How it will text you",
+        "fallbackName": "Your coach",
+        "needName": "Name your coach",
+        "tones": {
+          "calm": {
+            "name": "Calm",
+            "blurb": "Clear data"
+          },
+          "energy": {
+            "name": "Energy",
+            "blurb": "Cheers you on"
+          },
+          "brutal": {
+            "name": "Brutal",
+            "blurb": "No excuses"
+          }
+        }
+      },
+      "theme": {
+        "title": "Your theme",
+        "sub": "A welcome gift. Tap the eye to preview."
+      },
+      "phrases": {
+        "title": "Your phrases",
+        "sub": "Optional: tap a suggestion or write your own.",
+        "antiTitle": "Your wake-up call",
+        "antiWhy": "Shown when you procrastinate or are away for days.",
+        "antiPlaceholder": "e.g. Will you let them beat you today?",
+        "splashTitle": "Your launch motto",
+        "splashWhy": "Appears under LUX every time you open the app.",
+        "splashPlaceholder": "e.g. No Excuses",
+        "preview": "Preview"
+      }
+    },
     "traitsOfflineError": "System Error: Traits module offline.",
     "reinitialize": "Reinitialize",
     "scroll": "Scroll",

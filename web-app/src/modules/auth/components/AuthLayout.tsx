@@ -36,7 +36,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
       <style dangerouslySetInnerHTML={{ __html: AUTH_CSS }} />
 
       <div className="relative z-10 w-full h-full overflow-y-auto overflow-x-hidden no-scrollbar overscroll-contain">
-        <div className="min-h-full w-full max-w-md mx-auto flex flex-col px-5 pt-[max(env(safe-area-inset-top),14px)] pb-[max(env(safe-area-inset-bottom),18px)]">
+        <div className="min-h-full w-full max-w-md mx-auto flex flex-col px-5 pt-[max(var(--sat),14px)] pb-[var(--action-bottom)]">
           {children}
         </div>
       </div>

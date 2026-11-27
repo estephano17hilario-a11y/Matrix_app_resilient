@@ -224,10 +224,17 @@
   }
 
 /* --- ANIMATED DOCK CSS --- */
-:root { 
-  --spring-easing: cubic-bezier(0.19, 1, 0.22, 1); 
-  --fluid-easing: cubic-bezier(0.32, 0.72, 0, 1); 
-} 
+:root {
+  --spring-easing: cubic-bezier(0.19, 1, 0.22, 1);
+  --fluid-easing: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Real system-bar insets: env() on modern WebViews, Capacitor's injected
+     --safe-area-inset-* on the older ones (Android edge-to-edge). */
+  --sat: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --sab: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+  /* Where primary actions rest: always clear of the gesture bar / rounded
+     corners, even on phones that report a 0 inset. */
+  --action-bottom: calc(max(var(--sab), 14px) + 18px);
+}
 
 @property --angle { 
   syntax: '<angle>'; 

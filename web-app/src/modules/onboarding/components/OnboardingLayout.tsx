@@ -2,6 +2,8 @@ import { ReactNode, useMemo } from 'react';
 
 interface OnboardingLayoutProps {
   children: ReactNode;
+  /** Freeze the backdrop animations (e.g. while a full-screen opaque step covers them). */
+  still?: boolean;
 }
 
 const generateParticles = (count: number) => {
@@ -16,18 +18,18 @@ const generateParticles = (count: number) => {
   return shadows.join(', ');
 };
 
-export function OnboardingLayout({ children }: OnboardingLayoutProps) {
+export function OnboardingLayout({ children, still = false }: OnboardingLayoutProps) {
   // Extremely few particles matching the AuthLayout
   const particles1 = useMemo(() => generateParticles(5), []);
   const particles2 = useMemo(() => generateParticles(2), []);
   const particles3 = useMemo(() => generateParticles(1), []);
 
   return (
-    <div className="relative w-full h-full flex flex-col overflow-hidden bg-black text-white selection:bg-indigo-500/30">
+    <div data-still={still} className="relative w-full h-full flex flex-col overflow-hidden bg-black text-white selection:bg-indigo-500/30">
       
       {/* Exact Cosmic Void Background matching the Register Zone */}
       <div 
-        className="absolute z-0 pointer-events-none"
+        className="cosmic-bg absolute z-0 pointer-events-none"
         style={{
           top: '-10%', left: '-10%', right: '-10%', bottom: '-10%',
           background: 'radial-gradient(circle at 50% 30%, #2e1065 0%, #0f172a 40%, #000000 100%)',
@@ -53,6 +55,9 @@ export function OnboardingLayout({ children }: OnboardingLayoutProps) {
           0% { transform: scale(1) translate3d(0, 0, 0); }
           100% { transform: scale(1.15) translate3d(0, 2%, 0); }
         }
+
+        [data-still="true"] .cosmic-bg,
+        [data-still="true"] .particle-layer { animation-play-state: paused !important; }
 
         .particle-layer {
           position: absolute;

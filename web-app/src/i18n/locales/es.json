@@ -452,6 +452,70 @@
       "pick": "Confirmar",
       "locked": "¡Listo!"
     },
+    "flow": {
+      "continue": "Continuar",
+      "finish": "¡Terminar registro!",
+      "saving": "Preparando tu Matriz Lux…",
+      "savingSub": "Guardando tu configuración",
+      "traits": {
+        "title": "Tus rasgos",
+        "sub": "Lo que quieres entrenar. Elige 3 o 4.",
+        "pick": "Elige 3 o 4"
+      },
+      "traitDesc": {
+        "DISCIPLINA": "Mantener el rumbo",
+        "FISICO": "Fuerza y salud del cuerpo",
+        "MENTAL": "Agudeza y claridad",
+        "SOCIAL": "Conexión e influencia",
+        "ESPIRITU": "Propósito y paz interior",
+        "FINANZAS": "Gestión de recursos",
+        "CREATIVIDAD": "Innovación y expresión",
+        "ORDEN": "Estructura y organización",
+        "LIDERAZGO": "Inspirar y guiar a otros",
+        "RESILIENCIA": "Superar la adversidad",
+        "VITALIDAD": "Energía y vigor",
+        "ESTILO": "Presencia y estética"
+      },
+      "coach": {
+        "title": "Tu coach",
+        "sub": "Te escribe como en un chat para empujarte cada día.",
+        "nameLabel": "Su nombre",
+        "placeholder": "Ej: Nova",
+        "toneLabel": "Su personalidad",
+        "preview": "Así te escribirá",
+        "fallbackName": "Tu coach",
+        "needName": "Ponle nombre a tu coach",
+        "tones": {
+          "calm": {
+            "name": "Calmo",
+            "blurb": "Datos claros"
+          },
+          "energy": {
+            "name": "Energía",
+            "blurb": "Te anima"
+          },
+          "brutal": {
+            "name": "Brutal",
+            "blurb": "Sin excusas"
+          }
+        }
+      },
+      "theme": {
+        "title": "Tu tema",
+        "sub": "Regalo de bienvenida. Toca el ojo para verlo."
+      },
+      "phrases": {
+        "title": "Tus frases",
+        "sub": "Opcional: toca una sugerencia o escribe la tuya.",
+        "antiTitle": "Tu frase de choque",
+        "antiWhy": "Te la mostramos cuando estés procrastinando o lleves días sin entrar.",
+        "antiPlaceholder": "Ej: ¿Vas a dejar que te ganen hoy?",
+        "splashTitle": "Tu lema de inicio",
+        "splashWhy": "Aparece bajo LUX cada vez que abres la app.",
+        "splashPlaceholder": "Ej: Sin Excusas",
+        "preview": "Vista previa"
+      }
+    },
     "traitsOfflineError": "Error de sistema: Módulo de rasgos desconectado.",
     "reinitialize": "Reinicializar",
     "scroll": "Deslizar",

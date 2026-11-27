@@ -227,6 +227,13 @@ const boot = async () => {
     return;
   }
 
+  // ?auth → the signed-out screens (welcome / login / register) instead of the app.
+  if (new URLSearchParams(location.search).has('auth')) {
+    const { AuthScreen } = await import('@/modules/auth/AuthScreen');
+    createRoot(document.getElementById('root')!).render(React.createElement(LabAuth, null, React.createElement(AuthScreen)));
+    return;
+  }
+
   createRoot(document.getElementById('root')!).render(
     React.createElement(LabAuth, null, React.createElement(AppShell)),
   );
