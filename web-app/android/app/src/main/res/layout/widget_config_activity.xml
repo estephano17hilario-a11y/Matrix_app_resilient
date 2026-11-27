@@ -116,6 +116,81 @@
 
             </RadioGroup>
 
+            <!-- calendar section: how the blocks are coloured (stays as the default) -->
+            <LinearLayout
+                android:id="@+id/config_calendar_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="COLOR DE LOS BLOQUES"
+                    android:textColor="#6366f1"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"
+                    android:layout_marginBottom="6dp" />
+
+                <RadioGroup
+                    android:id="@+id/config_calendar_color_group"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="#0DFFFFFF"
+                    android:padding="2dp">
+
+                    <RadioButton
+                        android:id="@+id/config_calendar_color_own"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Mi color"
+                        android:textColor="#E0E0E0"
+                        android:textSize="11sp"
+                        android:button="@null"
+                        android:gravity="center"
+                        android:padding="8dp" />
+
+                    <RadioButton
+                        android:id="@+id/config_calendar_color_trait"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Rasgo"
+                        android:textColor="#E0E0E0"
+                        android:textSize="11sp"
+                        android:button="@null"
+                        android:gravity="center"
+                        android:padding="8dp" />
+
+                    <RadioButton
+                        android:id="@+id/config_calendar_color_importance"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Importancia"
+                        android:textColor="#E0E0E0"
+                        android:textSize="11sp"
+                        android:button="@null"
+                        android:gravity="center"
+                        android:padding="8dp" />
+
+                </RadioGroup>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:layout_marginBottom="16dp"
+                    android:text="Se guarda como predeterminado. También puedes cambiarlo y hacer zoom desde el botón de ajustes del propio widget."
+                    android:textColor="#80FFFFFF"
+                    android:textSize="10.5sp" />
+
+            </LinearLayout>
+
             <!-- routine section -->
             <LinearLayout
                 android:id="@+id/config_routine_section"

@@ -15,9 +15,14 @@ class CalendarEvent(
     val start: Int,
     val end: Int,
     val top: Float,
-    val height: Float,
+    var height: Float,
+    /** Place among the blocks that start (almost) together, side by side, and how many share that row. */
     var lane: Int = 0,
-    var lanes: Int = 1
+    var lanes: Int = 1,
+    /** How many earlier blocks still running it sits on top of: drawn shifted right that many steps (Google style). */
+    var indent: Int = 0,
+    /** Paint order inside its day: later blocks go on top. */
+    var order: Int = 0
 )
 
 class CalendarDayInput(val key: String, val isToday: Boolean, val items: List<RoutineItem>)
@@ -38,8 +43,12 @@ object CalendarLayout {
 
     const val DAY_MINUTES = 24 * 60
 
-    /** dp per hour for a span (1, 3 or 7 days). */
-    fun dpPerHour(span: Int) = when (span) { 1 -> 56f; 3 -> 52f; else -> 46f }
+    /** dp per hour for a span (1, 3 or 7 days) at zoom 1. */
+    fun dpPerHour(span: Int, zoom: Float = 1f) = (when (span) { 1 -> 56f; 3 -> 52f; else -> 46f }) * zoom
+
+    const val ZOOM_MIN = 0.6f
+    const val ZOOM_MAX = 3.2f
+    fun clampZoom(z: Float) = z.coerceIn(ZOOM_MIN, ZOOM_MAX)
 
     fun bandOfHour(hour: Int, config: RoutineConfig): CalendarBand? {
         if (config.divideByHour) {
@@ -56,9 +65,19 @@ object CalendarLayout {
 
     private fun isTimed(it: RoutineItem) = !it.overdue && it.minutes != null
 
-    fun build(days: List<CalendarDayInput>, config: RoutineConfig, nowMinutes: Int?, dpPerHour: Float, minBlockDp: Float = 18f): CalendarLayoutResult {
+    private class Row(val first: Int, val indent: Int, val members: ArrayList<Member>)
+    private class Member(val e: CalendarEvent, var visEnd: Float)
+
+    /**
+     * Google-Calendar placement (twin of buildCalendarLayout): blocks that start within one title line of each
+     * other share a ROW, side by side; a block that starts later is drawn on top of the ones still running,
+     * shifted right one step, so every title stays readable. A block that only looks long because of the minimum
+     * height is cut where the next one starts.
+     */
+    fun build(days: List<CalendarDayInput>, config: RoutineConfig, nowMinutes: Int?, dpPerHour: Float, minBlockDp: Float = 18f, titleDp: Float = minBlockDp): CalendarLayoutResult {
         val dpPerMin = dpPerHour / 60f
         val minBlockMin = minBlockDp / dpPerMin
+        val titleMin = titleDp / dpPerMin
         val allDay = days.map { d -> d.items.filter { !isTimed(it) } }
         val events = ArrayList<CalendarEvent>()
 
@@ -66,26 +85,34 @@ object CalendarLayout {
             val dayEvents = d.items.filter { isTimed(it) }.map { item ->
                 val start = item.minutes!!
                 val end = minOf(DAY_MINUTES, start + item.durationMin)
-                CalendarEvent(item, dayIndex, start, end, start * dpPerMin, maxOf((end - start) * dpPerMin, minBlockDp))
+                CalendarEvent(item, dayIndex, start, end, start * dpPerMin, 0f)
             }.sortedWith(compareBy<CalendarEvent> { it.start }.thenByDescending { it.end }.thenBy { it.item.title })
 
-            var group = ArrayList<CalendarEvent>()
-            var groupEnd = -1f
-            val laneEnds = ArrayList<Float>()
-            fun flush() {
-                for (e in group) e.lanes = maxOf(1, laneEnds.size)
-                group = ArrayList(); laneEnds.clear(); groupEnd = -1f
+            val rows = ArrayList<Row>()
+            dayEvents.forEachIndexed { order, e ->
+                e.order = order
+                val member = Member(e, e.start + maxOf((e.end - e.start).toFloat(), minBlockMin))
+                val live = rows.filter { r -> r.members.any { it.visEnd > e.start } }
+                val join = live.reversed().firstOrNull { r -> e.start - r.first < titleMin }
+                if (join != null) {
+                    join.members.add(member)
+                    e.indent = join.indent
+                    return@forEachIndexed
+                }
+                val running = live.filter { r -> r.members.any { it.e.end > e.start } }
+                val indent = if (running.isNotEmpty()) running.maxOf { it.indent } + 1 else 0
+                // Rows at this depth or deeper are not really running any more: their stretched minimum height stops here.
+                for (r in live) if (r.indent >= indent) for (m in r.members) m.visEnd = minOf(m.visEnd, maxOf(e.start.toFloat(), m.e.end.toFloat()))
+                e.indent = indent
+                rows.add(Row(e.start, indent, arrayListOf(member)))
             }
-            for (e in dayEvents) {
-                val visualEnd = e.start + maxOf((e.end - e.start).toFloat(), minBlockMin)
-                if (group.isNotEmpty() && e.start >= groupEnd) flush()
-                var lane = laneEnds.indexOfFirst { it <= e.start }
-                if (lane == -1) { lane = laneEnds.size; laneEnds.add(visualEnd) } else laneEnds[lane] = visualEnd
-                e.lane = lane
-                groupEnd = maxOf(groupEnd, visualEnd)
-                group.add(e)
+            for (r in rows) {
+                r.members.forEachIndexed { i, m ->
+                    m.e.lane = i
+                    m.e.lanes = r.members.size
+                    m.e.height = maxOf(4f, (m.visEnd - m.e.start) * dpPerMin)
+                }
             }
-            flush()
             events.addAll(dayEvents)
         }
 

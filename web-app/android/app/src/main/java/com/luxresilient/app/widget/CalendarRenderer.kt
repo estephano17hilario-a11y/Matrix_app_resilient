@@ -41,7 +41,9 @@ object CalendarRenderer {
         /** Saved manual scroll in dp, or null to follow the clock. */
         val savedScroll: Float?,
         val widthDp: Float,
-        val heightDp: Float
+        val heightDp: Float,
+        /** How blocks are coloured: OWN | TRAIT | IMPORTANCE (per widget, see CalendarWidgetData.colorModeOf). */
+        val colorMode: String = config.calendarColor
     )
 
     /** What a render decided: how far it is scrolled and how far it could go. */
@@ -66,23 +68,35 @@ object CalendarRenderer {
         return Plan(fixedTop, viewport, maxScroll, scroll)
     }
 
-    /** Where each block that is on screen sits, in dp relative to the grid view (for the tap areas). */
+    /** Gap between a block and the column edge, and the step a block nested on top of another is shifted. */
+    private fun colGapOf(span: Int) = if (span == 7) 1f else 3f
+    private fun indentStepOf(span: Int, colW: Float) = if (span == 7) maxOf(2.5f, colW * 0.1f) else minOf(12f, colW * 0.09f)
+
+    /** The rectangle of a block in grid coordinates (x from the widget's left edge, y from the top of the 24 h scale). */
+    private fun blockRect(input: Input, ev: CalendarEvent, gridLeft: Float, colW: Float): RectF {
+        val usable = colW - colGapOf(input.span)
+        val offset = minOf(ev.indent * indentStepOf(input.span, colW), usable * 0.5f)
+        val w = (usable - offset) / ev.lanes
+        val left = gridLeft + colW * ev.day + offset + ev.lane * w
+        return RectF(left, ev.top, left + maxOf(3f, w), ev.top + ev.height)
+    }
+
+    /** Where each block that is on screen sits, in dp relative to the grid view (for the tap areas); later = on top. */
     fun hitRects(input: Input, plan: Plan): List<Pair<CalendarEvent, RectF>> {
-        val gutter = gutterOf(input.span)
-        val gridLeft = gutter + railOf(input)
+        val gridLeft = gutterOf(input.span) + railOf(input)
         val colW = (input.widthDp - gridLeft) / input.span
         val top = plan.fixedTop
         val bottom = plan.fixedTop + plan.viewportH
         val out = ArrayList<Pair<CalendarEvent, RectF>>()
         for (ev in input.layout.events) {
-            val laneW = colW / ev.lanes
-            val left = gridLeft + colW * ev.day + laneW * ev.lane + 1f
-            val y0 = top + ev.top - plan.scroll
-            val y1 = y0 + ev.height
+            val r = blockRect(input, ev, gridLeft, colW)
+            val y0 = top + r.top - plan.scroll
+            val y1 = y0 + r.height()
             if (y1 <= top + 2f || y0 >= bottom - 2f) continue
-            out.add(ev to RectF(left, maxOf(y0, top), left + laneW - 2f, minOf(y1, bottom)))
+            out.add(ev to RectF(r.left, maxOf(y0, top), r.right, minOf(y1, bottom)))
         }
-        return out.sortedBy { it.second.top }
+        // Only a limited pool of tap areas exists: keep the ones nearest the top, then stack them in paint order.
+        return out.sortedBy { it.second.top }.take(16).sortedWith(compareBy({ it.first.day }, { it.first.order }))
     }
 
     fun render(density: Float, input: Input, plan: Plan): Bitmap {
@@ -112,7 +126,7 @@ object CalendarRenderer {
         drawHours(canvas, input, gutter, gridLeft, W)
         if (span > 1) drawColumnLines(canvas, input, gridLeft, colW)
         if (input.layout.empty) drawEmpty(canvas, gridLeft, W, plan)
-        for (ev in input.layout.events) drawBlock(canvas, input, ev, gridLeft, colW)
+        for (ev in input.layout.events.sortedWith(compareBy({ it.day }, { it.order }))) drawBlock(canvas, input, ev, gridLeft, colW)
         drawNow(canvas, input, gutter, W)
 
         canvas.translate(0f, -(plan.fixedTop - plan.scroll))
@@ -213,7 +227,7 @@ object CalendarRenderer {
                 item == null -> Color.argb(40, 255, 255, 255)
                 item.overdue -> Color.argb(60, 251, 113, 133)
                 item.done -> Color.argb(18, 255, 255, 255)
-                else -> RoutineEngine.colorForMode(item, input.config.calendarColor).let { c -> Color.argb(70, Color.red(c), Color.green(c), Color.blue(c)) }
+                else -> RoutineEngine.colorForMode(item, input.colorMode).let { c -> Color.argb(70, Color.red(c), Color.green(c), Color.blue(c)) }
             }
             canvas.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, chipBg)
             chipP.color = when {
@@ -317,80 +331,120 @@ object CalendarRenderer {
     private fun drawBlock(canvas: Canvas, input: Input, ev: CalendarEvent, gridLeft: Float, colW: Float) {
         val it = ev.item
         val span = input.span
-        val laneW = colW / ev.lanes
-        val left = gridLeft + colW * ev.day + laneW * ev.lane + 1f
-        val rect = RectF(left, ev.top, left + laneW - 2f, ev.top + ev.height)
-        val c = RoutineEngine.colorForMode(it, input.config.calendarColor)
+        val week = span == 7
+        val rect = blockRect(input, ev, gridLeft, colW)
+        val c = RoutineEngine.colorForMode(it, input.colorMode)
         val done = it.done
-        val ink = if (done) Color.argb(200, 255, 255, 255) else inkOn(c)
-        val radius = if (span == 1) 7f else 5f
+        val ink = if (done) Color.argb(205, 255, 255, 255) else inkOn(c)
+        val radius = if (week) 3.5f else 6.5f
+        val height = rect.height()
+        val width = rect.width()
 
+        // Same proportions as the app's block: title size / line height by span, then one line or title + time.
+        val titleSize = if (week) 8f else if (span == 3) 9.5f else 10.5f
+        val lineH = if (week) 9.5f else if (span == 3) 11.5f else 13f
+        val padX = if (week) 2.5f else 5f
+        val padY = if (week) 2f else 3f
+        val showCheck = !week && width >= 72f && height >= 28f && it.kind != RoutineKind.PROJECT && !(it.kind == RoutineKind.JOURNAL && it.reminderId == null)
+        val checkRoom = if (showCheck) 20f else 0f
+
+        // Blocks nested on top of others get a soft shadow so the stack reads as layers.
+        if (ev.indent > 0 && !done) {
+            val sh = Paint(Paint.ANTI_ALIAS_FLAG)
+            sh.color = c
+            sh.setShadowLayer(3.5f, 0f, 1.2f, Color.argb(140, 0, 0, 0))
+            canvas.drawRoundRect(rect, radius, radius, sh)
+        }
         val fill = Paint(Paint.ANTI_ALIAS_FLAG)
-        fill.shader = LinearGradient(rect.left, rect.top, rect.left, rect.bottom, c, shade(c, -0.14f), Shader.TileMode.CLAMP)
-        fill.alpha = if (done) 105 else 255
-        canvas.drawRoundRect(rect, radius, radius, fill)
-        val edge = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 0.8f; color = Color.argb(70, 0, 0, 0) }
+        if (done) {
+            // Washed out over the dark glass, like the app (colour at 30%).
+            fill.color = Color.argb(255, 21, 21, 31)
+            canvas.drawRoundRect(rect, radius, radius, fill)
+            fill.color = Color.argb(88, Color.red(c), Color.green(c), Color.blue(c))
+            canvas.drawRoundRect(rect, radius, radius, fill)
+        } else {
+            fill.shader = LinearGradient(rect.left, rect.top, rect.left, rect.bottom, shade(c, 0.06f), shade(c, -0.12f), Shader.TileMode.CLAMP)
+            canvas.drawRoundRect(rect, radius, radius, fill)
+            // A hairline of light along the top edge gives the glassy feel.
+            val gloss = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 0.7f; color = Color.argb(60, 255, 255, 255) }
+            canvas.drawRoundRect(RectF(rect.left + 0.6f, rect.top + 0.6f, rect.right - 0.6f, rect.bottom - 0.6f), radius, radius, gloss)
+        }
+        // Dark separator all round (the app ring): keeps stacked blocks apart.
+        val edge = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 0.9f; color = Color.parseColor("#B30A0A12") }
         canvas.drawRoundRect(rect, radius, radius, edge)
         if (!done && input.nextId == it.id && input.dayInputs.getOrNull(ev.day)?.isToday == true) {
-            edge.strokeWidth = 1.6f
+            edge.strokeWidth = 1.7f
             edge.color = Color.WHITE
             canvas.drawRoundRect(rect, radius, radius, edge)
         }
 
-        val pad = 4f
-        val right = if (laneW >= 90f && ev.height >= 26f && it.kind != RoutineKind.PROJECT && it.kind != RoutineKind.JOURNAL) 22f else pad
-        val avail = rect.width() - pad - right
-        val timeText = rangeText(ev.start, ev.end, input.config.use24h)
+        val oneLine = height < lineH * 2 + padY * 2 - 2f
+        val showTime = !oneLine && height >= lineH * 2 + 12f && width >= 52f
+        val avail = (width - padX * 2 - checkRoom).coerceAtLeast(6f)
+        val firstTime = rangeText(ev.start, ev.end, input.config.use24h).substringBefore(" –")
+        val timeText = if (week) firstTime else rangeText(ev.start, ev.end, input.config.use24h)
+        val titlePaint = paint(titleSize, ink, bold = true)
+        titlePaint.isStrikeThruText = done
 
-        if (ev.height >= 32f && laneW >= 70f) {
-            val tp = paint(if (span == 1) 10.5f else 9.5f, ink, bold = true)
-            tp.isStrikeThruText = done
-            canvas.drawText(fit(it.title, tp, avail), rect.left + pad, rect.top + 12.5f, tp)
-            val sp = paint(8.5f, Color.argb(if (done) 140 else 215, Color.red(ink), Color.green(ink), Color.blue(ink)))
-            canvas.drawText(fit(timeText, sp, avail), rect.left + pad, rect.top + 23.5f, sp)
-        } else if (ev.height >= 26f) {
-            val size = if (span == 7) 8f else 9f
-            val tp = TextPaint(paint(size, ink, bold = true))
-            tp.isStrikeThruText = done
-            val lines = if (span == 7) 2 else 2
+        canvas.save()
+        canvas.clipRect(rect)
+        if (oneLine) {
+            val label = if (!week && width >= 100f) it.title + ", " + firstTime else it.title
+            val fm = titlePaint.fontMetrics
+            canvas.drawText(fit(label, titlePaint, avail), rect.left + padX, rect.centerY() - (fm.ascent + fm.descent) / 2f, titlePaint)
+        } else {
+            val reserve = if (showTime) 12f else 0f
+            val lines = Math.max(1, Math.floor(((height - padY * 2 - reserve) / lineH).toDouble()).toInt())
+            val tp = TextPaint(titlePaint)
+            val natural = tp.fontMetrics.let { m -> m.descent - m.ascent }
             val layout = StaticLayout.Builder.obtain(it.title, 0, it.title.length, tp, avail.toInt().coerceAtLeast(8))
-                .setMaxLines(lines).setEllipsize(TextUtils.TruncateAt.END).setAlignment(Layout.Alignment.ALIGN_NORMAL).setIncludePad(false).build()
+                .setMaxLines(lines).setEllipsize(TextUtils.TruncateAt.END).setAlignment(Layout.Alignment.ALIGN_NORMAL).setIncludePad(false)
+                .setLineSpacing(lineH - natural, 1f).build()
             canvas.save()
-            canvas.translate(rect.left + pad, rect.top + ((rect.height() - layout.height) / 2f).coerceAtLeast(2f))
+            canvas.translate(rect.left + padX, rect.top + padY)
             layout.draw(canvas)
             canvas.restore()
-        } else {
-            val tp = paint(if (span == 7) 7.5f else 8.5f, ink, bold = true)
-            tp.isStrikeThruText = done
-            val label = if (laneW >= 90f) "${it.title}, ${rangeText(ev.start, ev.end, input.config.use24h).substringBefore(" –")}" else it.title
-            canvas.drawText(fit(label, tp, avail), rect.left + pad, rect.top + rect.height() / 2f + 3f, tp)
+            if (showTime) {
+                val sp = paint(if (week) 7.5f else 8.5f, Color.argb(if (done) 140 else 215, Color.red(ink), Color.green(ink), Color.blue(ink)))
+                canvas.drawText(fit(timeText, sp, avail), rect.left + padX, rect.top + padY + layout.height + 9.5f, sp)
+            }
         }
+        canvas.restore()
 
         // Check: filled when done, a ring otherwise.
-        if (right > pad) {
+        if (showCheck) {
             val cx = rect.right - 11f
             val cy = rect.top + 11f
             val ring = Paint(Paint.ANTI_ALIAS_FLAG)
             if (done) {
-                ring.color = Color.argb(90, 0, 0, 0)
+                ring.color = Color.argb(60, 255, 255, 255)
+                canvas.drawCircle(cx, cy, 6.5f, ring)
+                ring.style = Paint.Style.STROKE; ring.strokeWidth = 1.2f; ring.color = Color.argb(205, 255, 255, 255)
                 canvas.drawCircle(cx, cy, 6.5f, ring)
                 val tick = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 1.5f; color = Color.WHITE; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND }
                 canvas.drawPath(Path().apply { moveTo(cx - 3f, cy + 0.2f); lineTo(cx - 0.8f, cy + 2.4f); lineTo(cx + 3.2f, cy - 2.2f) }, tick)
             } else {
-                ring.style = Paint.Style.STROKE; ring.strokeWidth = 1.4f; ring.color = Color.argb(170, Color.red(ink), Color.green(ink), Color.blue(ink))
-                canvas.drawCircle(cx, cy, 6f, ring)
+                ring.color = Color.argb(41, 0, 0, 0)
+                canvas.drawCircle(cx, cy, 6.5f, ring)
+                ring.style = Paint.Style.STROKE; ring.strokeWidth = 1.3f; ring.color = Color.argb(200, Color.red(ink), Color.green(ink), Color.blue(ink))
+                canvas.drawCircle(cx, cy, 6.5f, ring)
             }
         }
         if (it.overridden) {
-            val dot = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(230, 255, 255, 255) }
-            canvas.drawCircle(rect.left + 5f, rect.bottom - 5f, 1.8f, dot)
+            val dot = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(230, Color.red(ink), Color.green(ink), Color.blue(ink)) }
+            canvas.drawCircle(rect.right - 4.5f, rect.bottom - 4.5f, 1.7f, dot)
         }
         val progress = it.progress
         if (progress != null && !done) {
-            val bar = Paint().apply { color = Color.argb(70, 0, 0, 0) }
-            canvas.drawRect(rect.left + 3f, rect.bottom - 3f, rect.right - 3f, rect.bottom - 1.5f, bar)
-            bar.color = Color.argb(220, 255, 255, 255)
-            canvas.drawRect(rect.left + 3f, rect.bottom - 3f, rect.left + 3f + (rect.width() - 6f) * progress, rect.bottom - 1.5f, bar)
+            val bar = Paint().apply { color = Color.argb(64, 0, 0, 0) }
+            canvas.drawRect(rect.left + 1f, rect.bottom - 3f, rect.right - 1f, rect.bottom - 0.5f, bar)
+            bar.color = Color.argb(217, 255, 255, 255)
+            canvas.drawRect(rect.left + 1f, rect.bottom - 3f, rect.left + 1f + (width - 2f) * progress, rect.bottom - 0.5f, bar)
+        }
+        // A grip on blocks tall enough to be worth it: purely decorative here, it says this one has length.
+        if (!week && height >= 40f) {
+            val grip = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(70, Color.red(ink), Color.green(ink), Color.blue(ink)); strokeCap = Paint.Cap.ROUND; strokeWidth = 2.2f }
+            canvas.drawLine(rect.centerX() - 7f, rect.bottom - 5f, rect.centerX() + 7f, rect.bottom - 5f, grip)
         }
     }
 

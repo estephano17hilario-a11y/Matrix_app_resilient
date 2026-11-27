@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useState } from 'react';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
@@ -25,11 +25,14 @@ import type { LeaderboardRow } from '../leaderboardService';
 import { RankBadge } from './RankBadge';
 import { CountUp, Typewriter, haptic } from './primitives';
 import { VirtualList } from './VirtualList';
-import { RankLadderFull } from './RankLadder';
+import { RankLadderFull, type LadderPreview } from './RankLadder';
+import { rankTheme } from './rankTheme';
+import { LargeTitle, RankStage, VisionBackdrop, VisionHeader, VisionTabBar, type VisionTab } from './vision';
+import './vision.css';
 import { FrameInventory } from './FrameInventory';
 import { EloCoachCard, EloGuideSheet } from './EloCoach';
 import { MOTION, RANKS, rankStyle } from './tokens';
-import { ArenaBackdrop, ArenaDock, ArenaHeader, Card, Delta, useMountTransition, EmptyState, Segmented, SectionHead, StatTile, Toggle, rise, type DockTab } from './arena';
+import { Card, Delta, useMountTransition, EmptyState, Segmented, SectionHead, StatTile, Toggle, rise } from './arena';
 import { useSocial } from '@/modules/social/socialStore';
 
 export type ProgressionTab = 'RANK' | 'LADDER' | 'BOARD' | 'WEEK' | 'SETTINGS';
@@ -61,6 +64,9 @@ const Screen: React.FC<Props> = ({ open, onClose, habits, quests, projects, user
   const reduce = useReducedMotion();
   const snap = useProgression();
   const [tab, setTab] = useState<Tab>(initialTab ?? 'RANK');
+  // The rank explorer paints the whole screen with whatever rank + sub-rank it is showing.
+  const [preview, setPreview] = useState<LadderPreview | null>(null);
+  const mainRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -68,49 +74,73 @@ const Screen: React.FC<Props> = ({ open, onClose, habits, quests, projects, user
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const tabs: DockTab<Tab>[] = [
-    { id: 'RANK', label: t('progression.tabs.rank', 'Rango'), icon: <Shield size={19} /> },
-    { id: 'LADDER', label: t('progression.tabs.ladder', 'Rangos'), icon: <Mountain size={19} /> },
-    { id: 'BOARD', label: t('progression.tabs.board', 'Top'), icon: <Trophy size={19} /> },
-    { id: 'WEEK', label: t('progression.tabs.week', 'Semana'), icon: <CalendarDays size={19} /> },
-    { id: 'SETTINGS', label: t('progression.tabs.settings', 'Ajustes'), icon: <SlidersHorizontal size={19} /> },
+  // Tinted room on the dark appearance only; on light, only the accent follows the rank.
+  const appearance = snap.meta.appearance;
+  const [systemDark, setSystemDark] = useState(() => typeof window === 'undefined' || !window.matchMedia ? true : !window.matchMedia('(prefers-color-scheme: light)').matches);
+  useEffect(() => {
+    if (appearance !== 'SYSTEM' || !window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-color-scheme: light)');
+    const on = () => setSystemDark(!mq.matches);
+    on();
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, [appearance]);
+  const dark = appearance === 'DARK' || (appearance !== 'LIGHT' && systemDark);
+  const own = rankTheme(snap.standing.rankIndex, snap.standing.division, dark);
+  const shown = preview && tab === 'LADDER' ? rankTheme(preview.rank, preview.division, dark) : own;
+
+  const changeTab = (next: Tab) => { setTab(next); mainRef.current?.scrollTo({ top: 0 }); };
+
+  const tabs: VisionTab<Tab>[] = [
+    { id: 'RANK', label: t('progression.tabs.rank', 'Rango'), icon: <Shield size={20} /> },
+    { id: 'LADDER', label: t('progression.tabs.ladder', 'Rangos'), icon: <Mountain size={20} /> },
+    { id: 'BOARD', label: t('progression.tabs.board', 'Top'), icon: <Trophy size={20} /> },
+    { id: 'WEEK', label: t('progression.tabs.week', 'Semana'), icon: <CalendarDays size={20} /> },
+    { id: 'SETTINGS', label: t('progression.tabs.settings', 'Ajustes'), icon: <SlidersHorizontal size={20} /> },
   ];
+  const heads: Record<Exclude<Tab, 'RANK'>, { title: string; sub: string }> = {
+    LADDER: { title: t('progression.vp.ladderTitle', 'Rangos'), sub: t('progression.vp.ladderSub', 'Desliza para explorar el camino de Bronce a Leyenda.') },
+    BOARD: { title: t('progression.vp.boardTitle', 'Clasificación'), sub: t('progression.vp.boardSub', 'Tu posición frente a todos los jugadores.') },
+    WEEK: { title: t('progression.vp.weekTitle', 'Tu semana'), sub: t('progression.vp.weekSub', 'Los últimos siete días, en una crónica.') },
+    SETTINGS: { title: t('progression.vp.settingsTitle', 'Ajustes'), sub: t('progression.vp.settingsSub', 'Cómo se calcula y se ve tu progresión.') },
+  };
 
   return (
     <motion.div
-      className="prog-root fixed inset-0 z-[880] flex flex-col overflow-hidden"
-      data-prog-theme={snap.meta.appearance === 'LIGHT' ? 'light' : snap.meta.appearance === 'SYSTEM' ? 'system' : 'dark'}
-      style={{ ...rankStyle(snap.standing.rankIndex), background: 'rgb(var(--p-bg))', pointerEvents: open ? undefined : 'none' }}
+      className="prog-root vp-root fixed inset-0 z-[880] flex flex-col overflow-hidden"
+      data-prog-theme={appearance === 'LIGHT' ? 'light' : appearance === 'SYSTEM' ? 'system' : 'dark'}
+      data-vp-tier={shown.tier}
+      style={{ ...shown.style, background: 'rgb(var(--p-bg))', transition: 'background-color 0.5s ease', pointerEvents: open ? undefined : 'none' }}
       initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.985 }}
       animate={open ? { opacity: 1, scale: 1 } : { opacity: 0, scale: reduce ? 1 : 0.985 }}
       transition={{ duration: MOTION.short, ease: MOTION.easeOut }}
       role="dialog" aria-modal="true" aria-label={t('progression.title', 'Progresión')}
     >
-      <ArenaBackdrop />
-      <ArenaHeader
+      <VisionBackdrop theme={shown} />
+      <VisionHeader
         title={t('progression.title', 'Progresión')}
-        kicker={tabs.find(x => x.id === tab)?.label}
         onBack={onClose}
         backLabel={t('progression.back', 'Volver')}
         right={
-          <button type="button" onClick={() => setTab('RANK')} className="prog-tap arena-card flex items-center gap-1.5 rounded-full pl-1 pr-3" style={{ height: 44 }} aria-label={snap.standing.label}>
+          <button type="button" onClick={() => changeTab('RANK')} className="vp-elo-pill prog-tap" aria-label={snap.standing.label}>
             <RankBadge rankIndex={snap.standing.rankIndex} division={snap.standing.division} size={30} />
-            <span className="text-[13px] font-black tabular-nums">{snap.summary.elo}</span>
-            <span className="text-[10px] font-bold prog-text-3">ELO</span>
+            <span className="text-[14px] font-bold tabular-nums">{snap.summary.elo}</span>
+            <span className="text-[10px] font-semibold prog-text-3">ELO</span>
           </button>
         }
       />
 
-      <main className="relative z-10 flex-1 min-h-0 prog-scroll px-4 pb-[calc(env(safe-area-inset-bottom)+108px)]">
-        <div className="mx-auto max-w-[640px] pt-3">
+      <main ref={mainRef} className="relative z-10 flex-1 min-h-0 prog-scroll px-4 pb-[calc(env(safe-area-inset-bottom)+124px)]">
+        <div className="mx-auto max-w-[640px] pt-2">
             <motion.div
               key={tab}
               initial={reduce ? { opacity: 0 } : { opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: MOTION.micro, ease: MOTION.easeOut }}
             >
-              {tab === 'RANK' && <RankTab snap={snap} habits={habits} quests={quests} projects={projects} userName={userName} onOpenStore={onOpenStore} onShowLadder={() => setTab('LADDER')} />}
-              {tab === 'LADDER' && <RankLadderFull standing={snap.standing} elo={snap.summary.elo} />}
+              {tab !== 'RANK' && <LargeTitle title={heads[tab].title} sub={heads[tab].sub} />}
+              {tab === 'RANK' && <RankTab snap={snap} theme={own} habits={habits} quests={quests} projects={projects} userName={userName} onOpenStore={onOpenStore} onShowLadder={() => changeTab('LADDER')} />}
+              {tab === 'LADDER' && <RankLadderFull standing={snap.standing} elo={snap.summary.elo} onPreview={setPreview} />}
               {tab === 'BOARD' && <BoardTab snap={snap} userName={userName} avatarId={avatarId} />}
               {tab === 'WEEK' && <WeekTab snap={snap} quests={quests} projects={projects} userName={userName} />}
               {tab === 'SETTINGS' && <SettingsTab snap={snap} habits={habits} projects={projects} />}
@@ -118,7 +148,7 @@ const Screen: React.FC<Props> = ({ open, onClose, habits, quests, projects, user
         </div>
       </main>
 
-      <ArenaDock tabs={tabs} value={tab} onChange={setTab} layoutId="prog-dock" />
+      <VisionTabBar tabs={tabs} value={tab} onChange={changeTab} />
     </motion.div>
   );
 };
@@ -156,7 +186,7 @@ const dayTitle = (k: string, today: string) => {
 
 type HistoryRow = { kind: 'day'; dayKey: string; total: number } | { kind: 'event'; e: EloEvent };
 
-const RankTab: React.FC<{ snap: ProgressionSnapshot; habits: Habit[]; quests: Quest[]; projects: Project[]; userName?: string | null; onOpenStore: () => void; onShowLadder: () => void }> = ({ snap, habits, quests, projects, userName, onOpenStore, onShowLadder }) => {
+const RankTab: React.FC<{ snap: ProgressionSnapshot; theme: ReturnType<typeof rankTheme>; habits: Habit[]; quests: Quest[]; projects: Project[]; userName?: string | null; onOpenStore: () => void; onShowLadder: () => void }> = ({ snap, theme, habits, quests, projects, userName, onOpenStore, onShowLadder }) => {
   const [guideOpen, setGuideOpen] = useState(false);
   const { t } = useTranslation();
   const reduce = useReducedMotion();
@@ -217,24 +247,26 @@ const RankTab: React.FC<{ snap: ProgressionSnapshot; habits: Habit[]; quests: Qu
   return (
     <div className="space-y-4">
       {/* ── Hero ── */}
-      <section className="relative pt-2 pb-1 flex flex-col items-center text-center">
-        <div className="relative flex items-center justify-center" style={{ width: 260, height: 230 }}>
-          <div className="arena-rays" style={{ width: 340, height: 340, left: -40, top: -55 }} aria-hidden="true" />
-          <div className="arena-halo" style={{ width: 230, height: 230, left: 15, top: 0 }} aria-hidden="true" />
+      <section className="relative pt-1 pb-1 flex flex-col items-center text-center">
+        <RankStage progress={standing.division === null ? 1 : (standing.division + (standing.progress ?? 0)) / PROGRESSION_CONFIG.DIVISIONS_PER_RANK} tier={theme.tier} legend={isLegend}>
           <motion.div
-            className="relative"
             initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6, rotate: -8 }}
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
             transition={reduce ? { duration: 0.2 } : { type: 'spring', stiffness: 220, damping: 16, delay: 0.05 }}
           >
-            <RankBadge rankIndex={standing.rankIndex} division={standing.division} size={176} animate />
+            <RankBadge rankIndex={standing.rankIndex} division={standing.division} size={standing.division === null ? 150 : [158, 140, 118][standing.division]} animate />
           </motion.div>
-        </div>
+        </RankStage>
         <p className="arena-kicker">{t('progression.hero.kicker', 'Tu rango actual')}</p>
-        <h2 className={`mt-1 text-[38px] font-black leading-none tracking-[-0.02em] ${isLegend ? 'arena-rainbow-text' : 'arena-grad-text'}`}>
-          {standing.label}{legendPos ? ` #${legendPos}` : ''}
+        <h2 className={`mt-1.5 text-[48px] font-bold leading-none tracking-[-0.04em] ${isLegend ? 'arena-rainbow-text' : 'arena-grad-text'}`}>
+          {standing.rank.name}{legendPos ? ` #${legendPos}` : ''}
         </h2>
-        <div className="mt-3 flex items-center gap-2">
+        {standing.division !== null && (
+          <div className="vp-pips mt-3" role="img" aria-label={standing.label}>
+            {['I', 'II', 'III'].map((r, d) => <span key={r} className="vp-pip" data-on={d === standing.division} data-done={d < (standing.division ?? 0)}>{r}</span>)}
+          </div>
+        )}
+        <div className="mt-3 flex flex-wrap justify-center items-center gap-2">
           <span className="arena-chip" style={{ background: 'rgb(var(--rank) / 0.14)', color: 'rgb(var(--rank))' }}>
             <Zap size={12} /> <CountUp value={summary.elo} duration={900} className="tabular-nums" /> ELO
           </span>
@@ -246,8 +278,7 @@ const RankTab: React.FC<{ snap: ProgressionSnapshot; habits: Habit[]; quests: Qu
         </div>
         {standing.division !== null && standing.progress !== null && (
           <div className="mt-5 w-full max-w-[400px]">
-            <DivisionTrack division={standing.division} progress={standing.progress} />
-            <div className="mt-3 flex items-center gap-3 rounded-[18px] px-3 py-2.5 arena-card text-left">
+            <div className="flex items-center gap-3 rounded-[24px] px-3.5 py-3 arena-card text-left">
               {next && <RankBadge rankIndex={next.rankIndex} division={next.division} size={34} />}
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] prog-text-3">{t('progression.hero.next', 'Siguiente')}</p>
@@ -403,31 +434,6 @@ const RankTab: React.FC<{ snap: ProgressionSnapshot; habits: Habit[]; quests: Qu
           )}
         </Card>
       </motion.div>
-    </div>
-  );
-};
-
-/** Three segments, one per sub-rank: passed ones full, the current one partial. */
-const DivisionTrack: React.FC<{ division: number; progress: number }> = ({ division, progress }) => {
-  const reduce = useReducedMotion();
-  return (
-    <div className="flex gap-1.5" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(((division + progress) / 3) * 100)}>
-      {[0, 1, 2].map(d => {
-        const v = d < division ? 1 : d === division ? progress : 0;
-        return (
-          <div key={d} className="flex-1">
-            <div className="relative h-2.5 rounded-full overflow-hidden" style={{ background: 'rgb(var(--p-line) / 0.08)' }}>
-              <motion.div
-                className="absolute inset-0 rounded-full origin-left"
-                style={{ background: 'linear-gradient(90deg, var(--rank-from), var(--rank-to))', boxShadow: d === division ? '0 0 12px rgb(var(--rank) / 0.6)' : undefined }}
-                initial={{ scaleX: reduce ? v : 0 }} animate={{ scaleX: v }}
-                transition={{ duration: reduce ? 0 : 0.7, delay: reduce ? 0 : 0.25 + d * 0.18, ease: MOTION.easeOut }}
-              />
-            </div>
-            <p className="mt-1 text-[10px] font-black tracking-[0.12em]" style={{ color: d <= division ? 'rgb(var(--rank))' : 'rgb(var(--p-text-3))' }}>{['I', 'II', 'III'][d]}</p>
-          </div>
-        );
-      })}
     </div>
   );
 };

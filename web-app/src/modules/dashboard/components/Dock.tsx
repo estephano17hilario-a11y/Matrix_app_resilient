@@ -668,7 +668,10 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
  animate={{ y: isHidden ? '200%' : '0%' }}
  transition={liquidSpring}
  className="fixed bottom-[26px] left-0 right-0 z-[400] flex justify-center transform-gpu"
- style={{ pointerEvents }}
+ // This box is as tall as the OPEN menu (it never shrinks, see DOCK_SKIN_CSS) and as wide as the screen: if it
+ // took events it would swallow every tap over the page above the bar, closed or not. Only the bar and the
+ // open menu inside it (their own pointer-events) are interactive.
+ style={{ pointerEvents: 'none' }}
  >
   <motion.div
  initial={false}

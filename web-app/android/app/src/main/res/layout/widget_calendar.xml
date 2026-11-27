@@ -140,6 +140,135 @@
             </FrameLayout>
         </LinearLayout>
 
+        <!-- Tools row (hidden until the sliders button is tapped): zoom and the colour of the blocks -->
+        <LinearLayout
+            android:id="@+id/calendar_tools_row"
+            android:layout_width="match_parent"
+            android:layout_height="26dp"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <FrameLayout
+                android:id="@+id/calendar_zoom_out_btn"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:background="@drawable/widget_routine_btn_bg"
+                android:clickable="true">
+
+                <ImageView
+                    android:layout_width="13dp"
+                    android:layout_height="13dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_calendar_minus" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/calendar_zoom_text"
+                android:layout_width="40dp"
+                android:layout_height="26dp"
+                android:layout_marginStart="3dp"
+                android:layout_marginEnd="3dp"
+                android:background="@drawable/widget_routine_pill_bg"
+                android:clickable="true"
+                android:fontFamily="sans-serif-black"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:text="100%"
+                android:textColor="#FFFFFF"
+                android:textSize="9.5sp" />
+
+            <FrameLayout
+                android:id="@+id/calendar_zoom_in_btn"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:background="@drawable/widget_routine_btn_bg"
+                android:clickable="true">
+
+                <ImageView
+                    android:layout_width="13dp"
+                    android:layout_height="13dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_calendar_plus" />
+            </FrameLayout>
+
+            <!-- Segmented control: colour by my colour / trait / importance -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="26dp"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:background="@drawable/widget_routine_pill_bg"
+                android:orientation="horizontal"
+                android:padding="2dp">
+
+                <FrameLayout
+                    android:id="@+id/calendar_color_own"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/widget_calendar_chip_on"
+                    android:clickable="true">
+
+                    <TextView
+                        android:id="@+id/calendar_color_own_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:fontFamily="sans-serif-black"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:text="MÍO"
+                        android:textColor="#FFFFFF"
+                        android:textSize="8.5sp" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:id="@+id/calendar_color_trait"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="@drawable/widget_calendar_chip_off"
+                    android:clickable="true">
+
+                    <TextView
+                        android:id="@+id/calendar_color_trait_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:fontFamily="sans-serif-black"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:text="RASGO"
+                        android:textColor="#99FFFFFF"
+                        android:textSize="8.5sp" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:id="@+id/calendar_color_importance"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1.25"
+                    android:background="@drawable/widget_calendar_chip_off"
+                    android:clickable="true">
+
+                    <TextView
+                        android:id="@+id/calendar_color_importance_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:fontFamily="sans-serif-black"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:text="IMPORT."
+                        android:textColor="#99FFFFFF"
+                        android:textSize="8.5sp" />
+                </FrameLayout>
+            </LinearLayout>
+        </LinearLayout>
+
         <!-- The calendar itself (one bitmap) with scroll buttons floating on its right edge -->
         <FrameLayout
             android:layout_width="match_parent"
@@ -282,6 +411,24 @@
                 android:layout_gravity="top|start"
                 android:clickable="true"
                 android:visibility="gone" />
+
+            <!-- View settings: opens the tools row (zoom, colours) -->
+            <FrameLayout
+                android:id="@+id/calendar_tools_btn"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="2dp"
+                android:layout_marginTop="2dp"
+                android:background="@drawable/widget_routine_btn_bg"
+                android:clickable="true">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_calendar_tune" />
+            </FrameLayout>
 
             <FrameLayout
                 android:id="@+id/calendar_up_btn"

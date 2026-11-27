@@ -48,7 +48,9 @@ class WidgetConfigActivity : Activity() {
     private lateinit var radioGroupBgMode: RadioGroup
     private lateinit var routineSection: LinearLayout
     private lateinit var switchRoutineShowDone: Switch
-    
+    private lateinit var calendarSection: LinearLayout
+    private lateinit var radioGroupCalendarColor: RadioGroup
+
     private lateinit var projectSelectContainer: LinearLayout
     private lateinit var radioGroupProjectSelect: RadioGroup
     private var fetchedProjects: List<ProjectData> = emptyList()
@@ -109,7 +111,9 @@ class WidgetConfigActivity : Activity() {
         radioGroupBgMode = findViewById(R.id.config_bg_mode_group)
         routineSection = findViewById(R.id.config_routine_section)
         switchRoutineShowDone = findViewById(R.id.config_routine_show_done_switch)
-        
+        calendarSection = findViewById(R.id.config_calendar_section)
+        radioGroupCalendarColor = findViewById(R.id.config_calendar_color_group)
+
         projectSelectContainer = findViewById(R.id.config_project_select_container)
         radioGroupProjectSelect = findViewById(R.id.config_project_select_group)
         
@@ -126,6 +130,7 @@ class WidgetConfigActivity : Activity() {
         setupHorizontalRadioButtonsUI(radioGroupColumns)
         setupHorizontalRadioButtonsUI(radioGroupChronoColumns)
         setupHorizontalRadioButtonsUI(radioGroupSpacing)
+        setupHorizontalRadioButtonsUI(radioGroupCalendarColor)
         setupHorizontalRadioButtonsUI(radioGroupBgMode)
         radioGroupBgMode.setOnCheckedChangeListener { grp, checkedId ->
             for (i in 0 until grp.childCount) {
@@ -223,6 +228,14 @@ val isRoutineWidget = className.contains("RoutineWidgetProvider")
                 habitsSectionContainer2.visibility = View.GONE
                 tasksSectionContainer.visibility = View.GONE
                 cardOpacityContainer.visibility = View.VISIBLE
+                if (isCalendarWidget) {
+                    calendarSection.visibility = View.VISIBLE
+                    val appConfig = RoutineConfig.fromJson(getSharedPreferences(RoutineWidgetData.PREFS_ROUTINE, Context.MODE_PRIVATE).getString(RoutineWidgetData.KEY_CONFIG, null))
+                    val mode = CalendarWidgetData.colorModeOf(this, widgetId, appConfig)
+                    val id = when (mode) { "TRAIT" -> R.id.config_calendar_color_trait; "IMPORTANCE" -> R.id.config_calendar_color_importance; else -> R.id.config_calendar_color_own }
+                    radioGroupCalendarColor.check(id)
+                    findViewById<RadioButton>(id)?.performClick()
+                }
             } else {
                 // Default is Habit widget
                 projectSelectContainer.visibility = View.GONE
@@ -635,6 +648,15 @@ val isRoutineWidget = className.contains("RoutineWidgetProvider")
         WidgetTheme.saveMode(editor, widgetId, className, radioGroupBgMode.checkedRadioButtonId == R.id.config_bg_solid)
         if (className.contains("RoutineWidgetProvider") && widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
             editor.putBoolean("routine_show_done_widget_$widgetId", switchRoutineShowDone.isChecked)
+        }
+
+        if (className.contains("CalendarWidgetProvider")) {
+            val mode = when (radioGroupCalendarColor.checkedRadioButtonId) {
+                R.id.config_calendar_color_trait -> "TRAIT"
+                R.id.config_calendar_color_importance -> "IMPORTANCE"
+                else -> "OWN"
+            }
+            CalendarWidgetData.saveColorMode(editor, widgetId, mode)
         }
 
         if (className.isNotEmpty()) {

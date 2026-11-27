@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -33,11 +34,50 @@ class CalendarState(
     val subtitle: String,
     val todayInRange: Boolean,
     val hasSource: Boolean,
-    val now: Calendar
+    val now: Calendar,
+    /** 1 = the default scale; the "+ / −" buttons move it between [CalendarLayout.ZOOM_MIN] and [CalendarLayout.ZOOM_MAX]. */
+    val zoom: Float,
+    /** OWN | TRAIT | IMPORTANCE. */
+    val colorMode: String,
+    val toolsOpen: Boolean
 )
 
 object CalendarWidgetData {
     private val ES = Locale("es")
+
+    private const val KEY_ZOOM_DEFAULT = "calendar_zoom_default"
+    private const val KEY_COLOR_DEFAULT = "calendar_color_default"
+
+    /** Zoom of one widget; a widget that was never zoomed starts at the last zoom the user chose (their default). */
+    fun zoomOf(context: Context, widgetId: Int): Float {
+        val prefs = context.getSharedPreferences(RoutineWidgetData.PREFS_WIDGET, Context.MODE_PRIVATE)
+        return CalendarLayout.clampZoom(prefs.getFloat("calendar_zoom_widget_$widgetId", prefs.getFloat(KEY_ZOOM_DEFAULT, 1f)))
+    }
+
+    /**
+     * How the blocks are coloured: what this widget was set to, else the last choice made on any calendar widget,
+     * else the app's own setting. The choice sticks (it is the default for every new widget too).
+     */
+    fun colorModeOf(context: Context, widgetId: Int, config: RoutineConfig): String {
+        val prefs = context.getSharedPreferences(RoutineWidgetData.PREFS_WIDGET, Context.MODE_PRIVATE)
+        val v = prefs.getString("calendar_color_widget_$widgetId", null) ?: prefs.getString(KEY_COLOR_DEFAULT, null) ?: config.calendarColor
+        return if (v == "TRAIT" || v == "IMPORTANCE") v else "OWN"
+    }
+
+    fun saveColorMode(editor: android.content.SharedPreferences.Editor, widgetId: Int, mode: String) {
+        if (widgetId != AppWidgetManager.INVALID_APPWIDGET_ID) editor.putString("calendar_color_widget_$widgetId", mode)
+        editor.putString(KEY_COLOR_DEFAULT, mode)
+    }
+
+    fun saveZoom(editor: android.content.SharedPreferences.Editor, widgetId: Int, zoom: Float) {
+        editor.putFloat("calendar_zoom_widget_$widgetId", zoom).putFloat(KEY_ZOOM_DEFAULT, zoom)
+    }
+
+    fun toolsOpenOf(context: Context, widgetId: Int): Boolean =
+        context.getSharedPreferences(RoutineWidgetData.PREFS_WIDGET, Context.MODE_PRIVATE).getBoolean("calendar_tools_widget_$widgetId", false)
+
+    /** A block is never shorter than this many dp, and blocks starting closer than [CalendarLayout]'s title line go side by side. */
+    fun minBlockDp(span: Int) = if (span == 7) 15f else 18f
 
     fun spanOf(context: Context, widgetId: Int, config: RoutineConfig): Int {
         val prefs = context.getSharedPreferences(RoutineWidgetData.PREFS_WIDGET, Context.MODE_PRIVATE)
@@ -91,7 +131,10 @@ object CalendarWidgetData {
             CalendarDayInput(key, key == todayKey, RoutineEngine.build(d, source, config))
         }
         val everything = days.map { d -> RoutineEngine.build(d, source, config.copy(showCompleted = true)) }
-        val layout = CalendarLayout.build(inputs, config, if (inputs.any { it.isToday }) nowMinutes else null, CalendarLayout.dpPerHour(span))
+        val zoom = zoomOf(context, widgetId)
+        val colorMode = colorModeOf(context, widgetId, config)
+        val minBlock = minBlockDp(span)
+        val layout = CalendarLayout.build(inputs, config, if (inputs.any { it.isToday }) nowMinutes else null, CalendarLayout.dpPerHour(span, zoom), minBlock, minBlock)
 
         val todayIdx = inputs.indexOfFirst { it.isToday }
         val summary = if (todayIdx >= 0) RoutineEngine.summarize(everything[todayIdx], true, nowMinutes, config.use24h) else null
@@ -122,7 +165,7 @@ object CalendarWidgetData {
             else "${a.get(Calendar.DAY_OF_MONTH)} ${SimpleDateFormat("MMM", ES).format(a.time).replace(".", "")} – ${b.get(Calendar.DAY_OF_MONTH)} ${SimpleDateFormat("MMM", ES).format(b.time).replace(".", "")}"
             subtitle = if (summary != null && summary.total > 0) "Hoy: ${summary.done}/${summary.total} hechas" else capitalize(SimpleDateFormat("MMMM yyyy", ES).format(b.time))
         }
-        return CalendarState(config, span, offset, days, inputs, layout, summary?.next?.id, title, subtitle, todayIdx >= 0, habits != null || quests != null, now)
+        return CalendarState(config, span, offset, days, inputs, layout, summary?.next?.id, title, subtitle, todayIdx >= 0, habits != null || quests != null, now, zoom, colorMode, toolsOpenOf(context, widgetId))
     }
 }
 
@@ -143,10 +186,19 @@ class CalendarWidgetProvider : AppWidgetProvider() {
         const val ACTION_SPAN = "com.luxresilient.app.CALENDAR_SPAN"
         const val ACTION_SCROLL_UP = "com.luxresilient.app.CALENDAR_SCROLL_UP"
         const val ACTION_SCROLL_DOWN = "com.luxresilient.app.CALENDAR_SCROLL_DOWN"
+        const val ACTION_ZOOM_IN = "com.luxresilient.app.CALENDAR_ZOOM_IN"
+        const val ACTION_ZOOM_OUT = "com.luxresilient.app.CALENDAR_ZOOM_OUT"
+        const val ACTION_ZOOM_RESET = "com.luxresilient.app.CALENDAR_ZOOM_RESET"
+        const val ACTION_TOOLS = "com.luxresilient.app.CALENDAR_TOOLS"
+        const val ACTION_COLOR = "com.luxresilient.app.CALENDAR_COLOR"
+        const val EXTRA_COLOR_MODE = "calendar_color_mode"
 
-        // Widget chrome around the grid (dp): paddings 10 + 10 / 8 + 8, header 38, gap 4.
+        private const val ZOOM_STEP = 1.25f
+
+        // Widget chrome around the grid (dp): paddings 10 + 10 / 8 + 8, header 38, gap 4 (+ tools row 26 + gap 4 when open).
         private const val CHROME_W = 20
         private const val CHROME_H = 58
+        private const val TOOLS_H = 30
 
         fun widgetIds(context: Context): IntArray =
             AppWidgetManager.getInstance(context).getAppWidgetIds(ComponentName(context, CalendarWidgetProvider::class.java))
@@ -167,12 +219,13 @@ class CalendarWidgetProvider : AppWidgetProvider() {
             return PendingIntent.getActivity(context, 5300 + widgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         }
 
-        private fun broadcast(context: Context, action: String, widgetId: Int, code: Int): PendingIntent {
+        private fun broadcast(context: Context, action: String, widgetId: Int, code: Int, mode: String? = null): PendingIntent {
             val intent = Intent(context, CalendarWidgetProvider::class.java).apply {
                 this.action = action
                 putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
+                if (mode != null) putExtra(EXTRA_COLOR_MODE, mode)
             }
-            return PendingIntent.getBroadcast(context, widgetId * 10 + code + 500000, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+            return PendingIntent.getBroadcast(context, widgetId * 20 + code + 500000, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         }
 
         private val HIT_IDS = intArrayOf(
@@ -217,7 +270,9 @@ class CalendarWidgetProvider : AppWidgetProvider() {
                 state.days, state.dayInputs, state.layout, state.config, state.span,
                 if (state.todayInRange) state.now.get(Calendar.HOUR_OF_DAY) * 60 + state.now.get(Calendar.MINUTE) else null,
                 state.nextId, CalendarWidgetData.savedScroll(context, widgetId),
-                (size.first - CHROME_W).toFloat().coerceAtLeast(120f), (size.second - CHROME_H).toFloat().coerceAtLeast(80f)
+                (size.first - CHROME_W).toFloat().coerceAtLeast(120f),
+                (size.second - CHROME_H - (if (state.toolsOpen) TOOLS_H else 0)).toFloat().coerceAtLeast(80f),
+                state.colorMode
             )
             return Rendered(state, input, CalendarRenderer.plan(input))
         }
@@ -232,6 +287,23 @@ class CalendarWidgetProvider : AppWidgetProvider() {
             views.setViewVisibility(R.id.calendar_today_btn, if (s.todayInRange) View.GONE else View.VISIBLE)
             views.setViewVisibility(R.id.calendar_up_btn, if (r.plan.scroll > 1f) View.VISIBLE else View.GONE)
             views.setViewVisibility(R.id.calendar_down_btn, if (r.plan.scroll < r.plan.maxScroll - 1f) View.VISIBLE else View.GONE)
+
+            // Tools row: zoom and the colour of the blocks. The chosen colour chip is lit.
+            views.setViewVisibility(R.id.calendar_tools_row, if (s.toolsOpen) View.VISIBLE else View.GONE)
+            views.setTextViewText(R.id.calendar_zoom_text, "${Math.round(s.zoom * 100)}%")
+            views.setFloat(R.id.calendar_zoom_out_btn, "setAlpha", if (s.zoom > CalendarLayout.ZOOM_MIN + 0.01f) 1f else 0.35f)
+            views.setFloat(R.id.calendar_zoom_in_btn, "setAlpha", if (s.zoom < CalendarLayout.ZOOM_MAX - 0.01f) 1f else 0.35f)
+            val chips = listOf(
+                Triple("OWN", R.id.calendar_color_own, R.id.calendar_color_own_text),
+                Triple("TRAIT", R.id.calendar_color_trait, R.id.calendar_color_trait_text),
+                Triple("IMPORTANCE", R.id.calendar_color_importance, R.id.calendar_color_importance_text)
+            )
+            for ((mode, box, text) in chips) {
+                val on = s.colorMode == mode
+                views.setInt(box, "setBackgroundResource", if (on) R.drawable.widget_calendar_chip_on else R.drawable.widget_calendar_chip_off)
+                views.setTextColor(text, if (on) Color.WHITE else Color.argb(150, 255, 255, 255))
+            }
+            views.setInt(R.id.calendar_tools_btn, "setBackgroundResource", if (s.toolsOpen) R.drawable.widget_calendar_chip_on else R.drawable.widget_routine_btn_bg)
 
             // Tap a block → its info card. Placing views from code needs Android 12; older launchers keep "tap = open the app".
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -289,6 +361,13 @@ class CalendarWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.calendar_span_btn, broadcast(context, ACTION_SPAN, widgetId, 4))
             views.setOnClickPendingIntent(R.id.calendar_up_btn, broadcast(context, ACTION_SCROLL_UP, widgetId, 5))
             views.setOnClickPendingIntent(R.id.calendar_down_btn, broadcast(context, ACTION_SCROLL_DOWN, widgetId, 6))
+            views.setOnClickPendingIntent(R.id.calendar_zoom_in_btn, broadcast(context, ACTION_ZOOM_IN, widgetId, 7))
+            views.setOnClickPendingIntent(R.id.calendar_zoom_out_btn, broadcast(context, ACTION_ZOOM_OUT, widgetId, 8))
+            views.setOnClickPendingIntent(R.id.calendar_zoom_text, broadcast(context, ACTION_ZOOM_RESET, widgetId, 9))
+            views.setOnClickPendingIntent(R.id.calendar_tools_btn, broadcast(context, ACTION_TOOLS, widgetId, 10))
+            views.setOnClickPendingIntent(R.id.calendar_color_own, broadcast(context, ACTION_COLOR, widgetId, 11, "OWN"))
+            views.setOnClickPendingIntent(R.id.calendar_color_trait, broadcast(context, ACTION_COLOR, widgetId, 12, "TRAIT"))
+            views.setOnClickPendingIntent(R.id.calendar_color_importance, broadcast(context, ACTION_COLOR, widgetId, 13, "IMPORTANCE"))
 
             manager.updateAppWidget(widgetId, views)
             Log.d(TAG, "updated widget $widgetId span=${r.state.span} offset=${r.state.offset} events=${r.state.layout.events.size} scroll=${r.plan.scroll}")
@@ -328,6 +407,7 @@ class CalendarWidgetProvider : AppWidgetProvider() {
         val editor = context.getSharedPreferences(RoutineWidgetData.PREFS_WIDGET, Context.MODE_PRIVATE).edit()
         for (id in appWidgetIds) {
             editor.remove("calendar_span_widget_$id").remove("calendar_offset_widget_$id").remove("calendar_scroll_widget_$id").remove("widget_background_opacity_$id")
+                .remove("calendar_zoom_widget_$id").remove("calendar_color_widget_$id").remove("calendar_tools_widget_$id")
         }
         editor.apply()
     }
@@ -345,13 +425,14 @@ class CalendarWidgetProvider : AppWidgetProvider() {
                 val pending = goAsync()
                 Thread { try { refreshAll(context) } finally { pending.finish() } }.start()
             }
-            ACTION_PREV, ACTION_NEXT, ACTION_TODAY, ACTION_SPAN, ACTION_SCROLL_UP, ACTION_SCROLL_DOWN -> {
+            ACTION_PREV, ACTION_NEXT, ACTION_TODAY, ACTION_SPAN, ACTION_SCROLL_UP, ACTION_SCROLL_DOWN,
+            ACTION_ZOOM_IN, ACTION_ZOOM_OUT, ACTION_ZOOM_RESET, ACTION_TOOLS, ACTION_COLOR -> {
                 val id = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
                 if (id == AppWidgetManager.INVALID_APPWIDGET_ID) return
                 val pending = goAsync()
                 Thread {
                     try {
-                        handle(context.applicationContext, id, action)
+                        handle(context.applicationContext, id, action, intent.getStringExtra(EXTRA_COLOR_MODE))
                         redraw(context, id)
                     } catch (e: Exception) {
                         Log.e(TAG, "action $action failed: ${e.message}", e)
@@ -363,7 +444,7 @@ class CalendarWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    private fun handle(context: Context, id: Int, action: String) {
+    private fun handle(context: Context, id: Int, action: String, colorMode: String? = null) {
         val prefs = context.getSharedPreferences(RoutineWidgetData.PREFS_WIDGET, Context.MODE_PRIVATE)
         val config = RoutineConfig.fromJson(context.getSharedPreferences(RoutineWidgetData.PREFS_ROUTINE, Context.MODE_PRIVATE).getString(RoutineWidgetData.KEY_CONFIG, null))
         val span = CalendarWidgetData.spanOf(context, id, config)
@@ -384,6 +465,32 @@ class CalendarWidgetProvider : AppWidgetProvider() {
                 val step = r.plan.viewportH * 0.7f
                 val target = if (action == ACTION_SCROLL_DOWN) r.plan.scroll + step else r.plan.scroll - step
                 editor.putFloat("calendar_scroll_widget_$id", target.coerceIn(0f, r.plan.maxScroll))
+            }
+            ACTION_ZOOM_IN, ACTION_ZOOM_OUT, ACTION_ZOOM_RESET -> {
+                val manager = AppWidgetManager.getInstance(context)
+                val r = prepare(context, manager, id, allowNetwork = false)
+                val oldZoom = r.state.zoom
+                val newZoom = when (action) {
+                    ACTION_ZOOM_IN -> CalendarLayout.clampZoom(oldZoom * ZOOM_STEP)
+                    ACTION_ZOOM_OUT -> CalendarLayout.clampZoom(oldZoom / ZOOM_STEP)
+                    else -> 1f
+                }
+                if (Math.abs(newZoom - oldZoom) > 0.001f) {
+                    // Keep what is in the middle of the screen in the middle: zoom around the visible centre (or "now" when it is on screen).
+                    val plan = r.plan
+                    val oldPerMin = r.state.layout.dpPerMin
+                    val centreMin = (plan.scroll + plan.viewportH / 2f) / oldPerMin
+                    val newPerMin = CalendarLayout.dpPerHour(r.state.span, newZoom) / 60f
+                    val newHeight = 24f * CalendarLayout.dpPerHour(r.state.span, newZoom)
+                    val newMax = (newHeight + 6f - plan.viewportH).coerceAtLeast(0f)
+                    CalendarWidgetData.saveZoom(editor, id, newZoom)
+                    editor.putFloat("calendar_scroll_widget_$id", (centreMin * newPerMin - plan.viewportH / 2f).coerceIn(0f, newMax))
+                }
+            }
+            ACTION_TOOLS -> editor.putBoolean("calendar_tools_widget_$id", !CalendarWidgetData.toolsOpenOf(context, id))
+            ACTION_COLOR -> {
+                val mode = if (colorMode == "TRAIT" || colorMode == "IMPORTANCE") colorMode else "OWN"
+                CalendarWidgetData.saveColorMode(editor, id, mode)
             }
         }
         editor.apply()
