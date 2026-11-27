@@ -15,6 +15,7 @@ import { RecursiveFillingStep } from './components/wizard/RecursiveFillingStep';
 import { FREE_LIMITS, ENABLE_GLOBAL_PRO } from '../../config/limits';
 import { StrategyTutorial } from './components/StrategyTutorial';
 import '../../components/cupertino/cupertino.css';
+import { promptDeluxe } from '@/modules/monetization/deluxe';
 
 interface SmartTaskWizardProps {
   onComplete: (project: SmartProject) => void;
@@ -100,7 +101,7 @@ export const SmartTaskWizard: React.FC<SmartTaskWizardProps> = ({
   // Limit Reached Screen
   useEffect(() => {
     if (isLimitReached) {
-      if (onOpenPro) onOpenPro();
+      promptDeluxe('strategies');
       onCancel();
     }
   }, [isLimitReached, onOpenPro, onCancel, isPro, activeSmartTasksCount]);

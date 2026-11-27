@@ -43,12 +43,17 @@ object RoutineTap {
 class RoutineWidgetFactory(private val context: Context, private val widgetId: Int) : RemoteViewsService.RemoteViewsFactory {
 
     private var snapshot: RoutineWidgetData.Snapshot? = null
+    private var zoom = 1f
+    private var colorMode = "OWN"
 
     override fun onCreate() {}
 
     override fun onDataSetChanged() {
         try {
             snapshot = RoutineWidgetData.load(context, widgetId, allowNetwork = true)
+            val wp = context.getSharedPreferences(RoutineWidgetData.PREFS_WIDGET, Context.MODE_PRIVATE)
+            zoom = RoutineWidgetLook.zoom(wp, widgetId)
+            colorMode = RoutineWidgetLook.colorMode(context, wp, widgetId)
         } catch (e: Exception) {
             Log.e("RoutineWidgetFactory", "load failed: ${e.message}", e)
         }
@@ -92,12 +97,29 @@ class RoutineWidgetFactory(private val context: Context, private val widgetId: I
         return v
     }
 
+    private fun dp(v: Float): Int = (v * context.resources.displayMetrics.density).toInt()
+
+    /** Zoom: bigger text and padding; longer blocks get taller cards, like the calendar in the app. */
+    private fun applyZoom(v: RemoteViews, item: RoutineItem) {
+        val sp = android.util.TypedValue.COMPLEX_UNIT_SP
+        v.setTextViewTextSize(R.id.routine_title, sp, 13f * zoom)
+        v.setTextViewTextSize(R.id.routine_chip_time, sp, 9.5f * zoom)
+        v.setTextViewTextSize(R.id.routine_subtitle, sp, 8.5f * zoom)
+        v.setTextViewTextSize(R.id.routine_time_main, sp, 11f * zoom)
+        v.setTextViewTextSize(R.id.routine_time_suffix, sp, 7.5f * zoom)
+        val pad = dp(8f * zoom)
+        v.setViewPadding(R.id.routine_card_inner, dp(10f), pad, dp(8f), pad)
+        val minutes = item.durationMin.coerceIn(15, 240)
+        v.setInt(R.id.routine_title, "setMinHeight", dp(minutes * 0.26f * zoom))
+    }
+
     private fun withAlpha(color: Int, alpha: Float): Int = Color.argb((255 * alpha).toInt().coerceIn(0, 255), Color.red(color), Color.green(color), Color.blue(color))
 
     private fun cardView(row: RoutineRow.Card, config: RoutineConfig): RemoteViews {
         val item = row.item
         val v = RemoteViews(context.packageName, R.layout.widget_routine_item)
-        val c = item.color
+        val c = RoutineEngine.colorForMode(item, colorMode)
+        applyZoom(v, item)
         val done = item.done
         val dim = 0.4f
 

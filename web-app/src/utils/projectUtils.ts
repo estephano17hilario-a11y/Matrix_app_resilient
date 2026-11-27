@@ -62,9 +62,9 @@ export const getMonthlyGoalMinutes = (project: Project): number => {
     return getSafeMinutes((project.goalTarget || 0) * (workingDaysCount * 4));
 };
 
-export const getDynamicDailyTarget = (project: Project): number => {
+export const getDynamicDailyTarget = (project: Project, at: Date = new Date()): number => {
     const effectiveFrequency = project.uiFrequency || project.goalFrequency;
-    const now = new Date();
+    const now = new Date(at);
     let periodStart: Date;
     let periodEnd: Date;
     let totalGoalMinutes = 0;
@@ -87,7 +87,8 @@ export const getDynamicDailyTarget = (project: Project): number => {
         return 0;
     }
 
-    const todayStr = now.toDateString();
+    const dayStart = new Date(now);
+    dayStart.setHours(0, 0, 0, 0);
 
     const periodSessions = (project.sessions || []).filter(s => {
         const sDate = new Date(s.date);
@@ -95,7 +96,8 @@ export const getDynamicDailyTarget = (project: Project): number => {
         return sDate >= periodStart && sDate <= periodEnd;
     });
 
-    const pastPeriodSessions = periodSessions.filter(s => new Date(s.date).toDateString() !== todayStr);
+    // Only sessions from before the evaluated day (also correct when evaluating a past day).
+    const pastPeriodSessions = periodSessions.filter(s => new Date(s.date) < dayStart);
     
     const pastPeriodProgressSeconds = pastPeriodSessions.reduce((acc, s) => {
         const duration = Number.isFinite(s.duration) ? Math.max(0, s.duration) : 0;
@@ -223,6 +225,35 @@ export const getDynamicDailyTarget = (project: Project): number => {
     const dailyTarget = Math.ceil(remainingGoalAtStartOfDay / remainingDaysCount);
 
     return Math.max(0, dailyTarget);
+};
+
+/**
+ * The project's focus goal for ONE day, in minutes — exactly what its card shows
+ * as "today's goal". Daily goals are used as-is; weekly and monthly goals are
+ * turned into today's share by `getDynamicDailyTarget`. Days that are not
+ * working days for the project have no goal (0).
+ */
+export const getProjectDailyGoalOn = (project: Project, at: Date = new Date()): number => {
+    if (!project || project.id === 'QUICK_FOCUS') return 0;
+    const frequency = project.uiFrequency || project.goalFrequency;
+    const days = project.workingDays && project.workingDays.length > 0 ? project.workingDays : null;
+
+    if (frequency === 'MONTHLY') {
+        if (project.monthlyType === 'SPECIFIC_DATES') {
+            const dom = at.getDate();
+            const last = new Date(at.getFullYear(), at.getMonth() + 1, 0).getDate();
+            const isDay = (days ?? []).includes(dom) || (!!project.monthlyLastDay && dom === last);
+            if (!isDay) return 0;
+        }
+        return getSafeMinutes(getDynamicDailyTarget(project, at));
+    }
+    if (frequency === 'WEEKLY') {
+        if (days && !days.includes(at.getDay())) return 0;
+        return getSafeMinutes(getDynamicDailyTarget(project, at));
+    }
+    // DAILY (and legacy): the target itself, only on the project's working days.
+    if (days && !days.includes(at.getDay())) return 0;
+    return getSafeMinutes(project.goalTarget);
 };
 
 /**

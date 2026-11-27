@@ -10,7 +10,7 @@
 
     <TextView
         android:id="@+id/routine_now_clock"
-        android:layout_width="40dp"
+        android:layout_width="33dp"
         android:layout_height="wrap_content"
         android:fontFamily="sans-serif-black"
         android:gravity="end"
@@ -21,12 +21,12 @@
         android:textSize="9.5sp" />
 
     <FrameLayout
-        android:layout_width="16dp"
+        android:layout_width="12dp"
         android:layout_height="16dp">
 
         <ImageView
             android:id="@+id/routine_now_halo"
-            android:layout_width="16dp"
+            android:layout_width="12dp"
             android:layout_height="16dp"
             android:scaleType="fitXY"
             android:src="@drawable/widget_routine_dot_halo" />

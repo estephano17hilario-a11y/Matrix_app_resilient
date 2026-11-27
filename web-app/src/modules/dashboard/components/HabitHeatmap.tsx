@@ -7,6 +7,7 @@ import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Lock, Plus } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import { useTranslation } from 'react-i18next';
+import { promptDeluxe } from '@/modules/monetization/deluxe';
 
 interface HabitHeatmapProps {
     habit: Habit;
@@ -18,7 +19,7 @@ interface HabitHeatmapProps {
 
 type TimeFrame = 'MONTH' | 'QUARTER' | 'YEAR';
 
-export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b981', isPro, onOpenPro, selectedSubtaskId }) => {
+export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b981', isPro, selectedSubtaskId }) => {
     const { t } = useTranslation();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [timeframe, setTimeframe] = useState<TimeFrame>('QUARTER');
@@ -26,7 +27,7 @@ export const HabitHeatmap: React.FC<HabitHeatmapProps> = ({ habit, color = '#10b
 
     const handleTabClick = (tf: TimeFrame) => {
         if (!isPro && (tf === 'YEAR' || tf === 'QUARTER')) {
-            if (onOpenPro) onOpenPro();
+            promptDeluxe('charts');
             return;
         }
         setTimeframe(tf);

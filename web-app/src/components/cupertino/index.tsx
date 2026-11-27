@@ -229,11 +229,13 @@ export interface WizardSheetProps {
     doneLabel?: string;
     stepOf?: (i: number, n: number) => string;
     zIndex?: number;
+    /** Which creator this is ('task' | 'habit' | 'project'): lets El Monitor follow the wizard step by step. */
+    tourKind?: string;
 }
 
 export const WizardSheet: React.FC<WizardSheetProps> = ({
     isOpen, onClose, accent, steps, index, onIndex, onFinish, finishLabel, finishing, glyph, name, lastExtra, subpanel, overlays,
-    nextLabel = 'Siguiente', backLabel = 'Atrás', doneLabel = 'Listo', stepOf = (i, n) => `Paso ${i + 1} de ${n}`, zIndex = 99999,
+    nextLabel = 'Siguiente', backLabel = 'Atrás', doneLabel = 'Listo', stepOf = (i, n) => `Paso ${i + 1} de ${n}`, zIndex = 99999, tourKind,
 }) => {
     const { visible, closing } = useSheetPresence(isOpen);
     useBodyLock(isOpen);
@@ -263,6 +265,13 @@ export const WizardSheet: React.FC<WizardSheetProps> = ({
         <div
             className="cu-root cu-wiz-layer"
             data-closing={closing || undefined}
+            data-tour="wiz"
+            data-wiz-kind={tourKind}
+            data-wiz-step={step.key}
+            data-wiz-index={index}
+            data-wiz-valid={step.valid ? '1' : '0'}
+            data-wiz-last={isLast ? '1' : '0'}
+            data-wiz-sub={subpanel ? '1' : '0'}
             style={{ zIndex, pointerEvents: closing ? 'none' : 'auto', ['--cu-accent' as any]: accent }}
         >
             <div className="cu-wiz-top">
@@ -285,7 +294,7 @@ export const WizardSheet: React.FC<WizardSheetProps> = ({
                 </button>
             </div>
 
-            <div className="cu-wiz-hero" key={`hero-${index}`} data-dir={dir}>
+            <div className="cu-wiz-hero" key={`hero-${index}`} data-dir={dir} data-tour="wiz-hero">
                 <div className="cu-wiz-glyph">{glyph}</div>
                 {name && index > 0 ? <span className="cu-wiz-chip">{name}</span> : null}
                 <p className="cu-wiz-step">{stepOf(index, steps.length)}</p>
@@ -294,7 +303,7 @@ export const WizardSheet: React.FC<WizardSheetProps> = ({
             </div>
 
             <div className={cn('cu-wiz-panel', subpanel && 'cu-has-sub')}>
-                <div className="cu-wiz-body" key={`body-${index}`} data-dir={dir}>{step.content}</div>
+                <div className="cu-wiz-body" key={`body-${index}`} data-dir={dir} data-tour="wiz-body">{step.content}</div>
 
                 <div className="cu-wiz-foot">
                     {isLast && lastExtra ? lastExtra : null}
@@ -302,6 +311,7 @@ export const WizardSheet: React.FC<WizardSheetProps> = ({
                     <button
                         type="button"
                         className="cu-cta"
+                        data-tour="wiz-cta"
                         disabled={!canAdvance}
                         onClick={() => { if (isLast) onFinish(); else onIndex(index + 1); }}
                     >

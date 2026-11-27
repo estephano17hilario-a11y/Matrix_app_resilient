@@ -7,6 +7,7 @@ import FocusSession from '@/plugins/FocusPlugin';
 import { useTranslation } from 'react-i18next';
 
 import { hashPin } from '../../../utils/crypto';
+import { promptDeluxe } from '@/modules/monetization/deluxe';
 
 interface NotesConfigModalProps {
     isOpen: boolean;
@@ -34,7 +35,7 @@ export interface NotesConfig {
     }
 }
 
-export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig, isPro, onOpenPro }: NotesConfigModalProps) => {
+export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig, isPro }: NotesConfigModalProps) => {
     const { t } = useTranslation();
     const [config, setConfig] = useState<NotesConfig>(initialConfig || {
         enabledFeatures: ['BIRTHDAY', 'KEY', 'TARGET'],
@@ -64,7 +65,7 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig, isPro
 
     const toggleFeature = (id: string) => {
         if (id === 'KEY' && !isPro) {
-            if (onOpenPro) onOpenPro();
+            promptDeluxe('vault');
             return;
         }
         setConfig(prev => ({
@@ -77,7 +78,7 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig, isPro
 
     const toggleProtectedArea = (area: keyof typeof config.security.protectedAreas) => {
         if (!isPro) {
-            if (onOpenPro) onOpenPro();
+            promptDeluxe('vault');
             return;
         }
         setConfig(prev => ({
@@ -94,7 +95,7 @@ export const NotesConfigModal = ({ isOpen, onClose, onSave, initialConfig, isPro
 
     const handlePinChange = (val: string) => {
         if (!isPro) {
-            if (onOpenPro) onOpenPro();
+            promptDeluxe('vault');
             return;
         }
         if (config.security.pin.length === 64 && val.includes('•')) {

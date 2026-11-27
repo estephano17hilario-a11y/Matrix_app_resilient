@@ -1,0 +1,126 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Streak visuals: embers, heat, ice, rings. Compositor-only animations
+   (transform / opacity) so they stay smooth on low-end Android.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Rising embers: each ember gets --x (drift), --d (delay), --s (size), --t (duration). */
+.sk-ember {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: var(--s, 3px);
+  height: var(--s, 3px);
+  border-radius: 999px;
+  background: radial-gradient(circle, #fff7d6 0%, var(--c, #fb923c) 55%, transparent 75%);
+  box-shadow: 0 0 6px var(--c, #fb923c);
+  opacity: 0;
+  pointer-events: none;
+  animation: sk-rise var(--t, 2.6s) cubic-bezier(0.22, 0.61, 0.36, 1) var(--d, 0s) infinite;
+  will-change: transform, opacity;
+}
+@keyframes sk-rise {
+  0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0; }
+  12% { opacity: 1; }
+  70% { opacity: 0.7; }
+  100% { transform: translate3d(var(--x, 0px), var(--h, -90px), 0) scale(0.2); opacity: 0; }
+}
+
+/* Snow / frost motes for protected days. */
+.sk-flake {
+  position: absolute;
+  top: -6px;
+  left: var(--l, 50%);
+  width: var(--s, 3px);
+  height: var(--s, 3px);
+  border-radius: 999px;
+  background: #e0f2fe;
+  box-shadow: 0 0 6px #7dd3fc;
+  opacity: 0;
+  pointer-events: none;
+  animation: sk-fall var(--t, 4s) linear var(--d, 0s) infinite;
+  will-change: transform, opacity;
+}
+@keyframes sk-fall {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  15% { opacity: 0.9; }
+  100% { transform: translate3d(var(--x, 8px), var(--h, 160px), 0); opacity: 0; }
+}
+
+/* Slow breathing glow behind a flame. */
+.sk-breathe {
+  animation: sk-breathe 3.2s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+@keyframes sk-breathe {
+  0%, 100% { transform: scale(0.94); opacity: 0.55; }
+  50% { transform: scale(1.06); opacity: 0.95; }
+}
+
+/* A rotating ring (conic gradient element). */
+.sk-spin { animation: sk-spin 9s linear infinite; will-change: transform; }
+.sk-spin-rev { animation: sk-spin 14s linear infinite reverse; will-change: transform; }
+@keyframes sk-spin { to { transform: rotate(360deg); } }
+
+/* Pulse for "at risk" states. */
+.sk-risk { animation: sk-risk 1.6s ease-in-out infinite; }
+@keyframes sk-risk {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.0), 0 0 12px -4px rgba(244, 63, 94, 0.5); }
+  50% { box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.18), 0 0 18px -2px rgba(244, 63, 94, 0.7); }
+}
+
+/* Sheen sweeping across a surface. */
+.sk-sheen { position: relative; overflow: hidden; }
+.sk-sheen::after {
+  content: '';
+  position: absolute;
+  inset: -40% auto -40% -60%;
+  width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+  transform: translateX(0) skewX(-12deg);
+  animation: sk-sheen 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes sk-sheen {
+  0%, 55% { transform: translateX(0) skewX(-12deg); }
+  100% { transform: translateX(420%) skewX(-12deg); }
+}
+
+/* Flicker for a dying flame in the loss report. */
+.sk-dying { animation: sk-dying 2.4s ease-in-out infinite; transform-origin: 50% 90%; }
+@keyframes sk-dying {
+  0%, 100% { transform: scale(0.9) rotate(-2deg); opacity: 0.55; }
+  30% { transform: scale(0.82) rotate(2deg); opacity: 0.35; }
+  60% { transform: scale(0.95) rotate(-1deg); opacity: 0.7; }
+}
+
+/* Smoke curls rising from a dead flame. */
+.sk-smoke {
+  position: absolute;
+  left: 50%;
+  bottom: 40%;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(148, 163, 184, 0.35), transparent 70%);
+  opacity: 0;
+  animation: sk-smoke 3.4s ease-out var(--d, 0s) infinite;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+@keyframes sk-smoke {
+  0% { transform: translate3d(-50%, 0, 0) scale(0.6); opacity: 0; }
+  20% { opacity: 0.8; }
+  100% { transform: translate3d(calc(-50% + var(--x, 10px)), -70px, 0) scale(2.4); opacity: 0; }
+}
+
+/* Float for power orbs. */
+.sk-float { animation: sk-float 4s ease-in-out infinite; will-change: transform; }
+@keyframes sk-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-ember, .sk-flake, .sk-smoke { display: none; }
+  .sk-breathe, .sk-spin, .sk-spin-rev, .sk-risk, .sk-dying, .sk-float, .sk-sheen::after { animation: none; }
+}

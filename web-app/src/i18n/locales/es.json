@@ -767,19 +767,22 @@
       "invalidEmail": "El correo electrónico no es válido",
       "userNotFound": "No existe una cuenta con este correo",
       "wrongPassword": "Contraseña incorrecta",
-      "emailInUse": "El correo ya está en uso",
+      "emailInUse": "Ya existe una cuenta con este correo. Prueba a iniciar sesión.",
       "weakPassword": "La contraseña es demasiado débil",
       "tooManyRequests": "Demasiados intentos. Intenta más tarde",
       "authDisabled": "El inicio de sesión con Email/Contraseña no está habilitado.",
       "nameRequired": "El nombre es obligatorio",
       "required": "Todos los campos son obligatorios",
-      "network": "Error de red. Verifica tu conexión o desactiva bloqueadores.",
+      "network": "Sin conexión. Revisa tu internet e inténtalo de nuevo.",
       "unauthorizedDomain": "Este dominio no está autorizado para Google login.",
       "insecureContext": "Google login requiere HTTPS o localhost.",
       "popupBlocked": "Popup bloqueado. Continuaremos con redirección.",
       "popupClosed": "El popup se cerró antes de completar el login.",
       "generic": "No se pudo iniciar sesión. Inténtalo de nuevo.",
-      "invalidCredentials": "Correo o contraseña inválidos."
+      "invalidCredentials": "Correo o contraseña incorrectos.",
+      "emailNotConfirmed": "Confirma tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.",
+      "cancelled": "Inicio de sesión cancelado.",
+      "confirmationRequired": "Revisa tu correo para confirmar tu cuenta."
     },
     "orContinue": "O continúa con",
     "google": "Google",
@@ -787,6 +790,116 @@
       "subtitle": "Gamifica Tu Vida",
       "start": "EMPEZAR",
       "login": "Iniciar Sesión"
+    },
+    "continueGoogle": "Continuar con Google",
+    "placeholders": {
+      "email": "tu@correo.com"
+    },
+    "welcome": {
+      "hello": "¡Hola! Soy Lux ✨",
+      "poke1": "¡Jiji, cosquillas! 😆",
+      "poke2": "¿Listo para subir de nivel? 🚀",
+      "poke3": "¡Cada día cuenta! 🔥",
+      "title": "Convierte tu vida en un juego",
+      "subtitle": "Hábitos, rachas y rangos que te motivan cada día.",
+      "start": "Empezar",
+      "haveAccount": "Ya tengo una cuenta",
+      "slides": {
+        "habits": {
+          "title": "Hábitos con superpoderes",
+          "desc": "Completa misiones diarias y mantén viva tu racha."
+        },
+        "rank": {
+          "title": "Sube de rango",
+          "desc": "Gana XP y ELO con cada logro que consigas."
+        },
+        "friends": {
+          "title": "Reta a tus amigos",
+          "desc": "Duelos, rachas compartidas y mucha motivación."
+        }
+      }
+    },
+    "loginFlow": {
+      "title": "Iniciar sesión",
+      "bubble": "¡Qué alegría verte! Entra y sigue tu racha 🔥",
+      "bubbleEmail": "Mmm… ¿cuál es tu correo?",
+      "bubblePassword": "No miro, ¡lo prometo! 🙈",
+      "bubblePeek": "Bueno… quizá un poquito 👀",
+      "bubbleLoading": "Abriendo tu mundo…",
+      "bubbleError": "¡Ups! Algo no cuadra 😕",
+      "submit": "Entrar",
+      "forgot": "¿Olvidaste tu contraseña?",
+      "noAccount": "¿No tienes cuenta?",
+      "createOne": "Crea una gratis",
+      "or": "o"
+    },
+    "registerFlow": {
+      "lang": {
+        "bubble": "¡Hola! ¿En qué idioma hablamos?"
+      },
+      "name": {
+        "bubble": "¿Cómo quieres que te llame?",
+        "bubbleValid": "¡Encantado, {{name}}! 🤝",
+        "label": "Tu nombre",
+        "placeholder": "Ej. Alex",
+        "hint": "Entre 2 y 12 caracteres"
+      },
+      "email": {
+        "bubble": "¿Cuál es tu correo? Lo usarás para entrar.",
+        "bubbleValid": "¡Perfecto! Ese correo se ve genial ✉️",
+        "bubbleTypo": "Mmm… creo que hay un error de dedo 🤔",
+        "label": "Correo electrónico",
+        "hint": "Nunca lo compartiremos con nadie.",
+        "suggestPrefix": "¿Quisiste decir",
+        "google": "Prefiero usar Google"
+      },
+      "password": {
+        "bubble": "Ahora crea una contraseña secreta 🔐",
+        "bubbleValid": "¡Listo! Ya casi terminamos.",
+        "bubbleStrong": "¡Wow, contraseña de nivel experto! 💪",
+        "label": "Contraseña",
+        "confirmLabel": "Repite la contraseña",
+        "ruleLength": "Mínimo {{count}} caracteres",
+        "ruleMatch": "Coinciden",
+        "strength0": "Seguridad",
+        "strength1": "Muy corta",
+        "strength2": "Aceptable",
+        "strength3": "Buena",
+        "strength4": "¡Excelente!"
+      },
+      "continue": "Continuar",
+      "create": "Crear cuenta",
+      "creating": "Preparando tu aventura… ✨",
+      "haveAccount": "¿Ya tienes cuenta?",
+      "login": "Inicia sesión",
+      "country": {
+        "bubble": "¡Hola! ¿De qué país eres? 🌎",
+        "bubbleValid": "¡{{country}}! Qué buen lugar 🙌",
+        "search": "Busca tu país",
+        "suggested": "Sugerido para ti",
+        "popular": "Populares",
+        "all": "Todos los países",
+        "empty": "No encontramos ese país"
+      }
+    },
+    "forgotFlow": {
+      "title": "Recupera tu cuenta",
+      "bubble": "¡Sin problema! Te enviaré un enlace para crear una contraseña nueva.",
+      "sending": "Enviando el enlace… 📨",
+      "label": "Correo de tu cuenta",
+      "hint": "Te llegará un correo con un enlace seguro.",
+      "submit": "Enviar enlace",
+      "sentTitle": "¡Revisa tu correo!",
+      "sentDesc": "Si {{email}} tiene una cuenta, te llegará un enlace para crear una contraseña nueva.",
+      "sentBubble": "Mira también en spam o promociones 👀",
+      "backToLogin": "Volver a iniciar sesión",
+      "resend": "¿No llegó? Reenviar"
+    },
+    "checkEmail": {
+      "title": "Confirma tu correo",
+      "desc": "Te enviamos un enlace a {{email}}. Ábrelo para activar tu cuenta y luego inicia sesión.",
+      "bubble": "¡Ya casi! Solo falta un paso 🎉",
+      "cta": "Ir a iniciar sesión"
     }
   },
   "modals": {
@@ -945,7 +1058,9 @@
       "market": "Mercado",
       "upgrades": "Mejoras",
       "inventory": "Mochila",
-      "ledger": "Recibos"
+      "ledger": "Recibos",
+      "powers": "Poderes",
+      "themes": "Temas"
     },
     "vault": {
       "kicker": "Tu monedero",
@@ -1053,16 +1168,16 @@
     "emptyCategory": "No hay items en esta categoría",
     "items": {
       "potion_hp_small": {
-        "name": "Restauración de Vida (+5 HP)",
-        "desc": "Restaura 5 HP al instante por 1,500 monedas de oro."
+        "name": "Poción de vida",
+        "desc": "Restaura 10 HP al instante."
       },
       "rest_shield": {
         "name": "Escudo de descanso",
-        "desc": "Protege un día: sin pérdidas de ELO y sin romper la racha. Los hábitos y tareas no suman ese día; el foco sí."
+        "desc": "Un día de descanso: sin pérdidas de ELO y todas tus rachas se mantienen. Hábitos y tareas no suman ese día; el foco sí."
       },
       "redemption_token": {
-        "name": "Restauración de Racha",
-        "desc": "Reactiva tu última racha perdida (HUD: 5000g, Llama: 3000g, Hábito/Proyecto: 1800g). Válido dentro de los 3 días posteriores a perderla."
+        "name": "Restauración de racha",
+        "desc": "Recupera una racha perdida en los 3 días siguientes: diaria 5,000 · hábito 2,500 c/u · proyecto 2,500."
       },
       "theme_neon_purple": {
         "name": "Protocolo Nébula",
@@ -1075,6 +1190,30 @@
       "theme_apple_minimal": {
         "name": "Cristal Cupertino",
         "desc": "Estética de cristal esmerilado ultra-limpia. Máxima claridad."
+      },
+      "freeze_streak": {
+        "name": "Congelador de racha",
+        "desc": "Protege el día de hoy: no se rompe tu racha diaria ni las de tus hábitos y proyectos aunque no cumplas."
+      },
+      "glacier_streak": {
+        "name": "Glaciar eterno",
+        "desc": "Congela 3 días seguidos (hoy y los 2 siguientes). Ideal para viajes o días de enfermedad."
+      },
+      "phoenix_feather": {
+        "name": "Pluma de fénix",
+        "desc": "Se guarda en tu inventario y se activa sola: si tu racha diaria se rompe (hasta 3 días), la salva automáticamente."
+      },
+      "potion_hp_full": {
+        "name": "Elixir mayor",
+        "desc": "Restaura toda tu vida (HP) de golpe."
+      },
+      "potion_xp_restore": {
+        "name": "Pergamino de sabiduría",
+        "desc": "Otorga +250 XP al instante. Puede subirte de nivel."
+      },
+      "mystery_chest": {
+        "name": "Cofre del destino",
+        "desc": "Ábrelo para ganar un poder al azar o una bolsa de oro de hasta 4,000."
       }
     },
     "successPurchase": "¡COMPRA EXITOSA!",
@@ -1283,7 +1422,11 @@
       "imagePlaceholder": "Marcador de Imagen"
     },
     "subtaskManager": {
-      "addStepPlaceholder": "Añadir paso táctico... (+)"
+      "addStepPlaceholder": "Añadir paso táctico... (+)",
+      "setTime": "Tiempo del paso",
+      "startTime": "Hora",
+      "duration": "Duración",
+      "totalTime": "Tiempo total"
     }
   },
   "tasks": {
@@ -2359,6 +2502,7 @@
     "fixedSchedulesOpen": "Horarios Fijos (",
     "addSchedule": "Añadir Horario",
     "optionalAlarm": "Alarma Opcional",
+    "stepDuration": "Duración del paso",
     "loggingMode": "Modo de Registro",
     "modifyingYesterday": "Modificando: Ayer",
     "goToYesterday": "Ir al día anterior",
@@ -2887,8 +3031,13 @@
       "more": "Más",
       "noProjects": "Aún no tienes proyectos activos.",
       "none": "Sin meta",
-      "projectGoals": "Meta diaria de foco por proyecto",
+      "projectGoals": "Meta de foco de hoy por proyecto",
       "projectGoalsHint": "Si no la cumples con el temporizador: −2 ELO por proyecto.",
+      "projectGoalsAuto": "Sale de la meta que pusiste al crear cada proyecto. Si es semanal o mensual, aquí ves solo la parte de hoy. Si no la cumples con el temporizador: −2 ELO.",
+      "restDay": "Hoy sin meta",
+      "fromDaily": "Meta diaria del proyecto: {{v}}",
+      "fromWeekly": "Meta semanal del proyecto: {{v}} → repartida en tus días",
+      "fromMonthly": "Meta mensual del proyecto: {{v}} → repartida en tus días",
       "reports": "Informe al completar",
       "sound": "Efectos de sonido",
       "system": "Sistema",

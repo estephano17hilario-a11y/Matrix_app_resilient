@@ -17,7 +17,6 @@ import { NotesProvider } from '@/modules/notes/context/NotesContext';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { MotionConfig } from 'framer-motion';
 import { useNotificationSystem } from './hooks/useNotificationSystem';
-import { TourProvider } from '@/components/TourGuide';
 
 import { AuroraBackground } from '@/components/AuroraBackground';
 import { ImmersiveWorld } from '@/immersion/ImmersiveWorld';
@@ -331,7 +330,7 @@ export default function App() {
 export function AppShell() {
   return (
     <ThemeProvider>
-      <TourProvider>
+      <>
         <MotionConfig transition={{ type: 'tween', duration: 0.18, ease: [0.25, 0.1, 0.25, 1.0] }}>
           <Toaster
             position="top-center"
@@ -364,7 +363,7 @@ export function AppShell() {
           />
           <AppRoutes />
         </MotionConfig>
-      </TourProvider>
+      </>
     </ThemeProvider>
   );
 }

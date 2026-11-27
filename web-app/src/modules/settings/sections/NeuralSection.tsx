@@ -9,6 +9,7 @@ import { TRAITS_LIST } from '../../dashboard/constants';
 import { IconPicker } from '../../dashboard/components/IconPicker';
 import { supabase } from '../../../services/supabase';
 import { calculateSubTraitMaxXp } from '../../../utils/leveling';
+import { promptDeluxe } from '@/modules/monetization/deluxe';
 
 const COLORS = ['#3b82f6', '#ef4444', '#06b6d4', '#ec4899', '#8b5cf6', '#10b981', '#f59e0b', '#64748b', '#6366f1', '#f97316', '#84cc16', '#d946ef', '#eab308'];
 
@@ -166,7 +167,6 @@ export const NeuralSection = () => {
     addCustomAttribute, 
     removeAttribute, 
     isPro, 
-    showProModal,
     addSubTrait,
     updateSubTrait,
     deleteSubTrait 
@@ -246,7 +246,7 @@ export const NeuralSection = () => {
 
   const startEditing = (attr: any) => {
     if (!isPro) {
-      showProModal();
+      promptDeluxe('traits');
       return;
     }
     setEditingId(attr.id);
@@ -283,7 +283,7 @@ export const NeuralSection = () => {
       setEditingSubId(null);
     } else if (isCreating) {
       if (!isPro) {
-        showProModal();
+        promptDeluxe('traits');
         return;
       }
       addCustomAttribute({ label: editForm.label || 'Custom', color: editForm.color, icon: editForm.icon, iconName: editForm.iconName });
@@ -320,7 +320,7 @@ export const NeuralSection = () => {
 
   const handleCreateCustom = () => {
     if (!isPro) {
-      showProModal();
+      promptDeluxe('traits');
       return;
     }
     setEditingId(null);
@@ -690,7 +690,7 @@ export const NeuralSection = () => {
                                           e.stopPropagation();
                                           e.preventDefault();
                                           if (!isPro) {
-                                            showProModal();
+                                            promptDeluxe('traits');
                                             return;
                                           }
                                           setEditingSubId(st.id);

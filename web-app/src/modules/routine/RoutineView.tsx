@@ -19,6 +19,8 @@ import { RoutineConfigSheet } from './RoutineConfigSheet';
 import { syncReminderItemsWidget, syncRoutineWidget } from './routineWidgetSync';
 import { useReminderItems } from './useReminderItems';
 import { ReminderSheet } from './ReminderSheet';
+import { TourLightbulb } from '@/components/TourLightbulb';
+import { getRoutineDefaultView } from '@/utils/startupPrefs';
 import { useIsDeluxe, promptDeluxe } from '../monetization/deluxe';
 import {
   buildRoutineItems, countByPart, dayPartOf, formatHourRange, hideCompleted, hourBlockOf, loadRoutineConfig, saveRoutineConfig, sectionize,
@@ -336,6 +338,17 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
     });
   }, [userId]);
 
+  // The view chosen in Settings → "Al entrar en Rutina" wins over the last one used.
+  useEffect(() => {
+    const wanted = getRoutineDefaultView();
+    if (wanted === 'LAST' || wanted === config.view) return;
+    if (wanted === 'CALENDAR' && !isDeluxe) return;
+    updateConfig({ view: wanted });
+    if (wanted === 'CALENDAR') setImmersive(true);
+    // Only when the Routine opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // The calendar widget opens the Routine on its calendar: it leaves a note that is read on mount or on the event.
   useEffect(() => {
     const apply = () => {
@@ -577,6 +590,7 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
     <div className="pb-36 pt-2 w-full">
       {/* Header */}
       <motion.div
+        data-tour="routine-header"
         className="flex items-center justify-between mb-4 px-1"
         initial={reduce ? false : { opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -586,7 +600,8 @@ export const RoutineView: React.FC<RoutineViewProps> = ({
           <h1 className="text-[28px] font-black text-white tracking-tight leading-none">{tr('Rutina', 'Routine')}</h1>
           <p className="text-[12px] font-semibold text-white/40 first-letter:uppercase truncate mt-1.5">{fullDate}</p>
         </div>
-        <div className="flex items-center gap-2 shrink-0 relative">
+        <div className="flex items-center gap-2 shrink-0 relative" data-tour="routine-tools">
+          <TourLightbulb tourId="routine" />
           {/* List ↔ calendar */}
           <div className="relative flex h-10 p-1 rounded-2xl bg-white/[0.06] border border-white/10" role="tablist" aria-label={tr('Vista', 'View')}>
             <span

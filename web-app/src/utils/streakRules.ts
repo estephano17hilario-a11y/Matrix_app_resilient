@@ -51,15 +51,34 @@ const shiftDay = (dateKey: string, days: number) => {
   return toLocalISOString(d);
 };
 
-// A streak freeze lasts 24h from the purchase, so it protects exactly one
-// day: the day it was bought (the one before the freeze ends). It never
-// reaches back further, so it can't hide older misses.
-const isFrozenOn = (frozenUntil: string | null | undefined, dateKey: string) => {
+// Protected days (streak freeze, glacier, rest shield, phoenix feather) never
+// break a streak. They are stored as a list of local date keys
+// (`stats.streakFrozenDays`). The legacy `streakFrozenUntil` (24h from the
+// purchase) still protects exactly one day: the day it was bought.
+export interface StreakProtection {
+  frozenUntil?: string | null;
+  frozenDays?: string[] | null;
+}
+
+const isFrozenOn = (frozenUntil: string | null | undefined, dateKey: string, frozenDays?: string[] | null) => {
+  if (frozenDays && frozenDays.includes(dateKey)) return true;
   if (!frozenUntil) return false;
   const until = parseLocalDate(frozenUntil);
   if (Number.isNaN(until.getTime())) return false;
   return dateKey === shiftDay(toLocalISOString(until), -1);
 };
+
+/** True when a day is protected by any streak power (freeze, shield, phoenix…). */
+export const isDayProtected = (p: StreakProtection, dateKey: string) => isFrozenOn(p.frozenUntil, dateKey, p.frozenDays);
+
+/** Date keys from `from` to `to` (inclusive). Empty when from > to. Capped at 60 days. */
+export const dayRange = (from: string, to: string) => {
+  const out: string[] = [];
+  for (let k = from; k <= to && out.length < 60; k = shiftDay(k, 1)) out.push(k);
+  return out;
+};
+
+export { shiftDay as shiftDayKey };
 
 /**
  * The part of the daily streak that survives into today, *not counting today*.
@@ -70,17 +89,31 @@ export const carriedDailyStreak = (p: {
   streak?: number;
   lastStreakDate?: string | null;
   frozenUntil?: string | null;
+  frozenDays?: string[] | null;
   now?: Date;
 }) => {
   const streak = p.streak || 0;
   if (streak <= 0 || !p.lastStreakDate) return 0;
   const today = toLocalISOString(p.now || new Date());
-  const yesterday = shiftDay(today, -1);
   if (p.lastStreakDate === today) return streak - 1;
-  if (p.lastStreakDate === yesterday) return streak;
-  // A streak freeze keeps the count alive through the frozen days.
-  if (isFrozenOn(p.frozenUntil, yesterday)) return streak;
-  return 0;
+  // Walk back from yesterday over protected days: the streak survives when
+  // every day between its last counted day and today was protected.
+  let k = shiftDay(today, -1);
+  for (let i = 0; i < 60 && k > p.lastStreakDate; i++) {
+    if (!isFrozenOn(p.frozenUntil, k, p.frozenDays)) return 0;
+    k = shiftDay(k, -1);
+  }
+  return k === p.lastStreakDate ? streak : 0;
+};
+
+/**
+ * Days missed by a broken daily streak (from the day after its last counted
+ * day up to yesterday), skipping days that were protected anyway.
+ */
+export const missedDailyStreakDays = (p: { lastStreakDate?: string | null; now?: Date } & StreakProtection) => {
+  if (!p.lastStreakDate) return [];
+  const today = toLocalISOString(p.now || new Date());
+  return dayRange(shiftDay(p.lastStreakDate, 1), shiftDay(today, -1)).filter(k => !isFrozenOn(p.frozenUntil, k, p.frozenDays));
 };
 
 /**
@@ -143,7 +176,7 @@ const MAX_LOOKBACK_DAYS = 1100;
 export const computeHabitStreak = (
   habit: HabitLike,
   history: string[] | undefined,
-  opts: { now?: Date; weekStartDay?: 0 | 1; frozenUntil?: string | null } = {},
+  opts: { now?: Date; weekStartDay?: 0 | 1; frozenUntil?: string | null; frozenDays?: string[] | null } = {},
 ) => {
   const keys = new Set((history || []).map(h => getHistoryDateKey(h)));
   if (keys.size === 0) return 0;
@@ -191,7 +224,7 @@ export const computeHabitStreak = (
       const lastDayOfPeriod = shiftDay(toLocalISOString(nextPeriod(start)), -1);
       if (lastDayOfPeriod < earliest) break;
       const c = countIn(start);
-      if (c >= goal || isFrozenOn(opts.frozenUntil, lastDayOfPeriod)) streak += c;
+      if (c >= goal || isFrozenOn(opts.frozenUntil, lastDayOfPeriod, opts.frozenDays)) streak += c;
       else break;
     }
     return streak;
@@ -204,7 +237,7 @@ export const computeHabitStreak = (
     if (key < earliest) break;
     if (keys.has(key)) {
       streak++;
-    } else if (isHabitScheduledOn(habit, d) && key !== today && !isFrozenOn(opts.frozenUntil, key) && !forgiven.has(key)) {
+    } else if (isHabitScheduledOn(habit, d) && key !== today && !isFrozenOn(opts.frozenUntil, key, opts.frozenDays) && !forgiven.has(key)) {
       break;
     }
     d.setDate(d.getDate() - 1);
@@ -221,7 +254,7 @@ export const computeHabitStreak = (
 export const habitStreakRecovery = (
   habit: HabitLike,
   history: string[] | undefined,
-  opts: { now?: Date; weekStartDay?: 0 | 1; frozenUntil?: string | null } = {},
+  opts: { now?: Date; weekStartDay?: 0 | 1; frozenUntil?: string | null; frozenDays?: string[] | null } = {},
 ) => {
   if (habit.weeklyType === 'FLEXIBLE_COUNT' || habit.monthlyType === 'FLEXIBLE_COUNT') return null;
   const keys = Array.from(new Set((history || []).map(h => getHistoryDateKey(h)))).sort();
@@ -234,7 +267,7 @@ export const habitStreakRecovery = (
 
   const forgive: string[] = [];
   for (let k = shiftDay(last, 1); k <= yesterday; k = shiftDay(k, 1)) {
-    if (isHabitScheduledOn(habit, parseLocalDate(k))) forgive.push(k);
+    if (isHabitScheduledOn(habit, parseLocalDate(k)) && !isFrozenOn(opts.frozenUntil, k, opts.frozenDays)) forgive.push(k);
   }
   if (!forgive.length) return null;
 
@@ -244,5 +277,7 @@ export const habitStreakRecovery = (
     history,
     opts,
   );
-  return restored > current ? { restored, forgive } : null;
+  // `lost` = the streak the habit had on its last completed day.
+  const lost = computeHabitStreak(habit, history, { ...opts, now: parseLocalDate(last) });
+  return restored > current ? { restored, forgive, lost, lastDone: last } : null;
 };

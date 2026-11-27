@@ -9,7 +9,7 @@
     <!-- Time column -->
     <LinearLayout
         android:id="@+id/routine_time_col"
-        android:layout_width="40dp"
+        android:layout_width="33dp"
         android:layout_height="match_parent"
         android:gravity="center_vertical|end"
         android:orientation="vertical"
@@ -40,7 +40,7 @@
 
     <!-- Rail: a line shared by the whole section, with this item's dot on it -->
     <FrameLayout
-        android:layout_width="16dp"
+        android:layout_width="12dp"
         android:layout_height="match_parent">
 
         <ImageView
@@ -53,8 +53,8 @@
 
         <ImageView
             android:id="@+id/routine_dot_halo"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
             android:layout_gravity="center"
             android:scaleType="fitXY"
             android:src="@drawable/widget_routine_dot_halo"
@@ -90,7 +90,7 @@
         android:id="@+id/routine_card"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="3dp"
+        android:layout_marginStart="2dp"
         android:layout_marginTop="3dp"
         android:layout_marginBottom="3dp"
         android:layout_weight="1"
@@ -127,6 +127,7 @@
             android:src="@drawable/widget_routine_accent" />
 
         <LinearLayout
+            android:id="@+id/routine_card_inner"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"

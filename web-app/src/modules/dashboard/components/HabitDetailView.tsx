@@ -13,6 +13,7 @@ import { DateSelectionModal, DateSelectionMode } from './DateSelectionModal';
 import { HabitGoalChart } from './HabitGoalChart';
 import { ConfirmationModal } from '../../../components/ui/ConfirmationModal';
 import { useTranslation } from 'react-i18next';
+import { promptDeluxe } from '@/modules/monetization/deluxe';
 
 interface HabitDetailViewProps {
  habit?: Habit | null;
@@ -98,7 +99,7 @@ interface HabitDetailViewProps {
  weekStartDay?: 0 | 1;
 }
 
-export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project, attribute, attributeColor, onClose, onEdit, onDelete, onArchive, isPro, onOpenPro, weekStartDay = 1 }) => {
+export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project, attribute, attributeColor, onClose, onEdit, onDelete, onArchive, isPro, weekStartDay = 1 }) => {
  const { t } = useTranslation();
  const { user } = useLux();
  const isProActive = isPro || user?.plan === 'PRO' || user?.es_pro === true;
@@ -130,7 +131,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
 
  const handleTabClick = (tabValue: TimeRange) => {
  if (!isProActive && ['MONTH', '3_MONTHS', 'YEAR', 'TOTAL'].includes(tabValue)) {
- if (onOpenPro) onOpenPro();
+ promptDeluxe('charts');
  return;
  }
 
@@ -1174,7 +1175,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  </span> as any
  }
  value={<span className="bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient-x_6s_ease_infinite] bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-400">{t('monetization.delux', 'DELUX')}</span> as any}
- onClick={() => onOpenPro && onOpenPro()}
+ onClick={() => promptDeluxe('charts')}
  />
  <StatCard 
  label={
@@ -1184,7 +1185,7 @@ export const HabitDetailView: React.FC<HabitDetailViewProps> = ({ habit, project
  </span> as any
  }
  value={<span className="bg-clip-text text-transparent bg-[length:200%_auto] animate-[gradient-x_6s_ease_infinite] bg-gradient-to-r from-purple-400 via-pink-500 to-indigo-400">{t('monetization.delux', 'DELUX')}</span> as any}
- onClick={() => onOpenPro && onOpenPro()}
+ onClick={() => promptDeluxe('charts')}
  />
  </>
  )}

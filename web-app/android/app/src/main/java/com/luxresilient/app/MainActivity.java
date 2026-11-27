@@ -12,6 +12,7 @@ public class MainActivity extends BridgeActivity {
         purgeNonStringCapacitorPrefs();
         registerPlugin(FocusPlugin.class);
         registerPlugin(WidgetAuthBridge.class);
+        registerPlugin(CoachNotifyPlugin.class);
         super.onCreate(savedInstanceState);
     }
 

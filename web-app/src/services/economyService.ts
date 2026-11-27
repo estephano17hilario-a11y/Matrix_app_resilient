@@ -1,6 +1,4 @@
 import { supabase } from '@/services/supabase';
-import { anchorRestoredStreak } from '../utils/streakRules';
-import { calculateLevelFromXp, calculateNextLevelXp } from '../utils/leveling';
 
 export interface InventoryItem {
   itemId: string;
@@ -14,11 +12,11 @@ export interface StoreItem {
   description: string;
   price: number;
   category: 'power_up' | 'theme' | 'radar_color' | 'chest' | 'frame';
-  subCategory?: string; // For grouping items
+  subCategory?: 'protection' | 'restore' | 'vitality' | 'growth' | 'mystery'; // For grouping items
   icon?: React.ReactNode; // We might handle icons in the UI component mapping
   iconName?: string; // For serializable icon reference
   effect?: {
-    type: 'heal' | 'restore_streak' | 'xp_boost' | 'freeze_streak' | 'rest_shield' | 'chest' | 'frame' | 'none';
+    type: 'heal' | 'heal_full' | 'restore_streak' | 'xp_boost' | 'freeze_streak' | 'auto_protect' | 'rest_shield' | 'chest' | 'mystery' | 'frame' | 'none';
     value: number;
     duration?: number; // hours
   };
@@ -101,10 +99,14 @@ export const purchaseItem = async (userId: string, item: StoreItem) => {
   }
 };
 
+export type ItemEffectFn = (stats: any, inventory: InventoryItem[]) => { stats: any; inventory: InventoryItem[] };
+
 /**
- * Consumes an item from the inventory.
+ * Consumes an item from the inventory. `apply` is the same effect function the
+ * client already applied optimistically (see EconomyContext), so the server
+ * copy gets exactly the same result, on top of the latest stored stats.
  */
-export const consumeItem = async (userId: string, itemId: string, _effect: StoreItem['effect']) => {
+export const consumeItem = async (userId: string, itemId: string, apply: ItemEffectFn) => {
   try {
     const { data: userData, error: fetchError } = await supabase
       .from('users')
@@ -118,83 +120,20 @@ export const consumeItem = async (userId: string, itemId: string, _effect: Store
 
     const inventory = (userData.inventory || []) as InventoryItem[];
     const itemIndex = inventory.findIndex(i => i.itemId === itemId);
-    
+
     if (itemIndex === -1 || inventory[itemIndex].quantity < 1) {
       throw new Error("No tienes este ítem en tu inventario");
     }
-    
-    const stats = { ...(userData.stats || {}) };
-    
-    // Apply effect using switch (itemId)
-    switch (itemId) {
-      case 'potion_hp_small': {
-        const currentHp = stats.hp || 0;
-        const maxHp = stats.maxHp || 100;
-        if (currentHp >= maxHp) {
-          throw new Error("HP is already full.");
-        }
-        stats.hp = Math.min(maxHp, currentHp + 10);
-        stats.maxHp = maxHp;
-        break;
-      }
-      case 'potion_xp_restore': {
-        const newXp = (stats.xp || 0) + 100;
-        stats.xp = newXp;
-        // Recalculate level
-        const newLevel = calculateLevelFromXp(newXp);
-        stats.level = newLevel;
-        stats.nextXp = calculateNextLevelXp(newLevel);
-        break;
-      }
-      case 'redemption_token': {
-        const currentStreak = stats.streak || 0;
-        const previousStreak = stats.previousStreak || 0;
-        if (previousStreak > currentStreak) {
-          stats.streak = previousStreak;
-          stats.previousStreak = 0;
-        } else {
-          stats.streak = currentStreak + 1;
-        }
-        // Continue the restored streak today (see anchorRestoredStreak).
-        anchorRestoredStreak(stats);
-        break;
-      }
-      case 'freeze_streak': {
-        const now = new Date();
-        const freezeUntil = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-        stats.streakFrozenUntil = freezeUntil.toISOString();
-        break;
-      }
-      case 'rest_shield':
-        // The rest day itself is recorded by the progression store.
-        break;
-      default:
-        if (itemId.startsWith('chest_')) {
-          // Duel chests: opening one pays its value in gold.
-          stats.gold = (stats.gold || 0) + (Number(itemId.slice(6)) || 0);
-          break;
-        }
-        throw new Error(`Efecto para el ítem '${itemId}' no configurado.`);
-    }
 
-    // Deduct quantity and filter out if quantity is 0
-    const updatedInventory = inventory.map((invItem, idx) => {
-      if (idx === itemIndex) {
-        return { ...invItem, quantity: invItem.quantity - 1 };
-      }
-      return invItem;
-    });
-    const newInventory = updatedInventory.filter(invItem => invItem.quantity > 0);
+    const afterUse = inventory
+      .map((invItem, idx) => (idx === itemIndex ? { ...invItem, quantity: invItem.quantity - 1 } : invItem))
+      .filter(invItem => invItem.quantity > 0);
 
-    const updates: any = { 
-      inventory: newInventory,
-      stats: stats
-    };
-    
-    // Commit updates to Supabase
+    const result = apply({ ...(userData.stats || {}) }, afterUse);
+
     const { error: updateError } = await supabase
       .from('users')
-      .update(updates)
+      .update({ inventory: result.inventory, stats: result.stats })
       .eq('id', userId);
 
     if (updateError) {

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertCircle, ArrowUpRight, BellRing, CalendarClock, Check, CheckSquare, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flame, Layers, ListTodo,
-  Maximize2, Minimize2, Minus, Moon, Palette, Pencil, Plus, Settings2, SlidersHorizontal, Sparkles, Sun, Sunset, Undo2, X, ZoomIn,
+  Maximize2, Minus, Moon, Palette, Pencil, Plus, Settings2, SlidersHorizontal, Sparkles, Sun, Sunset, Undo2, X, ZoomIn,
 } from 'lucide-react';
 import type { Quest } from '../../types';
 import { addDays, formatClock, startOfWeek, toLocalISOString } from '../../utils/dateUtils';
@@ -794,13 +794,24 @@ export const RoutineCalendar: React.FC<Props> = ({
           >
             <SlidersHorizontal size={14} />
           </button>
-          <button
-            type="button" onClick={onToggleImmersive}
-            aria-label={immersive ? tr('Salir de pantalla completa', 'Exit full screen') : tr('Pantalla completa', 'Full screen')}
-            className="w-8 h-8 rounded-full bg-white/[0.07] border border-white/[0.1] flex items-center justify-center text-white/70 active:scale-90 transition-transform"
-          >
-            {immersive ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-          </button>
+          {immersive ? (
+            // Exit = leave the calendar for the chronological list of this same Routine section.
+            <button
+              type="button" onClick={() => { setPeek(null); setPanelOpen(false); onConfig({ view: 'LIST' }); }}
+              aria-label={tr('Salir del calendario', 'Exit calendar')}
+              className="w-9 h-9 rounded-full bg-white/[0.1] border border-white/[0.14] flex items-center justify-center text-white active:scale-90 transition-transform"
+            >
+              <X size={17} strokeWidth={2.6} />
+            </button>
+          ) : (
+            <button
+              type="button" onClick={onToggleImmersive}
+              aria-label={tr('Pantalla completa', 'Full screen')}
+              className="w-8 h-8 rounded-full bg-white/[0.07] border border-white/[0.1] flex items-center justify-center text-white/70 active:scale-90 transition-transform"
+            >
+              <Maximize2 size={14} />
+            </button>
+          )}
         </div>
 
         <AnimatePresence initial={false}>

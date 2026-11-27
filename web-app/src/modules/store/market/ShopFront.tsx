@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useSpring, useTransform } from 'framer-motion'
 import { useTranslation } from 'react-i18next';
 import { Coins, Flame, Ticket } from 'lucide-react';
 import './shop.css';
+import { TourLightbulb } from '@/components/TourLightbulb';
 
 export const GoldCounter = ({ value }: { value: number }) => {
   const spring = useSpring(value, { stiffness: 50, damping: 20 });
@@ -115,10 +116,13 @@ export const ShopFront = ({ gold, cheapest, vices, passesOwned, daysAtStake, spe
             <div className="text-[20px] font-black leading-none tracking-tight text-amber-100">{t('store.shop.name', 'El Mercado')}</div>
             <div className="mt-1 truncate text-[9px] font-bold uppercase tracking-[0.14em] text-amber-300/60">{t('store.shop.tagline', 'Vicios con conciencia')}</div>
           </div>
+          <div className="flex shrink-0 items-center gap-2">
+          <TourLightbulb tourId="store" />
           <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 text-[9.5px] font-black uppercase tracking-[0.18em] text-emerald-300">
             <span className="shop-open-dot h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
             {t('store.shop.open', 'Abierto')}
           </span>
+          </div>
         </div>
 
         {/* shopkeeper */}

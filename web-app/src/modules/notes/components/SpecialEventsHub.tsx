@@ -15,6 +15,7 @@ import { getNextEventDate } from './utils';
 import { FREE_LIMITS } from '../../../config/limits';
 import { useAuth } from '@/context/AuthContext';
 import { persistenceService } from '@/services/persistenceService';
+import { promptDeluxe } from '@/modules/monetization/deluxe';
 
 interface SpecialEventsHubProps {
  isOpen: boolean;
@@ -30,7 +31,7 @@ const EVENT_TYPES = {
  OTHER: { icon: Star, color: '#fbbf24', label: 'Special Day' }
 };
 
-export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpenPro }: SpecialEventsHubProps) => {
+export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro }: SpecialEventsHubProps) => {
  const { t, i18n } = useTranslation();
  const { user } = useAuth();
  const eventsKey = user?.id ? `special_events_${user.id}` : 'special_events';
@@ -108,7 +109,7 @@ export const SpecialEventsHub = ({ isOpen, onClose, onOpenSettings, isPro, onOpe
 
  const handleOpenCreateModal = () => {
  if (!isPro && events.length >= FREE_LIMITS.NOTES) {
- if (onOpenPro) onOpenPro();
+ promptDeluxe('specialEvents');
  return;
  }
  setIsCreateModalOpen(true);

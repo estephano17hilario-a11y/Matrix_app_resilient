@@ -13,12 +13,13 @@ import { App } from '@capacitor/app';
 import toast from 'react-hot-toast';
 import { useLux } from '@/context/LuxContext';
 import { NotificationTone, TONE_DEFINITIONS } from '../../../services/notificationTonesService';
+import { AssistantNameField } from '../../coach/AssistantNameField';
 import { PersistenceService } from '../../../services/persistence';
 import { supabase } from '../../../services/supabase';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import {
   START_SECTIONS, HOLD_TARGETS, HOLD_MS_MIN, HOLD_MS_MAX, HOLD_MS_DEFAULT,
-  getStartSection, setStartSection as setStartSectionPref, getHoldTarget, setHoldTarget as setHoldTargetPref,
+  getStartSection, setStartSection as setStartSectionPref, getRoutineDefaultView, setRoutineDefaultView, getNotesDefaultView, setNotesDefaultView, getHoldTarget, setHoldTarget as setHoldTargetPref,
   getHoldMs, setHoldMs as setHoldMsPref, type StartSection, type HoldTarget,
 } from '@/utils/startupPrefs';
 
@@ -141,6 +142,7 @@ export const SystemSection = () => {
     if (success) {
       localStorage.setItem('matrix_notification_tone', targetTone);
       setCurrentTone(targetTone);
+      window.dispatchEvent(new Event('lux:coach-tone'));
       toast.success('⚡ Tono de notificación actualizado (-2,000 Oro)');
     }
   };
@@ -217,6 +219,8 @@ export const SystemSection = () => {
     }
   };
   const [startSection, setStartSectionState] = useState<StartSection | 'LAST'>(() => getStartSection());
+  const [routineView, setRoutineViewState] = useState(getRoutineDefaultView);
+  const [notesView, setNotesViewState] = useState(getNotesDefaultView);
   const [holdTarget, setHoldTargetState] = useState<HoldTarget>(() => getHoldTarget());
   const [holdMs, setHoldMsState] = useState<number>(() => getHoldMs());
 
@@ -428,6 +432,8 @@ export const SystemSection = () => {
         <Coins size={13} /> {(user?.stats?.gold || 0).toLocaleString()}
       </div>
     </div>
+
+    <AssistantNameField />
 
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
       {(Object.keys(TONE_DEFINITIONS) as NotificationTone[]).map((toneKey) => {
@@ -681,6 +687,45 @@ export const SystemSection = () => {
           {opt.label}
         </button>
       ))}
+    </div>
+  </div>
+
+  {/* Default views of Routine and Notes */}
+  <div className="bg-[#111] border border-white/5 rounded-2xl p-4 space-y-4 transition-colors">
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 shrink-0 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+        <Calendar size={18} className="text-emerald-400" />
+      </div>
+      <div>
+        <div className="text-base font-bold text-white tracking-tight">{es ? 'Vista al entrar' : 'Default view'}</div>
+        <div className="text-xs text-white/40 font-medium">{es ? 'Cómo se abren Rutina y Notas' : 'How Routine and Notes open'}</div>
+      </div>
+    </div>
+    <div>
+      <div className="mb-2 text-[11px] font-black uppercase tracking-wider text-white/40">{es ? 'Rutina' : 'Routine'}</div>
+      <div className="grid grid-cols-3 gap-2">
+        {([['LAST', es ? 'Última usada' : 'Last used'], ['LIST', es ? 'Cronológica' : 'Timeline'], ['CALENDAR', es ? 'Calendario' : 'Calendar']] as const).map(([id, label]) => (
+          <button key={`rv-${id}`}
+            onClick={() => { setRoutineDefaultView(id); setRoutineViewState(id); toast.success(es ? 'Vista de Rutina guardada' : 'Routine view saved'); }}
+            className={cn("py-2.5 px-2 rounded-xl transition-colors text-xs font-bold active:scale-95 border",
+              routineView === id ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" : "bg-white/5 text-white/60 border-white/5 hover:bg-white/10")}>
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+    <div>
+      <div className="mb-2 text-[11px] font-black uppercase tracking-wider text-white/40">{es ? 'Notas' : 'Notes'}</div>
+      <div className="grid grid-cols-2 gap-2">
+        {([['NOTES', es ? 'Notas' : 'Notes'], ['JOURNAL', es ? 'Diario' : 'Journal']] as const).map(([id, label]) => (
+          <button key={`nv-${id}`}
+            onClick={() => { setNotesDefaultView(id); setNotesViewState(id); toast.success(es ? 'Vista de Notas guardada' : 'Notes view saved'); }}
+            className={cn("py-2.5 px-2 rounded-xl transition-colors text-xs font-bold active:scale-95 border",
+              notesView === id ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" : "bg-white/5 text-white/60 border-white/5 hover:bg-white/10")}>
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   </div>
 

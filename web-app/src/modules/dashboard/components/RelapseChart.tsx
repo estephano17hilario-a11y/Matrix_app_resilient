@@ -8,6 +8,7 @@ import { toLocalISOString, startOfWeek } from '../../../utils/dateUtils';
 import { TrendingUp, TrendingDown, Calendar, Lock, Skull } from 'lucide-react';
 import { DateSelectionModal, DateSelectionMode } from './DateSelectionModal';
 import { useTranslation } from 'react-i18next';
+import { promptDeluxe } from '@/modules/monetization/deluxe';
 
 interface RelapseChartProps {
     badHabits: BadHabit[];
@@ -23,7 +24,6 @@ export const RelapseChart: React.FC<RelapseChartProps> = React.memo(({
     badHabits, 
     isActive = true, 
     isPro, 
-    onOpenPro, 
     weekStartDay = 1 
 }) => {
     const { t, i18n } = useTranslation();
@@ -47,7 +47,7 @@ export const RelapseChart: React.FC<RelapseChartProps> = React.memo(({
 
     const handleTabClick = (tf: TimeFrame) => {
         if (!isPro && (tf === 'MONTH' || tf === 'YEAR')) {
-            if (onOpenPro) onOpenPro();
+            promptDeluxe('charts');
             return;
         }
 

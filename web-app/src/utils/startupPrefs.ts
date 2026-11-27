@@ -16,6 +16,21 @@ export const HOLD_MS_DEFAULT = 1700;
 const START_KEY = 'lux_start_section';
 const HOLD_TARGET_KEY = 'lux_plus_hold_target';
 const HOLD_MS_KEY = 'lux_plus_hold_ms';
+const ROUTINE_VIEW_KEY = 'lux_routine_default_view';
+const NOTES_VIEW_KEY = 'lux_notes_default_view';
+
+/** View the Routine opens on: the last one used, the timeline (list) or the calendar. */
+export type RoutineDefaultView = 'LAST' | 'LIST' | 'CALENDAR';
+export const getRoutineDefaultView = (): RoutineDefaultView => {
+  const v = read(ROUTINE_VIEW_KEY);
+  return v === 'LIST' || v === 'CALENDAR' ? v : 'LAST';
+};
+export const setRoutineDefaultView = (v: RoutineDefaultView) => write(ROUTINE_VIEW_KEY, v);
+
+/** Sub-view Notes opens on. */
+export type NotesDefaultView = 'NOTES' | 'JOURNAL';
+export const getNotesDefaultView = (): NotesDefaultView => (read(NOTES_VIEW_KEY) === 'JOURNAL' ? 'JOURNAL' : 'NOTES');
+export const setNotesDefaultView = (v: NotesDefaultView) => write(NOTES_VIEW_KEY, v);
 
 const read = (key: string): string | null => {
   try { return localStorage.getItem(key); } catch { return null; }

@@ -16,7 +16,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="8dp">
+        android:paddingStart="4dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="8dp">
 
         <!-- Hero: progress ring, what is next and the day counters -->
         <FrameLayout
@@ -119,6 +122,45 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
+
+                    <FrameLayout
+                        android:id="@+id/routine_zoom_btn"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_marginEnd="5dp"
+                        android:background="@drawable/widget_routine_btn_bg"
+                        android:clickable="true">
+
+                        <TextView
+                            android:id="@+id/routine_zoom_text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:fontFamily="sans-serif-black"
+                            android:includeFontPadding="false"
+                            android:text="Aa"
+                            android:textColor="#FFFFFF"
+                            android:textSize="10sp" />
+                    </FrameLayout>
+
+                    <FrameLayout
+                        android:id="@+id/routine_color_btn"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_marginEnd="5dp"
+                        android:background="@drawable/widget_routine_btn_bg"
+                        android:clickable="true">
+
+                        <TextView
+                            android:id="@+id/routine_color_dot"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:includeFontPadding="false"
+                            android:text="●"
+                            android:textColor="#A78BFA"
+                            android:textSize="13sp" />
+                    </FrameLayout>
 
                     <FrameLayout
                         android:id="@+id/routine_filter_btn"

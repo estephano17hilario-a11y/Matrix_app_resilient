@@ -22,6 +22,8 @@ export const useSubtasks = (taskId: string, initialSubtasks: Subtask[] = [], onS
       if (left.title !== right.title) return false;
       if (left.isCompleted !== right.isCompleted) return false;
       if (left.createdAt !== right.createdAt) return false;
+      if (left.time !== right.time) return false;
+      if (left.duration !== right.duration) return false;
     }
     return true;
   }, []);
@@ -121,6 +123,25 @@ export const useSubtasks = (taskId: string, initialSubtasks: Subtask[] = [], onS
     });
   }, [saveToFirestore, onSubtasksChange, taskId]);
 
+  /** Set or clear the time of day / duration of one step (undefined removes it). */
+  const updateSubtaskTime = useCallback((subtaskId: string, patch: { time?: string; duration?: number }) => {
+    setSubtasks(prev => {
+      const updated = prev.map(t => {
+        if (t.id !== subtaskId) return t;
+        const next: Subtask = { ...t, ...patch };
+        if (!next.time) delete next.time;
+        if (!next.duration) delete next.duration;
+        return next;
+      });
+      if (onSubtasksChange) onSubtasksChange(updated);
+      saveToFirestore(updated);
+      window.dispatchEvent(new CustomEvent('matrix-quest-updated', {
+        detail: { questId: taskId, subtasks: updated }
+      }));
+      return updated;
+    });
+  }, [saveToFirestore, onSubtasksChange, taskId]);
+
   const reorderSubtasks = useCallback((newOrder: Subtask[]) => {
     setSubtasks(newOrder);
     if (onSubtasksChange) onSubtasksChange(newOrder);
@@ -135,6 +156,7 @@ export const useSubtasks = (taskId: string, initialSubtasks: Subtask[] = [], onS
     addSubtask,
     toggleSubtask,
     deleteSubtask,
+    updateSubtaskTime,
     reorderSubtasks
   };
 };

@@ -304,6 +304,16 @@
             android:noHistory="true"
             android:exported="false" />
 
+        <!-- Chat-style coach messages (scheduled with AlarmManager, re-armed after reboot) -->
+        <receiver
+            android:name=".CoachNotifyReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <!-- Keeps the Routine widget's "now" marker and day rollover fresh -->
         <receiver
             android:name=".widget.RoutineAlarmReceiver"

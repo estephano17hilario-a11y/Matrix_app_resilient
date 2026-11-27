@@ -13,12 +13,20 @@ import { useTranslation } from 'react-i18next';
 import { AvatarCarousel } from './components/avatar-carousel/AvatarCarousel';
 import { calculateAttributeMaxXp } from '../../utils/leveling';
 import { NotificationTone, TONE_DEFINITIONS } from '../../services/notificationTonesService';
+import { ChatPreview } from '../coach/ChatUI';
+import { ASSISTANT_NAME_KEY, ASSISTANT_NAME_MAX, ASSISTANT_SUGGESTIONS, cleanAssistantName, setAssistantName as persistAssistantName } from '../coach/coachIdentity';
+import { WELCOME_PENDING_KEY } from '../coach/coachMessages';
+import { LuxToMonitorCinematic } from './components/LuxToMonitorCinematic';
+import { ThemePickerStep, DEFAULT_ONBOARDING_THEME } from './components/ThemePickerStep';
+import { useTheme } from '@/context/ThemeContext';
+import { DEFAULT_UNLOCKED_THEMES, type ThemeId } from '../../config/themes';
 
-type Step = 'avatar' | 'traits' | 'notification_tone' | 'custom_phrases' | 'saving';
+type Step = 'avatar' | 'traits' | 'notification_tone' | 'theme' | 'custom_phrases' | 'cinematic' | 'saving';
 
 export function OnboardingFlow() {
   const { user, profile, updateProfileLocally } = useAuth();
   const { i18n, t } = useTranslation();
+  const { setTheme } = useTheme();
   const lockedTraitIds = ['DISCIPLINA', 'RESILIENCIA'];
   // Everyone starts with the 2 base traits and picks 3–4 more (5–6 in total).
   const MIN_EXTRA_TRAITS = 3;
@@ -34,8 +42,14 @@ export function OnboardingFlow() {
   
   // Custom Tone and Phrases State
   const [selectedTone, setSelectedTone] = useState<NotificationTone>('NEUTRAL');
+  const [selectedTheme, setSelectedTheme] = useState<ThemeId>(DEFAULT_ONBOARDING_THEME);
   const [antiProcrastinationPhrase, setAntiProcrastinationPhrase] = useState<string>('');
   const [splashPhrase, setSplashPhrase] = useState<string>('Sin Excusas');
+  const [assistantName, setAssistantName] = useState<string>(() => {
+    try { return localStorage.getItem(ASSISTANT_NAME_KEY) || ''; } catch { return ''; }
+  });
+  const assistantReady = cleanAssistantName(assistantName).length >= 2;
+  const cinematicDone = useRef(false);
 
   const currentLanguage = profile?.onboarding?.language || i18n.language || 'es';
   const freeSelectedCount = selectedTraits.filter(t => !lockedTraitIds.includes(t)).length;
@@ -56,7 +70,8 @@ export function OnboardingFlow() {
     const handleBackButton = async () => {
         if (step === 'traits') setStep('avatar');
         else if (step === 'notification_tone') setStep('traits');
-        else if (step === 'custom_phrases') setStep('notification_tone');
+        else if (step === 'theme') setStep('notification_tone');
+        else if (step === 'custom_phrases') setStep('theme');
         else if (step === 'avatar') App.exitApp();
     };
 
@@ -73,9 +88,12 @@ export function OnboardingFlow() {
       if (!traitsReady) return;
       setStep('notification_tone');
     } else if (step === 'notification_tone') {
+      if (!assistantReady) return;
+      setStep('theme');
+    } else if (step === 'theme') {
       setStep('custom_phrases');
     } else if (step === 'custom_phrases') {
-      handleSubmit();
+      setStep('cinematic');
     }
   };
 
@@ -94,9 +112,18 @@ export function OnboardingFlow() {
     setStep('traits');
   };
 
+  const finishCinematic = () => {
+    if (cinematicDone.current) return;
+    cinematicDone.current = true;
+    handleSubmit();
+  };
+
   const handleSubmit = async () => {
     const userId = user?.id || profile?.uid;
     if (!userId) return;
+    const cleanAssistant = cleanAssistantName(assistantName) || 'Lux';
+    persistAssistantName(cleanAssistant);
+    try { localStorage.setItem(WELCOME_PENDING_KEY, '1'); } catch { /* ignore */ }
 
     setStep('saving');
     if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
@@ -116,14 +143,24 @@ export function OnboardingFlow() {
        language: currentLanguage
     };
 
+    // Welcome gift: the chosen theme is unlocked for free (default themes are
+    // already free, so there is nothing to grant for those).
+    const existingUnlocked: string[] = profile?.unlocked_store_items || profile?.unlockedStoreItems || [];
+    const unlockedStoreItems = DEFAULT_UNLOCKED_THEMES.includes(selectedTheme) || existingUnlocked.includes(selectedTheme)
+      ? existingUnlocked
+      : [...existingUnlocked, selectedTheme];
+
     const localUpdates = {
        onboarding: updatedOnboarding,
        avatarId: selectedAvatarId ?? profile?.avatarId,
+       unlocked_store_items: unlockedStoreItems,
        preferences: {
          ...(profile?.preferences || {}),
+         theme: selectedTheme,
          notificationTone: selectedTone,
          antiProcrastinationPhrase: cleanAntiPhrase,
-         splashPhrase: cleanSplashPhrase
+         splashPhrase: cleanSplashPhrase,
+         assistantName: cleanAssistant
        }
     };
 
@@ -153,6 +190,10 @@ export function OnboardingFlow() {
         localStorage.setItem(`matrix_tour_seen_${userId}`, 'true');
     }
 
+    // Apply the theme first (it also writes preferences remotely); the full
+    // update below runs after it so it always has the last word.
+    try { await setTheme(selectedTheme); } catch { /* the full update below also stores it */ }
+
     if (profile) {
         updateProfileLocally(localUpdates);
     }
@@ -164,11 +205,14 @@ export function OnboardingFlow() {
         const onboardingDataToSave = {
             avatar_id: selectedAvatarId ?? profile?.avatarId,
             onboarding: updatedOnboarding,
+            unlocked_store_items: unlockedStoreItems,
             preferences: {
               ...(profile?.preferences || {}),
+              theme: selectedTheme,
               notificationTone: selectedTone,
               antiProcrastinationPhrase: cleanAntiPhrase,
-              splashPhrase: cleanSplashPhrase
+              splashPhrase: cleanSplashPhrase,
+              assistantName: cleanAssistant
             },
             updated_at: new Date().toISOString()
         };
@@ -203,7 +247,7 @@ export function OnboardingFlow() {
         
         {/* Progress Indicator */}
         <AnimatePresence>
-          {step !== 'saving' && (
+          {step !== 'saving' && step !== 'cinematic' && (
               <motion.div 
                 key="progress-indicator"
                 initial={{ opacity: 0, y: -20 }}
@@ -214,6 +258,7 @@ export function OnboardingFlow() {
                   <div className={`h-1.5 w-12 rounded-full transition-all duration-200 ${step === 'avatar' ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
                   <div className={`h-1.5 w-12 rounded-full transition-all duration-200 ${step === 'traits' ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
                   <div className={`h-1.5 w-12 rounded-full transition-all duration-200 ${step === 'notification_tone' ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
+                  <div className={`h-1.5 w-12 rounded-full transition-all duration-200 ${step === 'theme' ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
                   <div className={`h-1.5 w-12 rounded-full transition-all duration-200 ${step === 'custom_phrases' ? 'bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'bg-white/10'}`} />
               </motion.div>
           )}
@@ -354,10 +399,47 @@ export function OnboardingFlow() {
                       <Bell size={14} /> Estilo de Notificaciones
                     </div>
                     <h1 className="text-3xl sm:text-4xl font-black text-white mb-2">
-                      Elige el Tono de tu Coach
+                      Tu coach personal
                     </h1>
                     <p className="text-white/60 text-sm font-medium">
-                      Selecciona la personalidad con la que Lux se comunicará contigo todos los días.
+                      Ponle nombre y elige cómo te hablará. Te escribirá como en un chat para motivarte y avisarte de tus tareas urgentes.
+                    </p>
+                  </div>
+
+                  {/* Coach name + live chat preview */}
+                  <div className="w-full mb-6 space-y-4">
+                    <div className="rounded-3xl border border-emerald-400/25 bg-zinc-900/90 p-5 shadow-xl">
+                      <div className="flex items-center justify-between">
+                        <label htmlFor="assistant-name" className="text-xs font-black uppercase tracking-wider text-emerald-300">
+                          ¿Cómo se llamará tu coach?
+                        </label>
+                        <span className="text-xs font-mono font-bold text-white/40">{assistantName.length} / {ASSISTANT_NAME_MAX}</span>
+                      </div>
+                      <input
+                        id="assistant-name"
+                        type="text"
+                        maxLength={ASSISTANT_NAME_MAX}
+                        value={assistantName}
+                        onChange={(e) => setAssistantName(e.target.value)}
+                        placeholder="Ej: Nova"
+                        autoComplete="off"
+                        className="mt-3 w-full rounded-2xl border-2 border-white/15 bg-black/60 px-4 py-3.5 text-[17px] font-bold text-white placeholder:text-white/25 outline-none transition-colors focus:border-emerald-400"
+                      />
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {ASSISTANT_SUGGESTIONS.map(sug => (
+                          <button key={sug} type="button" onClick={() => setAssistantName(sug)}
+                            className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-colors active:scale-95 ${cleanAssistantName(assistantName) === sug ? 'border-emerald-400 bg-emerald-400/15 text-emerald-200' : 'border-white/10 bg-white/5 text-white/60'}`}>
+                            {sug}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <ChatPreview
+                      name={cleanAssistantName(assistantName) || 'Tu coach'}
+                      messages={TONE_DEFINITIONS[selectedTone].sampleMessages}
+                    />
+                    <p className="text-center text-[11px] font-semibold text-white/40">
+                      Así se verán sus mensajes. Elige su personalidad abajo 👇
                     </p>
                   </div>
 
@@ -397,19 +479,9 @@ export function OnboardingFlow() {
                             </div>
                           </div>
 
-                          {/* 3 Sample Messages Preview */}
-                          <div className="space-y-2">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-white/40 flex items-center gap-1">
-                              <MessageSquare size={12} className="text-cyan-400" />
-                              3 Ejemplos Reales de Notificación:
-                            </span>
-                            <div className="grid grid-cols-1 gap-2">
-                              {tone.sampleMessages.map((msg, idx) => (
-                                <div key={idx} className="bg-white/5 border border-white/5 rounded-xl p-2.5 text-xs text-white/80 font-medium">
-                                  {msg}
-                                </div>
-                              ))}
-                            </div>
+                          <div className="flex items-start gap-2 rounded-xl bg-white/5 border border-white/5 p-2.5 text-xs text-white/75 font-medium">
+                            <MessageSquare size={14} className="mt-0.5 shrink-0 text-cyan-400" />
+                            <span>{tone.sampleMessages[0]}</span>
                           </div>
                         </motion.div>
                       );
@@ -419,7 +491,20 @@ export function OnboardingFlow() {
               </motion.div>
             )}
 
-            {/* STEP 4: CUSTOM PHRASES (ANTI-PROCRASTINATION & SPLASH SUBTITLE) */}
+            {/* STEP 4: THEME — free welcome pick (gradients, Ether, Nebula, Dorado) */}
+            {step === 'theme' && (
+              <motion.div
+                key="theme"
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -50 }}
+                className="absolute inset-0 overflow-y-auto z-50 pointer-events-auto scrollbar-none"
+              >
+                <ThemePickerStep selected={selectedTheme} onSelect={setSelectedTheme} />
+              </motion.div>
+            )}
+
+            {/* STEP 5: CUSTOM PHRASES (ANTI-PROCRASTINATION & SPLASH SUBTITLE) */}
             {step === 'custom_phrases' && (
               <motion.div
                 key="custom_phrases"
@@ -508,7 +593,18 @@ export function OnboardingFlow() {
               </motion.div>
             )}
 
-            {/* STEP 5: SAVING */}
+            {/* STEP 5: CINEMATIC — Lux glitches into El Monitor */}
+            {step === 'cinematic' && (
+              <motion.div key="cinematic" className="absolute inset-0" initial={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <LuxToMonitorCinematic
+                  name={profile?.displayName || (user as any)?.user_metadata?.display_name}
+                  lang={currentLanguage.startsWith('en') ? 'en' : 'es'}
+                  onDone={finishCinematic}
+                />
+              </motion.div>
+            )}
+
+            {/* STEP 6: SAVING */}
             {step === 'saving' && (
                  <motion.div 
                     key="saving"
@@ -536,7 +632,7 @@ export function OnboardingFlow() {
 
         {/* Global Bottom Navigation Button */}
         <AnimatePresence>
-          {['traits', 'notification_tone', 'custom_phrases'].includes(step) && (
+          {['traits', 'notification_tone', 'theme', 'custom_phrases'].includes(step) && (
             <motion.div
               key="step-action"
               initial={{ y: 100, opacity: 0 }}
@@ -550,12 +646,12 @@ export function OnboardingFlow() {
                   e.stopPropagation();
                   handleNext();
                 }}
-                disabled={step === 'traits' && !traitsReady}
+                disabled={(step === 'traits' && !traitsReady) || (step === 'notification_tone' && !assistantReady)}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className={`
                   pointer-events-auto relative px-8 py-4 rounded-full font-bold text-base sm:text-lg transition-all flex items-center gap-3 overflow-hidden border cursor-pointer
-                  ${(step === 'traits' && !traitsReady)
+                  ${((step === 'traits' && !traitsReady) || (step === 'notification_tone' && !assistantReady))
                     ? 'bg-gray-800/50 text-white/30 border-white/5 cursor-not-allowed grayscale'
                     : 'bg-white text-black border-white/50 shadow-lg shadow-indigo-500/10'
                   }
@@ -566,7 +662,9 @@ export function OnboardingFlow() {
                     ? 'Finalizar Registro'
                     : step === 'traits' && !traitsReady
                       ? t('onboarding.traits.missing', 'Elige {{count}} más', { count: traitsMissing })
-                      : 'Continuar'}
+                      : step === 'notification_tone' && !assistantReady
+                        ? 'Ponle nombre a tu coach'
+                        : 'Continuar'}
                 </span>
                 <ArrowRight className="w-5 h-5" />
               </motion.button>

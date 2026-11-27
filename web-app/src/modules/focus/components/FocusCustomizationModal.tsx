@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { X, Sparkles, Lock, ArrowDown, ArrowUp, Plus } from 'lucide-react';
 import { ParticleConfig } from './ParticleOverlay';
 import { cn } from '../../../utils/cn';
+import { promptDeluxe } from '@/modules/monetization/deluxe';
 
 interface FocusCustomizationModalProps {
   isOpen: boolean;
@@ -35,14 +36,13 @@ export const FocusCustomizationModal: React.FC<FocusCustomizationModalProps> = R
   onClose,
   config,
   onChangeConfig,
-  isPro = false,
-  onOpenPro
+  isPro = false
 }) => {
   if (!isOpen) return null;
 
   const handleToggleProFeature = (updater: (prev: ParticleConfig) => ParticleConfig) => {
     if (!isPro) {
-      if (onOpenPro) onOpenPro();
+      promptDeluxe('focusEffects');
       return;
     }
     onChangeConfig(updater(config));
@@ -120,7 +120,7 @@ export const FocusCustomizationModal: React.FC<FocusCustomizationModalProps> = R
                         type="button"
                         onClick={() => {
                           if (item.id !== 'BREAK_ONLY' && !isPro) {
-                            if (onOpenPro) onOpenPro();
+                            promptDeluxe('focusEffects');
                             return;
                           }
                           onChangeConfig({ ...config, trigger: item.id as any });

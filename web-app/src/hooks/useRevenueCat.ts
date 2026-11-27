@@ -6,10 +6,25 @@ import { initRevenueCat, hasActiveEntitlement } from '../services/revenueCatServ
 
 const OFFERING_ID = 'default';
 
+type PlanKind = 'weekly' | 'monthly' | 'annual';
+
+/** Finds the weekly / monthly / annual packages of an offering (standard slots first, then by id). */
+const pickPackages = (offering: PurchasesOffering) => {
+  const find = (type: string, rcId: string, words: string[]) =>
+    offering.availablePackages?.find(p =>
+      p.packageType === type || p.identifier === rcId || words.some(w => p.identifier.toLowerCase().includes(w))) || null;
+  return {
+    w: offering.weekly || find('WEEKLY', '$rc_weekly', ['weekly', 'semanal']),
+    m: offering.monthly || find('MONTHLY', '$rc_monthly', ['monthly', 'mensual']),
+    a: offering.annual || find('ANNUAL', '$rc_annual', ['annual', 'anual', 'yearly']),
+  };
+};
+
 export const useRevenueCat = () => { 
   const [currentOffering, setCurrentOffering] = useState<PurchasesOffering | null>(null); 
   const [weeklyPackage, setWeeklyPackage] = useState<PurchasesPackage | null>(null);
   const [monthlyPackage, setMonthlyPackage] = useState<PurchasesPackage | null>(null);
+  const [annualPackage, setAnnualPackage] = useState<PurchasesPackage | null>(null);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null); 
   const [isPremium, setIsPremium] = useState<boolean>(false); 
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -34,28 +49,10 @@ export const useRevenueCat = () => {
       const offering = offerings.current || offerings.all[OFFERING_ID] || offerings.all['default'] || offerings.all['defaultt'] || null;
       if (offering) {
         setCurrentOffering(offering);
-        
-        let w = offering.weekly || null;
-        if (!w && offering.availablePackages) {
-          w = offering.availablePackages.find(p => 
-            p.packageType === 'WEEKLY' || 
-            p.identifier === '$rc_weekly' || 
-            p.identifier.toLowerCase().includes('weekly') ||
-            p.identifier.toLowerCase().includes('semanal')
-          ) || null;
-        }
+        const { w, m, a } = pickPackages(offering);
         setWeeklyPackage(w);
-
-        let m = offering.monthly || null;
-        if (!m && offering.availablePackages) {
-          m = offering.availablePackages.find(p => 
-            p.packageType === 'MONTHLY' || 
-            p.identifier === '$rc_monthly' || 
-            p.identifier.toLowerCase().includes('monthly') ||
-            p.identifier.toLowerCase().includes('mensual')
-          ) || null;
-        }
         setMonthlyPackage(m);
+        setAnnualPackage(a);
       }
     } catch (e) {
       console.error("Error al obtener datos de RevenueCat:", e);
@@ -82,41 +79,23 @@ export const useRevenueCat = () => {
     };
   }, [fetchRevenueCatData, checkPremiumStatus]);
 
-  const comprarPaquete = async (rcPackageOrType: PurchasesPackage | 'weekly' | 'monthly'): Promise<boolean> => {
+  const comprarPaquete = async (rcPackageOrType: PurchasesPackage | PlanKind): Promise<boolean> => {
     setIsLoading(true);
     try {
       let pkg: PurchasesPackage | null = null;
       if (typeof rcPackageOrType === 'string') {
-        if (rcPackageOrType === 'weekly') pkg = weeklyPackage;
-        else pkg = monthlyPackage;
+        pkg = rcPackageOrType === 'weekly' ? weeklyPackage : rcPackageOrType === 'annual' ? annualPackage : monthlyPackage;
 
         if (!pkg) {
           const offerings = await Purchases.getOfferings();
                     const offering = offerings.current || offerings.all[OFFERING_ID] || offerings.all['default'] || offerings.all['defaultt'] || null;
           if (offering) {
             setCurrentOffering(offering);
-            
-            let w = offering.weekly || null;
-            if (!w && offering.availablePackages) {
-              w = offering.availablePackages.find(p => 
-                p.packageType === 'WEEKLY' || 
-                p.identifier === '$rc_weekly' || 
-                p.identifier.toLowerCase().includes('weekly')
-              ) || null;
-            }
-            
-            let m = offering.monthly || null;
-            if (!m && offering.availablePackages) {
-              m = offering.availablePackages.find(p => 
-                p.packageType === 'MONTHLY' || 
-                p.identifier === '$rc_monthly' || 
-                p.identifier.toLowerCase().includes('monthly')
-              ) || null;
-            }
-            
+            const { w, m, a } = pickPackages(offering);
             setWeeklyPackage(w);
             setMonthlyPackage(m);
-            pkg = rcPackageOrType === 'weekly' ? w : m;
+            setAnnualPackage(a);
+            pkg = rcPackageOrType === 'weekly' ? w : rcPackageOrType === 'annual' ? a : m;
           }
         }
       } else {
@@ -212,6 +191,7 @@ export const useRevenueCat = () => {
     currentOffering,
     weeklyPackage,
     monthlyPackage,
+    annualPackage,
     customerInfo,
     isPremium,
     isLoading,

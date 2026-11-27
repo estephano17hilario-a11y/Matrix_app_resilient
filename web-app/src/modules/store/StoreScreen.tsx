@@ -3,8 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useLux } from '@/context/LuxContext';
 import { useEconomy } from '@/context/EconomyContext';
-import { StoreCard, itemRarity } from './components/StoreCard';
-import { StreakRecoveryModal } from './components/StreakRecoveryModal';
+import { itemRarity } from './components/StoreCard';
+import { PowersShelf } from './powers/PowersShelf';
+import { ThemeShop } from './themes/ThemeShop';
+import { powerMeta } from '@/modules/streaks/StreakFx';
+import { LostStreak, openStreakRecovery } from '@/modules/streaks/recovery';
 import { StoreItem, InventoryItem } from '../../services/economyService';
 import { FrameInventory } from '@/modules/progression/ui/FrameInventory';
 import type { Attribute, BadHabit, ViceLedgerEntry, ViceOffer } from '../../types';
@@ -23,7 +26,7 @@ import {
     Smartphone, Code, Square, Image, User, Share2, Bell, Gamepad, Newspaper,
     Coffee, Armchair, Moon, UserX, Droplet, Layers, Frown, CloudRain, Target,
     MicOff, Watch, MessageSquare, CreditCard, Trash,
-    Flame, Backpack, ScrollText, Ticket, Plus, Gift
+    Flame, Backpack, ScrollText, Ticket, Plus, Gift, Sparkles
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -37,6 +40,10 @@ const IconMap: Record<string, React.ElementType> = {
     Square, Image, Share2, Bell, Gamepad, Newspaper, Coffee, Armchair, Moon, UserX,
     Droplet, Layers, Frown, CloudRain, Target, MicOff, Watch, MessageSquare, CreditCard, Trash, Gift
 };
+
+/** Icon of a store item: the power's own icon, else the legacy map. */
+const POWER_ICON = (item: StoreItem): React.ElementType =>
+    powerMeta(item.id).tag ? powerMeta(item.id).icon : (IconMap[item.iconName || 'ShoppingBag'] || ShoppingBag);
 
 const ConfirmationModal = ({ 
     item, 
@@ -53,7 +60,7 @@ const ConfirmationModal = ({
 }) => {
     const { t } = useTranslation();
     if (!item) return null;
-    const Icon = IconMap[item.iconName || 'ShoppingBag'] || ShoppingBag;
+    const Icon = POWER_ICON(item);
 
     return (
         <AnimatePresence>
@@ -84,8 +91,9 @@ const ConfirmationModal = ({
                             </div>
                             
                             <h3 className="text-xl font-bold text-white mb-2">{t(item.name)}</h3>
-                            <p className="text-white/50 text-sm mb-6 leading-relaxed px-4">
-                                {t('store.confirm.desc', { price: item.price })}
+                            <p className="text-white/60 text-[13px] mb-2 leading-relaxed px-2">{t(item.description)}</p>
+                            <p className="text-white/40 text-xs mb-6 leading-relaxed px-4">
+                                {t('store.confirm.desc', { price: item.price.toLocaleString() })}
                             </p>
 
                             <div className="flex gap-3 w-full">
@@ -150,7 +158,7 @@ const PurchaseSuccessModal = ({
     }, [isOpen]);
 
     if (!item) return null;
-    const Icon = IconMap[item.iconName || 'ShoppingBag'] || ShoppingBag;
+    const Icon = POWER_ICON(item);
 
     return (
         <AnimatePresence>
@@ -270,15 +278,12 @@ interface StoreScreenProps {
   onUpdateViceOffer?: (habitId: string, offer: ViceOffer) => void;
   /** Opens the bad-habit wizard, so vices can be created from the store. */
   onCreateVice?: () => void;
-  /** Real streak data + the restore action, from the dashboard logic. */
-  streakStats?: any;
-  recoverableHabits?: any[];
-  recoverableProjects?: any[];
-  onRestoreStreak?: (category: 'HUD' | 'HABIT' | 'PROJECT', targetId?: string, cost?: number) => Promise<boolean>;
+  /** Lost streaks that can still be bought back (dashboard logic). */
+  streakLosses?: LostStreak[];
 }
 
-const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSpendVicePass, onUpdateViceOffer, onCreateVice, streakStats, recoverableHabits, recoverableProjects, onRestoreStreak }: StoreScreenProps) => {
-  const { user, updateLuxLocally } = useLux();
+const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSpendVicePass, onUpdateViceOffer, onCreateVice, streakLosses }: StoreScreenProps) => {
+  const { user } = useLux();
   const { t } = useTranslation();
   const { purchase, storeItems, isTransactionPending, inventory, consume } = useEconomy();
   
@@ -287,84 +292,14 @@ const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSp
   const [successItem, setSuccessItem] = useState<StoreItem | null>(null);
   const [consumingItemId, setConsumingItemId] = useState<string | null>(null);
   const [isConsuming, setIsConsuming] = useState<boolean>(false);
-  const [isStreakModalOpen, setIsStreakModalOpen] = useState<boolean>(false);
   
   const initiatePurchase = (item: StoreItem) => {
-      if (item.id === 'redemption_token') {
-          setIsStreakModalOpen(true);
+      // Restorations are bought from the recovery center, per lost streak.
+      if (item.subCategory === 'restore') {
+          openStreakRecovery();
           return;
       }
       setItemToBuy(item);
-  };
-
-  const handleRestoreStreakAction = async (
-      category: 'HUD' | 'FLAME' | 'HABIT' | 'PROJECT',
-      targetId?: string,
-      cost: number = 1800,
-      streakValue: number = 1
-  ): Promise<boolean> => {
-      if (!user || (user.stats?.gold || 0) < cost) {
-          return false;
-      }
-
-      // Daily / habit / project streaks are restored by the dashboard logic,
-      // which owns that data (the old path wrote to fields nothing reads).
-      if (onRestoreStreak && category !== 'FLAME') {
-          const ok = await onRestoreStreak(category, targetId, cost);
-          if (ok) confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
-          return ok;
-      }
-
-      const currentGold = (user.stats?.gold || 0) - cost;
-
-      if (category === 'HUD') {
-          const restoredStreak = streakValue > 0 ? streakValue : ((user.stats as any)?.previousStreak || 1);
-          updateLuxLocally({
-              stats: {
-                  ...user.stats,
-                  gold: currentGold,
-                  streak: restoredStreak,
-                  previousStreak: 0
-              }
-          });
-      } else if (category === 'FLAME') {
-          const restoredStreak = streakValue > 0 ? streakValue : ((user.stats as any)?.previousFlameStreak || 1);
-          updateLuxLocally({
-              stats: {
-                  ...user.stats,
-                  gold: currentGold,
-                  flameStreak: restoredStreak,
-                  previousFlameStreak: 0
-              } as any
-          });
-      } else if (category === 'HABIT' && targetId) {
-          const updatedHabits = ((user as any).habits || []).map((h: any) => {
-              if (h.id === targetId) {
-                  const restored = h.previousStreak || streakValue || 1;
-                  return { ...h, streak: restored, previousStreak: 0 };
-              }
-              return h;
-          });
-          updateLuxLocally({
-              stats: { ...user.stats, gold: currentGold },
-              habits: updatedHabits
-          } as any);
-      } else if (category === 'PROJECT' && targetId) {
-          const updatedProjects = ((user as any).projects || []).map((p: any) => {
-              if (p.id === targetId) {
-                  const restored = p.previousStreak || streakValue || 1;
-                  return { ...p, streak: restored, previousStreak: 0 };
-              }
-              return p;
-          });
-          updateLuxLocally({
-              stats: { ...user.stats, gold: currentGold },
-              projects: updatedProjects
-          } as any);
-      }
-
-      confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
-      return true;
   };
 
   const confirmPurchase = async () => {
@@ -410,7 +345,7 @@ const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSp
           }
       } catch (error: any) {
           console.error('[Inventory] Error consumiendo ítem:', error);
-          alert(error.message || 'Error al usar el objeto');
+          toast.error(error.message || 'Error al usar el objeto');
       } finally {
           setIsConsuming(false);
           setConsumingItemId(null);
@@ -419,7 +354,7 @@ const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSp
 
   // ── Vice market ──
   const vault = gold ?? user?.stats?.gold ?? 0;
-  const [tab, setTab] = useState<'MARKET' | 'UPGRADES' | 'INVENTORY' | 'LEDGER'>('MARKET');
+  const [tab, setTab] = useState<'MARKET' | 'UPGRADES' | 'THEMES' | 'INVENTORY' | 'LEDGER'>('MARKET');
   const [ritualId, setRitualId] = useState<string | null>(null);
   const [configuring, setConfiguring] = useState<string | null>(null);
   const ledger = viceLedger || [];
@@ -480,7 +415,8 @@ const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSp
 
   const tabs = [
     { id: 'MARKET' as const, icon: Flame, label: t('store.tabs.market', 'Mercado') },
-    { id: 'UPGRADES' as const, icon: Zap, label: t('store.tabs.upgrades', 'Mejoras') },
+    { id: 'UPGRADES' as const, icon: Zap, label: t('store.tabs.powers', 'Poderes'), badge: 0 },
+    { id: 'THEMES' as const, icon: Palette, label: t('store.tabs.themes', 'Temas'), badge: 0 },
     { id: 'INVENTORY' as const, icon: Backpack, label: t('store.tabs.inventory', 'Inventario'), badge: passesOwned + inventory.reduce((s, i) => s + (i.quantity || 0), 0) },
     { id: 'LEDGER' as const, icon: ScrollText, label: t('store.tabs.ledger', 'Registro') },
   ];
@@ -503,16 +439,6 @@ const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSp
                 setTab('INVENTORY');
                 setSuccessItem(null);
             }}
-       />
-
-       <StreakRecoveryModal
-            isOpen={isStreakModalOpen}
-            onClose={() => setIsStreakModalOpen(false)}
-            userGold={vault}
-            userStats={streakStats || user?.stats || {}}
-            habits={recoverableHabits || []}
-            projects={recoverableProjects || []}
-            onRestore={handleRestoreStreakAction}
        />
 
        <PurchaseRitual
@@ -725,20 +651,17 @@ const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSp
             )}
 
             {tab === 'UPGRADES' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {storeItems.filter(item => item.category !== 'chest' && item.category !== 'frame').map(item => (
-                  <div id={`store-item-${item.id}`} key={item.id} className="lux-reveal">
-                    <StoreCard
-                      item={item}
-                      userGold={vault}
-                      owned={inventory.find(i => i.itemId === item.id)?.quantity || 0}
-                      onPurchase={() => initiatePurchase(item)}
-                      disabled={isTransactionPending}
-                    />
-                  </div>
-                ))}
-              </div>
+              <PowersShelf
+                items={storeItems.filter(item => item.category === 'power_up')}
+                inventory={inventory}
+                gold={vault}
+                disabled={isTransactionPending}
+                streakLosses={streakLosses || []}
+                onBuy={initiatePurchase}
+              />
             )}
+
+            {tab === 'THEMES' && <ThemeShop gold={vault} />}
 
             {tab === 'INVENTORY' && (
               <div className="space-y-5">
@@ -789,8 +712,10 @@ const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSp
                       {inventory.map((invItem) => {
                         const storeItem = storeItems.find(si => si.id === invItem.itemId);
                         if (!storeItem || storeItem.category === 'frame') return null;
-                        const Icon = IconMap[storeItem.iconName || 'ShoppingBag'] || ShoppingBag;
-                        const rarity = itemRarity(storeItem.price);
+                        const Icon = POWER_ICON(storeItem);
+                        const pm = powerMeta(storeItem.id);
+                        const rarity = { ...itemRarity(storeItem.price), rgb: pm.tag ? pm.rgb : itemRarity(storeItem.price).rgb };
+                        const passive = storeItem.id === 'phoenix_feather';
                         return (
                           <div key={invItem.itemId} className="lux-reveal relative flex flex-col p-4 rounded-[20px] border" style={{ borderColor: `rgb(${rarity.rgb} / 0.25)`, background: `linear-gradient(160deg, rgb(${rarity.rgb} / 0.1), rgba(14,14,18,0.94) 50%)` }}>
                             <div className="flex justify-between items-start mb-3">
@@ -800,6 +725,11 @@ const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSp
                             <RarityTag rarity={rarity} />
                             <h3 className="mt-1 text-[16px] font-semibold text-white mb-1">{t(storeItem.name)}</h3>
                             <p className="text-[12.5px] text-white/50 leading-relaxed mb-4 flex-1">{t(storeItem.description)}</p>
+                            {passive ? (
+                              <div className="w-full py-2.5 rounded-xl text-center font-black text-[12px] border flex items-center justify-center gap-1.5" style={{ borderColor: `rgb(${rarity.rgb} / 0.4)`, color: `rgb(${rarity.rgb})`, background: `rgb(${rarity.rgb} / 0.08)` }}>
+                                <Sparkles size={13} /> Equipada · se activa sola
+                              </div>
+                            ) : (
                             <button
                               type="button"
                               onClick={() => handleConsume(invItem.itemId)}
@@ -809,8 +739,9 @@ const StoreContent = ({ gold, badHabits, attributes, viceLedger, onBuyVice, onSp
                             >
                               {consumingItemId === invItem.itemId && (isConsuming || isTransactionPending)
                                 ? <span className="inline-block w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                                : t('store.inventory.use')}
+                                : storeItem.id === 'mystery_chest' ? 'Abrir' : t('store.inventory.use')}
                             </button>
+                            )}
                           </div>
                         );
                       })}

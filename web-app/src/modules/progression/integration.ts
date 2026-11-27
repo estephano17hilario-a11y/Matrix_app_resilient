@@ -4,6 +4,7 @@
 import type { Habit, Project, Quest, Session } from '@/types';
 import { getHistoryDateKey, parseLocalDate } from '@/utils/dateUtils';
 import { isHabitScheduledOn, todayTaskCounts } from '@/utils/streakRules';
+import { getProjectDailyGoalOn } from '@/utils/projectUtils';
 import {
   addDaysToKey, daysBetween, dayTotal, getStanding, type DayCloseInput, type DayKey, type ProgressionState,
 } from './engine';
@@ -88,23 +89,27 @@ export const habitGoalPctFor = (habits: Habit[], key: DayKey) => {
   return habitTargetPct(streak + 1);
 };
 
+/** A project's focus goal for a day: the daily share of the goal set on the project itself. */
+export const projectGoalOn = (p: Project, key: DayKey) => getProjectDailyGoalOn(p, keyToDate(key));
+
 const activeProjects = (projects: Project[]) => projects.filter(p => !p.archived && !p.deleted && !p.completed);
 
 export const buildDayCloseInput = (
   key: DayKey,
   data: { habits: Habit[]; quests: Quest[]; projects: Project[]; meta: ProgressionMeta },
 ): DayCloseInput => {
-  const weekday = keyToDate(key).getDay();
   return {
     dayKey: key,
     habits: habitsForDay(data.habits, key),
     habitGoalPct: habitGoalPctFor(data.habits, key),
     tasks: tasksForDay(data.quests, key),
     projects: activeProjects(data.projects)
-      .filter(p => (p.dailyFocusGoalMinutes ?? 0) > 0 && existedOn(p.createdAt, key) && (!p.workingDays?.length || p.workingDays.includes(weekday)))
-      .map(p => ({
+      .filter(p => existedOn(p.createdAt, key))
+      .map(p => ({ p, goal: projectGoalOn(p, key) }))
+      .filter(({ goal }) => goal > 0)
+      .map(({ p, goal }) => ({
         id: p.id,
-        goalMinutes: p.dailyFocusGoalMinutes as number,
+        goalMinutes: goal,
         timerMinutes: focusMinutesOn([p], key, { manual: false }),
         manualMinutes: focusMinutesOn([p], key, { manual: true }),
       })),
@@ -191,11 +196,12 @@ export const buildReportInput = (
     .sort((a, b) => a.dayKey.localeCompare(b.dayKey))
     .map(c => ({ dayKey: c.dayKey, ratio: c.habitRatio as number }));
 
-  const goal = ev.project?.dailyFocusGoalMinutes ?? null;
+  const goal = ev.project ? projectGoalOn(ev.project, dayKey) || null : null;
   const projectGoalDays = goal && ev.project
     ? Array.from({ length: 5 }, (_, i) => {
       const k = addDaysToKey(dayKey, i - 4);
-      return { dayKey: k, met: focusMinutesOn([ev.project as Project], k) >= goal };
+      const g = projectGoalOn(ev.project as Project, k);
+      return { dayKey: k, met: g <= 0 || focusMinutesOn([ev.project as Project], k) >= g };
     })
     : [];
 

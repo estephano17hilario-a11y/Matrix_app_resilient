@@ -675,6 +675,7 @@ export const ProjectModal = React.memo(({ isOpen, onClose, attributes = [], smar
         ];
         return (
             <WizardSheet
+                tourKind="project"
                 isOpen={isOpen}
                 onClose={onClose}
                 accent={activeColor}

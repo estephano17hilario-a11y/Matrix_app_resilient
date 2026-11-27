@@ -6,7 +6,7 @@ import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 /**
  * Registra un nuevo usuario con Email y Contraseña.
  */
-export const atomicRegister = async (email: string, password: string, name: string, _lang: string): Promise<any> => {
+export const atomicRegister = async (email: string, password: string, name: string, _lang: string, country?: string): Promise<any> => {
     try {
         const { data, error } = await supabase.auth.signUp({
             email,
@@ -14,6 +14,7 @@ export const atomicRegister = async (email: string, password: string, name: stri
             options: {
                 data: {
                     display_name: name,
+                    ...(country ? { country } : {}),
                 }
             }
         });
@@ -22,7 +23,9 @@ export const atomicRegister = async (email: string, password: string, name: stri
         
         // Si no hay sesión, significa que la confirmación de correo está activada en Supabase.
         if (data.user && !data.session) {
-            throw new Error("Cuenta creada. Por favor, revisa tu correo electrónico para confirmar tu cuenta antes de iniciar sesión.");
+            const pending = new Error("Cuenta creada. Por favor, revisa tu correo electrónico para confirmar tu cuenta antes de iniciar sesión.");
+            (pending as Error & { code?: string }).code = 'email_confirmation_required';
+            throw pending;
         }
         
         if (data.user) {

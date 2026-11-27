@@ -3,10 +3,29 @@ import { Crosshair, Plus, ChevronDown, Swords, Settings2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { DockConfig, DockItemConfig, DOCK_ITEMS, DockItemId } from '@/components/ui/DockConfigModal';
-import { onPress } from '@/immersion/press';
 import { LuxSheen } from '@/immersion/LuxSheen';
 import { publishDockOpen } from '../dockState';
 import { getHoldMs, getHoldTarget } from '@/utils/startupPrefs';
+
+/** Height of each rounded cap of the dock skin (closed dock = two caps = 72px). */
+const DOCK_CAP = 36;
+const DOCK_EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
+const RIM = '#06b6d4, #3b82f6, #8b5cf6, #ec4899, #06b6d4';
+const DOCK_SKIN_CSS = `
+.dock-skin { left: 0; right: 0; overflow: visible !important; will-change: transform; transition: transform 0.28s ${DOCK_EASE}; }
+.dock-skin-bottom { bottom: 0; height: ${DOCK_CAP}px; border-radius: 0 0 34px 34px; }
+.dock-skin-mid { bottom: ${DOCK_CAP}px; transform-origin: 50% 100%; border-radius: 0; }
+.dock-skin-top { bottom: ${DOCK_CAP}px; height: ${DOCK_CAP}px; border-radius: 34px 34px 0 0; }
+.dock-skin-fill { border-radius: inherit; }
+[data-tour="dock"] .dock-skin .dock-skin-fill { border: 0 !important; }
+[data-tour="dock"] .dock-skin-bottom { border-top-width: 0 !important; }
+[data-tour="dock"] .dock-skin-top { border-bottom-width: 0 !important; }
+[data-tour="dock"] .dock-skin-mid { border-top-width: 0 !important; border-bottom-width: 0 !important; }
+.dock-skin-top::before, .dock-skin-top::after { padding-bottom: 0 !important; background: conic-gradient(from var(--angle) at 50% 100%, ${RIM}) !important; }
+.dock-skin-bottom::before, .dock-skin-bottom::after { padding-top: 0 !important; background: conic-gradient(from var(--angle) at 50% 0%, ${RIM}) !important; }
+.dock-skin-mid::before, .dock-skin-mid::after { padding-top: 0 !important; padding-bottom: 0 !important; background: conic-gradient(from var(--angle) at 50% 100%, ${RIM}) !important; }
+@media (prefers-reduced-motion: reduce) { .dock-skin { transition: none; } }
+`;
 
 interface DockProps {
  currentView: string;
@@ -108,11 +127,13 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
  const longFired = React.useRef(false);
  const clearLong = () => { if (longTimer.current !== null) { window.clearTimeout(longTimer.current); longTimer.current = null; } };
  React.useEffect(() => clearLong, []);
- const plusPress = onPress(() => onToggle(!isOpen));
+  // "+" toggles when the finger is LIFTED (a tap). Holding it never opens the menu: it only runs
+ // the hold action. Keyboard / accessibility clicks (no pointer) still toggle through onClick.
+ const pointerHandled = React.useRef(false);
  const plusProps = {
-   ...plusPress,
    onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
      longFired.current = false;
+     pointerHandled.current = false;
      clearLong();
      if (e.isPrimary && e.button === 0) {
        longTimer.current = window.setTimeout(() => {
@@ -122,16 +143,22 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
          runHoldAction();
        }, getHoldMs());
      }
-     plusPress.onPointerDown(e);
    },
-   onPointerUp: clearLong,
+   onPointerUp: (e: React.PointerEvent<HTMLElement>) => {
+     const wasTap = longTimer.current !== null && !longFired.current;
+     clearLong();
+     if (wasTap && e.isPrimary && e.button === 0) {
+       pointerHandled.current = true;
+       onToggle(!openRef.current);
+     }
+   },
    onPointerLeave: clearLong,
    onPointerCancel: clearLong,
    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
-   onClick: (e: React.MouseEvent<HTMLElement>) => {
-     // The release after a long press must not toggle the menu again.
-     if (longFired.current) { longFired.current = false; return; }
-     plusPress.onClick(e);
+   onClick: () => {
+     // The click that follows a pointer tap or a long press was already handled.
+     if (pointerHandled.current || longFired.current) { pointerHandled.current = false; longFired.current = false; return; }
+     onToggle(!openRef.current);
    },
  };
 
@@ -623,13 +650,11 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
 
  // --- LEGACY STYLES (BORDER / LIQUID) WITH NEW ANIMATED BUTTON ---
  
- const baseClass = "pointer-events-none relative box-border mx-auto";
  
  const styleClass = isLiquid
  ? "border border-white/[0.10] shadow-[0_20px_40px_-12px_rgba(0,0,0,0.4)]"
  : "glass-panel !shadow-none rgb-border-container rgb-border-active !bg-none";
 
- const containerClass = `${baseClass} ${styleClass}`;
 
  const liquidSpring = { type: "spring" as const, stiffness: 300, damping: 30 };
 
@@ -645,47 +670,37 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
  className="fixed bottom-[26px] left-0 right-0 z-[400] flex justify-center transform-gpu"
  style={{ pointerEvents }}
  >
- <motion.div 
+  <motion.div
  initial={false}
- animate={{ 
+ animate={{
  width: '85vw',
  maxWidth: 320
 }}
- className={containerClass}
- style={{ 
-   overflow: 'visible', 
-   height: isOpen ? `${dynamicHeight}px` : '72px',
-   borderRadius: isOpen ? '32px' : '36px',
-   transition: 'height 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
-   willChange: 'height, border-radius' 
- }}
+ className="pointer-events-none box-border mx-auto"
+ style={{ position: 'relative', overflow: 'visible', height: `${dynamicHeight}px` }}
  >
-   <div 
-   className="absolute inset-0 z-10 pointer-events-none overflow-hidden"
-   style={{ 
-     borderRadius: isOpen ? '32px' : '36px',
-     transition: 'border-radius 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
-     willChange: 'border-radius'
-   }}
-   >
-      {/* Frosted glass base */}
-      <div 
-        className="absolute inset-0 !border-0 backdrop-blur-xl bg-black/50"
-        style={{ 
-          backgroundColor: 'rgba(0, 0, 0, 0.45)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          transform: 'translateZ(0)',
-          backfaceVisibility: 'hidden'
-        }}
-      />
-      {/* Specular sheen: glides as the phone tilts */}
+   {/* Skin in three pieces: the bottom cap stays, the middle stretches (scaleY) and the top cap
+       slides (translateY). Opening/closing only moves layers on the compositor — no height,
+       border-radius, mask or backdrop re-layout per frame. The box itself has its final height. */}
+   <style>{DOCK_SKIN_CSS}</style>
+   <div className={`dock-skin dock-skin-bottom ${styleClass}`} style={{ position: 'absolute' }}>
+      <div className="absolute inset-0 !border-0 backdrop-blur-xl bg-black/50 dock-skin-fill" />
       <LuxSheen intensity={0.9} />
-      {/* Fake-glass: top highlight line */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/[0.04] pointer-events-none z-0" style={{ borderRadius: 'inherit' }} />
+   </div>
+   <div className={`dock-skin dock-skin-mid ${styleClass}`}
+     style={{ position: 'absolute', height: `${dynamicHeight - 2 * DOCK_CAP}px`, transform: `scaleY(${isOpen ? 1 : 0})` }}>
+      <div className="absolute inset-0 !border-0 backdrop-blur-xl bg-black/50 dock-skin-fill" />
+   </div>
+   <div className={`dock-skin dock-skin-top ${styleClass}`}
+     style={{ position: 'absolute', transform: `translate3d(0, ${isOpen ? -(dynamicHeight - 2 * DOCK_CAP) : 0}px, 0)` }}>
+      <div className="absolute inset-0 !border-0 backdrop-blur-xl bg-black/50 dock-skin-fill" />
+      {/* Fake-glass: top highlight line + sheen */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-0" />
-      {/* Fake-glass: sheen overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] via-transparent to-black/[0.04] pointer-events-none z-0" />
-      <div className="relative w-full h-full pointer-events-auto">
+      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.06] to-transparent pointer-events-none z-0" style={{ borderRadius: 'inherit' }} />
+   </div>
+   <div className="absolute inset-0 z-10" style={{ pointerEvents: 'none' }}>
+      <div className="relative w-full h-full" style={{ pointerEvents: 'none' }}>
   {configGear}
   <div
   className="absolute bottom-[80px] left-0 right-0 px-4 grid grid-cols-2 gap-2"

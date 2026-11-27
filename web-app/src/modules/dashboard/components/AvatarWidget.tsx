@@ -1,4 +1,4 @@
-import { StreakFlame } from '../../superHabits/StreakFlame';
+import { StreakHudPill } from '@/modules/streaks/StreakHudPill';
 import React, { useState, useEffect } from 'react';
 import { Heart, Zap, Coins, Settings, ShoppingBag, Activity, Swords, PenLine } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -103,6 +103,10 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
     const deluxeText = isSpanish ? 'SÉ DELUX' : 'GO DELUX';
     
     const [showStreakModal, setShowStreakModal] = React.useState(false);
+    // Today's protocol, 0..3: every task due today, 1 habit, 60 min of focus.
+    const streakProgress = (((questsTotalToday ?? 0) === 0 || (tasksDoneToday ?? 0) >= (questsTotalToday ?? 0)) ? 1 : 0)
+        + ((dailyLimits?.habitsCompleted || 0) >= 1 ? 1 : 0)
+        + ((dailyLimits?.focusSeconds || 0) >= 3600 ? 1 : 0);
     const avatarPath = getAvatarPath(avatarId);
     const avatarConfig = getAvatarConfig(avatarId);
     const themeColor = avatarConfig?.themeColor;
@@ -268,7 +272,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
     <div className="flex items-center gap-3 sm:gap-4 opacity-100 translate-x-0 w-full pl-1">
         {/* AVATAR - RESTORED & CENTERED */}
         <div 
-            className="relative group active:scale-95 transition-transform shrink-0 cursor-pointer ml-[17px] mr-2"
+            className="relative group active:scale-95 transition-transform shrink-0 cursor-pointer ml-[15px] mr-1"
             onClick={(e) => {
                 e.stopPropagation();
                 if (onShowSettingsWithTab) {
@@ -338,22 +342,15 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
                     >
                         {formattedName}
                     </button>
-                    <div 
+                    <StreakHudPill
+                        streak={streak}
+                        secured={isHabitsCompleted}
+                        progress={streakProgress}
                         onClick={(e) => {
                             e.stopPropagation();
                             setShowStreakModal(true);
                         }}
-                        data-tour="streak-display"
-                        className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border transition-all duration-500 cursor-pointer hover:bg-white/10 shrink-0 ${
-                        isHabitsCompleted 
-                            ? "bg-orange-500/10 border-orange-500/20 shadow-[0_0_10px_-3px_rgba(249,115,22,0.4)]" 
-                            : "bg-white/5 border-white/10"
-                    }`}>
-                        <StreakFlame streak={streak} size={13} lit={isHabitsCompleted} />
-                        <span className={`text-[9px] font-mono font-bold transition-colors duration-500 ${
-                            isHabitsCompleted ? "text-orange-400" : "text-white/40"
-                        }`}>{streak}</span>
-                    </div>
+                    />
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
@@ -397,8 +394,8 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
             </div>
 
             {/* BARS AND QUICK ACTIONS */}
-            <div className="flex items-center justify-between gap-3 w-full">
-                <div className="flex flex-col gap-1.5 flex-1 min-w-0 pr-2">
+            <div className="flex items-center justify-between gap-2 w-full">
+                <div className="flex flex-col gap-1.5 flex-1 min-w-0 pr-0.5">
                      <div 
                         id="health-bar-container" 
                         className="w-full cursor-pointer hover:opacity-90 active:scale-98 transition-all"
@@ -415,7 +412,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
                 </div>
 
                 {/* Quick Actions (Customizable Top Header Icons) */}
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                       {topQuickActions.map(actionKey => renderQuickActionButton(actionKey))}
                   </div>
             </div>
@@ -431,6 +428,7 @@ export const AvatarWidget = React.memo(({ level, xp, nextXp, health, maxHealth, 
             lastStreakDate={lastStreakDate}
             questsTotalToday={questsTotalToday}
             tasksDoneToday={tasksDoneToday}
+            gold={gold}
         />
     )}
     <HpInfoModal

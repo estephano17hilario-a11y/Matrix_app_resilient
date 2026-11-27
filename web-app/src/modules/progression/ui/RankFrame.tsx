@@ -118,6 +118,7 @@ export const RankFrame: React.FC<{ children: React.ReactNode; onOpen?: () => voi
         // Mirrors the level circle (bottom-right, centre 8 px inside the photo): same horizontal axis.
         style={{ left: 8, top: avatarSize - 8, transform: 'translate(-50%, -50%)', minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', WebkitTapHighlightColor: 'transparent' }}
         aria-label={`${standing.label}`}
+        data-tour="rank-badge"
       >
         <RankBadge rankIndex={standing.rankIndex} division={standing.division} size={36} title={standing.label} />
       </button>
@@ -127,7 +128,7 @@ export const RankFrame: React.FC<{ children: React.ReactNode; onOpen?: () => voi
           className="absolute z-[11] select-none whitespace-nowrap font-mono font-black tabular-nums leading-none"
           style={{
             left: -10,
-            top: avatarSize + 4,
+            top: avatarSize - 2,
             fontSize: 10,
             letterSpacing: '0.02em',
             pointerEvents: 'none',

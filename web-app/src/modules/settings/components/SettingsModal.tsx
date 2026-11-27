@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Search, Crown, SearchX, User as UserIcon } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Search, Crown, SearchX, Sparkles, User as UserIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../SettingsContext';
 import { useAuth } from '@/context/AuthContext';
 import { useLux } from '@/context/LuxContext';
-import { getAvatarPath } from '../../../config/avatars';
+import { getAvatarConfig, getAvatarPath } from '../../../config/avatars';
+import { openDeluxe } from '../../monetization/deluxe';
+import { formatHours, formatMoney, loadSavedValue, VALUE_EVENT, type SavedValue } from '../../monetization/valueCalc';
 import { THEMES } from '../../../config/themes';
 import { GROUPS, PAGES, getPage, searchPages, type SettingsPage } from '../registry';
 
@@ -88,6 +90,18 @@ export const SettingsModal = () => {
 
   const avatarId = profile?.avatarId || (lux as any)?.avatarId;
   const avatarPath = avatarId ? getAvatarPath(avatarId) : undefined;
+  const accent = getAvatarConfig(avatarId)?.themeColor || '#818cf8';
+  const [value, setValue] = useState<SavedValue | null>(loadSavedValue);
+  useEffect(() => {
+    const on = () => setValue(loadSavedValue());
+    window.addEventListener(VALUE_EVENT, on);
+    return () => window.removeEventListener(VALUE_EVENT, on);
+  }, []);
+  const gain = value?.result
+    ? (value.result.moneyPerMonth != null
+      ? `${formatMoney(value.result.moneyPerMonth, value.answers.currency, lang)}/${lang === 'es' ? 'mes' : 'mo'}`
+      : `${formatHours(value.result.hoursPerMonth)}/${lang === 'es' ? 'mes' : 'mo'}`)
+    : null;
   const displayName = profile?.displayName || (lux as any)?.displayName || (profile?.email ? profile.email.split('@')[0] : (lang === 'es' ? 'Operativo' : 'Operative'));
 
   const renderPage = () => {
@@ -129,9 +143,10 @@ export const SettingsModal = () => {
         <button
           type="button"
           onClick={() => open('profile')}
-          className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl bg-gradient-to-br from-white/[0.06] to-white/[0.02] border border-white/[0.07] text-left active:scale-[0.99] transition-transform"
+          className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl border text-left active:scale-[0.99] transition-transform"
+          style={{ background: `linear-gradient(135deg, ${accent}26, rgba(255,255,255,0.02) 60%)`, borderColor: `${accent}40` }}
         >
-          <span className="w-12 h-12 rounded-2xl overflow-hidden bg-black/40 border border-white/10 shrink-0 flex items-center justify-center">
+          <span className="w-12 h-12 rounded-2xl overflow-hidden bg-black/40 shrink-0 flex items-center justify-center" style={{ boxShadow: `0 0 0 2px ${accent}, 0 0 18px -2px ${accent}99` }}>
             {avatarPath ? <img src={avatarPath} alt="" className="w-full h-full object-cover object-[50%_20%]" /> : <UserIcon size={22} className="text-white/25" />}
           </span>
           <span className="flex-1 min-w-0">
@@ -143,6 +158,37 @@ export const SettingsModal = () => {
           </span>
           <ChevronRight size={15} className="shrink-0 text-white/25" />
         </button>
+
+        {!isPro && (
+          <motion.button
+            type="button"
+            onClick={openDeluxe}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileTap={{ scale: 0.98 }}
+            className="relative -mt-2 w-full overflow-hidden rounded-2xl p-[1.5px] text-left"
+            style={{ background: 'linear-gradient(110deg, #f59e0b, #ec4899 50%, #8b5cf6)' }}
+          >
+            <span className="relative flex items-center gap-3 rounded-[15px] bg-[#130b1c] px-3.5 py-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-amber-400 to-pink-500 shadow-[inset_0_-3px_0_rgba(0,0,0,0.2)]">
+                <Crown size={20} className="text-white" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[14.5px] font-black text-white">{lang === 'es' ? 'Hazte Deluxe' : 'Go Deluxe'}</span>
+                <span className="block truncate text-[11.5px] font-semibold text-white/55">
+                  {gain
+                    ? (lang === 'es' ? `Recupera ${gain} · oferta hasta el 31 dic` : `Recover ${gain} · offer until Dec 31`)
+                    : (lang === 'es' ? 'Descubre cuánto vale tu tiempo · oferta hasta el 31 dic' : 'Find out what your time is worth · until Dec 31')}
+                </span>
+              </span>
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-gradient-to-r from-amber-300 to-orange-400 px-3 py-1.5 text-[11.5px] font-black text-black">
+                <Sparkles size={13} /> {lang === 'es' ? 'Ver' : 'See'}
+              </span>
+              <motion.span aria-hidden className="absolute inset-y-0 w-1/4" style={{ background: 'linear-gradient(100deg,transparent,rgba(255,255,255,0.12),transparent)', pointerEvents: 'none' }}
+                initial={{ x: '-150%' }} animate={{ x: '500%' }} transition={{ duration: 2.6, repeat: Infinity, repeatDelay: 2, ease: 'easeInOut' }} />
+            </span>
+          </motion.button>
+        )}
 
         {GROUPS.map(group => {
           const pages = PAGES.filter(p => p.group === group.id && p.id !== 'profile');
@@ -184,10 +230,17 @@ export const SettingsModal = () => {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.96, opacity: 0, y: 14 }}
         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 w-full max-w-2xl h-[88vh] sm:h-[80vh] flex flex-col overflow-hidden rounded-[24px] bg-gradient-to-br from-[#121212] to-[#050505] border border-white/[0.08] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)]"
+        className="relative z-10 w-full max-w-2xl h-[88vh] sm:h-[80vh] flex flex-col overflow-hidden rounded-[26px]"
+        style={{
+          border: '1.5px solid transparent',
+          background: `linear-gradient(160deg, #141414, #060606) padding-box, linear-gradient(150deg, ${accent} 0%, ${accent}66 22%, rgba(255,255,255,0.07) 48%, rgba(255,255,255,0.05) 70%, ${accent}aa 100%) border-box`,
+          boxShadow: `0 24px 70px -18px rgba(0,0,0,0.9), 0 0 50px -18px ${accent}99`,
+        }}
       >
+        {/* Soft accent light in the top corner */}
+        <span aria-hidden className="absolute -top-24 -left-16 h-56 w-72 rounded-full" style={{ background: `radial-gradient(circle, ${accent}2e, transparent 70%)`, pointerEvents: 'none' }} />
         {/* Header */}
-        <div className="shrink-0 px-4 pt-4 pb-3 border-b border-white/[0.05]">
+        <div className="relative shrink-0 px-4 pt-4 pb-3 border-b" style={{ borderColor: `${accent}22` }}>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
             {current ? (
               <button

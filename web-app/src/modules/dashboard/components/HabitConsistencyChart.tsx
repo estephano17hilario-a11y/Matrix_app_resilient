@@ -11,6 +11,7 @@ import { useLux } from '@/context/LuxContext';
 import { getAvatarConfig } from '@/config/avatars';
 import { useTranslation } from 'react-i18next';
 import { TourLightbulb } from '../../../components/TourLightbulb';
+import { promptDeluxe } from '@/modules/monetization/deluxe';
 
 interface HabitConsistencyChartProps {
     habits: Habit[];
@@ -43,7 +44,6 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
     displayStreak,
     isActive = true, 
     isPro, 
-    onOpenPro, 
     weekStartDay = 1, 
     initialTimeframe = 'WEEK',
     isMinimized = false,
@@ -73,7 +73,7 @@ export const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = React
 
     const handleTabClick = (tf: TimeFrame) => {
         if (!isPro && (tf === 'MONTH' || tf === '3_MONTHS' || tf === 'YEAR' || tf === 'TOTAL')) {
-            if (onOpenPro) onOpenPro();
+            promptDeluxe('charts');
             return;
         }
 

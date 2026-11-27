@@ -6,6 +6,7 @@
 import { isLastDayOfMonth } from 'date-fns';
 import type { Habit, Project, Quest } from '../../types';
 import { getHistoryDateKey, timeToMinutes, toLocalISOString } from '../../utils/dateUtils';
+import { getProjectDailyGoalOn } from '../../utils/projectUtils';
 import { isFreshOn, isHabitDoneOn, isProjectActive } from '../../utils/productivityScore';
 import { reminderOccursOn, type JournalReminderItem } from './reminderItems';
 
@@ -348,7 +349,7 @@ export const buildRoutineItems = (input: BuildRoutineInput): RoutineItem[] => {
         .filter(s => s.date && getHistoryDateKey(s.date) === key)
         .reduce((a, s) => a + (s.duration || 0), 0);
       const minutes = Math.round(seconds / 60);
-      const target = project.dailyFocusGoalMinutes || 0;
+      const target = getProjectDailyGoalOn(project, date);
       items.push(makeItem({
         id: `project-${project.id}`,
         kind: 'PROJECT',

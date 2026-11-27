@@ -46,6 +46,10 @@ export interface Subtask {
   title: string;
   isCompleted: boolean;
   createdAt: number;
+  /** Optional time of day for this step, "HH:mm" (24h). */
+  time?: string;
+  /** Optional length of this step, in minutes. */
+  duration?: number;
 }
 
 export interface Quest {

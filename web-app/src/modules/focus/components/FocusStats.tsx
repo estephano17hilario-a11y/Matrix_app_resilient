@@ -18,6 +18,8 @@ import { getAvatarConfig } from '@/config/avatars';
 import { getDynamicDailyTarget, getWeeklyGoalMinutes, getMonthlyGoalMinutes } from '../../../utils/projectUtils';
 import { useTranslation } from 'react-i18next';
 import { DateSelectionModal } from '../../dashboard/components/DateSelectionModal';
+import { TourLightbulb } from '../../../components/TourLightbulb';
+import { promptDeluxe } from '@/modules/monetization/deluxe';
 
 type TimeRange = 'DAY' | 'WEEK' | '8_WEEKS' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
 
@@ -28,7 +30,6 @@ export const FocusStats = React.memo(({
     onToggleArchived,
     onReorder,
     isPro,
-    onOpenPro,
     weekStartDay = 1,
     defaultChartViews,
     defaultChartVisibility,
@@ -108,7 +109,7 @@ export const FocusStats = React.memo(({
 
     const handleTabClick = (range: TimeRange) => {
         if (!isPro && !['DAY', 'WEEK', '8_WEEKS'].includes(range)) {
-            if (onOpenPro) onOpenPro();
+            promptDeluxe('charts');
             return;
         }
 
@@ -512,6 +513,7 @@ export const FocusStats = React.memo(({
                         {/* RIGHT: Global Button & Calendar */}
                         <div className="flex items-center gap-2 flex-shrink-0">
                              {/* CALENDAR BUTTON REMOVED AS REQUESTED - NOW NEXT TO NAVIGATOR */}
+                            <TourLightbulb tourId="focus" className="!w-7 !h-7" />
 
                             {/* Global Button */}
                             <button 
@@ -598,7 +600,7 @@ export const FocusStats = React.memo(({
                                             onClick={() => { 
                                                 if (!isPro) {
                                                     setActiveDropdown(null);
-                                                    onOpenPro?.();
+                                                    promptDeluxe('charts');
                                                     return;
                                                 }
                                                 setViewMode('PROJECT'); 

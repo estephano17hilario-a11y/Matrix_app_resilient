@@ -101,6 +101,8 @@ class RoutineWidgetProvider : AppWidgetProvider() {
         const val ACTION_REFRESH = "com.luxresilient.app.REFRESH_ROUTINE"
         const val ACTION_CYCLE_FILTER = "com.luxresilient.app.ROUTINE_CYCLE_FILTER"
         const val ACTION_TOGGLE_DONE = "com.luxresilient.app.ROUTINE_TOGGLE_DONE"
+        const val ACTION_CYCLE_ZOOM = "com.luxresilient.app.ROUTINE_CYCLE_ZOOM"
+        const val ACTION_CYCLE_COLOR = "com.luxresilient.app.ROUTINE_CYCLE_COLOR"
         private val FILTERS = listOf("ALL", "MORNING", "AFTERNOON", "NIGHT")
 
         fun widgetIds(context: Context): IntArray =
@@ -278,6 +280,11 @@ class RoutineWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.routine_hero, openApp(context, widgetId))
             views.setOnClickPendingIntent(R.id.routine_filter_btn, broadcast(context, ACTION_CYCLE_FILTER, widgetId, 1))
             views.setOnClickPendingIntent(R.id.routine_done_btn, broadcast(context, ACTION_TOGGLE_DONE, widgetId, 2))
+            views.setOnClickPendingIntent(R.id.routine_zoom_btn, broadcast(context, ACTION_CYCLE_ZOOM, widgetId, 3))
+            views.setOnClickPendingIntent(R.id.routine_color_btn, broadcast(context, ACTION_CYCLE_COLOR, widgetId, 4))
+            val wp = context.getSharedPreferences(RoutineWidgetData.PREFS_WIDGET, Context.MODE_PRIVATE)
+            views.setTextViewText(R.id.routine_zoom_text, RoutineWidgetLook.zoomLabel(RoutineWidgetLook.zoom(wp, widgetId)))
+            views.setTextColor(R.id.routine_color_dot, RoutineWidgetLook.modeDotColor(RoutineWidgetLook.colorMode(context, wp, widgetId)))
 
             manager.updateAppWidget(widgetId, views)
             Log.d(TAG, "updated widget $widgetId filter=${snap.filter} rows=${snap.rows.size} pct=${s.pct}")
@@ -301,6 +308,7 @@ class RoutineWidgetProvider : AppWidgetProvider() {
         val editor = context.getSharedPreferences(RoutineWidgetData.PREFS_WIDGET, Context.MODE_PRIVATE).edit()
         for (id in appWidgetIds) {
             editor.remove("routine_filter_widget_$id").remove("routine_show_done_widget_$id").remove("widget_background_opacity_$id")
+                .remove("routine_zoom_widget_$id").remove("routine_color_widget_$id")
         }
         editor.apply()
     }
@@ -324,6 +332,23 @@ class RoutineWidgetProvider : AppWidgetProvider() {
                 val current = prefs.getString("routine_filter_widget_$id", "ALL") ?: "ALL"
                 val next = FILTERS[(FILTERS.indexOf(current).coerceAtLeast(0) + 1) % FILTERS.size]
                 prefs.edit().putString("routine_filter_widget_$id", next).apply()
+                reloadOne(context, id)
+            }
+            ACTION_CYCLE_ZOOM, ACTION_CYCLE_COLOR -> {
+                val id = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
+                if (id == AppWidgetManager.INVALID_APPWIDGET_ID) return
+                val prefs = context.getSharedPreferences(RoutineWidgetData.PREFS_WIDGET, Context.MODE_PRIVATE)
+                val msg = if (intent.action == ACTION_CYCLE_ZOOM) {
+                    val next = RoutineWidgetLook.nextZoom(RoutineWidgetLook.zoom(prefs, id))
+                    // Per widget, and the default for widgets added later.
+                    prefs.edit().putFloat("routine_zoom_widget_$id", next).putFloat("routine_zoom_default", next).apply()
+                    "Tamaño ${RoutineWidgetLook.zoomLabel(next)}"
+                } else {
+                    val next = RoutineWidgetLook.nextMode(RoutineWidgetLook.colorMode(context, prefs, id))
+                    prefs.edit().putString("routine_color_widget_$id", next).putString("routine_color_default", next).apply()
+                    "Colores: ${RoutineWidgetLook.modeLabel(next)}"
+                }
+                try { android.widget.Toast.makeText(context.applicationContext, msg, android.widget.Toast.LENGTH_SHORT).show() } catch (_: Exception) {}
                 reloadOne(context, id)
             }
             ACTION_TOGGLE_DONE -> {
@@ -355,6 +380,8 @@ class RoutineWidgetProvider : AppWidgetProvider() {
                 partial.setTextViewText(R.id.routine_filter_text, filterLabel(filter))
                 partial.setImageViewResource(R.id.routine_done_icon, if (showDone) R.drawable.ic_routine_eye else R.drawable.ic_routine_eye_off)
                 partial.setInt(R.id.routine_done_icon, "setImageAlpha", if (showDone) 255 else 130)
+                partial.setTextViewText(R.id.routine_zoom_text, RoutineWidgetLook.zoomLabel(RoutineWidgetLook.zoom(prefs, id)))
+                partial.setTextColor(R.id.routine_color_dot, RoutineWidgetLook.modeDotColor(RoutineWidgetLook.colorMode(app, prefs, id)))
                 manager.partiallyUpdateAppWidget(id, partial)
                 manager.notifyAppWidgetViewDataChanged(id, R.id.routine_list)
             } finally {
@@ -409,4 +436,28 @@ class RoutineAlarmReceiver : BroadcastReceiver() {
             }
         }.start()
     }
+}
+
+
+/** Zoom and colour mode of each Routine widget (the last choice becomes the default for new ones). */
+object RoutineWidgetLook {
+    private val ZOOMS = floatArrayOf(0.9f, 1f, 1.15f, 1.3f)
+    private val MODES = listOf("OWN", "TRAIT", "IMPORTANCE")
+
+    fun zoom(prefs: android.content.SharedPreferences, id: Int): Float {
+        val z = prefs.getFloat("routine_zoom_widget_$id", prefs.getFloat("routine_zoom_default", 1f))
+        return ZOOMS.minByOrNull { kotlin.math.abs(it - z) } ?: 1f
+    }
+    fun nextZoom(z: Float): Float = ZOOMS[(ZOOMS.indexOfFirst { kotlin.math.abs(it - z) < 0.01f } + 1).mod(ZOOMS.size)]
+    fun zoomLabel(z: Float): String = when { z < 0.95f -> "A-"; z < 1.05f -> "Aa"; z < 1.2f -> "A+"; else -> "A++" }
+
+    fun colorMode(context: Context, prefs: android.content.SharedPreferences, id: Int): String {
+        val fallback = prefs.getString("routine_color_default", null)
+            ?: RoutineConfig.fromJson(context.getSharedPreferences(RoutineWidgetData.PREFS_ROUTINE, Context.MODE_PRIVATE).getString(RoutineWidgetData.KEY_CONFIG, null)).calendarColor
+        val m = prefs.getString("routine_color_widget_$id", fallback) ?: "OWN"
+        return if (m in MODES) m else "OWN"
+    }
+    fun nextMode(m: String): String = MODES[(MODES.indexOf(m) + 1).mod(MODES.size)]
+    fun modeLabel(m: String): String = when (m) { "TRAIT" -> "por rasgo"; "IMPORTANCE" -> "por importancia"; else -> "tu color" }
+    fun modeDotColor(m: String): Int = android.graphics.Color.parseColor(when (m) { "TRAIT" -> "#C084FC"; "IMPORTANCE" -> "#FF9F0A"; else -> "#38BDF8" })
 }

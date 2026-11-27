@@ -9,6 +9,7 @@ import { es } from 'date-fns/locale';
 import { LineChart } from '../../../components/charts/LineChart';
 import { DateSelectionModal, DateSelectionMode } from './DateSelectionModal';
 import { useTranslation } from 'react-i18next';
+import { promptDeluxe } from '@/modules/monetization/deluxe';
 
 interface HabitTrendChartProps {
     habit: Habit;
@@ -20,7 +21,7 @@ interface HabitTrendChartProps {
 
 type TimeFrame = 'WEEK' | 'MONTH' | '3_MONTHS' | 'YEAR' | 'TOTAL';
 
-export const HabitTrendChart: React.FC<HabitTrendChartProps> = ({ habit, color = '#6366f1', isPro, onOpenPro, selectedSubtaskId }) => {
+export const HabitTrendChart: React.FC<HabitTrendChartProps> = ({ habit, color = '#6366f1', isPro, selectedSubtaskId }) => {
     const { t } = useTranslation();
     const [timeframe, setTimeframe] = useState<TimeFrame>('WEEK');
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -29,7 +30,7 @@ export const HabitTrendChart: React.FC<HabitTrendChartProps> = ({ habit, color =
 
     const handleTabClick = (tf: TimeFrame) => {
         if (!isPro && (tf === '3_MONTHS' || tf === 'YEAR' || tf === 'TOTAL')) {
-            if (onOpenPro) onOpenPro();
+            promptDeluxe('charts');
             return;
         }
         if (timeframe === tf) {

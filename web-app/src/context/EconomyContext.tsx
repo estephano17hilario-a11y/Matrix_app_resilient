@@ -4,8 +4,9 @@ import { frameItemId } from '@/modules/progression/frames';
 import { SOCIAL_CONFIG, chestItemId } from '@/modules/social/engine';
 import { supabase } from '@/services/supabase';
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
-import { anchorRestoredStreak } from '@/utils/streakRules';
-import { purchaseItem, consumeItem, StoreItem, InventoryItem } from '@/services/economyService';
+import { anchorRestoredStreak, dayRange, shiftDayKey } from '@/utils/streakRules';
+import { toLocalISOString } from '@/utils/dateUtils';
+import { purchaseItem, consumeItem, StoreItem, InventoryItem, ItemEffectFn } from '@/services/economyService';
 import { useLux } from '@/context/LuxContext';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'react-hot-toast';
@@ -26,25 +27,38 @@ export interface EconomyContextType {
 
 const EconomyContext = createContext<EconomyContextType | undefined>(undefined);
 
-const STORE_ITEMS: StoreItem[] = [
-  // --- POWER UPS (MEJORAS) ---
+// Every consumable here has a real effect in `applyItemEffect` below.
+export const STORE_ITEMS: StoreItem[] = [
+  // ── Protección de racha ──
   {
-    id: 'potion_hp_small',
-    name: 'store.items.potion_hp_small.name',
-    description: 'store.items.potion_hp_small.desc',
+    id: 'freeze_streak',
+    name: 'store.items.freeze_streak.name',
+    description: 'store.items.freeze_streak.desc',
     price: 1500,
     category: 'power_up',
-    iconName: 'Zap',
-    effect: { type: 'heal', value: 5 }
+    subCategory: 'protection',
+    iconName: 'Snowflake',
+    effect: { type: 'freeze_streak', value: 1 },
   },
   {
-    id: 'redemption_token',
-    name: 'store.items.redemption_token.name',
-    description: 'store.items.redemption_token.desc',
-    price: 1800,
+    id: 'glacier_streak',
+    name: 'store.items.glacier_streak.name',
+    description: 'store.items.glacier_streak.desc',
+    price: 3800,
     category: 'power_up',
-    iconName: 'ShieldAlert',
-    effect: { type: 'restore_streak', value: 1 }
+    subCategory: 'protection',
+    iconName: 'Mountain',
+    effect: { type: 'freeze_streak', value: 3 },
+  },
+  {
+    id: 'phoenix_feather',
+    name: 'store.items.phoenix_feather.name',
+    description: 'store.items.phoenix_feather.desc',
+    price: 4500,
+    category: 'power_up',
+    subCategory: 'protection',
+    iconName: 'Feather',
+    effect: { type: 'auto_protect', value: 3 },
   },
   {
     id: PROGRESSION_CONFIG.SHIELD_ITEM_ID,
@@ -52,8 +66,63 @@ const STORE_ITEMS: StoreItem[] = [
     description: 'store.items.rest_shield.desc',
     price: PROGRESSION_CONFIG.SHIELD_PRICE_GOLD,
     category: 'power_up',
-    iconName: 'ShieldAlert',
+    subCategory: 'protection',
+    iconName: 'ShieldCheck',
     effect: { type: 'rest_shield', value: 1 }
+  },
+  // ── Restablecimientos (se compran y aplican al instante) ──
+  {
+    id: 'redemption_token',
+    name: 'store.items.redemption_token.name',
+    description: 'store.items.redemption_token.desc',
+    price: 2500,
+    category: 'power_up',
+    subCategory: 'restore',
+    iconName: 'RotateCcw',
+    effect: { type: 'restore_streak', value: 1 }
+  },
+  // ── Vitalidad ──
+  {
+    id: 'potion_hp_small',
+    name: 'store.items.potion_hp_small.name',
+    description: 'store.items.potion_hp_small.desc',
+    price: 1500,
+    category: 'power_up',
+    subCategory: 'vitality',
+    iconName: 'Heart',
+    effect: { type: 'heal', value: 10 }
+  },
+  {
+    id: 'potion_hp_full',
+    name: 'store.items.potion_hp_full.name',
+    description: 'store.items.potion_hp_full.desc',
+    price: 3500,
+    category: 'power_up',
+    subCategory: 'vitality',
+    iconName: 'HeartPulse',
+    effect: { type: 'heal_full', value: 100 }
+  },
+  // ── Crecimiento ──
+  {
+    id: 'potion_xp_restore',
+    name: 'store.items.potion_xp_restore.name',
+    description: 'store.items.potion_xp_restore.desc',
+    price: 2000,
+    category: 'power_up',
+    subCategory: 'growth',
+    iconName: 'ScrollText',
+    effect: { type: 'xp_boost', value: 250 }
+  },
+  // ── Misterio ──
+  {
+    id: 'mystery_chest',
+    name: 'store.items.mystery_chest.name',
+    description: 'store.items.mystery_chest.desc',
+    price: 2500,
+    category: 'power_up',
+    subCategory: 'mystery',
+    iconName: 'Gift',
+    effect: { type: 'mystery', value: 1 }
   },
   // Duel chests: never sold, only won. Opening one pays its value in gold.
   ...SOCIAL_CONFIG.CHEST_TIERS.map((value): StoreItem => ({
@@ -76,6 +145,137 @@ const STORE_ITEMS: StoreItem[] = [
     effect: { type: 'frame', value: i },
   })),
 ];
+
+// Streak fields are read from the auth profile; item effects write them back there.
+export const STREAK_STAT_KEYS = ['streak', 'lastStreakDate', 'previousStreak', 'streakFrozenUntil', 'streakFrozenDays', 'streakLostAt', 'longestStreak'] as const;
+
+export type MysteryPrize = { kind: 'item'; itemId: string } | { kind: 'gold'; amount: number };
+
+/** The chest's odds, shown in the store. */
+export const MYSTERY_TABLE: { prize: MysteryPrize; weight: number; label: string }[] = [
+  { prize: { kind: 'item', itemId: 'freeze_streak' }, weight: 28, label: 'Congelador de racha' },
+  { prize: { kind: 'item', itemId: 'potion_hp_small' }, weight: 20, label: 'Poción de vida' },
+  { prize: { kind: 'item', itemId: 'potion_xp_restore' }, weight: 17, label: 'Pergamino de sabiduría' },
+  { prize: { kind: 'gold', amount: 1500 }, weight: 13, label: '1,500 de oro' },
+  { prize: { kind: 'item', itemId: 'glacier_streak' }, weight: 8, label: 'Glaciar eterno' },
+  { prize: { kind: 'item', itemId: 'phoenix_feather' }, weight: 8, label: 'Pluma de fénix' },
+  { prize: { kind: 'gold', amount: 4000 }, weight: 6, label: '4,000 de oro' },
+];
+
+const rollMysteryChest = (): MysteryPrize => {
+  const total = MYSTERY_TABLE.reduce((s, r) => s + r.weight, 0);
+  let roll = Math.random() * total;
+  for (const row of MYSTERY_TABLE) {
+    roll -= row.weight;
+    if (roll <= 0) return row.prize;
+  }
+  return MYSTERY_TABLE[0].prize;
+};
+
+const addToInventory = (inv: InventoryItem[], itemId: string, qty = 1) => {
+  const next = [...inv];
+  const i = next.findIndex(x => x.itemId === itemId);
+  if (i >= 0) next[i] = { ...next[i], quantity: next[i].quantity + qty };
+  else next.push({ itemId, quantity: qty, acquiredAt: Date.now() });
+  return next;
+};
+
+const protectDays = (stats: any, count: number) => {
+  const today = toLocalISOString(new Date());
+  const days = dayRange(today, shiftDayKey(today, count - 1));
+  const existing: string[] = Array.isArray(stats.streakFrozenDays) ? stats.streakFrozenDays : [];
+  const fresh = days.filter(d => !existing.includes(d));
+  if (!fresh.length) throw new Error(count === 1 ? 'Hoy ya está protegido.' : 'Esos días ya están protegidos.');
+  stats.streakFrozenDays = [...existing, ...fresh].sort().slice(-120);
+};
+
+/**
+ * The effect of using one item, applied to (stats, inventory-after-use). Pure
+ * apart from the date, so the server copy reaches the same result.
+ */
+export const applyItemEffect = (itemId: string, statsIn: any, inventory: InventoryItem[], prize: MysteryPrize | null) => {
+  const stats = { ...statsIn };
+  let inv = inventory;
+  switch (itemId) {
+    case 'potion_hp_small': {
+      const maxHp = stats.maxHp || 100;
+      if ((stats.hp || 0) >= maxHp) throw new Error("HP is already full.");
+      stats.hp = Math.min(maxHp, (stats.hp || 0) + 10);
+      stats.maxHp = maxHp;
+      break;
+    }
+    case 'potion_hp_full': {
+      const maxHp = stats.maxHp || 100;
+      if ((stats.hp || 0) >= maxHp) throw new Error("HP is already full.");
+      stats.hp = maxHp;
+      stats.maxHp = maxHp;
+      break;
+    }
+    case 'potion_xp_restore': {
+      stats.xp = (stats.xp || 0) + 250;
+      stats.level = calculateLevelFromXp(stats.xp);
+      stats.nextXp = calculateNextLevelXp(stats.level);
+      break;
+    }
+    case 'freeze_streak':
+      protectDays(stats, 1);
+      break;
+    case 'glacier_streak':
+      protectDays(stats, 3);
+      break;
+    case PROGRESSION_CONFIG.SHIELD_ITEM_ID: {
+      // The ELO side is recorded by the progression store; streaks are kept too.
+      const today = toLocalISOString(new Date());
+      const existing: string[] = Array.isArray(stats.streakFrozenDays) ? stats.streakFrozenDays : [];
+      if (!existing.includes(today)) stats.streakFrozenDays = [...existing, today].sort().slice(-120);
+      break;
+    }
+    case 'redemption_token': {
+      // Legacy token: brings back the last lost daily streak.
+      const previous = stats.previousStreak || 0;
+      if (previous <= 0) throw new Error('No tienes una racha diaria perdida que restaurar.');
+      stats.streak = previous + (stats.streak || 0);
+      stats.previousStreak = 0;
+      stats.streakLostAt = null;
+      anchorRestoredStreak(stats);
+      break;
+    }
+    case 'mystery_chest': {
+      if (!prize) throw new Error('Cofre vacío');
+      if (prize.kind === 'gold') stats.gold = (stats.gold || 0) + prize.amount;
+      else inv = addToInventory(inv, prize.itemId);
+      break;
+    }
+    default:
+      if (itemId.startsWith('chest_')) {
+        // Duel chests: opening one pays its value in gold.
+        stats.gold = (stats.gold || 0) + (Number(itemId.slice(6)) || 0);
+        break;
+      }
+      throw new Error(`Efecto para el ítem '${itemId}' no configurado.`);
+  }
+  return { stats, inventory: inv };
+};
+
+const itemUsedMessage = (itemId: string, prize: MysteryPrize | null) => {
+  switch (itemId) {
+    case 'potion_hp_small': return 'Poción usada: +10 HP';
+    case 'potion_hp_full': return 'Elixir mayor: vida al máximo';
+    case 'potion_xp_restore': return 'Pergamino leído: +250 XP';
+    case 'freeze_streak': return '❄️ Racha congelada: hoy está protegido';
+    case 'glacier_streak': return '🏔️ Glaciar activo: hoy y los 2 días siguientes protegidos';
+    case PROGRESSION_CONFIG.SHIELD_ITEM_ID: return 'Escudo activado: hoy es día de descanso';
+    case 'redemption_token': return '🔥 Racha restaurada';
+    case 'mystery_chest': {
+      if (!prize) return 'Cofre abierto';
+      if (prize.kind === 'gold') return `🎁 Cofre del destino: +${prize.amount.toLocaleString()} de oro`;
+      const row = MYSTERY_TABLE.find(r => r.prize.kind === 'item' && r.prize.itemId === prize.itemId);
+      return `🎁 Cofre del destino: ${row?.label || 'un poder'}`;
+    }
+    default:
+      return itemId.startsWith('chest_') ? `Cofre abierto: +${Number(itemId.slice(6)) || 0} de oro` : 'Objeto utilizado correctamente';
+  }
+};
 
 export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, updateLuxLocally } = useLux();
@@ -143,6 +343,12 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
           if (!currentUnlockedCamel.includes(item.id)) {
             updates.unlockedStoreItems = [...currentUnlockedCamel, item.id];
           }
+          // Settings → Visuals and the store read unlocks from the auth profile.
+          const profileUnlocked = ((profile as any)?.unlocked_store_items || (profile as any)?.unlockedStoreItems || []) as string[];
+          if (!profileUnlocked.includes(item.id)) {
+            const next = [...profileUnlocked, item.id];
+            updateProfileLocally({ unlocked_store_items: next, unlockedStoreItems: next } as any);
+          }
         }
 
         updateLuxLocally(updates);
@@ -169,162 +375,80 @@ export const EconomyProvider: React.FC<{ children: ReactNode }> = ({ children })
     } finally {
       setIsTransactionPending(false);
     }
-  }, [user, updateLuxLocally]);
+  }, [user, updateLuxLocally, profile, updateProfileLocally]);
 
   const useItem = useCallback(async (itemId: string): Promise<boolean> => {
       if (!user?.id) {
         console.warn("🎒 [Store Consume] Cannot consume, user id is missing.");
         return false;
       }
-      
+
       setIsTransactionPending(true);
-      const storeItem = STORE_ITEMS.find(i => i.id === itemId);
-      console.log(`🎒 [Store Consume] Initiating consumption. User: ${user.id}, Item: ${itemId}`);
 
       try {
         const inventory = (user.inventory || []) as InventoryItem[];
         const itemIndex = inventory.findIndex(i => i.itemId === itemId);
-        
+
         if (itemIndex === -1 || inventory[itemIndex].quantity < 1) {
           throw new Error("No tienes este ítem en tu inventario");
         }
+        if (itemId === 'phoenix_feather') {
+          throw new Error("La pluma de fénix se activa sola el día que tu racha se rompa.");
+        }
 
+        // Streak fields live in the auth profile (see useDashboardLogic), so
+        // effects start from them.
         const authStats: any = profile?.stats || {};
-        const newStats = {
-          ...(user.stats || {}),
-          ...(authStats.streak !== undefined ? { streak: authStats.streak } : {}),
-          ...(authStats.lastStreakDate !== undefined ? { lastStreakDate: authStats.lastStreakDate } : {}),
-          ...(authStats.previousStreak !== undefined ? { previousStreak: authStats.previousStreak } : {}),
-          ...(authStats.streakFrozenUntil !== undefined ? { streakFrozenUntil: authStats.streakFrozenUntil } : {}),
-        } as any;
-        
-        // Apply effect locally to stats
-        switch (itemId) {
-          case 'potion_hp_small': {
-            const currentHp = newStats.hp || 0;
-            const maxHp = newStats.maxHp || 100;
-            if (currentHp >= maxHp) {
-              throw new Error("HP is already full.");
-            }
-            newStats.hp = Math.min(maxHp, currentHp + 10);
-            newStats.maxHp = maxHp;
-            break;
+        const baseStats = { ...(user.stats || {}) } as any;
+        STREAK_STAT_KEYS.forEach(k => { if (authStats[k] !== undefined) baseStats[k] = authStats[k]; });
+
+        // The chest is rolled once, here, so the server copy gets the same prize.
+        const prize = itemId === 'mystery_chest' ? rollMysteryChest() : null;
+        const apply: ItemEffectFn = (stats, inv) => applyItemEffect(itemId, stats, inv, prize);
+
+        const afterUse = inventory
+          .map((invItem, idx) => (idx === itemIndex ? { ...invItem, quantity: invItem.quantity - 1 } : invItem))
+          .filter(invItem => invItem.quantity > 0);
+        const { stats: newStats, inventory: newInventory } = apply(baseStats, afterUse);
+
+        if (itemId === PROGRESSION_CONFIG.SHIELD_ITEM_ID) {
+          // One rest day: no ELO losses and every streak is kept.
+          const r = progressionStore.activateShield('PURCHASED');
+          if (!r.ok) {
+            throw new Error(r.reason === 'ALREADY_ACTIVE' ? 'Ya tienes un escudo activo hoy' : 'No se pudo activar el escudo');
           }
-          case 'potion_xp_restore': {
-            const newXp = (newStats.xp || 0) + 100;
-            newStats.xp = newXp;
-            const newLevel = calculateLevelFromXp(newXp);
-            newStats.level = newLevel;
-            newStats.nextXp = calculateNextLevelXp(newLevel);
-            break;
-          }
-          case 'redemption_token': {
-            const currentStreak = newStats.streak || 0;
-            const previousStreak = newStats.previousStreak || 0;
-            if (previousStreak > currentStreak) {
-              newStats.streak = previousStreak;
-              newStats.previousStreak = 0;
-            } else {
-              newStats.streak = currentStreak + 1;
-            }
-            // Continue the restored streak today (see anchorRestoredStreak).
-            anchorRestoredStreak(newStats);
-            break;
-          }
-          case 'freeze_streak': {
-            const now = new Date();
-            const freezeUntil = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-            newStats.streakFrozenUntil = freezeUntil.toISOString();
-            break;
-          }
-          case itemId.startsWith('chest_') ? itemId : '': {
-            newStats.gold = (newStats.gold || 0) + (Number(itemId.slice(6)) || 0);
-            break;
-          }
-          case PROGRESSION_CONFIG.SHIELD_ITEM_ID: {
-            // One rest day: no ELO losses and the habit streak is kept.
-            const r = progressionStore.activateShield('PURCHASED');
-            if (!r.ok) {
-              throw new Error(r.reason === 'ALREADY_ACTIVE' ? 'Ya tienes un escudo activo hoy' : 'No se pudo activar el escudo');
-            }
-            break;
-          }
-          default:
-            throw new Error(`Efecto para el ítem '${itemId}' no configurado.`);
         }
 
-        // Deduct quantity and filter out if quantity is 0
-        const updatedInventory = inventory.map((invItem, idx) => {
-          if (idx === itemIndex) {
-            return { ...invItem, quantity: invItem.quantity - 1 };
-          }
-          return invItem;
-        });
-        const newInventory = updatedInventory.filter(invItem => invItem.quantity > 0);
-
-        const updates: Partial<UserData> = {
-          inventory: newInventory,
-          stats: newStats
-        };
-
-        // Update local state (Optimistic updates to React state & Capacitor Preferences cache)
-        updateLuxLocally(updates);
-        if (itemId === 'redemption_token' || itemId === 'freeze_streak') {
-          updateProfileLocally({
-            stats: {
-              ...(profile?.stats || {}),
-              streak: newStats.streak,
-              lastStreakDate: newStats.lastStreakDate,
-              previousStreak: newStats.previousStreak,
-              streakFrozenUntil: newStats.streakFrozenUntil,
-            } as any,
-          });
+        updateLuxLocally({ inventory: newInventory, stats: newStats });
+        const streakPatch: any = {};
+        STREAK_STAT_KEYS.forEach(k => { if (newStats[k] !== authStats[k]) streakPatch[k] = newStats[k]; });
+        if (Object.keys(streakPatch).length) {
+          updateProfileLocally({ stats: { ...(profile?.stats || {}), ...streakPatch } as any });
         }
-        console.log("🎒 [Store Consume] Local state updated successfully (Optimistic).");
 
-        // Success Haptic
         if (navigator.vibrate) navigator.vibrate(30);
 
-        // Try syncing to Supabase
         try {
-          const result = await consumeItem(user.id, itemId, storeItem?.effect);
-          if (!result.success) {
-            throw new Error(result.error || 'Database update failed');
-          }
-          console.log("🎒 [Store Consume] Database response success:", result);
+          const result = await consumeItem(user.id, itemId, apply);
+          if (!result.success) throw new Error(result.error || 'Database update failed');
         } catch (dbError: any) {
           console.warn("🎒 [Store Consume] Supabase update failed, queuing for offline sync:", dbError);
-          // Add to offline sync queue
           await OfflineSyncService.addAction({
             type: 'STATS_SYNC',
             collectionName: 'users',
             userId: user.id,
             itemId: 'stats',
-            data: {
-              stats: newStats,
-              inventory: newInventory
-            }
+            data: { stats: newStats, inventory: newInventory }
           });
         }
 
-        // Show toast success message
-        if (itemId === 'potion_hp_small') {
-          toast.success("Poción usada, recuperaste HP");
-        } else if (itemId.startsWith('chest_')) {
-          toast.success(`Cofre abierto: +${Number(itemId.slice(6)) || 0} de oro`);
-        } else if (itemId === PROGRESSION_CONFIG.SHIELD_ITEM_ID) {
-          toast.success("Escudo activado: hoy es día de descanso");
-        } else {
-          toast.success("Objeto utilizado correctamente");
-        }
+        toast.success(itemUsedMessage(itemId, prize));
+        if (prize) window.dispatchEvent(new CustomEvent('lux:mystery-prize', { detail: prize }));
         return true;
       } catch (error: any) {
         console.error('[Inventory] Error consumiendo ítem:', error);
-        
         let errorMsg = error.message || 'Error al usar el objeto';
-        if (errorMsg === 'HP is already full.') {
-          errorMsg = 'Los puntos de vida (HP) ya están llenos.';
-        }
+        if (errorMsg === 'HP is already full.') errorMsg = 'Los puntos de vida (HP) ya están llenos.';
         toast.error(errorMsg);
         return false;
       } finally {

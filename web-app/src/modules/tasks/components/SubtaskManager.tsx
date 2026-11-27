@@ -1,11 +1,22 @@
 import React, { useState, useRef, useLayoutEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { Plus, Trash2, Check } from 'lucide-react';
+import { Plus, Trash2, Check, Clock, X } from 'lucide-react';
 import { Subtask } from '../../../types';
 import { useSubtasks } from '../hooks/useSubtasks';
 import { cn } from '../../../utils/cn';
 import { useTranslation } from 'react-i18next';
 import { hapticService } from '../../../services/hapticService';
+import { TimePicker } from '../../../components/ui/TimePicker';
+import { formatClock } from '../../../utils/dateUtils';
+
+const DURATION_OPTIONS = [5, 10, 15, 20, 30, 45, 60, 90, 120];
+
+const formatMinutes = (m: number): string => {
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return r ? `${h}h ${r}m` : `${h}h`;
+};
 
 interface SubtaskManagerProps {
   taskId: string;
@@ -16,8 +27,9 @@ interface SubtaskManagerProps {
 
 export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialSubtasks = [], onCompletionChange, onSubtasksChange }) => {
   const { t } = useTranslation();
-  const { subtasks, addSubtask, toggleSubtask, deleteSubtask, reorderSubtasks } = useSubtasks(taskId, initialSubtasks, onSubtasksChange);
+  const { subtasks, addSubtask, toggleSubtask, deleteSubtask, updateSubtaskTime, reorderSubtasks } = useSubtasks(taskId, initialSubtasks, onSubtasksChange);
   const [inputValue, setInputValue] = useState('');
+  const [timeOpenId, setTimeOpenId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const isLiteList = subtasks.length > 20;
   const listRef = useRef<HTMLDivElement>(null);
@@ -31,6 +43,8 @@ export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialS
   const completed = subtasks.filter(t => t.isCompleted).length;
   const progress = total === 0 ? 0 : (completed / total) * 100;
   const isComplete = total > 0 && progress === 100;
+  const totalMinutes = subtasks.reduce((a, t) => a + (t.duration || 0), 0);
+  const remainingMinutes = subtasks.reduce((a, t) => a + (t.isCompleted ? 0 : (t.duration || 0)), 0);
 
   React.useEffect(() => {
     if (onCompletionChange) {
@@ -120,6 +134,35 @@ export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialS
         {task.title}
       </span>
 
+      {(task.time || task.duration) && (
+        <span
+          className={cn(
+            "shrink-0 flex items-center gap-1 text-[10px] font-bold tabular-nums px-1.5 py-[2px] rounded-md border",
+            task.isCompleted ? "text-white/25 border-white/5 bg-white/[0.02]" : "text-amber-300 border-amber-400/25 bg-amber-400/10"
+          )}
+        >
+          {task.time && <span>{formatClock(task.time)}</span>}
+          {task.time && task.duration ? <span className="opacity-40">·</span> : null}
+          {task.duration ? <span>{formatMinutes(task.duration)}</span> : null}
+        </span>
+      )}
+
+      {!isLiteList && (
+        <button
+          onClick={(e) => { e.stopPropagation(); setTimeOpenId(prev => (prev === task.id ? null : task.id)); }}
+          className={cn(
+            "p-1.5 rounded-md transition-colors shrink-0",
+            timeOpenId === task.id || task.time || task.duration
+              ? "text-amber-300 bg-amber-400/10"
+              : "text-white/25 hover:text-amber-300 hover:bg-white/5"
+          )}
+          aria-label={t('components.subtaskManager.setTime', 'Tiempo del paso')}
+          aria-expanded={timeOpenId === task.id}
+        >
+          <Clock size={14} />
+        </button>
+      )}
+
       <button
         onClick={(e) => { e.stopPropagation(); deleteSubtask(task.id); }}
         className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-red-500/10 text-white/20 hover:text-red-400"
@@ -130,6 +173,67 @@ export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialS
     </>
   );
 
+  const renderTimePanel = (task: Subtask) => (
+    <AnimatePresence initial={false}>
+      {timeOpenId === task.id && (
+        <motion.div
+          key="time-panel"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          className="overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div className="flex flex-col gap-3 pt-3 mt-2.5 border-t border-white/10">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-white/40">{t('components.subtaskManager.startTime', 'Hora')}</span>
+              <span className="flex items-center gap-1.5">
+                <TimePicker
+                  value={task.time || ''}
+                  onChange={(val) => updateSubtaskTime(task.id, { time: val || undefined })}
+                  label={t('components.subtaskManager.startTime', 'Hora')}
+                  className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm font-semibold text-white tabular-nums hover:bg-white/10"
+                />
+                {task.time && (
+                  <button
+                    type="button"
+                    onClick={() => updateSubtaskTime(task.id, { time: undefined })}
+                    className="p-1.5 rounded-md text-white/30 hover:text-white/70 hover:bg-white/5"
+                    aria-label={t('common.clear', 'Quitar')}
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </span>
+            </div>
+            <div className="flex flex-col gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-white/40">{t('components.subtaskManager.duration', 'Duración')}</span>
+              <div className="flex flex-wrap gap-1.5">
+                {DURATION_OPTIONS.map(m => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => updateSubtaskTime(task.id, { duration: task.duration === m ? undefined : m })}
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg text-xs font-bold tabular-nums border transition-colors active:scale-95",
+                      task.duration === m
+                        ? "bg-amber-400/20 border-amber-400/50 text-amber-200"
+                        : "bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white/80"
+                    )}
+                  >
+                    {formatMinutes(m)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
   return (
     <div className="w-full mt-4 flex flex-col gap-4">
       
@@ -138,7 +242,17 @@ export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialS
           <div className="flex flex-col gap-1 flex-1">
              <div className="flex justify-between items-center text-[10px] uppercase tracking-wider font-bold text-white/40">
                 <span>{t('quests.tacticalSteps', 'Tactical Steps')}</span>
-                <span>{Math.round(progress)}%</span>
+                <span className="flex items-center gap-2">
+                  {totalMinutes > 0 && (
+                    <span className="flex items-center gap-1 normal-case tracking-normal text-amber-300/80 tabular-nums" title={t('components.subtaskManager.totalTime', 'Tiempo total')}>
+                      <Clock size={10} />
+                      {remainingMinutes > 0 && remainingMinutes !== totalMinutes
+                        ? `${formatMinutes(remainingMinutes)} / ${formatMinutes(totalMinutes)}`
+                        : formatMinutes(totalMinutes)}
+                    </span>
+                  )}
+                  <span>{Math.round(progress)}%</span>
+                </span>
              </div>
             {/* Liquid Bar */}
             <div className="relative h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
@@ -180,10 +294,13 @@ export const SubtaskManager: React.FC<SubtaskManagerProps> = ({ taskId, initialS
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
-                  className="group relative flex items-center gap-3 p-2.5 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-colors cursor-grab active:cursor-grabbing"
+                  className="group relative flex flex-col p-2.5 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-colors cursor-grab active:cursor-grabbing"
                   style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
                 >
-                  {renderSubtaskContent(task)}
+                  <div className="flex items-center gap-3">
+                    {renderSubtaskContent(task)}
+                  </div>
+                  {renderTimePanel(task)}
                 </Reorder.Item>
               ))}
             </AnimatePresence>

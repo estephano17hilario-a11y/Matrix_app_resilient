@@ -587,6 +587,7 @@ export const QuestModal = React.memo(({
         ];
         return (
             <WizardSheet
+                tourKind="task"
                 isOpen={isOpen}
                 onClose={onClose}
                 accent={activeColor}

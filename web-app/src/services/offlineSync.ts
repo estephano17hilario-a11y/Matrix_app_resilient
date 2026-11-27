@@ -14,6 +14,18 @@ export interface OfflineAction {
 
 const OFFLINE_QUEUE_KEY = 'MATRIX_OFFLINE_SYNC_QUEUE';
 
+/**
+ * Writes that left the device but may not be visible to a concurrent read yet. A bulk sync that
+ * started before the write committed would otherwise bring back the OLD row and overwrite the
+ * user's change (e.g. a habit check "undoing itself"). Entries stay a short while after success
+ * to cover reads already in flight.
+ */
+type InFlight = { type: 'SAVE' | 'UPDATE' | 'DELETE'; userId: string; collectionName: string; itemId: string; data?: any; seq: number };
+const inFlight = new Map<string, InFlight>();
+let inFlightSeq = 0;
+const INFLIGHT_GRACE_MS = 20_000;
+const inFlightKey = (userId: string, collectionName: string, itemId: string) => `${userId}|${collectionName}|${itemId}`;
+
 // 🧠 MEMORY CORE: Synchronous in-memory queue cache loaded instantly from localStorage
 let cachedQueue: OfflineAction[] = [];
 try {
@@ -156,8 +168,23 @@ export const OfflineSyncService = {
     }
   },
 
+  /** Registers a write in progress; call the returned function when it finished (ok or queued). */
+  trackWrite: (w: Omit<InFlight, 'seq'>) => {
+    const key = inFlightKey(w.userId, w.collectionName, w.itemId);
+    const prev = inFlight.get(key);
+    // Successive UPDATEs on the same item accumulate (a later patch must not hide an earlier one).
+    const data = prev && prev.type === 'UPDATE' && w.type === 'UPDATE' ? { ...prev.data, ...w.data } : w.data;
+    const entry: InFlight = { ...w, data, seq: ++inFlightSeq };
+    inFlight.set(key, entry);
+    return () => {
+      setTimeout(() => { if (inFlight.get(key)?.seq === entry.seq) inFlight.delete(key); }, INFLIGHT_GRACE_MS);
+    };
+  },
+
   applyPendingActionsToCollection: <T extends { id: string }>(userId: string, collectionName: string, serverItems: T[]): T[] => {
-    const pendingActions = cachedQueue.filter(a => a.userId === userId && a.collectionName === collectionName);
+    const queued = cachedQueue.filter(a => a.userId === userId && a.collectionName === collectionName);
+    const flying = Array.from(inFlight.values()).filter(a => a.userId === userId && a.collectionName === collectionName);
+    const pendingActions = [...queued, ...flying] as { type: string; itemId: string; data?: any }[];
     if (pendingActions.length === 0) return serverItems;
 
     let result = [...serverItems];
@@ -272,6 +299,11 @@ export const OfflineSyncService = {
         console.log(`[Offline Sync] Processed ${action.type} for ${action.collectionName}/${action.itemId}`);
       } catch (e) {
         console.error(`[Offline Sync] Failed to process action ${action.id}`, e);
+        // An expired session would block the queue forever: refresh it for the next attempt.
+        const msg = String((e as any)?.message || (e as any)?.code || '').toLowerCase();
+        if (Number((e as any)?.status) === 401 || /jwt|token|pgrst301/.test(msg)) {
+          try { await supabase.auth.refreshSession(); } catch { /* next round */ }
+        }
         // Break early to preserve order and retry later
         break;
       }

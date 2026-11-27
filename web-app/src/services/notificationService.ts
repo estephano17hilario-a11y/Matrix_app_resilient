@@ -476,16 +476,30 @@ export const notificationService = {
   },
 
  scheduleTaskReminder: async (taskId: string, title: string, dueDate: Date, color?: string) => {
+ // Urgent tasks are written by the user's coach, chat style (see modules/coach).
+ const { CoachNotify, coachInbox, urgentTaskMessage } = await import('../modules/coach/coachMessages');
+ const { getAssistantName } = await import('../modules/coach/coachIdentity');
+ const body = urgentTaskMessage(title);
  if (!Capacitor.isNativePlatform()) {
  const diff = dueDate.getTime() - Date.now();
  if (diff > 0 && diff < 86400000) { // Only schedule if within 24 hours for web
  setTimeout(() => {
- if (typeof Notification !== 'undefined' && Notification.permission === "granted") {
- new Notification("Task Due", { body: title, icon: '/apple-touch-icon.png' });
+ coachInbox.push(body);
+ if (document.visibilityState !== 'visible' && typeof Notification !== 'undefined' && Notification.permission === "granted") {
+ new Notification(getAssistantName(), { body, icon: '/apple-touch-icon.png' });
  }
  }, diff);
  }
  return;
+ }
+ try {
+ const coachId = generateId(taskId, 8000000);
+ await LocalNotifications.cancel({ notifications: [{ id: coachId }] }).catch(() => {});
+ if (dueDate.getTime() <= Date.now()) { await CoachNotify.cancel({ ids: [coachId] }); return; }
+ await CoachNotify.schedule({ messages: [{ id: coachId, at: dueDate.getTime(), name: getAssistantName(), body }] });
+ return;
+ } catch (e) {
+ console.warn('Coach task reminder unavailable, falling back to a plain notification', e);
  }
 
  const hasExact = await notificationService.ensureExactAlarmPermission();
@@ -568,6 +582,8 @@ export const notificationService = {
  try {
  const baseId = generateId(taskId, 8000000);
  await LocalNotifications.cancel({ notifications: [{ id: baseId }] });
+ const { CoachNotify } = await import('../modules/coach/coachMessages');
+ await CoachNotify.cancel({ ids: [baseId] }).catch(() => {});
  } catch (e) {
  console.error("Failed to cancel task reminder", e);
  }
@@ -694,6 +710,7 @@ export const notificationService = {
       }
 
       const notificationsToSchedule: any[] = [];
+      const coachTasks: { id: number; at: number; title: string }[] = [];
 
       const getNextEventDate = (eventDateStr: string, recurrence: 'ANNUAL' | 'MONTHLY' | 'NONE') => {
         const [year, month, day] = eventDateStr.split('-').map(Number);
@@ -830,18 +847,20 @@ export const notificationService = {
         const baseId = generateId(quest.id, 8000000);
         const deadlineDate = getQuestDueDate(quest);
         if (deadlineDate && deadlineDate.getTime() > Date.now()) {
-          notificationsToSchedule.push({
-            id: baseId,
-            title: "Task Due",
-            body: quest.deadlineTime ? `${quest.deadlineTime} · ${quest.title}` : quest.title,
-            schedule: { at: deadlineDate, allowWhileIdle: true },
-            channelId: 'lux_daily',
-            smallIcon: 'ic_stat_lux',
-            iconColor: quest.color || '#6366f1',
-            actionTypeId: 'OPEN_APP'
-          });
+          // Urgent tasks: chat-style message from the user's coach.
+          coachTasks.push({ id: baseId, at: deadlineDate.getTime(), title: quest.title });
         }
       });
+      if (coachTasks.length) {
+        try {
+          const { CoachNotify, urgentTaskMessage } = await import('../modules/coach/coachMessages');
+          const { getAssistantName } = await import('../modules/coach/coachIdentity');
+          const name = getAssistantName();
+          await CoachNotify.schedule({ messages: coachTasks.map(c => ({ id: c.id, at: c.at, name, body: urgentTaskMessage(c.title) })) });
+        } catch (e) {
+          console.warn('Coach task reminders unavailable', e);
+        }
+      }
 
       // Journaling reminders live in localStorage; this sync must put them back
       // because it cancels every pending notification first.

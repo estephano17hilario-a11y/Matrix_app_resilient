@@ -7,6 +7,23 @@ import { AuditLogger } from './auditService';
 import { OfflineSyncService } from './offlineSync';
 import { isTransientError, mergeUserSettings } from './settingsSync';
 
+const isAuthError = (e: any) => {
+  const status = Number(e?.status ?? e?.statusCode ?? 0);
+  const msg = String(e?.message || e?.code || '').toLowerCase();
+  return status === 401 || e?.code === 'PGRST301' || /jwt|token|not authenticated|unauthorized/.test(msg);
+};
+
+/** Runs a write; on an expired session refreshes it once and retries. */
+const withSessionRetry = async <R extends { error: any }>(run: () => PromiseLike<R>): Promise<R> => {
+  const first = await run();
+  if (!first.error || !isAuthError(first.error)) return first;
+  try { await supabase.auth.refreshSession(); } catch { /* keep the original error */ }
+  return run();
+};
+
+/** Errors after which the change must be kept and retried later instead of being dropped. */
+const isRetryable = (e: any) => isTransientError(e) || isAuthError(e);
+
 // In-memory query cache for 0ms DB reads
 const collectionMemoryCache = new Map<string, { data: any[], timestamp: number }>();
 const CACHE_TTL_MS = 8000;
@@ -86,8 +103,9 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
       // OPTIMISTIC LOCAL SAVE (Important for Instant UI)
       // The calling code often expects persistence to be fast.
       // However, we still need to wait for Supabase or catch the error.
+      const done = OfflineSyncService.trackWrite({ type: 'SAVE', userId, collectionName, itemId: targetId, data: cleanItem });
       try {
-        const { error } = await supabase
+        const { error } = await withSessionRetry(() => supabase
           .from('user_collections')
           .upsert({
             id: uniqueRecordId,
@@ -95,11 +113,11 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
             collection_name: collectionName,
             data: cleanItem,
             deleted: false
-          }, { onConflict: 'id' });
+          }, { onConflict: 'id' }));
 
         if (error) throw error;
       } catch (networkError: any) {
-        const isNetwork = isTransientError(networkError);
+        const isNetwork = isRetryable(networkError);
         if (isNetwork) {
           console.log(`[Offline Sync] Queued SAVE for ${collectionName}/${targetId}`);
           await OfflineSyncService.addAction({
@@ -112,6 +130,8 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
         } else {
           throw networkError; // Re-throw actual DB errors
         }
+      } finally {
+        done();
       }
       
       // AUDIT LOG
@@ -133,6 +153,7 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
       }
       
       const uniqueRecordId = `${userId}_${collectionName}_${itemId}`;
+      const done = OfflineSyncService.trackWrite({ type: 'UPDATE', userId, collectionName, itemId, data: sanitizeFirestoreData(dataToUpdate) });
 
       try {
         // Fetch existing data first to merge. Support legacy rows by searching inside JSONB.
@@ -176,7 +197,7 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
         const cleanData = sanitizeFirestoreData(dataToUpdate);
         const mergedData = { ...currentData, ...cleanData, id: itemId };
 
-        const { error } = await supabase
+        const { error } = await withSessionRetry(() => supabase
           .from('user_collections')
           .upsert({
             id: uniqueRecordId,
@@ -184,11 +205,11 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
             collection_name: collectionName,
             data: mergedData,
             deleted: false
-          }, { onConflict: 'id' });
+          }, { onConflict: 'id' }));
 
         if (error) throw error;
       } catch (networkError: any) {
-        const isNetwork = isTransientError(networkError);
+        const isNetwork = isRetryable(networkError);
         if (isNetwork) {
           console.log(`[Offline Sync] Queued UPDATE for ${collectionName}/${itemId}`);
           await OfflineSyncService.addAction({
@@ -201,6 +222,8 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
         } else {
           throw networkError;
         }
+      } finally {
+        done();
       }
 
       // AUDIT LOG

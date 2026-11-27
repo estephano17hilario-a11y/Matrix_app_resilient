@@ -7,7 +7,10 @@
 import { useAuth } from '../../context/AuthContext';
 
 /** Locked features that have their own explanation in the Deluxe sheet. */
-export type DeluxeFeature = 'superHabits' | 'routineCalendar' | 'routineCustom' | 'widgets';
+export type DeluxeFeature =
+  | 'superHabits' | 'routineCalendar' | 'routineCustom' | 'widgets'
+  | 'charts' | 'habits' | 'projects' | 'strategies' | 'traits' | 'notes' | 'vault'
+  | 'specialEvents' | 'focusEffects' | 'customization';
 
 export const DELUXE_PROMPT_EVENT = 'deluxe-prompt';
 export const OPEN_PRO_EVENT = 'open-pro-modal';

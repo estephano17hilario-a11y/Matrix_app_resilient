@@ -767,19 +767,22 @@
       "invalidEmail": "Email address is invalid",
       "userNotFound": "No account found with this email",
       "wrongPassword": "Incorrect password",
-      "emailInUse": "Email already in use",
+      "emailInUse": "An account with this email already exists. Try logging in.",
       "weakPassword": "Password is too weak",
       "tooManyRequests": "Too many attempts. Try again later",
       "authDisabled": "Email/Password login is not enabled in Firebase Console.",
       "nameRequired": "Name is required",
       "required": "All fields are required",
-      "network": "Network error. Check your connection or disable blockers.",
+      "network": "No connection. Check your internet and try again.",
       "unauthorizedDomain": "This domain is not authorized for Google login.",
       "insecureContext": "Google login requires HTTPS or localhost.",
       "popupBlocked": "Popup blocked. We will continue with redirect.",
       "popupClosed": "Login popup closed before completion.",
       "generic": "Login failed. Please try again.",
-      "invalidCredentials": "Invalid email or password."
+      "invalidCredentials": "Incorrect email or password.",
+      "emailNotConfirmed": "Confirm your email before logging in. Check your inbox.",
+      "cancelled": "Sign-in cancelled.",
+      "confirmationRequired": "Check your email to confirm your account."
     },
     "orContinue": "Or continue with",
     "google": "Google",
@@ -787,6 +790,116 @@
       "subtitle": "Gamify Your Life",
       "start": "GET STARTED",
       "login": "Log In"
+    },
+    "continueGoogle": "Continue with Google",
+    "placeholders": {
+      "email": "you@email.com"
+    },
+    "welcome": {
+      "hello": "Hi! I'm Lux ✨",
+      "poke1": "Hehe, that tickles! 😆",
+      "poke2": "Ready to level up? 🚀",
+      "poke3": "Every day counts! 🔥",
+      "title": "Turn your life into a game",
+      "subtitle": "Habits, streaks and ranks that keep you going every day.",
+      "start": "Get started",
+      "haveAccount": "I already have an account",
+      "slides": {
+        "habits": {
+          "title": "Habits with superpowers",
+          "desc": "Complete daily quests and keep your streak alive."
+        },
+        "rank": {
+          "title": "Climb the ranks",
+          "desc": "Earn XP and ELO with every win."
+        },
+        "friends": {
+          "title": "Challenge your friends",
+          "desc": "Duels, shared streaks and lots of motivation."
+        }
+      }
+    },
+    "loginFlow": {
+      "title": "Log in",
+      "bubble": "So good to see you! Jump back in and keep your streak 🔥",
+      "bubbleEmail": "Hmm… what's your email?",
+      "bubblePassword": "I'm not looking, promise! 🙈",
+      "bubblePeek": "Well… maybe just a little 👀",
+      "bubbleLoading": "Opening your world…",
+      "bubbleError": "Oops! Something doesn't add up 😕",
+      "submit": "Log in",
+      "forgot": "Forgot your password?",
+      "noAccount": "Don't have an account?",
+      "createOne": "Create one for free",
+      "or": "or"
+    },
+    "registerFlow": {
+      "lang": {
+        "bubble": "Hi! Which language should we speak?"
+      },
+      "name": {
+        "bubble": "What should I call you?",
+        "bubbleValid": "Nice to meet you, {{name}}! 🤝",
+        "label": "Your name",
+        "placeholder": "e.g. Alex",
+        "hint": "Between 2 and 12 characters"
+      },
+      "email": {
+        "bubble": "What's your email? You'll use it to log in.",
+        "bubbleValid": "Perfect! That email looks great ✉️",
+        "bubbleTypo": "Hmm… I think there might be a typo 🤔",
+        "label": "Email",
+        "hint": "We'll never share it with anyone.",
+        "suggestPrefix": "Did you mean",
+        "google": "I'd rather use Google"
+      },
+      "password": {
+        "bubble": "Now create a secret password 🔐",
+        "bubbleValid": "Done! We're almost there.",
+        "bubbleStrong": "Wow, expert-level password! 💪",
+        "label": "Password",
+        "confirmLabel": "Repeat password",
+        "ruleLength": "At least {{count}} characters",
+        "ruleMatch": "Passwords match",
+        "strength0": "Strength",
+        "strength1": "Too short",
+        "strength2": "Okay",
+        "strength3": "Good",
+        "strength4": "Excellent!"
+      },
+      "continue": "Continue",
+      "create": "Create account",
+      "creating": "Getting your adventure ready… ✨",
+      "haveAccount": "Already have an account?",
+      "login": "Log in",
+      "country": {
+        "bubble": "Hi! Which country are you from? 🌎",
+        "bubbleValid": "{{country}}! Great place 🙌",
+        "search": "Search your country",
+        "suggested": "Suggested for you",
+        "popular": "Popular",
+        "all": "All countries",
+        "empty": "We could not find that country"
+      }
+    },
+    "forgotFlow": {
+      "title": "Recover your account",
+      "bubble": "No problem! I'll send you a link to create a new password.",
+      "sending": "Sending the link… 📨",
+      "label": "Your account email",
+      "hint": "You'll get an email with a secure link.",
+      "submit": "Send link",
+      "sentTitle": "Check your email!",
+      "sentDesc": "If {{email}} has an account, you'll get a link to create a new password.",
+      "sentBubble": "Check spam or promotions too 👀",
+      "backToLogin": "Back to log in",
+      "resend": "Didn't get it? Resend"
+    },
+    "checkEmail": {
+      "title": "Confirm your email",
+      "desc": "We sent a link to {{email}}. Open it to activate your account, then log in.",
+      "bubble": "Almost there! Just one more step 🎉",
+      "cta": "Go to log in"
     }
   },
   "modals": {
@@ -945,7 +1058,9 @@
       "market": "Market",
       "upgrades": "Upgrades",
       "inventory": "Backpack",
-      "ledger": "Receipts"
+      "ledger": "Receipts",
+      "powers": "Powers",
+      "themes": "Themes"
     },
     "vault": {
       "kicker": "Your purse",
@@ -1053,24 +1168,24 @@
     "emptyCategory": "No items in this category",
     "items": {
       "potion_hp_small": {
-        "name": "Neural Repair Kit",
-        "desc": "Restores 10 HP instantly. Essential for system maintenance."
+        "name": "Health Potion",
+        "desc": "Restores 10 HP instantly."
       },
       "potion_xp_restore": {
-        "name": "Memory Recovery",
-        "desc": "Restores XP lost from inactivity or penalties."
+        "name": "Scroll of Wisdom",
+        "desc": "Grants +250 XP instantly. It can level you up."
       },
       "rest_shield": {
         "name": "Rest Shield",
-        "desc": "Protects one day: no ELO losses and your streak is kept. Habits and tasks don’t score that day; focus does."
+        "desc": "A rest day: no ELO losses and every streak is kept. Habits and tasks don't count that day; focus does."
       },
       "redemption_token": {
-        "name": "Streak Restoration",
-        "desc": "Repairs a broken streak. A second chance for perfection."
+        "name": "Streak Restore",
+        "desc": "Bring back a lost streak within 3 days: daily 5,000 · habit 2,500 each · project 2,500."
       },
       "freeze_streak": {
-        "name": "Time Freeze",
-        "desc": "Freezes your streak for 24 hours. Use before a busy day."
+        "name": "Streak Freeze",
+        "desc": "Protects today: your daily streak and your habit and project streaks survive even if you miss it."
       },
       "theme_neon_purple": {
         "name": "Nebula Protocol",
@@ -1083,6 +1198,22 @@
       "theme_apple_minimal": {
         "name": "Cupertino Glass",
         "desc": "Ultra-clean frosted glass aesthetic. Maximum clarity."
+      },
+      "glacier_streak": {
+        "name": "Eternal Glacier",
+        "desc": "Freezes 3 days in a row (today and the next 2). Great for trips or sick days."
+      },
+      "phoenix_feather": {
+        "name": "Phoenix Feather",
+        "desc": "Stays in your inventory and triggers by itself: if your daily streak breaks (up to 3 days), it saves it automatically."
+      },
+      "potion_hp_full": {
+        "name": "Greater Elixir",
+        "desc": "Restores all your health (HP) at once."
+      },
+      "mystery_chest": {
+        "name": "Chest of Fate",
+        "desc": "Open it to win a random power or a bag of up to 4,000 gold."
       }
     },
     "successPurchase": "PURCHASE SUCCESSFUL!",
@@ -1291,7 +1422,11 @@
       "imagePlaceholder": "Image Placeholder"
     },
     "subtaskManager": {
-      "addStepPlaceholder": "Add tactical step... (+)"
+      "addStepPlaceholder": "Add tactical step... (+)",
+      "setTime": "Step time",
+      "startTime": "Time",
+      "duration": "Duration",
+      "totalTime": "Total time"
     }
   },
   "tasks": {
@@ -2367,6 +2502,7 @@
     "fixedSchedulesOpen": "Fixed Schedules (",
     "addSchedule": "Add Schedule",
     "optionalAlarm": "Optional Alarm",
+    "stepDuration": "Step duration",
     "loggingMode": "Logging Mode",
     "modifyingYesterday": "Modifying: Yesterday",
     "goToYesterday": "Go to yesterday",
@@ -2895,8 +3031,13 @@
       "more": "More",
       "noProjects": "You have no active projects yet.",
       "none": "No goal",
-      "projectGoals": "Daily focus goal per project",
+      "projectGoals": "Today's focus goal per project",
       "projectGoalsHint": "Missing it with the timer costs −2 ELO per project.",
+      "projectGoalsAuto": "Comes from the goal you set when creating each project. Weekly or monthly goals show only today's share here. Missing it with the timer costs −2 ELO.",
+      "restDay": "No goal today",
+      "fromDaily": "Project daily goal: {{v}}",
+      "fromWeekly": "Project weekly goal: {{v}} → split across your days",
+      "fromMonthly": "Project monthly goal: {{v}} → split across your days",
       "reports": "Report on completion",
       "sound": "Sound effects",
       "system": "System",

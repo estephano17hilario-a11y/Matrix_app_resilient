@@ -48,6 +48,7 @@ export const JournalRemindersModal: React.FC<JournalRemindersModalProps> = ({ is
           onClick={onSkip}
         >
           <motion.div
+            data-tour={isOpen ? 'journal-reminders' : undefined}
             className="w-full max-w-sm rounded-t-[28px] sm:rounded-[28px] bg-[#0c0c12] border border-white/10 shadow-2xl p-5 pb-[calc(env(safe-area-inset-bottom,0px)+20px)]"
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: isOpen ? 0 : 40, opacity: isOpen ? 1 : 0 }}

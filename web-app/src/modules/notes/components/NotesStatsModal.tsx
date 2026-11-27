@@ -17,6 +17,7 @@ import {
 } from 'recharts';
 import { MoodSnakeChart } from './MoodSnakeChart';
 import { DateSelectionModal } from '../../dashboard/components/DateSelectionModal';
+import { promptDeluxe } from '@/modules/monetization/deluxe';
 
 // Force cast Recharts components to any to bypass strict React 18+ type checks
 const TooltipAny = Tooltip as any;
@@ -204,7 +205,7 @@ export const NotesStatsModal = ({ isOpen, onClose, notes, journalEntries, initia
  key={r} 
  onClick={() => {
  if (isLockedMonth) {
- onOpenPro?.();
+ promptDeluxe('charts');
  } else {
  setRange(r as any);
  }

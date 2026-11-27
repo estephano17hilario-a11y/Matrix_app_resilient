@@ -16,7 +16,7 @@ import { SuperHabitButton } from '../../superHabits/SuperHabitPicker';
 import { useIsDeluxe, promptDeluxe } from '../../monetization/deluxe';
 import { DeluxeBadge } from '../../monetization/DeluxeBadge';
 import {
-    CupertinoSheet, Stack, Section, Hero, Row, InputRow, Expand, Segmented, Toggle, DayPicker, DateNumberGrid, Notice,
+    CupertinoSheet, Stack, Section, Hero, Row, InputRow, Expand, Segmented, Toggle, DayPicker, Chip, DateNumberGrid, Notice,
     RewardPreview, Hint, Pad, TraitGrid, OptionList, Swatches, Tiles, Tile, MiniMeter, WizardSheet, resolveTraitIcon, traitLabelOf,
     type WizardStep,
 } from '../../../components/cupertino';
@@ -26,7 +26,11 @@ type Panel = null | 'trait' | 'icon' | 'super' | 'project' | 'duration' | 'month
 type SubtaskState = {
     id: string; text: string; completed: boolean; color?: string; days?: number[]; reminderTime?: string;
     intervalType?: 'WEEKLY' | 'MONTHLY' | 'NONE'; intervalCount?: number; allowSkip?: boolean; deleted?: boolean;
+    calendarDuration?: number;
 };
+
+const STEP_DURATIONS = [5, 10, 15, 20, 30, 45, 60, 90];
+const stepDurationLabel = (m: number) => (m < 60 ? `${m} min` : (m % 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m / 60} h`));
 
 const ITEM_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef', '#f43f5e'];
 const IMPACT_COLORS = ['#30d158', '#0a84ff', '#ff9f0a', '#ff453a'];
@@ -373,7 +377,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                             <input className="cu-item-input" value={task.text} onChange={(e) => patchSubtask(task.id, { text: e.target.value })} aria-label={t('checklist.step', 'Paso')} />
                             <button type="button" className={`cu-mini ${task.color ? 'cu-on' : ''}`} onClick={() => setOpenMenu(p => (p?.id === task.id && p.type === 'COLOR') ? null : { id: task.id, type: 'COLOR' })} aria-label="Color"><Palette size={16} /></button>
                             <button type="button" className={`cu-mini ${(task.days && task.days.length > 0) ? 'cu-on' : ''}`} onClick={() => setOpenMenu(p => (p?.id === task.id && p.type === 'DAYS') ? null : { id: task.id, type: 'DAYS' })} aria-label={t('cu.days', 'Días')}><Calendar size={16} /></button>
-                            <button type="button" className={`cu-mini cu-warn ${task.reminderTime ? 'cu-on' : ''}`} onClick={() => setOpenMenu(p => (p?.id === task.id && p.type === 'TIME') ? null : { id: task.id, type: 'TIME' })} aria-label={t('cu.alarm', 'Alarma')}><AlertCircle size={16} /></button>
+                            <button type="button" className={`cu-mini cu-warn ${(task.reminderTime || task.calendarDuration) ? 'cu-on' : ''}`} onClick={() => setOpenMenu(p => (p?.id === task.id && p.type === 'TIME') ? null : { id: task.id, type: 'TIME' })} aria-label={t('cu.alarm', 'Alarma')}><AlertCircle size={16} /></button>
                             <button type="button" className="cu-mini cu-del" onClick={() => patchSubtask(task.id, { deleted: true })} aria-label={t('common.delete', 'Eliminar')}><Trash2 size={16} /></button>
                         </div>
                         <Expand open={openMenu?.id === task.id}>
@@ -439,16 +443,32 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
                                     </div>
                                 )}
                                 {openMenu?.type === 'TIME' && (
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <span className="cu-row-sub" style={{ fontSize: 14 }}>{t('habits.optionalAlarm', 'Alarma opcional')}</span>
-                                        <TimePicker
-                                            value={task.reminderTime || ''}
-                                            className="cu-time"
-                                            onChange={(val) => {
-                                                patchSubtask(task.id, { reminderTime: val });
-                                                if (val && permissions.notifications !== 'granted') requestPermissions();
-                                            }}
-                                        />
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <span className="cu-row-sub" style={{ fontSize: 14 }}>{t('habits.optionalAlarm', 'Alarma opcional')}</span>
+                                            <TimePicker
+                                                value={task.reminderTime || ''}
+                                                className="cu-time"
+                                                onChange={(val) => {
+                                                    patchSubtask(task.id, { reminderTime: val });
+                                                    if (val && permissions.notifications !== 'granted') requestPermissions();
+                                                }}
+                                            />
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                            <span className="cu-row-sub" style={{ fontSize: 14 }}>{t('habits.stepDuration', 'Duración del paso')}</span>
+                                            <div className="cu-chips">
+                                                {STEP_DURATIONS.map(m => (
+                                                    <Chip
+                                                        key={m}
+                                                        on={task.calendarDuration === m}
+                                                        onClick={() => patchSubtask(task.id, { calendarDuration: task.calendarDuration === m ? undefined : m })}
+                                                    >
+                                                        {stepDurationLabel(m)}
+                                                    </Chip>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -918,6 +938,7 @@ export const HabitModal = React.memo(({ isOpen, onClose, attributes = [], projec
         ];
         return (
             <WizardSheet
+                tourKind="habit"
                 isOpen={isOpen}
                 onClose={onClose}
                 accent={activeColor}

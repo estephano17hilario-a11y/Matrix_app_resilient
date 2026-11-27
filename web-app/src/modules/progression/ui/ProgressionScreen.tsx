@@ -2,7 +2,7 @@ import React, { memo, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
-  CalendarDays, ChevronRight, Clock, Crown, Flame, HeartCrack, ListChecks, Minus, Moon, Mountain, Palette, Plus, Repeat,
+  CalendarDays, ChevronRight, Clock, Crown, Flame, HeartCrack, ListChecks, Moon, Mountain, Palette, Repeat,
   Shield, ShieldCheck, ShoppingBag, SlidersHorizontal, Sparkles, Star, Target, Timer, TrendingDown, TrendingUp, Trophy,
   Users, Vibrate, Volume2, FileText, Zap,
 } from 'lucide-react';
@@ -12,13 +12,14 @@ import type { Habit, Project, Quest } from '@/types';
 import { useEconomy } from '@/context/EconomyContext';
 import { getAvatarPath } from '@/config/avatars';
 import { getHistoryDateKey } from '@/utils/dateUtils';
+import { getMonthlyGoalMinutes, getWeeklyGoalMinutes } from '@/utils/projectUtils';
 import {
   PROGRESSION_CONFIG, addDaysToKey, compareStandings, dayTotal, getStanding, isFirstWeek, replay, weeklyBoostFor,
   type EloEvent,
 } from '../engine';
 import { LEGEND_INDEX } from '../engine/ranks';
 import { emptyMemory, generateWeeklySummary, slotOf, type ReportMemory, type TimeSlot } from '../report';
-import { buildDayCloseInput, focusMinutesOn, habitGoalPctFor, isManualSession, sessionKey } from '../integration';
+import { buildDayCloseInput, focusMinutesOn, habitGoalPctFor, isManualSession, projectGoalOn, sessionKey } from '../integration';
 import { progressionStore, useProgression, type ProgressionSnapshot } from '../progressionStore';
 import type { LeaderboardRow } from '../leaderboardService';
 import { RankBadge } from './RankBadge';
@@ -26,6 +27,7 @@ import { CountUp, Typewriter, haptic } from './primitives';
 import { VirtualList } from './VirtualList';
 import { RankLadderFull } from './RankLadder';
 import { FrameInventory } from './FrameInventory';
+import { EloCoachCard, EloGuideSheet } from './EloCoach';
 import { MOTION, RANKS, rankStyle } from './tokens';
 import { ArenaBackdrop, ArenaDock, ArenaHeader, Card, Delta, useMountTransition, EmptyState, Segmented, SectionHead, StatTile, Toggle, rise, type DockTab } from './arena';
 import { useSocial } from '@/modules/social/socialStore';
@@ -54,7 +56,7 @@ ProgressionScreen.displayName = 'ProgressionScreen';
 
 const AVATAR_FALLBACK = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=60';
 
-const Screen: React.FC<Props> = ({ open, onClose, habits, quests, projects, userName, avatarId, onUpdateProject, onOpenStore, initialTab }) => {
+const Screen: React.FC<Props> = ({ open, onClose, habits, quests, projects, userName, avatarId, onOpenStore, initialTab }) => {
   const { t } = useTranslation();
   const reduce = useReducedMotion();
   const snap = useProgression();
@@ -107,11 +109,11 @@ const Screen: React.FC<Props> = ({ open, onClose, habits, quests, projects, user
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: MOTION.micro, ease: MOTION.easeOut }}
             >
-              {tab === 'RANK' && <RankTab snap={snap} habits={habits} quests={quests} projects={projects} onOpenStore={onOpenStore} onShowLadder={() => setTab('LADDER')} />}
+              {tab === 'RANK' && <RankTab snap={snap} habits={habits} quests={quests} projects={projects} userName={userName} onOpenStore={onOpenStore} onShowLadder={() => setTab('LADDER')} />}
               {tab === 'LADDER' && <RankLadderFull standing={snap.standing} elo={snap.summary.elo} />}
               {tab === 'BOARD' && <BoardTab snap={snap} userName={userName} avatarId={avatarId} />}
               {tab === 'WEEK' && <WeekTab snap={snap} quests={quests} projects={projects} userName={userName} />}
-              {tab === 'SETTINGS' && <SettingsTab snap={snap} habits={habits} projects={projects} onUpdateProject={onUpdateProject} />}
+              {tab === 'SETTINGS' && <SettingsTab snap={snap} habits={habits} projects={projects} />}
             </motion.div>
         </div>
       </main>
@@ -154,7 +156,8 @@ const dayTitle = (k: string, today: string) => {
 
 type HistoryRow = { kind: 'day'; dayKey: string; total: number } | { kind: 'event'; e: EloEvent };
 
-const RankTab: React.FC<{ snap: ProgressionSnapshot; habits: Habit[]; quests: Quest[]; projects: Project[]; onOpenStore: () => void; onShowLadder: () => void }> = ({ snap, habits, quests, projects, onOpenStore, onShowLadder }) => {
+const RankTab: React.FC<{ snap: ProgressionSnapshot; habits: Habit[]; quests: Quest[]; projects: Project[]; userName?: string | null; onOpenStore: () => void; onShowLadder: () => void }> = ({ snap, habits, quests, projects, userName, onOpenStore, onShowLadder }) => {
+  const [guideOpen, setGuideOpen] = useState(false);
   const { t } = useTranslation();
   const reduce = useReducedMotion();
   const { purchase, useItem, inventory, storeItems, isTransactionPending } = useEconomy();
@@ -236,8 +239,8 @@ const RankTab: React.FC<{ snap: ProgressionSnapshot; habits: Habit[]; quests: Qu
             <Zap size={12} /> <CountUp value={summary.elo} duration={900} className="tabular-nums" /> ELO
           </span>
           <span className="arena-chip" style={{ background: projection.projectedTotal >= 0 ? 'rgb(var(--p-positive) / 0.12)' : 'rgb(var(--p-negative) / 0.12)' }}>
-            {projection.projectedTotal >= 0 ? <TrendingUp size={12} className="prog-positive" /> : <TrendingDown size={12} className="prog-negative" />}
-            <span className={projection.projectedTotal >= 0 ? 'prog-positive' : 'prog-negative'}>{projection.projectedTotal > 0 ? '+' : ''}{projection.projectedTotal} {t('progression.hero.today', 'hoy')}</span>
+            {projection.projectedTotal >= 0 ? <TrendingUp size={14} className="prog-positive" /> : <TrendingDown size={14} className="prog-negative" />}
+            <span className={`${projection.projectedTotal >= 0 ? 'prog-positive' : 'prog-negative'} text-[14px] font-black tabular-nums`}>{projection.projectedTotal > 0 ? '+' : ''}{projection.projectedTotal} {t('progression.hero.today', 'hoy')}</span>
           </span>
           {standing.protected && <span className="arena-chip" style={{ background: 'rgb(var(--p-warning) / 0.14)', color: 'rgb(var(--p-warning))' }}><ShieldCheck size={12} /> {t('progression.protected', 'Protección de rango activa')}</span>}
         </div>
@@ -266,6 +269,12 @@ const RankTab: React.FC<{ snap: ProgressionSnapshot; habits: Habit[]; quests: Qu
         )}
       </section>
 
+      {/* ── Personalised "how to earn ELO today" ── */}
+      <div data-tour="elo-coach">
+        <EloCoachCard snap={snap} habits={habits} quests={quests} projects={projects} userName={userName} onOpenGuide={() => setGuideOpen(true)} />
+      </div>
+      <EloGuideSheet open={guideOpen} onClose={() => setGuideOpen(false)} snap={snap} habits={habits} quests={quests} projects={projects} />
+
       {/* ── Stats ── */}
       <motion.section className="grid grid-cols-3 gap-2.5" {...rise(1, reduce)}>
         <StatTile
@@ -285,8 +294,8 @@ const RankTab: React.FC<{ snap: ProgressionSnapshot; habits: Habit[]; quests: Qu
               <p className="mt-0.5 text-[12px] prog-text-3">{t('progression.todayHint', 'ELO proyectado si el día terminara ahora')}</p>
             </div>
             <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5" style={{ background: projection.projectedTotal >= 0 ? 'rgb(var(--p-positive) / 0.12)' : 'rgb(var(--p-negative) / 0.12)' }}>
-              {projection.projectedTotal >= 0 ? <TrendingUp size={16} className="prog-positive" /> : <TrendingDown size={16} className="prog-negative" />}
-              <Delta value={projection.projectedTotal} className="text-[22px] leading-none" />
+              {projection.projectedTotal >= 0 ? <TrendingUp size={18} className="prog-positive" /> : <TrendingDown size={18} className="prog-negative" />}
+              <Delta value={projection.projectedTotal} className="text-[26px] leading-none" />
             </div>
           </div>
           <ul className="mt-4 space-y-2.5">
@@ -697,16 +706,25 @@ const WeekTab: React.FC<{ snap: ProgressionSnapshot; quests: Quest[]; projects: 
 
 // ── Settings tab ────────────────────────────────────────────────────────────
 
+/** Where today's project goal comes from, in words ("Meta semanal de 10 h → tu parte de hoy"). */
+const goalSourceLabel = (p: Project, t: (k: string, d: string, o?: Record<string, unknown>) => string) => {
+  const f = p.uiFrequency || p.goalFrequency;
+  const total = f === 'WEEKLY' ? getWeeklyGoalMinutes(p) : f === 'MONTHLY' ? getMonthlyGoalMinutes(p) : p.goalTarget || 0;
+  const fmt = (m: number) => (m >= 60 ? `${Math.round((m / 60) * 10) / 10} h` : `${m} min`);
+  if (f === 'WEEKLY') return t('progression.settings.fromWeekly', 'Meta semanal del proyecto: {{v}} → repartida en tus días', { v: fmt(total) });
+  if (f === 'MONTHLY') return t('progression.settings.fromMonthly', 'Meta mensual del proyecto: {{v}} → repartida en tus días', { v: fmt(total) });
+  return t('progression.settings.fromDaily', 'Meta diaria del proyecto: {{v}}', { v: fmt(total) });
+};
+
 const CUTOFFS = ['00:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00'];
 
-const SettingsTab: React.FC<{ snap: ProgressionSnapshot; habits: Habit[]; projects: Project[]; onUpdateProject: (p: Project) => void }> = ({ snap, habits, projects, onUpdateProject }) => {
+const SettingsTab: React.FC<{ snap: ProgressionSnapshot; habits: Habit[]; projects: Project[] }> = ({ snap, habits, projects }) => {
   const { t } = useTranslation();
   const reduce = useReducedMotion();
   const { meta } = snap;
   const active = projects.filter(p => !p.archived && !p.deleted && !p.completed);
-  const goalPct = habitGoalPctFor(habits, progressionStore.todayKey());
-
-  const setGoal = (p: Project, minutes: number) => onUpdateProject({ ...p, dailyFocusGoalMinutes: Math.max(0, Math.min(600, minutes)) });
+  const todayKey = progressionStore.todayKey();
+  const goalPct = habitGoalPctFor(habits, todayKey);
 
   return (
     <div className="space-y-4">
@@ -755,21 +773,32 @@ const SettingsTab: React.FC<{ snap: ProgressionSnapshot; habits: Habit[]; projec
 
       <motion.div {...rise(2, reduce)}>
         <Card className="p-4">
-          <SectionHead title={t('progression.settings.projectGoals', 'Meta diaria de foco por proyecto')} icon={<Timer size={16} />} />
-          <p className="-mt-2 mb-3 text-[12px] prog-text-3">{t('progression.settings.projectGoalsHint', 'Si no la cumples con el temporizador: −2 ELO por proyecto.')}</p>
+          <SectionHead title={t('progression.settings.projectGoals', 'Meta de foco de hoy por proyecto')} icon={<Timer size={16} />} />
+          <p className="-mt-2 mb-3 text-[12px] prog-text-3">{t('progression.settings.projectGoalsAuto', 'Sale de la meta que pusiste al crear cada proyecto. Si es semanal o mensual, aquí ves solo la parte de hoy. Si no la cumples con el temporizador: −2 ELO.')}</p>
           {active.length === 0 ? (
             <p className="text-[13px] prog-text-2">{t('progression.settings.noProjects', 'Aún no tienes proyectos activos.')}</p>
           ) : (
             <ul className="space-y-2">
               {active.map(p => {
-                const goal = p.dailyFocusGoalMinutes ?? 0;
+                const goal = projectGoalOn(p, todayKey);
+                const done = Math.floor(focusMinutesOn([p], todayKey, { manual: false }));
+                const pct = goal > 0 ? Math.min(1, done / goal) : 0;
+                const met = goal > 0 && done >= goal;
                 return (
-                  <li key={p.id} className="flex items-center gap-2 rounded-[16px] pl-3 pr-1.5 py-1.5 arena-inset">
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: p.color || 'rgb(var(--rank))', boxShadow: `0 0 10px ${p.color || 'rgb(var(--rank))'}` }} />
-                    <span className="flex-1 min-w-0 truncate text-[14px] font-semibold">{p.title}</span>
-                    <button type="button" className="prog-tap rounded-[12px] flex items-center justify-center" style={{ background: 'rgb(var(--p-line) / 0.07)' }} onClick={() => setGoal(p, goal - 15)} aria-label={t('progression.settings.less', 'Menos')}><Minus size={16} /></button>
-                    <span className="w-[68px] text-center text-[13px] font-black tabular-nums" style={{ color: goal ? 'rgb(var(--rank))' : 'rgb(var(--p-text-3))' }}>{goal ? `${goal} min` : t('progression.settings.none', 'Sin meta')}</span>
-                    <button type="button" className="prog-tap rounded-[12px] flex items-center justify-center" style={{ background: 'rgb(var(--p-line) / 0.07)' }} onClick={() => setGoal(p, goal + 15)} aria-label={t('progression.settings.more', 'Más')}><Plus size={16} /></button>
+                  <li key={p.id} className="rounded-[16px] px-3 py-2.5 arena-inset">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: p.color || 'rgb(var(--rank))', boxShadow: `0 0 10px ${p.color || 'rgb(var(--rank))'}` }} />
+                      <span className="flex-1 min-w-0 truncate text-[14px] font-semibold">{p.title}</span>
+                      <span className="text-[12.5px] font-black tabular-nums" style={{ color: met ? 'rgb(var(--p-positive))' : goal ? 'rgb(var(--rank))' : 'rgb(var(--p-text-3))' }}>
+                        {goal ? `${done}/${goal} min` : t('progression.settings.restDay', 'Hoy sin meta')}
+                      </span>
+                    </div>
+                    {goal > 0 && (
+                      <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgb(var(--p-line) / 0.08)' }}>
+                        <div className="h-full rounded-full origin-left" style={{ transform: `scaleX(${pct})`, background: met ? 'rgb(var(--p-positive))' : 'linear-gradient(90deg, var(--rank-from), var(--rank-to))' }} />
+                      </div>
+                    )}
+                    <p className="mt-1.5 text-[11px] prog-text-3">{goalSourceLabel(p, t)}</p>
                   </li>
                 );
               })}

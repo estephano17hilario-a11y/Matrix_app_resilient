@@ -24,6 +24,9 @@ const EXACT_KEYS = new Set([
   'matrix_top_quick_actions',
   'matrix_notification_tone',
   'matrix_anti_procrastination_phrase',
+  'matrix_assistant_name',
+  'lux_deluxe_value_v1',
+  'lux_country',
   'matrix_splash_phrase',
   'habitViewPreference',
   'hideCompletedHabits',
@@ -41,6 +44,8 @@ const EXACT_KEYS = new Set([
   'lux_start_section',
   'lux_plus_hold_target',
   'lux_plus_hold_ms',
+  'lux_routine_default_view',
+  'lux_notes_default_view',
 ]);
 
 /** Key families. `perUser`: the key embeds the user id, so it is only synced for that user. */

@@ -16,6 +16,7 @@ import { TraitRadarChart } from '../../dashboard/components/TraitRadarChart';
 import { Attribute } from '../../../types';
 import { supabase } from '@/services/supabase';
 import { ImmersionSettingsCard } from '@/immersion/ImmersionSettingsCard';
+import { promptDeluxe } from '@/modules/monetization/deluxe';
 
 type DisplayCategory = 'mine' | 'all' | 'orbs' | 'minimal' | 'gradients' | 'holo' | 'cosmic';
 
@@ -67,7 +68,7 @@ export const VisualsSection = () => {
   const { t } = useTranslation();
   const { profile, updateProfileLocally } = useAuth();
   const { purchase } = useEconomy();
-  const { currentTheme, setTheme, vividMode, toggleVividMode, radarConfig, updateRadarConfig, isPro, showProModal } = useSettings();
+  const { currentTheme, setTheme, vividMode, toggleVividMode, radarConfig, updateRadarConfig, isPro } = useSettings();
   const { previewTheme, setPreviewTheme } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState<DisplayCategory>('mine');
   const [isRadarConfigOpen, setIsRadarConfigOpen] = useState(true);
@@ -125,7 +126,7 @@ export const VisualsSection = () => {
     setIsColorDropdownOpen(false);
 
     if (opt.isDeluxeOnly && !isPro) {
-      showProModal();
+      promptDeluxe('customization');
       return;
     }
 
@@ -428,7 +429,7 @@ export const VisualsSection = () => {
 
                 {/* 2. FILL OPACITY (DELUXE) */}
                 <div 
-                  onClick={() => { if (!isPro) showProModal(); }}
+                  onClick={() => { if (!isPro) promptDeluxe('customization'); }}
                   className={cn("space-y-1 p-2 rounded-xl border border-white/5 transition-all", !isPro && "cursor-pointer hover:border-amber-500/30 bg-amber-500/[0.02]")}
                 >
                   <div className="flex justify-between items-center text-[11px]">
@@ -448,7 +449,7 @@ export const VisualsSection = () => {
                     max="100" 
                     value={radarConfig.fillOpacity} 
                     onChange={(e) => {
-                      if (!isPro) { showProModal(); return; }
+                      if (!isPro) { promptDeluxe('customization'); return; }
                       updateRadarConfig({ fillOpacity: Number(e.target.value) });
                     }}
                     disabled={!isPro}
@@ -458,7 +459,7 @@ export const VisualsSection = () => {
 
                 {/* 3. DOT SIZE (DELUXE) */}
                 <div 
-                  onClick={() => { if (!isPro) showProModal(); }}
+                  onClick={() => { if (!isPro) promptDeluxe('customization'); }}
                   className={cn("space-y-1 p-2 rounded-xl border border-white/5 transition-all", !isPro && "cursor-pointer hover:border-amber-500/30 bg-amber-500/[0.02]")}
                 >
                   <div className="flex justify-between items-center text-[11px]">
@@ -479,7 +480,7 @@ export const VisualsSection = () => {
                     step="0.5"
                     value={radarConfig.dotSize ?? 4.5} 
                     onChange={(e) => {
-                      if (!isPro) { showProModal(); return; }
+                      if (!isPro) { promptDeluxe('customization'); return; }
                       updateRadarConfig({ dotSize: Number(e.target.value) });
                     }}
                     disabled={!isPro}
@@ -516,7 +517,7 @@ export const VisualsSection = () => {
 
                 {/* 4. LINE COLOR MODE (DELUXE) */}
                 <div 
-                  onClick={() => { if (!isPro) showProModal(); }}
+                  onClick={() => { if (!isPro) promptDeluxe('customization'); }}
                   className={cn("flex items-center justify-between gap-2 p-2 rounded-xl border border-white/5 transition-all", !isPro && "cursor-pointer hover:border-amber-500/30 bg-amber-500/[0.02]")}
                 >
                   <div className="flex items-center gap-1.5">
@@ -530,7 +531,7 @@ export const VisualsSection = () => {
                   <div className="flex gap-1 bg-black/40 p-0.5 rounded-lg border border-white/10">
                     <button
                       onClick={() => {
-                        if (!isPro) { showProModal(); return; }
+                        if (!isPro) { promptDeluxe('customization'); return; }
                         updateRadarConfig({ lineColorMode: 'gradient' });
                       }}
                       className={cn(
@@ -542,7 +543,7 @@ export const VisualsSection = () => {
                     </button>
                     <button
                       onClick={() => {
-                        if (!isPro) { showProModal(); return; }
+                        if (!isPro) { promptDeluxe('customization'); return; }
                         updateRadarConfig({ lineColorMode: 'fill' });
                       }}
                       className={cn(
@@ -557,7 +558,7 @@ export const VisualsSection = () => {
 
                 {/* 5. DOT COLOR MODE (DELUXE) */}
                 <div 
-                  onClick={() => { if (!isPro) showProModal(); }}
+                  onClick={() => { if (!isPro) promptDeluxe('customization'); }}
                   className={cn("flex items-center justify-between gap-2 p-2 rounded-xl border border-white/5 transition-all", !isPro && "cursor-pointer hover:border-amber-500/30 bg-amber-500/[0.02]")}
                 >
                   <div className="flex items-center gap-1.5">
@@ -571,7 +572,7 @@ export const VisualsSection = () => {
                   <div className="flex gap-1 bg-black/40 p-0.5 rounded-lg border border-white/10">
                     <button
                       onClick={() => {
-                        if (!isPro) { showProModal(); return; }
+                        if (!isPro) { promptDeluxe('customization'); return; }
                         updateRadarConfig({ dotColorMode: 'trait' });
                       }}
                       className={cn(
@@ -583,7 +584,7 @@ export const VisualsSection = () => {
                     </button>
                     <button
                       onClick={() => {
-                        if (!isPro) { showProModal(); return; }
+                        if (!isPro) { promptDeluxe('customization'); return; }
                         updateRadarConfig({ dotColorMode: 'fill' });
                       }}
                       className={cn(
@@ -598,7 +599,7 @@ export const VisualsSection = () => {
 
                 {/* 5. DOT OPACITY (DELUXE) */}
                 <div 
-                  onClick={() => { if (!isPro) showProModal(); }}
+                  onClick={() => { if (!isPro) promptDeluxe('customization'); }}
                   className={cn("space-y-1 p-2 rounded-xl border border-white/5 transition-all", !isPro && "cursor-pointer hover:border-amber-500/30 bg-amber-500/[0.02]")}
                 >
                   <div className="flex justify-between items-center text-[11px]">
@@ -618,7 +619,7 @@ export const VisualsSection = () => {
                     max="100" 
                     value={radarConfig.dotOpacity} 
                     onChange={(e) => {
-                      if (!isPro) { showProModal(); return; }
+                      if (!isPro) { promptDeluxe('customization'); return; }
                       updateRadarConfig({ dotOpacity: Number(e.target.value) });
                     }}
                     disabled={!isPro}

@@ -29,6 +29,7 @@ import { useAuth } from '@/context/AuthContext';
 import { persistenceService } from '@/services/persistenceService';
 import { IconPicker } from '../dashboard/components/IconPicker';
 import '../../components/cupertino/cupertino.css';
+import { promptDeluxe } from '@/modules/monetization/deluxe';
 
 // Constants
 const MOODS = [
@@ -823,7 +824,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   
    const createNote = useCallback(() => { 
      if (!canCreateNote()) {
-       if (onShowPro) onShowPro();
+       promptDeluxe('notes');
        return;
      }
      const newId = Date.now().toString(); 
@@ -849,7 +850,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
    const createNoteInFolder = useCallback((folderId?: string) => {
      if (!canCreateNote()) {
-       if (onShowPro) onShowPro();
+       promptDeluxe('notes');
        return;
      }
      const newId = Date.now().toString();
@@ -914,6 +915,21 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
       setHistoryVersion(v => v + 1);
       onInteractionStart(); 
    }, [journalEntryMap, onInteractionStart, syncDraftBlocks]);
+
+ // El Monitor: switch tabs and open today's journal on request.
+ useEffect(() => {
+   const onSub = (e: Event) => {
+     const sub = (e as CustomEvent).detail?.sub;
+     if (sub === 'NOTES' || sub === 'JOURNAL') setSubView(sub);
+   };
+   const onToday = () => { setSubView('JOURNAL'); openJournal(new Date()); };
+   window.addEventListener('monitor:notes-subview', onSub);
+   window.addEventListener('monitor:open-journal-today', onToday);
+   return () => {
+     window.removeEventListener('monitor:notes-subview', onSub);
+     window.removeEventListener('monitor:open-journal-today', onToday);
+   };
+ }, [openJournal]);
 
    const isDraftFuture = useMemo(() => {
      if (editorMode !== 'JOURNAL') return false;
@@ -1489,6 +1505,72 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
     });
   }, [editorMode, draftDate, quests]);
 
+ // Journal "Notebook" view (the month as a lined list). Shown inside the fullscreen journal surface, or inline when
+ // the journal is not immersive.
+ const renderJournalNotebook = (inOverlay: boolean) => (
+ <div className={inOverlay ? 'animate-in fade-in duration-200' : 'flex-1 px-4 pb-24 animate-in slide-in-from-right-8 duration-200'}>
+ <div className="relative">
+ {/* Notebook Binding Effect */}
+ <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-red-500/10 z-0 hidden sm:block" />
+ 
+ <div className="space-y-1">
+ {monthMeta.map(({ day, date, entry, title, mood, isToday, isFuture, specialEvent, dayQuests }) => {
+ const entryThemeId = entry?.theme || 'slate';
+ const entryColor = themeColorMap.get(entryThemeId) || '#fff';
+ 
+ // Future list view toggle
+ if (isFuture && !calendarShowFuture) return null;
+
+ return (
+ <div key={day} className="relative group">
+ <button 
+ onClick={() => {
+   openJournal(date);
+ }}
+ data-tour={isToday ? "journal-today-btn" : undefined}
+ style={{ borderLeftColor: entry ? entryColor : 'transparent' }}
+ className="w-full text-left py-3 px-2 sm:px-8 flex items-baseline gap-4 relative z-10 border-l-2 hover:bg-white/5 active:scale-[0.995] transition-transform cursor-pointer"
+ >
+ <span className={`relative text-xs font-mono font-bold w-6 text-right shrink-0 ${isToday ? 'text-white' : 'text-white/20'}`}>
+ {specialEvent ? (
+ <span 
+ className="absolute right-full mr-1.5 top-1/2 -translate-y-1/2 text-[14px] hover:scale-110 transition-transform duration-200 drop-shadow-md flex items-center justify-center"
+ >
+ {specialEvent.type === 'BIRTHDAY' ? '🎂' : (specialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
+ </span>
+ ) : (dayQuests && dayQuests.length > 0) ? (
+ <span 
+ className="absolute right-full mr-1.5 top-1/2 -translate-y-1/2 text-[14px] hover:scale-110 transition-transform duration-200 drop-shadow-md flex items-center justify-center"
+ style={{ color: dayQuests[0].journalIconColor || '#3b82f6' }}
+ >
+ <ListTodo size={14} />
+ </span>
+ ) : null}
+ {day < 10 ? `0${day}` : day}
+ </span>
+ <div className="flex-1 flex flex-col relative min-w-0">
+ <div className="flex items-center justify-between gap-4 pb-1">
+ <div className="flex items-center gap-3 truncate">
+ {entry ? (
+ <span className={`text-xl font-serif italic tracking-wide ${isToday ? 'text-white font-medium' : 'text-white/80'}`} style={{ color: entryColor !== '#fff' && entryColor !== '#64748b' ? entryColor : undefined }}>{title || <span className="opacity-50">{t('notes.untitledEntry', 'Untitled Entry')}</span>}</span>
+ ) : (
+ <span className="text-base text-white/20 font-serif italic flex items-center gap-2 truncate">{specialEvent ? <span className="text-amber-300/80 not-italic text-xs font-bold">{specialEvent.title}</span> : null}{dayQuests && dayQuests.length > 0 ? <span className="text-cyan-300/80 not-italic text-xs font-bold">{dayQuests.map(q => q.title).join(' · ')}</span> : null}{!specialEvent && (!dayQuests || dayQuests.length === 0) ? t('notes.emptyPage', 'Empty page...') : null}</span>
+ )}
+ </div>
+ {mood && <span className="text-lg opacity-80 group-hover:opacity-100 transition-opacity">{mood.icon}</span>}
+ </div>
+ <div className={`absolute bottom-0 left-0 right-0 h-1.5 overflow-hidden transition-colors ${entry ? 'text-white/20 group-hover:text-white/30' : 'text-white/5'}`}>
+ <WigglyLine />
+ </div>
+ </div>
+ </button>
+ </div>
+ )})}
+ </div>
+ </div>
+ </div>
+ );
+
  return (
  <div className="h-full flex flex-col relative">
  {/* Lock Screen Overlay - Portal with Z-Index between HUD (290) and Dock (400) */}
@@ -1643,7 +1725,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
  <button 
  onClick={() => {
  if (!isPro) {
- onShowPro?.();
+ promptDeluxe('vault');
  return;
  }
  openSecureHub();
@@ -2172,7 +2254,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
   )}
   </div>
  
- {journalViewMode === 'CALENDAR' ? (
+ {(journalViewMode === 'CALENDAR' || journalImmersive) ? (
  <JournalCalendar
    userId={user?.id}
    es={!!i18n.language?.startsWith('es')}
@@ -2197,70 +2279,14 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
    use24h={loadRoutineConfig(user?.id).use24h}
    onOpenDay={(d) => openJournal(d)}
    onListView={() => setJournalViewMode('LIST')}
+   view={journalViewMode}
+   onViewChange={setJournalViewMode}
+   onExit={() => runSceneTransition(() => setSubView('NOTES'), 0, 'depth')}
+   notebook={journalViewMode === 'LIST' ? renderJournalNotebook(true) : null}
    onDailyReminderTimes={() => openJournalReminders(false)}
  />
  ) : (
- <div className="flex-1 px-4 pb-24 animate-in slide-in-from-right-8 duration-200">
- <div className="relative">
- {/* Notebook Binding Effect */}
- <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-red-500/10 z-0 hidden sm:block" />
- 
- <div className="space-y-1">
- {monthMeta.map(({ day, date, entry, title, mood, isToday, isFuture, specialEvent, dayQuests }) => {
- const entryThemeId = entry?.theme || 'slate';
- const entryColor = themeColorMap.get(entryThemeId) || '#fff';
- 
- // Future list view toggle
- if (isFuture && !calendarShowFuture) return null;
-
- return (
- <div key={day} className="relative group">
- <button 
- onClick={() => {
-   openJournal(date);
- }}
- data-tour={isToday ? "journal-today-btn" : undefined}
- style={{ borderLeftColor: entry ? entryColor : 'transparent' }}
- className="w-full text-left py-3 px-2 sm:px-8 flex items-baseline gap-4 relative z-10 border-l-2 hover:bg-white/5 active:scale-[0.995] transition-transform cursor-pointer"
- >
- <span className={`relative text-xs font-mono font-bold w-6 text-right shrink-0 ${isToday ? 'text-white' : 'text-white/20'}`}>
- {specialEvent ? (
- <span 
- className="absolute right-full mr-1.5 top-1/2 -translate-y-1/2 text-[14px] hover:scale-110 transition-transform duration-200 drop-shadow-md flex items-center justify-center"
- >
- {specialEvent.type === 'BIRTHDAY' ? '🎂' : (specialEvent.type === 'ANNIVERSARY' ? '❤️' : '⭐')}
- </span>
- ) : (dayQuests && dayQuests.length > 0) ? (
- <span 
- className="absolute right-full mr-1.5 top-1/2 -translate-y-1/2 text-[14px] hover:scale-110 transition-transform duration-200 drop-shadow-md flex items-center justify-center"
- style={{ color: dayQuests[0].journalIconColor || '#3b82f6' }}
- >
- <ListTodo size={14} />
- </span>
- ) : null}
- {day < 10 ? `0${day}` : day}
- </span>
- <div className="flex-1 flex flex-col relative min-w-0">
- <div className="flex items-center justify-between gap-4 pb-1">
- <div className="flex items-center gap-3 truncate">
- {entry ? (
- <span className={`text-xl font-serif italic tracking-wide ${isToday ? 'text-white font-medium' : 'text-white/80'}`} style={{ color: entryColor !== '#fff' && entryColor !== '#64748b' ? entryColor : undefined }}>{title || <span className="opacity-50">{t('notes.untitledEntry', 'Untitled Entry')}</span>}</span>
- ) : (
- <span className="text-base text-white/20 font-serif italic flex items-center gap-2 truncate">{specialEvent ? <span className="text-amber-300/80 not-italic text-xs font-bold">{specialEvent.title}</span> : null}{dayQuests && dayQuests.length > 0 ? <span className="text-cyan-300/80 not-italic text-xs font-bold">{dayQuests.map(q => q.title).join(' · ')}</span> : null}{!specialEvent && (!dayQuests || dayQuests.length === 0) ? t('notes.emptyPage', 'Empty page...') : null}</span>
- )}
- </div>
- {mood && <span className="text-lg opacity-80 group-hover:opacity-100 transition-opacity">{mood.icon}</span>}
- </div>
- <div className={`absolute bottom-0 left-0 right-0 h-1.5 overflow-hidden transition-colors ${entry ? 'text-white/20 group-hover:text-white/30' : 'text-white/5'}`}>
- <WigglyLine />
- </div>
- </div>
- </button>
- </div>
- )})}
- </div>
- </div>
- </div>
+ renderJournalNotebook(false)
  )}
  </>
  )}
@@ -2390,7 +2416,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
 
   {/* Note / Journal Editor — Cupertino glass sheet */}
   {editorMode !== 'NONE' && typeof document !== 'undefined' && createPortal(
-    <div className="cu-root cu-editor-layer" style={{ zIndex: 500, ['--cu-accent' as any]: activeThemeColor === '#fff' ? '#0a84ff' : activeThemeColor }}>
+    <div className="cu-root cu-editor-layer" data-tour="editor" data-editor-mode={editorMode} style={{ zIndex: 500, ['--cu-accent' as any]: activeThemeColor === '#fff' ? '#0a84ff' : activeThemeColor }}>
       <div className="cu-editor-sheet">
         {/* Header: close · title · done */}
         <div className="cu-header" style={{ touchAction: 'auto' }}>
@@ -2407,11 +2433,11 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                   : (draftProjectId ? projects.find((p) => p.id === draftProjectId)?.title : t('cu.autosaved', 'Se guarda automáticamente'))}
               </p>
             </div>
-            <button type="button" className="cu-primary-btn" onClick={closeEditor}>{t('cu.done', 'Listo')}</button>
+            <button type="button" className="cu-primary-btn" data-tour="ed-done" onClick={closeEditor}>{t('cu.done', 'Listo')}</button>
           </div>
 
           {/* Toolbar row */}
-          <div className="cu-ed-tools no-scrollbar">
+          <div className="cu-ed-tools no-scrollbar" data-tour="ed-tools">
             {editorMode === 'JOURNAL' && isDraftFuture && (
               <span className="cu-chip cu-soft cu-on" style={{ ['--cu-accent' as any]: '#ff9f0a', cursor: 'default' }}>
                 <Lock size={13} /> {t('notes.viewOnlyFuture', 'Solo visualización')}
@@ -2486,11 +2512,12 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                 value={draftTitle}
                 onChange={(e) => setDraftTitle(e.target.value)}
                 placeholder={t('notes.untitledPlaceholder', 'Título de la nota')}
+                data-tour="ed-title"
                 className="cu-ed-title"
                 aria-label={t('notes.untitledPlaceholder', 'Título de la nota')}
               />
 
-              <div className="cu-ed-editor">
+              <div className="cu-ed-editor" data-tour="ed-body">
                 <BlockEditor key={`${editorMode}-${draftId}`} blocks={draftBlocks} onChange={handleBlockEditorChange} />
               </div>
             </div>
@@ -2501,6 +2528,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
                 value={draftTitle}
                 onChange={(e) => setDraftTitle(e.target.value)}
                 placeholder={t('notes.untitledPlaceholder', 'Título de la entrada')}
+                data-tour="ed-title"
                 readOnly={isDraftFuture}
                 className="cu-ed-title"
                 style={isDraftFuture && !draftTitle ? { display: 'none' } : undefined}
@@ -2569,7 +2597,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
               {!isDraftFuture && (
                 <div className="cu-section">
                   <h3 className="cu-section-label">{t('cu.mood', '¿Cómo te sientes?')}</h3>
-                  <div className="cu-moods">
+                  <div className="cu-moods" data-tour="ed-mood">
                     {MOODS.map(m => (
                       <button
                         key={m.id}
@@ -2608,7 +2636,7 @@ export const NotesView = React.memo(({ onInteractionStart, onInteractionEnd, pro
               )}
 
               {(!isDraftFuture || draftBlocks.some(b => b.type === 'image' || (b.content && getPlainTextFromContent(b.content).trim().length > 0))) && (
-                <div className="cu-ed-editor">
+                <div className="cu-ed-editor" data-tour="ed-body">
                   <BlockEditor key={`${editorMode}-${draftId}`} blocks={draftBlocks} onChange={handleBlockEditorChange} readOnly={editorMode === 'JOURNAL' && isDraftFuture} />
                 </div>
               )}

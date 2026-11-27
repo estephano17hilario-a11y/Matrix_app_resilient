@@ -57,7 +57,10 @@ import { chestItemId } from './modules/social/engine';
 import { useEconomy } from './context/EconomyContext';
 import { StreakCelebrationOverlay } from './modules/dashboard/components/StreakCelebrationOverlay';
 import { SuperHabitFX } from './modules/superHabits/SuperHabitFX';
-import { StatsTutorialOverlay } from './components/StatsTutorialOverlay';
+import { MonitorRoot } from './modules/monitor/MonitorRoot';
+import { CoachMessageLayer } from './modules/coach/CoachMessageLayer';
+import { getNotesDefaultView } from './utils/startupPrefs';
+import { monitor, SEEN_KEY } from './modules/monitor/monitorStore';
 import { cn } from './utils/cn';
 import { pulseWorld, runSceneTransition, setScene, setSceneAccent, setWorldScroll } from './immersion/engine';
 import { revealNow } from './immersion/reveal';
@@ -69,7 +72,11 @@ import { availableUses } from './modules/store/market/viceMarket';
 import { useDepthRecede } from './immersion/useDepthRecede';
 import { isDockOpenNow, requestDockClose } from './modules/dashboard/dockState';
 import { useLifeSync } from './immersion/useLifeSync';
-import { carriedDailyStreak, displayDailyStreak, habitStreakRecovery, isDailyStreakMet, todayTaskCounts } from './utils/streakRules';
+import { carriedDailyStreak, displayDailyStreak, isDailyStreakMet, todayTaskCounts } from './utils/streakRules';
+import { habitLosses, hudLoss, projectLosses, protectedDays } from './modules/streaks/recovery';
+import { StreakRecoveryCenter } from './modules/streaks/StreakRecoveryCenter';
+import { StreakLossBanner } from './modules/streaks/StreakLossBanner';
+import { useProgression } from './modules/progression/progressionStore';
 import { announceArea } from './immersion/WorldWhisper';
 
 // Lazy Load Heavy Views
@@ -245,7 +252,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
  const [settingsInitialTab, setSettingsInitialTab] = useState<string | undefined>(undefined);
  const [showDeluxSuccess, setShowDeluxSuccess] = useState(false);
- const [showStatsTutorial, setShowStatsTutorial] = useState(false);
+ // (First-run tutorial is now El Monitor: see modules/monitor.)
  const [isProgressOpen, setIsProgressOpen] = useState(false);
  const [isRankScreenOpen, setIsRankScreenOpen] = useState(false);
  const { grantItem } = useEconomy();
@@ -330,6 +337,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  const {
  user,
  restoreStreak,
+ restoreStreaks,
  viceLedger,
  buyVice,
  spendVicePass,
@@ -589,14 +597,19 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
   const hasExperience = (user.stats?.xp || 0) > 0 || (user.stats?.level || 1) > 1;
   const hasCompletedOnboarding = user.onboarding?.completedAt && user.onboarding.completedAt > 0;
   
-  if (hasCompletedOnboarding) {
-  if (!hasSeen && !hasExperience) {
+  const forceMonitor = import.meta.env.DEV && new URLSearchParams(window.location.search).has('monitor');
+  if (hasCompletedOnboarding || forceMonitor) {
+  if ((!hasSeen && !hasExperience && !localStorage.getItem(SEEN_KEY(user.id))) || forceMonitor) {
   if (storedLang.startsWith('es')) {
   i18n.changeLanguage('es');
   } else {
   i18n.changeLanguage('en');
   }
-  setShowStatsTutorial(true);
+  // First visit: El Monitor introduces itself and walks the user through the app.
+  localStorage.setItem(tutorialKey, 'true');
+  localStorage.setItem(SEEN_KEY(user.id), 'true');
+  const t = setTimeout(() => monitor.intro('tour'), 1200);
+  return () => clearTimeout(t);
   } else if (!hasSeen && hasExperience) {
   localStorage.setItem(tutorialKey, 'true');
   }
@@ -712,7 +725,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  };
  const [taskViewMode, setTaskViewMode] = useState<'LIST' | 'STRATEGY'>('LIST');
  const [habitViewMode, setHabitViewMode] = useState<'PROTOCOLS' | 'VICES'>('PROTOCOLS');
- const [noteViewMode, setNoteViewMode] = useState<'NOTES' | 'JOURNAL'>('NOTES');
+ const [noteViewMode, setNoteViewMode] = useState<'NOTES' | 'JOURNAL'>(getNotesDefaultView);
  const [smartTaskProps, setSmartTaskProps] = useState<{ lockedDate?: string, lockedAttributeId?: string, lockedSmartProjectId?: string } | null>(null);
  const [editingQuest, setEditingQuest] = useState<Quest | null>(null);
  const [editingHabit, setEditingHabit] = useState<(Habit & { _initialTab?: 'alarm' | 'checklist', _targetSubtaskId?: string }) | null>(null);
@@ -1249,7 +1262,14 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
 
  const handleProjectConfirmAndReset = useCallback(async (data: Partial<Project>) => {
   await handleProjectConfirm(data);
+  window.dispatchEvent(new CustomEvent('lux:created', { detail: { kind: 'project' } }));
   }, [handleProjectConfirm]);
+
+ const handleHabitConfirmAndNotify = useCallback((data: Partial<Habit>) => {
+  const r = handleHabitConfirm(data);
+  window.dispatchEvent(new CustomEvent('lux:created', { detail: { kind: 'habit' } }));
+  return r;
+ }, [handleHabitConfirm]);
 
   const handleQuestModalClose = useCallback(() => {
     console.log("🌀 [Dashboard UI] handleQuestModalClose called. Resetting active modal to null.");
@@ -1264,6 +1284,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  setEditingQuest(null);
  setSmartTaskProps(null);
  window.dispatchEvent(new CustomEvent('quest-created'));
+ window.dispatchEvent(new CustomEvent('lux:created', { detail: { kind: 'task' } }));
  }, [handleQuestConfirm]);
 
  const handleDeleteSmartProject = useCallback(async (projectId?: string) => {
@@ -1437,6 +1458,22 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
   announceArea(view);
  }, [currentView, sceneOrder]);
 
+ // El Monitor: guided tours move the user between sections.
+ useEffect(() => {
+  const onNav = (e: Event) => {
+   const view = (e as CustomEvent).detail?.view as string | undefined;
+   if (!view || view === currentView) return;
+   setActiveModal(null);
+   travelTo(view, () => {
+    if (view === 'TASKS') setTaskViewMode('LIST');
+    if (view === 'HABITS') setHabitViewMode('PROTOCOLS');
+    setCurrentView(view as any);
+   });
+  };
+  window.addEventListener('monitor:navigate', onNav);
+  return () => window.removeEventListener('monitor:navigate', onNav);
+ }, [travelTo, currentView, setCurrentView, setActiveModal]);
+
  // Routine → Habits / Tasks: opens the section on the item (expanded when it unfolds) and flashes it.
  const handleLocateHabit = useCallback((habitId: string, subtaskId: string | undefined, date: Date) => {
   travelTo('HABITS', () => {
@@ -1498,7 +1535,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  setCurrentView(view);
  if (view === 'TASKS') setTaskViewMode('LIST');
  if (view === 'HABITS') setHabitViewMode('PROTOCOLS');
- if (view === 'NOTES') setNoteViewMode('NOTES');
+ if (view === 'NOTES') setNoteViewMode(getNotesDefaultView());
  }
  }, [currentView, allowDockSectionSwitch, setTaskViewMode, setHabitViewMode, setNoteViewMode, setCurrentView]);
 
@@ -1557,6 +1594,12 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
 
  const notificationRoot = typeof document !== 'undefined' ? document.getElementById('notification-stack-root') : null;
 
+ // Protected days (store freezes + rest shields) change the visible streak.
+ const progressionSnap = useProgression();
+ const frozenDaysKey = useMemo(() => protectedDays(user?.stats).join(','),
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ [user?.stats?.streakFrozenDays, progressionSnap.engine?.shieldRequests]);
+
  // Visible daily streak: what carries over from yesterday (or a freeze) plus
  // today once today's requirements are met. Never trusts a stored value that
  // is a day behind or belongs to a broken streak.
@@ -1565,23 +1608,24 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
    streak: user?.stats?.streak,
    lastStreakDate: user?.stats?.lastStreakDate,
    frozenUntil: user?.stats?.streakFrozenUntil,
+   frozenDays: protectedDays(user?.stats),
   }),
   isStreakActiveToday,
- ), [user?.stats?.streak, user?.stats?.lastStreakDate, user?.stats?.streakFrozenUntil, isStreakActiveToday]);
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ ), [user?.stats?.streak, user?.stats?.lastStreakDate, user?.stats?.streakFrozenUntil, frozenDaysKey, isStreakActiveToday]);
 
- // Streaks the store can bring back: habits whose streak broke in the last
- // days (missed days get forgiven) and projects that lost theirs at a reset.
- const recoverableHabits = useMemo(() => (habits || [])
-  .filter(h => !h.archived)
-  .map(h => {
-   const recovery = habitStreakRecovery(h, h.history, { weekStartDay, frozenUntil: user?.stats?.streakFrozenUntil });
-   return recovery ? { ...h, previousStreak: recovery.restored } : null;
-  })
-  .filter(Boolean) as any[], [habits, weekStartDay, user?.stats?.streakFrozenUntil]);
- const recoverableProjects = useMemo(
-  () => (projects || []).filter(p => (p.previousStreak || 0) > 0 && !(p.streak && p.streak > 0)),
-  [projects],
- );
+ // Streaks that can still be bought back (within 3 days of losing them):
+ // the daily one, habits (missed days get forgiven) and projects.
+ const streakLosses = useMemo(() => {
+  if (!dashboardLogic.progressionDataReady) return [];
+  const hud = hudLoss(user?.stats);
+  return [
+   ...(hud ? [hud] : []),
+   ...habitLosses(habits, { weekStartDay, stats: user?.stats }),
+   ...projectLosses(projects),
+  ];
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, [dashboardLogic.progressionDataReady, habits, projects, weekStartDay, user?.stats?.previousStreak, user?.stats?.streakLostAt, user?.stats?.streak, user?.stats?.lastStreakDate, frozenDaysKey]);
 
  // Adaptive world: the light, the stars and the whispers follow your day.
  useLifeSync({
@@ -1812,20 +1856,8 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  onClose={() => setShowDeluxSuccess(false)}
  />
 
- <StatsTutorialOverlay 
-  isOpen={showStatsTutorial}
-  onClose={() => {
-  setShowStatsTutorial(false);
-  if (user?.id) {
-  localStorage.setItem(`matrix_stats_tutorial_seen_${user.id}`, 'true');
-  // Start interactive tour after stats tutorial
-  if (!localStorage.getItem(`matrix_tour_seen_${user.id}`)) {
-  window.dispatchEvent(new CustomEvent('start-onboarding-tour'));
-  localStorage.setItem(`matrix_tour_seen_${user.id}`, 'true');
-  }
-  }
-  }}
-  />
+ <MonitorRoot userName={user?.displayName || null} />
+ <CoachMessageLayer userName={user?.displayName || null} />
 
  {notificationRoot && createPortal(
  <AnimatePresence mode="sync">
@@ -2055,7 +2087,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  onClick={() => {
  const currentActive = smartProjects.filter(p => p.status === 'ACTIVE' || !p.status).length;
  if (user?.plan !== 'PRO' && currentActive >= FREE_LIMITS.ACTIVE_STRATEGIES) {
- setIsProModalOpen(true);
+ promptDeluxe('strategies');
  return;
  }
  setIsWizardOpen(true);
@@ -2081,7 +2113,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  onClick={() => {
  const currentActive = smartProjects.filter(p => p.status === 'ACTIVE' || !p.status).length;
  if (user?.plan !== 'PRO' && currentActive >= FREE_LIMITS.ACTIVE_STRATEGIES) {
- setIsProModalOpen(true);
+ promptDeluxe('strategies');
  return;
  }
  setIsWizardOpen(true);
@@ -2123,6 +2155,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  </div>
  )}
 
+ {habitViewMode !== 'VICES' && <StreakLossBanner losses={streakLosses} category="HABIT" />}
  <Suspense fallback={<SuspenseFallback />}>
  <HabitVisualView 
  habits={habits} 
@@ -2237,10 +2270,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
   onSpendVicePass={spendVicePass}
   onUpdateViceOffer={updateViceOffer}
   onCreateVice={handleAddBadHabit}
-  streakStats={user?.stats}
-  recoverableHabits={recoverableHabits}
-  recoverableProjects={recoverableProjects}
-  onRestoreStreak={restoreStreak}
+  streakLosses={streakLosses}
  />
  </Suspense>
  </ViewContainer>
@@ -2407,7 +2437,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
     attributes={attributes} 
     smartProjects={smartProjects}
     projects={projects}
-    onConfirm={handleHabitConfirm}
+    onConfirm={handleHabitConfirmAndNotify}
     initialData={editingHabit || modalInitialContext || undefined}
     onSwitchToBadHabit={() => setActiveModal('BAD_HABIT')}
   />
@@ -2764,6 +2794,19 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  />
  )}
  </AnimatePresence>
+
+ {/* STREAK LOSS REPORT + RECOVERY CENTER - Root Level */}
+ <StreakRecoveryCenter
+  ready={!!dashboardLogic.progressionDataReady && !!user?.id && !user?.isSkeleton}
+  stats={user?.stats}
+  habits={habits}
+  projects={projects}
+  gold={player.gold}
+  weekStartDay={weekStartDay as 0 | 1}
+  onRestore={restoreStreak}
+  onRestoreAll={restoreStreaks}
+  onOpenStore={() => setCurrentView('STORE')}
+ />
 
  {/* STREAK ROADMAP OVERLAY - Root Level */}
  <AnimatePresence>

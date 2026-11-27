@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlignLeft, BellRing, CalendarClock, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flame, Lock, PenLine, Plus, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { AlignLeft, BellRing, CalendarClock, CalendarDays, Check, ChevronLeft, ChevronRight, ChevronUp, Flame, Lock, PenLine, Plus, SlidersHorizontal, Sparkles, X } from 'lucide-react';
 import { cn } from '../../../utils/cn';
 import { toLocalISOString } from '../../../utils/dateUtils';
 import { useReminderItems } from '../../routine/useReminderItems';
@@ -52,6 +52,13 @@ interface Props {
   onOpenDay: (date: Date) => void;
   onListView: () => void;
   onDailyReminderTimes: () => void;
+  /** Which journal view fills the surface: the month grid or the notebook list. */
+  view?: 'CALENDAR' | 'LIST';
+  onViewChange?: (v: 'CALENDAR' | 'LIST') => void;
+  /** Fullscreen only: leave the journal (back to Notes). */
+  onExit?: () => void;
+  /** The notebook list, drawn in place of the grid when view === 'LIST'. */
+  notebook?: React.ReactNode;
 }
 
 const plainText = (blocks?: { type: string; content: string }[]) =>
@@ -60,6 +67,7 @@ const plainText = (blocks?: { type: string; content: string }[]) =>
 export const JournalCalendar: React.FC<Props> = ({
   userId, es, reduce = false, immersive, visible, onToggleImmersive, currentMonth, onMonthChange, monthMeta, leadingBlanks, weekdayInitials, themeColorMap,
   cellOpacity, showFuture, onShowFuture, streak, use24h = false, onOpenDay, onListView, onDailyReminderTimes,
+  view = 'CALENDAR', onViewChange, onExit, notebook,
 }) => {
   const tr = (a: string, b: string) => (es ? a : b);
   const locale = es ? 'es-ES' : 'en-US';
@@ -84,8 +92,10 @@ export const JournalCalendar: React.FC<Props> = ({
   const glow = dominant?.color || '#38bdf8';
   const pct = Math.round((written / passed) * 100);
 
+  const isList = view === 'LIST' && !!notebook;
+  const setView = (v: 'CALENDAR' | 'LIST') => { setSelected(null); setPanelOpen(false); if (onViewChange) onViewChange(v); else if (v === 'LIST') onListView(); };
   const change = (delta: number) => { setDir(delta); setSelected(null); onMonthChange(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + delta, 1)); };
-  const selectedMeta = monthMeta.find(d => d.dateStr === selected) || null;
+  const selectedMeta = isList ? null : monthMeta.find(d => d.dateStr === selected) || null;
   const selectedReminders = selectedMeta ? remindersOn(reminders.items, selectedMeta.dateStr) : [];
 
   const cell = (m: JournalDayMeta) => {
@@ -155,11 +165,38 @@ export const JournalCalendar: React.FC<Props> = ({
 
       {/* Top */}
       <div className={cn('relative shrink-0 px-3 pb-2 border-b border-white/[0.08] bg-white/[0.025]', immersive ? 'pt-[max(6px,env(safe-area-inset-top))]' : 'pt-2')}>
-        <div className="flex justify-center -mt-1 mb-1">
-          <button type="button" onClick={onToggleImmersive} aria-label={immersive ? tr('Mostrar el tablero', 'Show the dashboard') : tr('Pantalla completa', 'Full screen')} className="w-14 h-[18px] rounded-b-[10px] rounded-t-sm bg-white/[0.1] border border-white/[0.1] flex items-center justify-center text-white/65 active:scale-90 active:bg-white/20 transition-all">
-            {immersive ? <ChevronDown size={14} strokeWidth={2.6} /> : <ChevronUp size={14} strokeWidth={2.6} />}
-          </button>
-        </div>
+        {immersive ? (
+          // Calendar ↔ Notebook switch (big, easy to hit) and the way out of the fullscreen journal.
+          <div className="flex items-center gap-2 mb-2.5">
+            <div className="relative flex-1 flex p-1 rounded-full bg-white/[0.07] border border-white/[0.1]" role="tablist" aria-label={tr('Vista del diario', 'Journal view')}>
+              <span
+                className="absolute top-1 bottom-1 left-1 w-[calc((100%-8px)/2)] rounded-full bg-white pointer-events-none transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                style={{ transform: `translateX(${view === 'LIST' ? 100 : 0}%)`, boxShadow: '0 4px 14px -6px rgba(255,255,255,0.6)' }}
+              />
+              {([['CALENDAR', CalendarDays, tr('Calendario', 'Calendar')], ['LIST', AlignLeft, tr('Cuaderno', 'Notebook')]] as const).map(([id, VIcon, label]) => (
+                <button
+                  key={id} type="button" role="tab" aria-selected={view === id}
+                  onClick={() => view !== id && setView(id)}
+                  className="relative z-10 flex-1 h-9 flex items-center justify-center gap-1.5 text-[12.5px] font-black active:scale-95 transition-transform"
+                >
+                  <VIcon size={15} className={cn('transition-colors duration-200', view === id ? 'text-black' : 'text-white/55')} />
+                  <span className={cn('transition-colors duration-200', view === id ? 'text-black' : 'text-white/60')}>{label}</span>
+                </button>
+              ))}
+            </div>
+            {onExit && (
+              <button type="button" onClick={onExit} aria-label={tr('Salir del diario', 'Exit journal')} className="w-11 h-11 shrink-0 rounded-full bg-white/[0.1] border border-white/[0.14] flex items-center justify-center text-white active:scale-90 transition-transform">
+                <X size={19} strokeWidth={2.6} />
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="flex justify-center -mt-1 mb-1">
+            <button type="button" onClick={onToggleImmersive} aria-label={tr('Pantalla completa', 'Full screen')} className="w-14 h-[18px] rounded-b-[10px] rounded-t-sm bg-white/[0.1] border border-white/[0.1] flex items-center justify-center text-white/65 active:scale-90 active:bg-white/20 transition-all">
+              <ChevronUp size={14} strokeWidth={2.6} />
+            </button>
+          </div>
+        )}
         <div className="flex items-center gap-1.5">
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline gap-2">
@@ -180,7 +217,7 @@ export const JournalCalendar: React.FC<Props> = ({
               <div className="pt-3 flex flex-col gap-2">
                 <div className="flex items-center gap-1.5">
                   <button type="button" onClick={() => { const t = new Date(); setDir(t > currentMonth ? 1 : -1); onMonthChange(new Date(t.getFullYear(), t.getMonth(), 1)); setSelected(todayKey); }} className="flex-1 h-9 rounded-full bg-sky-400/15 border border-sky-400/30 flex items-center justify-center gap-1.5 text-[11.5px] font-black text-sky-300 active:scale-95 transition-transform"><CalendarClock size={13} /> {tr('Hoy', 'Today')}</button>
-                  <button type="button" onClick={onListView} className="flex-1 h-9 rounded-full bg-white/[0.07] border border-white/[0.1] flex items-center justify-center gap-1.5 text-[11.5px] font-black text-white/75 active:scale-95 transition-transform"><AlignLeft size={14} /> {tr('Cuaderno', 'Notebook')}</button>
+                  {!immersive && <button type="button" onClick={() => setView('LIST')} className="flex-1 h-9 rounded-full bg-white/[0.07] border border-white/[0.1] flex items-center justify-center gap-1.5 text-[11.5px] font-black text-white/75 active:scale-95 transition-transform"><AlignLeft size={14} /> {tr('Cuaderno', 'Notebook')}</button>}
                   <button type="button" onClick={onDailyReminderTimes} className="flex-1 h-9 rounded-full bg-white/[0.07] border border-white/[0.1] flex items-center justify-center gap-1.5 text-[11.5px] font-black text-white/75 active:scale-95 transition-transform"><BellRing size={13} /> {tr('Avisos', 'Alerts')}</button>
                 </div>
                 <button type="button" onClick={() => onShowFuture(!showFuture)} className="flex items-center justify-between rounded-2xl bg-white/[0.05] border border-white/[0.08] px-3.5 py-2.5 active:scale-[0.985] transition-transform">
@@ -222,6 +259,7 @@ export const JournalCalendar: React.FC<Props> = ({
           if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.8) change(dx < 0 ? 1 : -1);
         }}
       >
+        {isList ? notebook : (<>
         <div className="grid grid-cols-7 gap-2 text-center mb-2">
           {weekdayInitials.map((d, i) => <span key={i} className="text-[10px] font-black text-white/35">{d}</span>)}
         </div>
@@ -239,6 +277,7 @@ export const JournalCalendar: React.FC<Props> = ({
           </motion.div>
         </AnimatePresence>
         <p className="text-center text-[10px] font-semibold text-white/25 mt-4">{tr('Toca un día · doble toque para escribir · desliza para cambiar de mes', 'Tap a day · double tap to write · swipe to change month')}</p>
+        </>)}
       </div>
 
       {/* Day panel */}
