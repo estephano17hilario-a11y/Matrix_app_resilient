@@ -39,7 +39,7 @@ describe('Sunday boost (+25%)', () => {
   it('boosts close gains but not losses', () => {
     const s = upTo(createProgressionState(REG), SUNDAY);
     expect(dayTotal(close(s, input(SUNDAY, { habits: { scheduled: 5, completed: 5 }, habitGoalPct: 80 })), SUNDAY)).toBe(8); // 6 × 1.25 = 7.5
-    expect(dayTotal(close(s, input(SUNDAY, FAILED)), SUNDAY)).toBe(-3);
+    expect(dayTotal(close(s, input(SUNDAY, FAILED)), SUNDAY)).toBe(-2);
   });
 
   it('focus on Sunday: 8 hours give 10 thanks to cumulative rounding', () => {

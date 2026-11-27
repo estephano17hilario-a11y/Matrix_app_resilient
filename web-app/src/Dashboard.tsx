@@ -876,8 +876,10 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
       setIsDockOpen(false);
       setIsDockConfigOpen(true);
     };
-    const handleOpenSettings = () => {
+    // `open-settings` may carry { tab } (a settings page id, e.g. "taskfilters") to land straight on it.
+    const handleOpenSettings = (e?: Event) => {
       setIsDockOpen(false);
+      setSettingsInitialTab((e as CustomEvent<{ tab?: string }> | undefined)?.detail?.tab);
       setIsSettingsOpen(true);
     };
     const handleOpenStore = () => setCurrentView('STORE');
@@ -1964,7 +1966,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  showProfile={showProfile}
  onShowStore={() => { const next = currentView === 'STORE' ? 'TASKS' : 'STORE'; travelTo(next, () => setCurrentView(next)); }}
  onShowPro={() => setIsProModalOpen(true)}
- onShowSettings={() => setIsSettingsOpen(true)}
+ onShowSettings={() => { setSettingsInitialTab(undefined); setIsSettingsOpen(true); }}
  onShowSettingsWithTab={(tab) => {
  setSettingsInitialTab(tab);
  setIsSettingsOpen(true);

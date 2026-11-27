@@ -19,6 +19,12 @@ const DIVISION_LABELS = ['I', 'II', 'III'] as const;
 export const getRank = (rankIndex: number): RankDef =>
   RANKS[Math.max(0, Math.min(LEGEND_INDEX, rankIndex))];
 
+/** Most ELO one day can cost at a rank (Bronze 2 … Legend 9). Also what a day with nothing done costs. */
+export const dailyLossCap = (rankIndex: number): number => {
+  const caps = PROGRESSION_CONFIG.ELO.PROTECTION.DAILY_LOSS_CAP_BY_RANK;
+  return caps[Math.max(0, Math.min(caps.length - 1, rankIndex))];
+};
+
 /** The rank ELO alone would place you in (no protection). */
 export const naturalRankIndex = (elo: number): number => {
   for (let i = RANKS.length - 1; i >= 0; i--) {

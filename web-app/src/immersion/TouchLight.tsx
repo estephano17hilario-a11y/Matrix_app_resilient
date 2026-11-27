@@ -195,11 +195,13 @@ const sweep = (r: DOMRect, radius: string) => {
   ], { duration: 560, easing: 'cubic-bezier(0.45, 0, 0.2, 1)' }, clip);
 };
 
-const wink = (kind: WinkKind, el: Element, x: number, y: number) => {
+// The control's box and radius are measured on pointerdown (capture phase: before the app reacts, with
+// style and layout still clean) and reused here. Measuring again when the light is drawn (on release,
+// right after the tap's state change was committed) forced a synchronous style + layout of the whole
+// page in the middle of every section switch and button press.
+const wink = (kind: WinkKind, r: DOMRect, radius: string, x: number, y: number) => {
   if (!layer) return;
-  const r = el.getBoundingClientRect();
   if (!r.width || !r.height) return;
-  const radius = getComputedStyle(el).borderRadius || '12px';
   switch (kind) {
     case 'ping': ping(r); break;
     case 'spark': spark(r); break;
@@ -220,12 +222,12 @@ export const TouchLight = () => {
     document.body.appendChild(layer);
 
     let timer = 0;
-    let pending: { x: number; y: number; id: number; el: Element; kind: WinkKind } | null = null;
-    let last: { el: Element; kind: WinkKind } | null = null;
+    let pending: { x: number; y: number; id: number; kind: WinkKind; r: DOMRect; radius: string } | null = null;
+    let last: { el: Element; kind: WinkKind; at: number } | null = null;
 
     const flush = () => {
       window.clearTimeout(timer);
-      if (pending) wink(pending.kind, pending.el, pending.x, pending.y);
+      if (pending) wink(pending.kind, pending.r, pending.radius, pending.x, pending.y);
       pending = null;
     };
 
@@ -233,9 +235,11 @@ export const TouchLight = () => {
       if (!immersionActive() || e.button > 0) return;
       const el = findControl(e.target);
       if (!el) return;
-      const kind = classify(el, el.getBoundingClientRect());
-      last = { el, kind };
-      pending = { x: e.clientX, y: e.clientY, id: e.pointerId, el, kind };
+      const r = el.getBoundingClientRect();
+      const kind = classify(el, r);
+      const radius = getComputedStyle(el).borderRadius || '12px';
+      last = { el, kind, at: performance.now() };
+      pending = { x: e.clientX, y: e.clientY, id: e.pointerId, kind, r, radius };
       window.clearTimeout(timer);
       if (e.pointerType === 'mouse') flush();
       else timer = window.setTimeout(flush, PRESS_DELAY);
@@ -257,10 +261,18 @@ export const TouchLight = () => {
     // Haptics/sound only on a confirmed tap, never on scroll starts.
     const onClick = (e: MouseEvent) => {
       if (!immersionActive()) return;
+      // The press that produced this click already found and classified the control: reuse it.
+      // Asking again (closest + computed style + box) right after the app's own click handler had
+      // changed the page forced another synchronous layout.
+      const prev = last;
+      last = null;
+      if (prev && performance.now() - prev.at < 1500 && e.target instanceof Node && prev.el.contains(e.target)) {
+        touchFeedback(prev.kind);
+        return;
+      }
       const el = findControl(e.target);
       if (!el) return;
-      const kind = last && last.el === el ? last.kind : classify(el, el.getBoundingClientRect());
-      touchFeedback(kind);
+      touchFeedback(classify(el, el.getBoundingClientRect()));
     };
 
     document.addEventListener('pointerdown', onDown, { passive: true, capture: true });

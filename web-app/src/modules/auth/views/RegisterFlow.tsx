@@ -331,8 +331,10 @@ export const RegisterFlow = (p: RegisterFlowProps) => {
 
         <div className="mt-3"><ErrorBanner message={p.error} /></div>
 
-        <div className="mt-auto pt-6 space-y-4">
-          <ChunkyButton type="submit" disabled={!canContinue} loading={p.loading} shine={canContinue}
+        {/* Not pinned to the very bottom of the screen (it sat under the thumb's reach, next to the gesture bar):
+            it follows the content, with room to breathe below so it never hugs the edge. */}
+        <div className="mt-7 pb-10 space-y-4">
+          <ChunkyButton type="submit" size="xl" disabled={!canContinue} loading={p.loading} shine={canContinue}
             variant={last && canContinue ? 'success' : 'primary'}>
             {last ? t('auth.registerFlow.create') : t('auth.registerFlow.continue')}
           </ChunkyButton>

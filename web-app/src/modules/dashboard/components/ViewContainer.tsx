@@ -1,4 +1,4 @@
-import React, { startTransition, useEffect, useRef, useState } from 'react';
+import React, { startTransition, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { hasArrived } from '@/immersion/engine';
 
 interface ViewContainerProps {
@@ -16,11 +16,15 @@ interface ViewContainerProps {
 // and while hidden they are skipped entirely: not styled, laid out, painted or
 // hit-tested. Where content-visibility isn't supported, height 0 + overflow
 // hidden still hides them.
+//
+// No pointer-events here on purpose: it is an INHERITED property, so toggling it
+// on the container restyled every element inside the section that was arriving
+// (~900 elements, 100+ ms on a phone, on the tap). A hidden section is not
+// hit-testable anyway: content-visibility skips it and the 0-height box clips it.
 const HIDDEN: React.CSSProperties = {
     contentVisibility: 'hidden',
     height: 0,
     overflow: 'hidden',
-    pointerEvents: 'none',
 };
 
 // The section being left is hidden on the tap, but its content is not
@@ -76,6 +80,32 @@ export const ViewContainer = React.memo(({ isActive, children, className = "", i
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { if (!isActive && el.current) warmUp(el.current); }, []);
+
+    // Animations inside a hidden section keep ticking on the main thread (bulbs, flames, pulses, shop
+    // lights…) although nothing of it is on screen: a whole frame of work per tick on a phone. They are
+    // paused once the section has settled hidden and resumed the moment it comes back. This is done
+    // through the Web Animations API on purpose: a CSS rule such as [data-view-active=false] * would
+    // restyle every element of the section when it arrives.
+    const paused = useRef<Animation[]>([]);
+    useLayoutEffect(() => {
+        if (!isActive) return;
+        paused.current.forEach(a => { try { a.play(); } catch { /* finished or removed */ } });
+        paused.current = [];
+    }, [isActive]);
+    useEffect(() => {
+        if (isActive || !settledInactive) return;
+        const root = el.current;
+        if (!root || typeof root.getAnimations !== 'function') return;
+        let cancelled = false;
+        // After the section settled, when the phone is idle (the animations only exist once it was styled).
+        const timer = window.setTimeout(() => whenIdle(() => {
+            if (cancelled || !el.current) return;
+            el.current.getAnimations({ subtree: true }).forEach(a => {
+                if (a.playState === 'running') { a.pause(); paused.current.push(a); }
+            });
+        }), 600);
+        return () => { cancelled = true; window.clearTimeout(timer); };
+    }, [isActive, settledInactive]);
 
     const frozen = !isActive && !settledInactive;
     if (!frozen) shown.current = children;

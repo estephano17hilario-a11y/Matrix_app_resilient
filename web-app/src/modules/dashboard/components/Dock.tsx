@@ -14,6 +14,9 @@ const RIM = '#06b6d4, #3b82f6, #8b5cf6, #ec4899, #06b6d4';
 const DOCK_SKIN_CSS = `
 .dock-skin { left: 0; right: 0; overflow: visible !important; will-change: transform; transition: transform 0.28s ${DOCK_EASE}; }
 .dock-skin-bottom { bottom: 0; height: ${DOCK_CAP}px; border-radius: 0 0 34px 34px; }
+.dock-skin-single { bottom: 0; height: ${2 * DOCK_CAP}px; border-radius: 34px; transition: none; will-change: auto; }
+/* Lighter glass (was 45% black): the blur stays, the bar just stops looking heavy. */
+[data-tour="dock"] .dock-skin.glass-panel { background-color: rgba(10, 10, 15, 0.3) !important; }
 .dock-skin-mid { bottom: ${DOCK_CAP}px; transform-origin: 50% 100%; border-radius: 0; }
 .dock-skin-top { bottom: ${DOCK_CAP}px; height: ${DOCK_CAP}px; border-radius: 34px 34px 0 0; }
 .dock-skin-fill { border-radius: inherit; }
@@ -23,7 +26,11 @@ const DOCK_SKIN_CSS = `
 [data-tour="dock"] .dock-skin-mid { border-top-width: 0 !important; border-bottom-width: 0 !important; }
 .dock-skin-top::before, .dock-skin-top::after { padding-bottom: 0 !important; background: conic-gradient(from var(--angle) at 50% 100%, ${RIM}) !important; }
 .dock-skin-bottom::before, .dock-skin-bottom::after { padding-top: 0 !important; background: conic-gradient(from var(--angle) at 50% 0%, ${RIM}) !important; }
-.dock-skin-mid::before, .dock-skin-mid::after { padding-top: 0 !important; padding-bottom: 0 !important; background: conic-gradient(from var(--angle) at 50% 100%, ${RIM}) !important; }
+/* Seam continuity: both caps are centred on their seam edge, so at the seam their side colour is the
+   conic colour at exactly 90deg / 270deg. The stretching middle must show that SAME colour along its whole
+   height, otherwise the rim jumps where the pieces meet. A conic gradient tiled in thin horizontal strips
+   (each strip centred on its own mid-line) gives exactly that, whatever height the middle has mid-animation. */
+.dock-skin-mid::before, .dock-skin-mid::after { padding-top: 0 !important; padding-bottom: 0 !important; background: conic-gradient(from var(--angle) at 50% 50%, ${RIM}) 0 0 / 100% 4px repeat-y !important; }
 @media (prefers-reduced-motion: reduce) { .dock-skin { transition: none; } }
 `;
 
@@ -54,6 +61,15 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
    setLocalIsOpen(open);
    publishDockOpen(open);
  }, []);
+
+ // The three-piece skin is only needed while the menu is open or still sliding shut (see the skin markup).
+ const [settled, setSettled] = React.useState(true);
+ React.useEffect(() => {
+   if (isOpen) { setSettled(false); return; }
+   const timer = window.setTimeout(() => setSettled(true), 360);
+   return () => window.clearTimeout(timer);
+ }, [isOpen]);
+ const showPieces = isOpen || !settled;
 
  // Closed from outside: the back button, a modal opening, a navigation…
  React.useEffect(() => {
@@ -686,17 +702,26 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
        slides (translateY). Opening/closing only moves layers on the compositor — no height,
        border-radius, mask or backdrop re-layout per frame. The box itself has its final height. */}
    <style>{DOCK_SKIN_CSS}</style>
-   <div className={`dock-skin dock-skin-bottom ${styleClass}`} style={{ position: 'absolute' }}>
+   {/* Closed bar: ONE piece. Two adjacent backdrop-filter boxes each clamp their blur at their own edge, so
+       where the content behind differs the glass showed a hard seam ("two halves"). The three pieces only
+       exist while the menu opens, moves or closes; they are hidden (no blur painted) the rest of the time. */}
+   <div className={`dock-skin dock-skin-single ${styleClass}`} style={{ position: 'absolute', visibility: showPieces ? 'hidden' : 'visible' }}>
+      <div className="absolute inset-0 !border-0 backdrop-blur-xl bg-black/50 dock-skin-fill" />
+      <LuxSheen intensity={0.9} />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-0" />
+      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.05] to-black/[0.03] pointer-events-none z-0" style={{ borderRadius: 'inherit' }} />
+   </div>
+   <div className={`dock-skin dock-skin-bottom ${styleClass}`} style={{ position: 'absolute', visibility: showPieces ? 'visible' : 'hidden' }}>
       <div className="absolute inset-0 !border-0 backdrop-blur-xl bg-black/50 dock-skin-fill" />
       <LuxSheen intensity={0.9} />
       <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/[0.04] pointer-events-none z-0" style={{ borderRadius: 'inherit' }} />
    </div>
    <div className={`dock-skin dock-skin-mid ${styleClass}`}
-     style={{ position: 'absolute', height: `${dynamicHeight - 2 * DOCK_CAP}px`, transform: `scaleY(${isOpen ? 1 : 0})` }}>
+     style={{ position: 'absolute', visibility: showPieces ? 'visible' : 'hidden', height: `${dynamicHeight - 2 * DOCK_CAP}px`, transform: `scaleY(${isOpen ? 1 : 0})` }}>
       <div className="absolute inset-0 !border-0 backdrop-blur-xl bg-black/50 dock-skin-fill" />
    </div>
    <div className={`dock-skin dock-skin-top ${styleClass}`}
-     style={{ position: 'absolute', transform: `translate3d(0, ${isOpen ? -(dynamicHeight - 2 * DOCK_CAP) : 0}px, 0)` }}>
+     style={{ position: 'absolute', visibility: showPieces ? 'visible' : 'hidden', transform: `translate3d(0, ${isOpen ? -(dynamicHeight - 2 * DOCK_CAP) : 0}px, 0)` }}>
       <div className="absolute inset-0 !border-0 backdrop-blur-xl bg-black/50 dock-skin-fill" />
       {/* Fake-glass: top highlight line + sheen */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-0" />

@@ -73,9 +73,12 @@ const scan = (root: ParentNode) => {
 export const revealNow = (root: ParentNode = document) => {
   arrivalUntil = performance.now() + ARRIVAL_MS;
   root.querySelectorAll('.lux-reveal:not(.lux-instant)').forEach(el => {
-    // Skip what isn't displayed (the other sections are display:none).
-    // Cards that already rose are pinned too: coming back from display:none
+    // Skip what isn't displayed. Elements inside a hidden section are ruled out with a
+    // plain ancestor lookup: checkVisibility() forces a style/layout flush, and asking it
+    // about every card of every hidden section made the tap pay for all of them.
+    // Cards that already rose are pinned too: coming back from a hidden section
     // would otherwise replay their rise every time the section is shown.
+    if (el.closest('[data-view-active="false"]')) return;
     if (isShown(el)) showInstantly(el);
   });
 };

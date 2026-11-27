@@ -4,7 +4,7 @@
 // (what opens when the rank insignia is tapped), plus a full rules guide.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Habit, Project, Quest } from '@/types';
-import { PROGRESSION_CONFIG } from '../engine';
+import { PROGRESSION_CONFIG, dailyLossCap } from '../engine';
 import { buildEloCoach, type CoachStep, type EloCoach } from '../coach';
 import { progressionStore, type ProgressionSnapshot } from '../progressionStore';
 import { ArenaSheet, Card, Delta, rise } from './arena';
@@ -82,6 +82,102 @@ const stepLines = (steps: CoachStep[], noun: [string, string], tr: (s: string, e
     </>
   ));
 
+interface Act { id: string; icon: React.ReactNode; title: React.ReactNode; sub?: string; value: number; avoid?: boolean }
+
+/**
+ * "Haz esto": the next move in each area, in plain words and ordered by how much it is worth, plus what happens
+ * if you do nothing. Everything comes from the coach (the same engine that closes the day).
+ */
+const ActionPlan: React.FC<{ coach: EloCoach; tr: (s: string, e: string) => string }> = ({ coach, tr }) => {
+  const reduce = useReducedMotion();
+  const acts: Act[] = [];
+
+  if (coach.habits && coach.habits.steps.length) {
+    const s = coach.habits.steps[0];
+    acts.push({
+      id: 'h', icon: <Repeat size={17} />, value: s.amount - coach.habits.now,
+      title: <>{tr('Completa ', 'Complete ')}<b>{s.more}</b>{tr(s.more === 1 ? ' hábito más' : ' hábitos más', s.more === 1 ? ' more habit' : ' more habits')}</>,
+      sub: coach.habits.pending.slice(0, 2).join(' · ') || undefined,
+    });
+  }
+  if (coach.tasks && coach.tasks.steps.length) {
+    const s = coach.tasks.steps[0];
+    acts.push({
+      id: 't', icon: <ListChecks size={17} />, value: s.amount - coach.tasks.now,
+      title: <>{tr('Completa ', 'Complete ')}<b>{s.more}</b>{tr(s.more === 1 ? ' tarea más' : ' tareas más', s.more === 1 ? ' more task' : ' more tasks')}</>,
+      sub: coach.tasks.pending.slice(0, 2).join(' · ') || undefined,
+    });
+  }
+  coach.projects.filter(p => p.missing > 0).forEach(p => acts.push({
+    id: `p${p.id}`, icon: <Target size={17} />, value: Math.abs(ELO.PROJECT_GOAL_MISS_DELTA), avoid: true,
+    title: <>{tr('Cumple la meta de ', 'Hit the goal of ')}<b>{p.title}</b></>,
+    sub: tr(`Faltan ${fmtMin(p.missing)} de foco con temporizador`, `${fmtMin(p.missing)} of timer focus left`),
+  }));
+  if (coach.focus.nextIn !== null) {
+    acts.push({
+      id: 'f', icon: <Timer size={17} />, value: 1,
+      title: <>{tr('Haz ', 'Do ')}<b>{fmtMin(coach.focus.nextIn)}</b>{tr(' de foco', ' of focus')}</>,
+      sub: tr(`Con el temporizador: +1 por cada ${coach.focus.perPoint} min, hasta +${coach.focus.cap} al día`, `Timer only: +1 per ${coach.focus.perPoint} min, up to +${coach.focus.cap} a day`),
+    });
+  }
+  if (coach.streak.bonusToday > 0 && coach.habits) {
+    acts.push({
+      id: 's', icon: <Flame size={17} />, value: coach.streak.bonusToday,
+      title: <>{tr('Cumple tu meta de hábitos: ', 'Meet your habit goal: ')}<b>{tr(`bono de racha de ${coach.streak.ifMet} días`, `${coach.streak.ifMet}-day streak bonus`)}</b></>,
+    });
+  }
+  acts.sort((a, b) => b.value - a.value);
+
+  const due = !!coach.habits || !!coach.tasks || coach.projects.length > 0;
+  const nothingNow = coach.now <= -coach.lossCap;
+
+  return (
+    <div className="mt-3">
+      <div className="flex items-center gap-2 px-0.5 mb-2">
+        <span className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'rgb(var(--rank) / 0.18)', color: 'rgb(var(--rank))' }}><Zap size={13} /></span>
+        <h4 className="text-[15px] font-bold">{tr('Haz esto para ganar ELO', 'Do this to earn ELO')}</h4>
+      </div>
+
+      {acts.length === 0 ? (
+        <div className="rounded-[20px] px-4 py-3.5 flex items-center gap-3 arena-inset">
+          <span className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'rgb(var(--p-positive) / 0.16)', color: 'rgb(var(--p-positive))' }}><Check size={18} strokeWidth={3} /></span>
+          <p className="text-[13.5px] font-semibold leading-snug">{due ? tr('¡Ya hiciste todo lo de hoy! Estás en tu máximo.', 'You did everything for today! You are at your max.') : tr('Hoy no hay nada planificado: planifica un hábito o tarea para sumar.', 'Nothing planned today: plan a habit or task to earn.')}</p>
+        </div>
+      ) : (
+        <ol className="space-y-2">
+          {acts.map((a, idx) => (
+            <motion.li key={a.id} {...rise(idx, reduce)} className="rounded-[20px] px-3 py-2.5 flex items-center gap-3 arena-inset" style={idx === 0 ? { boxShadow: 'inset 0 0 0 1.5px rgb(var(--rank) / 0.55)' } : undefined}>
+              <span className="w-9 h-9 shrink-0 rounded-[12px] flex items-center justify-center" style={{ background: 'rgb(var(--rank) / 0.15)', color: 'rgb(var(--rank))' }}>{a.icon}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13.5px] leading-snug">{a.title}</p>
+                {a.sub && <p className="mt-0.5 text-[11.5px] prog-text-3 truncate">{a.sub}</p>}
+                {idx === 0 && <p className="mt-0.5 text-[10.5px] font-bold uppercase tracking-[0.08em]" style={{ color: 'rgb(var(--rank))' }}>{tr('Lo que más te conviene', 'Best move')}</p>}
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-[17px] font-bold tabular-nums leading-none prog-positive">+{a.value}</p>
+                <p className="mt-0.5 text-[10px] prog-text-3">{a.avoid ? tr('evitas pérdida', 'avoid a loss') : 'ELO'}</p>
+              </div>
+            </motion.li>
+          ))}
+        </ol>
+      )}
+
+      {due && !coach.shieldToday && (
+        <div className="mt-2 rounded-[18px] px-3.5 py-2.5 flex items-center gap-2.5" style={{ background: 'rgb(var(--p-negative) / 0.1)' }}>
+          <HeartCrack size={16} className="shrink-0 prog-negative" />
+          <p className="text-[12.5px] leading-snug">
+            {nothingNow
+              ? tr(`Ahora mismo, si el día terminara, perderías ${coach.lossCap} ELO.`, `Right now, if the day ended, you would lose ${coach.lossCap} ELO.`)
+              : tr(`Si hoy no haces nada pierdes `, `If you do nothing today you lose `)}
+            {!nothingNow && <b className="prog-negative">−{coach.lossCap} ELO</b>}
+            {!nothingNow && tr(' (el máximo de tu rango).', ' (your rank\'s maximum).')}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const EloCoachCard: React.FC<{
   snap: ProgressionSnapshot; habits: Habit[]; quests: Quest[]; projects: Project[]; userName?: string | null; onOpenGuide: () => void;
 }> = ({ snap, habits, quests, projects, userName, onOpenGuide }) => {
@@ -97,6 +193,7 @@ export const EloCoachCard: React.FC<{
   const gap = Math.max(0, coach.best - coach.now);
   const pct = coach.best > 0 ? Math.max(0, Math.min(1, coach.now / coach.best)) : coach.now > 0 ? 1 : 0;
   const nothingPlanned = !coach.habits && !coach.tasks && coach.projects.length === 0;
+  const [detail, setDetail] = useState(false);
 
   const missions: React.ReactNode[] = [];
   let i = 0;
@@ -243,7 +340,13 @@ export const EloCoachCard: React.FC<{
           </div>
         </div>
 
-        <ul className="mt-3 space-y-2.5">{missions}</ul>
+        <ActionPlan coach={coach} tr={tr} />
+
+        <button type="button" onClick={() => setDetail(v => !v)} aria-expanded={detail} className="prog-tap mt-3 w-full h-11 rounded-[16px] arena-inset flex items-center justify-center gap-1.5 text-[13px] font-semibold">
+          {detail ? tr('Ocultar el detalle', 'Hide details') : tr('Ver el detalle de hábitos, tareas, foco y racha', 'See habit, task, focus and streak details')}
+          <ChevronRight size={15} style={{ transform: `rotate(${detail ? -90 : 90}deg)`, transition: 'transform 0.2s' }} />
+        </button>
+        {detail && <ul className="mt-3 space-y-2.5">{missions}</ul>}
 
         <button type="button" onClick={onOpenGuide} className="prog-tap mt-3 w-full h-12 rounded-[16px] flex items-center justify-center gap-2 font-black text-[13.5px]" style={{ background: 'linear-gradient(100deg, var(--rank-from), var(--rank-to))', color: '#0b0b10' }}>
           <BookOpen size={17} /> {tr('Cómo funciona el ELO · guía completa', 'How ELO works · full guide')}
@@ -353,7 +456,10 @@ export const EloGuideSheet: React.FC<{ open: boolean; onClose: () => void; snap:
 
             <GuideSection i={4} icon={<ShieldCheck size={17} />} title={tr('Protecciones', 'Protections')}
               intro={tr('Para que un mal día no arruine semanas de trabajo.', 'So one bad day doesn\'t ruin weeks of work.')}>
-              <Row label={tr('Pérdida máxima por día', 'Max loss per day')} value={`−${ELO.PROTECTION.DAILY_LOSS_CAP}`} />
+              <Row label={tr('Pérdida máxima por día', 'Max loss per day')} value={`−${dailyLossCap(standing.rankIndex)}`}
+                hint={tr('Depende de tu rango: ', 'Depends on your rank: ') + PROGRESSION_CONFIG.RANKS.map((r, i) => `${r.name} −${dailyLossCap(i)}`).join(' · ')} />
+              <Row label={tr('Un día sin hacer nada', 'A day with nothing done')} value={`−${dailyLossCap(standing.rankIndex)}`} tone="neg"
+                hint={tr('Con hábitos o tareas pendientes y cero hechos: pierdes justo el tope de tu rango.', 'With habits or tasks due and none done: you lose exactly your rank cap.')} />
               <Row label={tr('Margen antes de bajar de rango', 'Buffer before demotion')} value={`${ELO.PROTECTION.RANK_DEMOTION_BUFFER} ELO`} />
               <Row label={tr('Escudo de descanso', 'Rest shield')} hint={tr(`1 gratis cada ${ELO.PROTECTION.SHIELD_EVERY_STREAK_DAYS} días de racha (máx. ${ELO.PROTECTION.SHIELD_MAX}) o en la tienda`, `1 free every ${ELO.PROTECTION.SHIELD_EVERY_STREAK_DAYS} streak days (max ${ELO.PROTECTION.SHIELD_MAX}) or in the store`)} value={tr('sin pérdidas', 'no losses')} />
             </GuideSection>

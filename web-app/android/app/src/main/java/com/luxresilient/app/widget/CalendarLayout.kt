@@ -47,7 +47,7 @@ object CalendarLayout {
     fun dpPerHour(span: Int, zoom: Float = 1f) = (when (span) { 1 -> 56f; 3 -> 52f; else -> 46f }) * zoom
 
     const val ZOOM_MIN = 0.6f
-    const val ZOOM_MAX = 3.2f
+    const val ZOOM_MAX = 6.0f
     fun clampZoom(z: Float) = z.coerceIn(ZOOM_MIN, ZOOM_MAX)
 
     fun bandOfHour(hour: Int, config: RoutineConfig): CalendarBand? {

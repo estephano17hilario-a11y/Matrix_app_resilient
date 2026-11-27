@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
-import { Target, Plus, Filter, Calendar, Zap, CheckCircle2, Circle, Brain, Swords, X, Coins, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Target, Plus, Filter, Calendar, Zap, CheckCircle2, Circle, Brain, Swords, SlidersHorizontal, X, Coins, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Quest, Attribute, Project } from '../../types';
 import { SmartProject } from '../../types/SmartGoal';
@@ -455,13 +455,22 @@ export const TaskList: React.FC<TaskListProps> = React.memo(({ quests, attribute
  {/* 💸 AHORRO MÁXIMO UI: Reducimos el desenfoque a bg-black/60 para cuidar la GPU en móviles y evitar pantallazos negros */}
  <div ref={filtersRef} className="bg-black/60 border border-white/10 rounded-xl p-4 space-y-5 shadow-md relative mb-4">
  
- {/* Reset Button */}
- <button 
+ {/* Default + Reset buttons: "Predeterminado" jumps to Settings → Task filters, where the initial filters are chosen */}
+ <div className="absolute top-3 right-3 flex items-center gap-1.5">
+ <button
+ onClick={() => window.dispatchEvent(new CustomEvent('open-settings', { detail: { tab: 'taskfilters' } }))}
+ className="h-6 px-2 rounded-full bg-blue-500/10 border border-blue-500/25 text-[10px] text-blue-300 hover:bg-blue-500/20 uppercase font-bold tracking-wider flex items-center gap-1 transition-colors"
+ aria-label={t('tasks.setDefaultAria', 'Elegir los filtros predeterminados de tareas')}
+ >
+ <SlidersHorizontal size={10} /> {t('tasks.setDefault', 'Predeterminado')}
+ </button>
+ <button
  onClick={resetFilters}
- className="absolute top-4 right-4 text-[10px] text-white/30 hover:text-white/60 uppercase font-bold tracking-wider flex items-center gap-1"
+ className="h-6 px-1.5 text-[10px] text-white/30 hover:text-white/60 uppercase font-bold tracking-wider flex items-center gap-1"
  >
  <X size={10} /> {t('tasks.clear', 'Clear')}
  </button>
+ </div>
 
  {/* Date Filter */}
  <div className="space-y-2">

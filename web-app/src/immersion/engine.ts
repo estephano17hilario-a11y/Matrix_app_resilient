@@ -53,6 +53,12 @@ let lastDriftAt = 0;
 let started = false;
 let arrived = false;
 
+// Viewport size, cached. Reading window.innerWidth/innerHeight forces the browser to flush any pending
+// style/layout work first; the frame loop read them every frame (right after React or an animation had
+// dirtied the page), so each frame paid for a synchronous layout inside the rAF callback.
+const viewport = { w: typeof window !== 'undefined' ? window.innerWidth : 0, h: typeof window !== 'undefined' ? window.innerHeight : 0 };
+const syncViewport = () => { viewport.w = window.innerWidth; viewport.h = window.innerHeight; };
+
 const hoverCapable = typeof window !== 'undefined' && !!window.matchMedia?.('(hover: hover) and (pointer: fine)').matches;
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
@@ -69,7 +75,7 @@ const pushSky = () => {
   const tiltFactor = getPerfTier() >= 2 ? 0 : 1;
   starfield.setInputs({
     camTarget: cam.target,
-    width: window.innerWidth,
+    width: viewport.w,
     tiltX: tilt.tx * tiltFactor,
     tiltY: tilt.ty * tiltFactor,
     scroll: scroll.ty,
@@ -95,7 +101,7 @@ const drawStars = (now = performance.now()) => {
   const tiltFactor = getPerfTier() >= 2 ? 0 : 1;
   starfield.draw({
     pulses: active,
-    travel: cam.x * window.innerWidth,
+    travel: cam.x * viewport.w,
     tiltX: tilt.x * tiltFactor,
     tiltY: tilt.y * tiltFactor,
     scroll: scroll.y,
@@ -113,8 +119,8 @@ const render = (now = performance.now()) => {
     sheens.forEach(el => { el.style.transform = ''; });
     return;
   }
-  const w = window.innerWidth;
-  const h = window.innerHeight;
+  const w = viewport.w;
+  const h = viewport.h;
 
   // The sky is cheap to draw (sprites, see starfield.ts), so it moves at full
   // rate; only the minimal tier repaints it every other frame while nothing
@@ -230,8 +236,8 @@ const onPointerMove = (e: PointerEvent) => {
   pointer.x = e.clientX;
   pointer.y = e.clientY;
   pointer.active = true;
-  tilt.tx = clamp((e.clientX / window.innerWidth) * 2 - 1, -1, 1) * 0.6;
-  tilt.ty = clamp((e.clientY / window.innerHeight) * 2 - 1, -1, 1) * 0.6;
+  tilt.tx = clamp((e.clientX / viewport.w) * 2 - 1, -1, 1) * 0.6;
+  tilt.ty = clamp((e.clientY / viewport.h) * 2 - 1, -1, 1) * 0.6;
   wake();
 };
 
@@ -289,7 +295,8 @@ export const startImmersion = () => {
     syncWithPrefs();
     wake();
   });
-  window.addEventListener('resize', () => { render(); }, { passive: true });
+  window.addEventListener('resize', () => { syncViewport(); render(); }, { passive: true });
+  window.addEventListener('orientationchange', syncViewport, { passive: true });
   // Typing carries the section's colour: set on the field that gets focus,
   // instead of through a variable inherited from <html> (see setSceneAccent).
   document.addEventListener('focusin', (e) => {

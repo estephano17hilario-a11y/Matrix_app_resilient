@@ -8,7 +8,7 @@
 import type { Habit, Project, Quest } from '@/types';
 import { getHistoryDateKey, parseLocalDate } from '@/utils/dateUtils';
 import { isHabitScheduledOn } from '@/utils/streakRules';
-import { PROGRESSION_CONFIG, gainMultiplier, isFirstWeek, projectDay, weeklyBoostFor, type DayCloseInput, type DayKey, type EloEvent, type ProgressionState } from './engine';
+import { PROGRESSION_CONFIG, dailyLossCap, gainMultiplier, isFirstWeek, projectDay, replay, weeklyBoostFor, type DayCloseInput, type DayKey, type EloEvent, type ProgressionState } from './engine';
 import { buildDayCloseInput, focusMinutesOn } from './integration';
 import type { ProgressionMeta } from './progressionStore';
 
@@ -206,6 +206,6 @@ export const buildEloCoach = (
     sunday: weeklyBoostFor(dayKey) > 1,
     firstWeek: isFirstWeek(state, dayKey),
     shieldToday: data.shieldToday,
-    lossCap: ELO.PROTECTION.DAILY_LOSS_CAP,
+    lossCap: dailyLossCap(replay({ ...state, events: state.events.filter(e => e.dayKey < dayKey) }).rankIndex),
   };
 };

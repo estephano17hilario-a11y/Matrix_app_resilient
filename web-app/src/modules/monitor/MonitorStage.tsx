@@ -8,7 +8,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { BookOpen, Check, ChevronRight, Clock3, FolderKanban, ListTodo, Repeat, RotateCcw, StickyNote, X } from 'lucide-react';
+import { BookOpen, Check, ChevronRight, Clock3, FolderKanban, Hand, Lightbulb, ListTodo, Repeat, RotateCcw, StickyNote, X } from 'lucide-react';
 import { findVisible } from './dom';
 import { MonitorOrb } from './MonitorOrb';
 import { RankShowcase } from './RankShowcase';
@@ -33,6 +33,9 @@ const ACTION_ICON: Record<NonNullable<MonitorAction['icon']>, React.ReactNode> =
   journal: <BookOpen size={16} />, retry: <RotateCcw size={16} />, later: <Clock3 size={16} />,
 };
 
+/** Steps where the user acts on the real UI: the bubble gets an "OK" that hides it until the step changes. */
+const isHideable = (f: Frame) => f.hideable ?? (!f.actions && (!!f.tap || (f.block === false && (!!f.todo || f.next === false))));
+
 /** Reveals text progressively; a tap shows it all. */
 const useTypewriter = (text: string, enabled: boolean) => {
   const [n, setN] = useState(enabled ? 0 : text.length);
@@ -53,6 +56,9 @@ export const MonitorStage: React.FC<{ script: ScriptId; run: number; lang: Lang;
   const [entered, setEntered] = useState(false);
   const [frame, setFrame] = useState<Frame | null>(null);
   const [hole, setHole] = useState<Box | null>(null);
+  const [hole2, setHole2] = useState<Box | null>(null);
+  // The user pressed "OK" on this step: the bubble stays away until the step (or its group) changes.
+  const [hiddenKey, setHiddenKey] = useState<string | null>(null);
   const [vw, setVw] = useState({ w: window.innerWidth, h: window.innerHeight });
   const ctx = useRef<Record<string, unknown>>({});
   const frameKey = useRef('');
@@ -85,6 +91,7 @@ export const MonitorStage: React.FC<{ script: ScriptId; run: number; lang: Lang;
     if (entered) return;
     setFrame(null);
     setHole(null);
+    setHole2(null);
     frameKey.current = '';
     if (step.view) navigateTo(step.view);
     const t = setTimeout(() => {
@@ -121,6 +128,8 @@ export const MonitorStage: React.FC<{ script: ScriptId; run: number; lang: Lang;
       }
       const b = boxOf(el, f?.pad ?? 8);
       setHole(prev => (sameBox(prev, b) ? prev : b));
+      const b2 = f?.secondary ? boxOf(findVisible(f.secondary), 3) : null;
+      setHole2(prev => (sameBox(prev, b2) ? prev : b2));
       setVw(v => (v.w === window.innerWidth && v.h === window.innerHeight ? v : { w: window.innerWidth, h: window.innerHeight }));
     };
     tick();
@@ -156,6 +165,41 @@ export const MonitorStage: React.FC<{ script: ScriptId; run: number; lang: Lang;
   const showHole = frame.placement !== 'center' && hole;
   const block = frame.block ?? true;
   const dim = block ? 0.74 : 0.42;
+  const hideable = isHideable(frame);
+  const stepKey = `${run}-${index}-${frame.group ?? ''}`;
+  const hidden = hideable && hiddenKey === stepKey;
+
+  // "OK" pressed: the screen is the user's. Only a quiet ring marks where to act (and, when the user must tap
+  // a spot, the spotlight keeps guarding it) plus a small chip to bring the guide back. The step advancing, or
+  // the wizard moving to its next page, shows the bubble again by itself.
+  if (hidden) {
+    const guard = block && !!frame.tap && !!showHole;
+    return createPortal(
+      <div style={{ position: 'fixed', inset: 0, zIndex: Z, pointerEvents: 'none' }} data-monitor-stage data-monitor-hidden>
+        {guard && (
+          <>
+            <svg width={vw.w} height={vw.h} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} aria-hidden="true">
+              <defs>
+                <mask id="monitor-hole-h">
+                  <rect x="0" y="0" width={vw.w} height={vw.h} fill="#fff" />
+                  <rect fill="#000" rx={18} x={hole!.left} y={hole!.top} width={hole!.width} height={hole!.height} />
+                </mask>
+              </defs>
+              <rect x="0" y="0" width={vw.w} height={vw.h} fill="#03030a" opacity={0.6} mask="url(#monitor-hole-h)" />
+            </svg>
+            <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: Math.max(0, hole!.top), pointerEvents: 'auto' }} />
+            <div style={{ position: 'absolute', left: 0, right: 0, top: hole!.top + hole!.height, bottom: 0, pointerEvents: 'auto' }} />
+            <div style={{ position: 'absolute', left: 0, width: Math.max(0, hole!.left), top: hole!.top, height: hole!.height, pointerEvents: 'auto' }} />
+            <div style={{ position: 'absolute', left: hole!.left + hole!.width, right: 0, top: hole!.top, height: hole!.height, pointerEvents: 'auto' }} />
+          </>
+        )}
+        {showHole && <TargetRing box={hole!} reduce={reduce} strong={!!frame.tap} />}
+        {hole2 && <TargetRing box={hole2} reduce={reduce} strong />}
+        <ReturnChip lang={lang} reduce={reduce} onClick={() => setHiddenKey(null)} />
+      </div>,
+      document.body,
+    );
+  }
 
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: Z, pointerEvents: 'none' }} data-monitor-stage>
@@ -191,6 +235,7 @@ export const MonitorStage: React.FC<{ script: ScriptId; run: number; lang: Lang;
 
       {/* Ring + pulse around the target */}
       {showHole && <TargetRing box={hole} reduce={reduce} strong={!!frame.tap} />}
+      {hole2 && <TargetRing box={hole2} reduce={reduce} strong />}
 
       <Bubble
         key={`${run}-${index}`}
@@ -198,6 +243,8 @@ export const MonitorStage: React.FC<{ script: ScriptId; run: number; lang: Lang;
         index={index} total={steps.length} lang={lang} api={api}
         onNext={() => (frame.onNext ? frame.onNext(api) : next())}
         onClose={finish}
+        hideable={hideable}
+        onHide={() => setHiddenKey(stepKey)}
       />
     </div>,
     document.body,
@@ -231,10 +278,28 @@ const TargetRing: React.FC<{ box: Box; reduce: boolean; strong: boolean }> = ({ 
   </motion.div>
 );
 
+/** Small floating pill shown while the guide is tucked away: tap to bring it back. */
+const ReturnChip: React.FC<{ lang: Lang; reduce: boolean; onClick: () => void }> = ({ lang, reduce, onClick }) => (
+  <motion.button
+    type="button" onClick={onClick} aria-label={lang === 'es' ? 'Mostrar la guía de El Monitor' : 'Show the El Monitor guide'}
+    initial={reduce ? false : { opacity: 0, y: -14, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }} whileTap={{ scale: 0.94 }}
+    transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+    style={{
+      position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 10px)', left: '50%', marginLeft: -78, width: 156, height: 38, borderRadius: 99, pointerEvents: 'auto',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontSize: 12.5, fontWeight: 800, color: '#e0faff',
+      background: 'linear-gradient(110deg, rgba(21,22,58,0.96), rgba(12,12,31,0.96))', border: '1px solid rgba(103,232,249,0.45)',
+      boxShadow: '0 10px 28px -10px rgba(0,0,0,0.9), 0 0 24px -6px rgba(99,102,241,0.7)',
+    }}
+  >
+    <Lightbulb size={15} color="#67e8f9" />
+    {lang === 'es' ? 'Ver la guía' : 'Show guide'}
+  </motion.button>
+);
+
 const Bubble: React.FC<{
   frame: Frame; hole: Box | null; vw: { w: number; h: number }; reduce: boolean; index: number; total: number; lang: Lang; api: RunnerApi;
-  onNext: () => void; onClose: () => void;
-}> = ({ frame, hole, vw, reduce, index, total, lang, api, onNext, onClose }) => {
+  onNext: () => void; onClose: () => void; hideable: boolean; onHide: () => void;
+}> = ({ frame, hole, vw, reduce, index, total, lang, api, onNext, onClose, hideable, onHide }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [h, setH] = useState(200);
   const width = Math.min(384, vw.w - MARGIN * 2);
@@ -366,6 +431,19 @@ const Bubble: React.FC<{
 
           {frame.showcase === 'ranks' && <RankShowcase lang={lang} />}
 
+          {frame.todo && (
+            <div style={{ position: 'relative', marginTop: 11, display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 16,
+              background: 'linear-gradient(110deg, rgba(167,139,250,0.2), rgba(34,211,238,0.14))', border: '1px solid rgba(167,139,250,0.4)' }}>
+              <span style={{ flex: 'none', width: 28, height: 28, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #a78bfa, #22d3ee)', color: '#06101f' }}>
+                <Hand size={15} />
+              </span>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 9.5, fontWeight: 900, letterSpacing: '0.2em', color: '#c4b5fd' }}>{L('AHORA TÚ', 'YOUR TURN')}</span>
+                <span style={{ display: 'block', marginTop: 2, fontSize: 13.5, fontWeight: 700, lineHeight: 1.35, color: '#fff' }}>{frame.todo}</span>
+              </span>
+            </div>
+          )}
+
           {frame.actions && frame.actions.length > 0 && (
             <div style={{ position: 'relative', marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
               {frame.actions.map((a, i) => {
@@ -398,7 +476,33 @@ const Bubble: React.FC<{
             </div>
           )}
 
-          {(frame.next !== false && frame.next !== undefined) && (
+          {hideable && (
+            <div style={{ position: 'relative', marginTop: 12 }}>
+              {total > 1 && (
+                <span style={{ display: 'block', marginBottom: 8, fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', color: 'rgba(255,255,255,0.35)' }}>
+                  {L('PASO', 'STEP')} {index + 1}/{total}
+                </span>
+              )}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <motion.button type="button" onClick={onHide} whileTap={{ scale: 0.96 }}
+                  style={{ flex: 1, height: 48, borderRadius: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontSize: 15, fontWeight: 900, color: '#fff',
+                    background: 'linear-gradient(100deg, #06b6d4, #6366f1 70%, #8b5cf6)', boxShadow: '0 14px 30px -14px rgba(99,102,241,0.95), inset 0 1px 0 rgba(255,255,255,0.25)' }}>
+                  <Check size={18} /> {L('OK, lo hago', 'OK, I will do it')}
+                </motion.button>
+                {typeof frame.next === 'string' && (
+                  <motion.button type="button" onClick={() => (tw.done ? onNext() : tw.finish())} whileTap={{ scale: 0.96 }}
+                    style={{ height: 48, padding: '0 16px', borderRadius: 15, fontSize: 13.5, fontWeight: 800, color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    {frame.next}
+                  </motion.button>
+                )}
+              </div>
+              <p style={{ margin: '8px 0 0', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>
+                {L('Esto se esconde y vuelve solo cuando termines ✨', 'This hides and comes back by itself when you finish ✨')}
+              </p>
+            </div>
+          )}
+
+          {!hideable && (frame.next !== false && frame.next !== undefined) && (
             <div style={{ position: 'relative', marginTop: 13, display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 {segments ? (
@@ -427,7 +531,7 @@ const Bubble: React.FC<{
             </div>
           )}
 
-          {frame.next === false && !frame.actions && (
+          {!hideable && frame.next === false && !frame.actions && (
             <p style={{ position: 'relative', marginTop: 11, fontSize: 11.5, fontWeight: 800, letterSpacing: '0.04em', color: frame.tap ? '#c4b5fd' : 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <motion.span animate={reduce ? undefined : { x: [0, 4, 0] }} transition={{ duration: 1, repeat: Infinity }}>👉</motion.span>
               {frame.tap ? L('Toca lo que está iluminado', 'Tap the highlighted spot') : L('Hazlo en la pantalla, yo te sigo', 'Do it on screen, I follow you')}

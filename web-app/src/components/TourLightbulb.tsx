@@ -16,13 +16,14 @@ const wasSeen = (section: SectionId) => {
 };
 
 const BULB_CSS = `
+/* Opacity only: animating the filter repaints on the main thread every frame. The glow is static and fades with the icon. */
 @keyframes bulb-flicker {
-  0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; filter: drop-shadow(0 0 6px rgba(253,224,71,0.95)); }
-  20%, 24%, 55% { opacity: 0.25; filter: none; }
+  0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; }
+  20%, 24%, 55% { opacity: 0.25; }
 }
 @keyframes bulb-halo { 0% { transform: scale(0.7); opacity: 0.85 } 100% { transform: scale(2.1); opacity: 0 } }
 @keyframes bulb-core { 0%,100% { opacity: 0.35; transform: scale(0.9) } 50% { opacity: 0.9; transform: scale(1.12) } }
-.bulb-flicker { animation: bulb-flicker 1.6s linear infinite; }
+.bulb-flicker { filter: drop-shadow(0 0 6px rgba(253,224,71,0.95)); animation: bulb-flicker 1.6s linear infinite; will-change: opacity; }
 .bulb-halo { animation: bulb-halo 1.15s ease-out infinite; }
 .bulb-core { animation: bulb-core 0.9s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .bulb-flicker, .bulb-halo, .bulb-core { animation: none; } }

@@ -32,7 +32,7 @@ interface ChunkyButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ChunkyVariant;
   loading?: boolean;
   icon?: ReactNode;
-  size?: 'lg' | 'md';
+  size?: 'xl' | 'lg' | 'md';
   shine?: boolean;
 }
 
@@ -49,12 +49,12 @@ export const ChunkyButton = ({
       disabled={disabled || loading}
       onTouchStart={() => { /* enables :active on iOS */ }}
       className={cn('chunky group relative block w-full select-none outline-none touch-manipulation',
-        size === 'lg' ? 'h-[58px]' : 'h-[52px]', off && 'cursor-not-allowed', className)}
+        size === 'xl' ? 'h-[68px]' : size === 'lg' ? 'h-[58px]' : 'h-[52px]', off && 'cursor-not-allowed', className)}
     >
       <span aria-hidden className={cn('absolute inset-x-0 bottom-0 top-[5px] rounded-2xl', v.lip)} />
       <span className={cn(
         'chunky-face absolute inset-x-0 top-0 bottom-[5px] rounded-2xl overflow-hidden flex items-center justify-center gap-2.5',
-        'font-extrabold uppercase tracking-[0.08em]', size === 'lg' ? 'text-[15px]' : 'text-[13.5px]', v.face,
+        'font-extrabold uppercase tracking-[0.08em]', size === 'xl' ? 'text-[17px]' : size === 'lg' ? 'text-[15px]' : 'text-[13.5px]', v.face,
       )}>
         {shine && !off && !loading && <span aria-hidden className="chunky-shine" />}
         {!off && (variant === 'primary' || variant === 'success') && (

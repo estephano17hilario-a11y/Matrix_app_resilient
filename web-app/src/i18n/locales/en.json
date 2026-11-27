@@ -446,6 +446,12 @@
       "title": "Configuring Reality..."
     },
     "confirmIdentity": "CONFIRM IDENTITY",
+    "charSelect": {
+      "title": "CHOOSE YOUR CHARACTER",
+      "hint": "Swipe the card or tap the roster",
+      "pick": "Confirm",
+      "locked": "Locked in!"
+    },
     "traitsOfflineError": "System Error: Traits module offline.",
     "reinitialize": "Reinitialize",
     "scroll": "Scroll",
@@ -1430,6 +1436,8 @@
     }
   },
   "tasks": {
+    "setDefault": "Default",
+    "setDefaultAria": "Choose the default task filters",
     "filterDate": "Timeline",
     "filterTrait": "Attribute",
     "filterType": "Type",

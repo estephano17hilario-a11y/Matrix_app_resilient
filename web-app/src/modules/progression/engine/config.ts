@@ -79,7 +79,8 @@ export const PROGRESSION_CONFIG = {
     },
 
     PROTECTION: {
-      DAILY_LOSS_CAP: 8,
+      /** Most ELO a day can cost, by rank (index = rank): Bronze -2 … Champion -7, Grand Champion -8, Legend -10. A day with nothing done costs exactly this. */
+      DAILY_LOSS_CAP_BY_RANK: [2, 3, 4, 5, 6, 7, 8, 10],
       FIRST_WEEK_DAYS: 7,
       FIRST_WEEK_GAIN_MULTIPLIER: 2,
       /** A shield is earned every N days of streak. */
@@ -92,16 +93,16 @@ export const PROGRESSION_CONFIG = {
 
   // ── Ranks ─────────────────────────────────────────────────────────────────
   DIVISIONS_PER_RANK: 3,
-  /** `cost: null` means the rank has no divisions (top rank). */
+  /** `cost: null` means the rank has no divisions (top rank). Every threshold is the original table ×1.5 (×1.25, then ×1.2, rounded): entry(n+1) = entry(n) + cost(n). */
   RANKS: [
-    { id: 'BRONZE', name: 'Bronce', entry: 0, cost: 100, color: '#C98A5B', gradient: ['#7A4A2A', '#E0A577'] },
-    { id: 'SILVER', name: 'Plata', entry: 100, cost: 130, color: '#B8C4D0', gradient: ['#6B7785', '#E3EAF1'] },
-    { id: 'GOLD', name: 'Oro', entry: 230, cost: 170, color: '#F2C14E', gradient: ['#A8761C', '#FFE08A'] },
-    { id: 'PLATINUM', name: 'Platino', entry: 400, cost: 220, color: '#4FD1C5', gradient: ['#1E7A72', '#9AF2E8'] },
-    { id: 'DIAMOND', name: 'Diamante', entry: 620, cost: 280, color: '#6EA8FE', gradient: ['#2A4FBF', '#B5D3FF'] },
-    { id: 'CHAMPION', name: 'Campeón', entry: 900, cost: 400, color: '#C084FC', gradient: ['#6B21A8', '#E9C6FF'] },
-    { id: 'GRAND_CHAMPION', name: 'Gran Campeón', entry: 1300, cost: 500, color: '#F87171', gradient: ['#991B1B', '#FECACA'] },
-    { id: 'LEGEND', name: 'Leyenda', entry: 1800, cost: null, color: '#FDE68A', gradient: ['#F59E0B', '#FFFBEB'] },
+    { id: 'BRONZE', name: 'Bronce', entry: 0, cost: 150, color: '#C98A5B', gradient: ['#7A4A2A', '#E0A577'] },
+    { id: 'SILVER', name: 'Plata', entry: 150, cost: 196, color: '#B8C4D0', gradient: ['#6B7785', '#E3EAF1'] },
+    { id: 'GOLD', name: 'Oro', entry: 346, cost: 254, color: '#F2C14E', gradient: ['#A8761C', '#FFE08A'] },
+    { id: 'PLATINUM', name: 'Platino', entry: 600, cost: 330, color: '#4FD1C5', gradient: ['#1E7A72', '#9AF2E8'] },
+    { id: 'DIAMOND', name: 'Diamante', entry: 930, cost: 420, color: '#6EA8FE', gradient: ['#2A4FBF', '#B5D3FF'] },
+    { id: 'CHAMPION', name: 'Campeón', entry: 1350, cost: 600, color: '#C084FC', gradient: ['#6B21A8', '#E9C6FF'] },
+    { id: 'GRAND_CHAMPION', name: 'Gran Campeón', entry: 1950, cost: 750, color: '#F87171', gradient: ['#991B1B', '#FECACA'] },
+    { id: 'LEGEND', name: 'Leyenda', entry: 2700, cost: null, color: '#FDE68A', gradient: ['#F59E0B', '#FFFBEB'] },
   ],
 } as const;
 

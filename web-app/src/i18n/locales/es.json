@@ -446,6 +446,12 @@
       "title": "Configurando Realidad..."
     },
     "confirmIdentity": "CONFIRMAR IDENTIDAD",
+    "charSelect": {
+      "title": "ELIGE TU PERSONAJE",
+      "hint": "Desliza la tarjeta o toca la lista",
+      "pick": "Confirmar",
+      "locked": "¡Listo!"
+    },
     "traitsOfflineError": "Error de sistema: Módulo de rasgos desconectado.",
     "reinitialize": "Reinicializar",
     "scroll": "Deslizar",
@@ -1430,6 +1436,8 @@
     }
   },
   "tasks": {
+    "setDefault": "Predeterminado",
+    "setDefaultAria": "Elegir los filtros predeterminados de tareas",
     "activeMissions": "Misiones Activas",
     "targets": "OBJETIVOS",
     "empty": "No hay misiones activas.",

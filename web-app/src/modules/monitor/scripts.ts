@@ -51,6 +51,16 @@ export interface Frame {
   actions?: MonitorAction[];
   /** Motion-graphics panel shown inside the bubble. */
   showcase?: 'ranks';
+  /** "Your turn" callout: the one concrete thing the user has to do on screen now. */
+  todo?: string;
+  /**
+   * Steps where the user acts on the real UI get an "OK" button that hides the bubble so the screen is free;
+   * it comes back by itself when the step (or its `group`) changes. Defaults to true for free-interaction and
+   * tap steps; set false to force it off.
+   */
+  hideable?: boolean;
+  /** The bubble stays hidden while this value is the same (e.g. the open wizard step); defaults to the step. */
+  group?: string;
 }
 
 export interface Step {
@@ -133,27 +143,75 @@ export const SECTION_VIEW: Record<SectionId, string> = {
 
 // ── Wizard follower: explains whichever step of the real creator is open ──
 
-type WizCopy = { title: [string, string]; body: [string, string]; focus?: string };
+type WizCopy = { title: [string, string]; body: [string, string]; todo: [string, string]; focus?: string };
 const NAME_FIELD = '[data-tour="wiz-body"] .cu-bigfield, [data-tour="wiz-body"] input';
 
 const WIZ: Record<string, Record<string, WizCopy>> = {
   task: {
-    what: { title: ['1 · Nombre de tu tarea', '1 · Name your task'], body: ['Escríbela con un verbo: «Entregar informe», «Llamar a mamá». La nota de abajo es opcional.', 'Start with a verb: "Send report", "Call mom". The note below is optional.'], focus: NAME_FIELD },
-    when: { title: ['2 · ¿Cuándo?', '2 · When?'], body: ['Elige Hoy, Mañana u otra fecha. Las tareas con fecha de HOY cuentan para tu ELO. Si le pones hora, aparece en tu Rutina.', 'Pick Today, Tomorrow or a date. Tasks due TODAY count for your ELO. Give it a time and it shows up in your Routine.'] },
-    effort: { title: ['3 · Esfuerzo', '3 · Effort'], body: ['La dificultad decide la recompensa: Básico es rápida; Difícil y Épico dan mucha más XP y oro. Ajusta la duración si quieres.', 'Difficulty sets the reward: Basic is quick; Hard and Epic give much more XP and gold. Adjust the duration if you like.'] },
-    organize: { title: ['4 · Organízala', '4 · Organise it'], body: ['Elige el rasgo que entrena (Disciplina, Intelecto…) y, si quieres, el proyecto al que pertenece.', 'Pick the trait it trains (Discipline, Intellect…) and, optionally, the project it belongs to.'] },
+    what: {
+      title: ['1 · Nombre de tu tarea', '1 · Name your task'],
+      body: ['Una tarea es algo concreto que haces una vez. Escríbela con un verbo para que sea clara: «Entregar informe», «Llamar a mamá». La nota de abajo es opcional: úsala para detalles.', 'A task is one concrete thing you do once. Start with a verb so it is clear: "Send report", "Call mom". The note below is optional: use it for details.'],
+      todo: ['Escribe el nombre de tu tarea en el campo grande.', 'Type your task name in the big field.'], focus: NAME_FIELD,
+    },
+    when: {
+      title: ['2 · ¿Cuándo?', '2 · When?'],
+      body: ['Elige Hoy, Mañana u otra fecha. Las tareas con fecha de HOY son las que cuentan para tu ELO diario. Si además le pones hora, aparece en tu Rutina y te llega un aviso.', 'Pick Today, Tomorrow or a date. Tasks due TODAY are the ones that count for your daily ELO. Give it a time too and it shows in your Routine with a reminder.'],
+      todo: ['Toca «Hoy» (o la fecha que prefieras).', 'Tap "Today" (or any date you prefer).'],
+    },
+    effort: {
+      title: ['3 · Esfuerzo', '3 · Effort'],
+      body: ['La dificultad decide la recompensa: Básico es rápida y da poco; Difícil y Épico dan mucha más XP y oro. Ajusta también cuánto crees que tardarás.', 'Difficulty sets the reward: Basic is quick and gives little; Hard and Epic give much more XP and gold. Also adjust how long you think it will take.'],
+      todo: ['Elige la dificultad que mejor describa tu tarea.', 'Pick the difficulty that best fits your task.'],
+    },
+    organize: {
+      title: ['4 · Organízala', '4 · Organise it'],
+      body: ['Cada tarea entrena un rasgo (Disciplina, Intelecto…) y sube esa barra en tu perfil. Si pertenece a un proyecto, elígelo para que quede dentro de él.', 'Every task trains a trait (Discipline, Intellect…) and raises that bar on your profile. If it belongs to a project, pick it so it lives inside it.'],
+      todo: ['Elige el rasgo que entrena (y el proyecto, si quieres).', 'Pick the trait it trains (and the project, if you want).'],
+    },
   },
   habit: {
-    what: { title: ['1 · Tu hábito', '1 · Your habit'], body: ['Ponle un nombre corto y claro, como «Leer 10 min», y elige el rasgo que fortalece.', 'Give it a short, clear name like "Read 10 min" and pick the trait it strengthens.'], focus: NAME_FIELD },
-    when: { title: ['2 · Frecuencia', '2 · Frequency'], body: ['Todos los días, ciertos días o X veces por semana. Los días que te toca cuentan para tu meta de hábitos y tu racha.', 'Every day, some days or X times a week. Due days count for your habit goal and streak.'] },
-    how: { title: ['3 · Cómo se cumple', '3 · How it counts'], body: ['Sí/No, una cantidad (8 vasos de agua) o una lista. Define también su importancia.', 'Yes/No, an amount (8 glasses of water) or a checklist. Also set how important it is.'] },
-    remind: { title: ['4 · Recordatorio', '4 · Reminder'], body: ['Pon una hora y te aviso. Es opcional, pero sube muchísimo la constancia.', 'Set a time and I will remind you. Optional, but it boosts consistency a lot.'] },
+    what: {
+      title: ['1 · Tu hábito', '1 · Your habit'],
+      body: ['Un hábito es algo que repites. Ponle un nombre corto y claro, como «Leer 10 min», y elige el rasgo que fortalece: ese rasgo sube cada vez que lo cumples.', 'A habit is something you repeat. Give it a short, clear name like "Read 10 min" and pick the trait it strengthens: that trait grows every time you do it.'],
+      todo: ['Escribe el nombre de tu hábito en el campo grande.', 'Type your habit name in the big field.'], focus: NAME_FIELD,
+    },
+    when: {
+      title: ['2 · Frecuencia', '2 · Frequency'],
+      body: ['Todos los días, ciertos días de la semana o X veces por semana. Solo los días que te toca cuentan para tu meta de hábitos y para tu racha, así que no te castigo en días libres.', 'Every day, certain weekdays or X times a week. Only due days count for your habit goal and streak, so I never punish you on off days.'],
+      todo: ['Elige cada cuánto quieres hacerlo.', 'Choose how often you want to do it.'],
+    },
+    how: {
+      title: ['3 · Cómo se cumple', '3 · How it counts'],
+      body: ['Sí/No (lo hiciste o no), una cantidad (8 vasos de agua) o una lista de pasos. Define también su importancia: los hábitos importantes pesan más en tu puntaje.', 'Yes/No (you did it or not), an amount (8 glasses of water) or a checklist. Also set its importance: important habits weigh more in your score.'],
+      todo: ['Elige cómo se marca como cumplido y su importancia.', 'Choose how it is checked off and its importance.'],
+    },
+    remind: {
+      title: ['4 · Recordatorio', '4 · Reminder'],
+      body: ['Pon una hora y te aviso. Es opcional, pero un hábito con recordatorio se cumple muchísimo más. Aparecerá también en tu Rutina a esa hora.', 'Set a time and I will remind you. Optional, but a habit with a reminder gets done far more often. It also shows in your Routine at that time.'],
+      todo: ['Elige una hora (o déjalo sin hora) y toca el botón final.', 'Pick a time (or leave it off) and tap the final button.'],
+    },
   },
   project: {
-    what: { title: ['1 · Tu proyecto', '1 · Your project'], body: ['Algo grande que avanzas con sesiones de foco: «Tesis», «Mi app», «Inglés».', 'Something big you move forward with focus sessions: "Thesis", "My app", "English".'], focus: NAME_FIELD },
-    goal: { title: ['2 · Tu meta de tiempo', '2 · Your time goal'], body: ['Diaria, semanal o mensual. Yo la reparto en tus días: esa parte es tu meta de foco de HOY. Si no la cumples con el temporizador, pierdes 2 de ELO.', "Daily, weekly or monthly. I split it across your days: that share is TODAY's focus goal. Miss it with the timer and you lose 2 ELO."] },
-    focus: { title: ['3 · Tus sesiones', '3 · Your sessions'], body: ['Cuánto dura cada bloque de trabajo y su descanso (técnica Pomodoro).', 'How long each work block and its break last (Pomodoro technique).'] },
-    remind: { title: ['4 · Recordatorio', '4 · Reminder'], body: ['Una alarma para empezar a tiempo. Luego toca el botón final para crearlo.', 'An alarm to start on time. Then tap the final button to create it.'] },
+    what: {
+      title: ['1 · Tu proyecto', '1 · Your project'],
+      body: ['Un proyecto es algo grande que avanzas poco a poco con sesiones de foco: «Tesis», «Mi app», «Inglés». Cada hora de foco te da +1 ELO.', 'A project is something big you move forward bit by bit with focus sessions: "Thesis", "My app", "English". Every focus hour gives +1 ELO.'],
+      todo: ['Escribe el nombre de tu proyecto en el campo grande.', 'Type your project name in the big field.'], focus: NAME_FIELD,
+    },
+    goal: {
+      title: ['2 · Tu meta de tiempo', '2 · Your time goal'],
+      body: ['Diaria, semanal o mensual. Yo la reparto entre tus días: esa parte es tu meta de foco de HOY. Si no la cumples con el temporizador, pierdes 2 de ELO.', "Daily, weekly or monthly. I split it across your days: that share is TODAY's focus goal. Miss it with the timer and you lose 2 ELO."],
+      todo: ['Elige cuánto tiempo quieres dedicarle.', 'Choose how much time you want to give it.'],
+    },
+    focus: {
+      title: ['3 · Tus sesiones', '3 · Your sessions'],
+      body: ['Cuánto dura cada bloque de trabajo y cuánto su descanso (técnica Pomodoro). 25 min de trabajo y 5 de descanso es un buen punto de partida.', 'How long each work block and its break last (Pomodoro technique). 25 min work and 5 min rest is a good starting point.'],
+      todo: ['Ajusta la duración del bloque y del descanso.', 'Adjust the work block and break length.'],
+    },
+    remind: {
+      title: ['4 · Recordatorio', '4 · Reminder'],
+      body: ['Una alarma para empezar a tiempo cada día. Es opcional. Al terminar, toca el botón final para crear el proyecto.', 'An alarm to start on time every day. Optional. When done, tap the final button to create the project.'],
+      todo: ['Pon la alarma si quieres y toca el botón final.', 'Set the alarm if you like and tap the final button.'],
+    },
   },
 };
 
@@ -167,21 +225,22 @@ const wizardFrame = (kind: string, L: Lang, api: RunnerApi): Frame | null => {
     api.ctx.sawWizard = true;
     api.ctx.lostAt = 0;
     if (w.sub) {
-      return { target: '.cu-subsheet', title: x(L, 'Elige una opción', 'Pick an option'), body: x(L, 'Toca la que quieras y luego «Listo» arriba a la derecha.', 'Tap the one you want, then "Done" at the top right.'), placement: 'top', block: false, next: false, mood: 'point' };
+      return { target: '.cu-subsheet', title: x(L, 'Elige una opción', 'Pick an option'), body: x(L, 'Se abrió una lista con las opciones de este campo.', 'A list with the options for this field just opened.'), todo: x(L, 'Toca la que quieras y luego «Listo» arriba a la derecha.', 'Tap the one you want, then "Done" at the top right.'), placement: 'top', block: false, next: false, mood: 'point', group: `${kind}:${w.step}` };
     }
     const copy = WIZ[kind]?.[w.step];
     const name = x(L, ...KIND_NAME[kind]);
-    const tail = !w.valid
-      ? x(L, ' Complétalo para poder seguir.', ' Fill it in to continue.')
+    const todo = !w.valid
+      ? (copy ? x(L, ...copy.todo) : x(L, 'Completa este paso para poder seguir.', 'Fill in this step to continue.'))
       : w.last
-        ? x(L, ` Cuando estés listo, toca el botón de abajo para crear tu ${name}.`, ` When ready, tap the button below to create your ${name}.`)
-        : x(L, ' Cuando termines, toca «Siguiente».', ' When done, tap "Next".');
+        ? x(L, `Todo listo. Toca el botón de abajo para crear tu ${name}.`, `All set. Tap the button below to create your ${name}.`)
+        : x(L, 'Perfecto. Toca «Siguiente» (brilla abajo) para pasar al próximo paso.', 'Perfect. Tap "Next" (it glows below) to go to the next step.');
     return {
       target: !w.valid && copy?.focus ? copy.focus : '[data-tour="wiz-body"]',
       secondary: w.valid ? '[data-tour="wiz-cta"]' : null,
       title: copy ? x(L, ...copy.title) : x(L, 'Sigue así', 'Keep going'),
-      body: (copy ? x(L, ...copy.body) : '') + tail,
-      placement: 'top', block: false, next: false, pad: 6, mood: 'point',
+      body: copy ? x(L, ...copy.body) : '',
+      todo,
+      placement: 'top', block: false, next: false, pad: 6, mood: 'point', group: `${kind}:${w.step}`,
     };
   }
   return null;
@@ -260,25 +319,25 @@ const noteSteps = (): Step[] => [
   {
     id: 'fab', view: 'NOTES',
     until: () => !!readEditor(),
-    frame: L => ({ target: '[data-tour="notes-fab"]', title: x(L, 'Toca aquí', 'Tap here'), body: x(L, 'Este botón crea una nota nueva. Tócalo.', 'This button creates a new note. Tap it.'), tap: true, block: true, next: false, mood: 'point' }),
+    frame: L => ({ target: '[data-tour="notes-fab"]', title: x(L, 'Toca aquí', 'Tap here'), body: x(L, 'Este botón redondo crea una nota nueva en blanco. Se abrirá el editor.', 'This round button creates a new blank note. The editor will open.'), todo: x(L, 'Toca el botón que brilla.', 'Tap the glowing button.'), tap: true, block: true, next: false, mood: 'point' }),
   },
   {
     id: 'title',
     until: () => inputValue('[data-tour="ed-title"]').length > 0,
-    frame: L => ({ target: '[data-tour="ed-title"]', title: x(L, 'Ponle un título', 'Give it a title'), body: x(L, 'Escribe de qué trata: «Ideas para el viaje», «Resumen de clase»…', 'Write what it is about: "Trip ideas", "Class summary"…'), placement: 'bottom', block: false, next: x(L, 'Saltar', 'Skip'), mood: 'point' }),
+    frame: L => ({ target: '[data-tour="ed-title"]', title: x(L, 'Ponle un título', 'Give it a title'), body: x(L, 'El título es lo que verás en tu lista de notas, así que hazlo corto y claro: «Ideas para el viaje», «Resumen de clase»…', 'The title is what you will see in your notes list, so keep it short and clear: "Trip ideas", "Class summary"…'), todo: x(L, 'Escribe un título en el campo iluminado.', 'Type a title in the highlighted field.'), placement: 'bottom', block: false, next: x(L, 'Saltar', 'Skip'), mood: 'point' }),
   },
   {
     id: 'body',
-    frame: (L) => ({ target: '[data-tour="ed-body"]', title: x(L, 'Escribe tu idea', 'Write your idea'), body: x(L, 'Toca aquí y escribe. Puedes añadir listas, títulos, imágenes y más desde la barra.', 'Tap here and write. You can add lists, headings, images and more from the toolbar.') + (editorHasText() ? x(L, ' ¡Bien! Toca «Siguiente».', ' Nice! Tap "Next".') : ''), placement: 'bottom', block: false, next: x(L, 'Siguiente', 'Next'), mood: 'point' }),
+    frame: (L) => ({ target: '[data-tour="ed-body"]', title: x(L, 'Escribe tu idea', 'Write your idea'), body: x(L, 'Este es el cuerpo de la nota. Escribe libremente; con la barra de abajo puedes añadir listas, títulos, imágenes y más.', 'This is the body of the note. Write freely; with the toolbar below you can add lists, headings, images and more.'), todo: editorHasText() ? x(L, '¡Bien! Cuando termines toca «Siguiente».', 'Nice! When you finish, tap "Next".') : x(L, 'Toca el área y escribe una o dos líneas.', 'Tap the area and write a line or two.'), placement: 'bottom', block: false, next: x(L, 'Siguiente', 'Next'), mood: 'point' }),
   },
   {
     id: 'tools',
-    frame: L => ({ target: '[data-tour="ed-tools"]', title: x(L, 'Tus herramientas', 'Your tools'), body: x(L, 'Deshacer, plantillas, color y proyecto de la nota, e información. Todo se guarda solo.', 'Undo, templates, note colour and project, and info. Everything saves itself.'), placement: 'bottom', block: false, next: x(L, 'Siguiente', 'Next'), mood: 'point' }),
+    frame: L => ({ target: '[data-tour="ed-tools"]', title: x(L, 'Tus herramientas', 'Your tools'), body: x(L, 'Aquí tienes deshacer, plantillas, el color y el proyecto de la nota, e información. No necesitas guardar a mano: todo se guarda solo mientras escribes.', 'Here you have undo, templates, the note colour and project, and info. You never need to save by hand: everything saves itself as you write.'), placement: 'bottom', block: false, next: x(L, 'Siguiente', 'Next'), mood: 'point' }),
   },
   {
     id: 'save',
     until: () => !readEditor(),
-    frame: L => ({ target: '[data-tour="ed-done"]', title: x(L, 'Guárdala', 'Save it'), body: x(L, 'Toca «Listo» para cerrar. Tu nota queda guardada.', 'Tap "Done" to close. Your note is saved.'), placement: 'bottom', tap: true, block: false, next: false, mood: 'point' }),
+    frame: L => ({ target: '[data-tour="ed-done"]', title: x(L, 'Ciérrala', 'Close it'), body: x(L, '«Listo» cierra el editor y te devuelve a tu lista. Tu nota ya está guardada.', '"Done" closes the editor and takes you back to your list. Your note is already saved.'), todo: x(L, 'Toca «Listo».', 'Tap "Done".'), placement: 'bottom', tap: true, block: false, next: false, mood: 'point' }),
   },
   {
     id: 'done', view: 'NOTES',
@@ -292,7 +351,7 @@ const noteSteps = (): Step[] => [
 const REMINDERS = '[data-tour="journal-reminders"]';
 const withReminders = (f: (L: Lang, api: RunnerApi) => Frame | null) => (L: Lang, api: RunnerApi): Frame | null =>
   findVisible(REMINDERS)
-    ? { target: REMINDERS, title: x(L, 'Primero, tus recordatorios', 'First, your reminders'), body: x(L, '¿A qué hora quieres que te avise para escribir? Elige una hora y toca «Guardar», o «Ahora no». Luego seguimos.', 'When should I remind you to write? Pick a time and tap "Save", or "Not now". Then we continue.'), placement: 'top', block: false, next: false, mood: 'point' }
+    ? { target: REMINDERS, title: x(L, 'Primero, tus recordatorios', 'First, your reminders'), body: x(L, 'La primera vez, el diario te pregunta a qué hora quieres que te avise para escribir. Es opcional.', 'The first time, the journal asks when you want to be reminded to write. It is optional.'), todo: x(L, 'Elige una hora y toca «Guardar», o toca «Ahora no». Luego seguimos.', 'Pick a time and tap "Save", or tap "Not now". Then we continue.'), placement: 'top', block: false, next: false, mood: 'point' }
     : f(L, api);
 
 const journalSteps = (): Step[] => [
@@ -305,21 +364,21 @@ const journalSteps = (): Step[] => [
     id: 'today', view: 'NOTES',
     enter: () => dispatch('monitor:notes-subview', { sub: 'JOURNAL' }),
     until: () => readEditor()?.mode === 'JOURNAL',
-    frame: L => ({ target: '[data-tour="journal-today-btn"]', title: x(L, 'Este es tu día de hoy', 'This is your today'), body: x(L, 'Cada día tiene su página. Abro la de hoy.', 'Every day has its page. Let me open today.'), next: x(L, 'Abrir hoy', 'Open today'), onNext: () => dispatch('monitor:open-journal-today'), block: true, mood: 'point' }),
+    frame: L => ({ target: '[data-tour="journal-today-btn"]', title: x(L, 'Este es tu día de hoy', 'This is your today'), body: x(L, 'Cada día tiene su propia página en el diario. Este botón te lleva a la de hoy. Toca «Abrir hoy» y la abro por ti.', 'Every day has its own journal page. This button takes you to today. Tap "Open today" and I open it for you.'), next: x(L, 'Abrir hoy', 'Open today'), onNext: () => dispatch('monitor:open-journal-today'), block: true, mood: 'point' }),
   },
   {
     id: 'mood',
     until: () => !findVisible(REMINDERS) && !!document.querySelector('[data-tour="ed-mood"] [aria-pressed="true"]'),
-    frame: withReminders(L => ({ target: '[data-tour="ed-mood"]', title: x(L, '¿Cómo te sientes?', 'How do you feel?'), body: x(L, 'Elige la cara que mejor describe tu día. Con esto armo tu calendario de ánimo.', 'Pick the face that best fits your day. I build your mood calendar from it.'), placement: 'bottom', block: false, next: x(L, 'Saltar', 'Skip'), mood: 'point' })),
+    frame: withReminders(L => ({ target: '[data-tour="ed-mood"]', title: x(L, '¿Cómo te sientes?', 'How do you feel?'), body: x(L, 'Cada cara es un estado de ánimo. Con lo que elijas pinto el día en tu calendario de ánimo y lo uso en tus informes.', 'Every face is a mood. What you pick colours the day in your mood calendar and feeds your reports.'), todo: x(L, 'Toca la cara que mejor describa tu día.', 'Tap the face that best fits your day.'), placement: 'bottom', block: false, next: x(L, 'Saltar', 'Skip'), mood: 'point' })),
   },
   {
     id: 'write',
-    frame: withReminders(L => ({ target: '[data-tour="ed-body"]', title: x(L, 'Cuéntame tu día', 'Tell me about your day'), body: x(L, '¿Qué salió bien? ¿Qué aprendiste? ¿Qué harás mejor mañana? Escribe libremente.', 'What went well? What did you learn? What will you do better tomorrow? Write freely.') + (editorHasText() ? x(L, ' ¡Perfecto!', ' Perfect!') : ''), placement: 'top', block: false, next: x(L, 'Siguiente', 'Next'), mood: 'point' })),
+    frame: withReminders(L => ({ target: '[data-tour="ed-body"]', title: x(L, 'Cuéntame tu día', 'Tell me about your day'), body: x(L, 'Tres preguntas que ayudan: ¿Qué salió bien? ¿Qué aprendiste? ¿Qué harás mejor mañana? No tiene que ser largo.', 'Three helpful questions: What went well? What did you learn? What will you do better tomorrow? It does not have to be long.'), todo: editorHasText() ? x(L, '¡Perfecto! Toca «Siguiente» cuando termines.', 'Perfect! Tap "Next" when you finish.') : x(L, 'Toca el área y escribe cómo te fue hoy.', 'Tap the area and write how your day went.'), placement: 'top', block: false, next: x(L, 'Siguiente', 'Next'), mood: 'point' })),
   },
   {
     id: 'save',
     until: () => !readEditor(),
-    frame: L => ({ target: '[data-tour="ed-done"]', title: x(L, 'Guárdalo', 'Save it'), body: x(L, 'Toca «Listo». Tu entrada queda en el calendario del diario.', 'Tap "Done". Your entry stays in the journal calendar.'), placement: 'bottom', tap: true, block: false, next: false, mood: 'point' }),
+    frame: L => ({ target: '[data-tour="ed-done"]', title: x(L, 'Ciérralo', 'Close it'), body: x(L, '«Listo» cierra la página. Tu entrada ya quedó guardada en el calendario del diario.', '"Done" closes the page. Your entry is already saved in the journal calendar.'), todo: x(L, 'Toca «Listo».', 'Tap "Done".'), placement: 'bottom', tap: true, block: false, next: false, mood: 'point' }),
   },
   {
     id: 'done', view: 'NOTES',

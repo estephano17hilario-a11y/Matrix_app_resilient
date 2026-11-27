@@ -79,20 +79,45 @@ describe('day close idempotency', () => {
 });
 
 describe('daily caps', () => {
-  it('total loss per day is capped at −8', () => {
-    const s = close(veteran(), input('2026-01-08', {
+  /** A veteran sitting in the middle of rank `rankIndex` (a one-off grant on the first day). */
+  const atRank = (rankIndex: number) => {
+    const entry = PROGRESSION_CONFIG.RANKS[rankIndex].entry;
+    const target = rankIndex === 0 ? START : entry + 20;
+    const grant: EloEvent = { id: 'grant', dayKey: '2026-01-02', at: AT, source: 'HABITS', amount: target - START, reason: 'TEST' };
+    return { ...veteran(), events: [grant] };
+  };
+
+  it('the most a day can cost grows with the rank: Bronze −2 … Champion −7, Grand Champion −8, Legend −10', () => {
+    expect(PROGRESSION_CONFIG.ELO.PROTECTION.DAILY_LOSS_CAP_BY_RANK).toEqual([2, 3, 4, 5, 6, 7, 8, 10]);
+    const busy = {
       ...FAILED,
       tasks: { planned: 4, completed: 0 },
-      projects: [
-        { id: 'a', goalMinutes: 60, timerMinutes: 0 },
-        { id: 'b', goalMinutes: 60, timerMinutes: 10 },
-        { id: 'c', goalMinutes: 30, timerMinutes: 0 },
-      ],
-    }));
-    expect(dayTotal(s, '2026-01-08')).toBe(-8); // raw −3 −3 −2 −2 −2 = −12
-    expect(s.events.map(e => [e.source, e.amount])).toEqual([
-      ['HABITS', -3], ['TASKS', -3], ['PROJECT_GOAL', -2],
-    ]);
+      projects: [{ id: 'a', goalMinutes: 60, timerMinutes: 0 }, { id: 'b', goalMinutes: 60, timerMinutes: 10 }, { id: 'c', goalMinutes: 30, timerMinutes: 0 }],
+    };
+    // raw −3 −3 −2 −2 −2 = −12 before the cap
+    [2, 3, 4, 5, 6, 7, 8, 10].forEach((cap, rank) => {
+      const s = close(atRank(rank), input('2026-01-08', busy));
+      expect(replay(atRank(rank)).rankIndex).toBe(rank);
+      expect(dayTotal(s, "2026-01-08")).toBe(-cap);
+    });
+  });
+
+  it('a day with something due and nothing done costs exactly the rank cap', () => {
+    [2, 3, 4, 5, 6, 7, 8, 10].forEach((cap, rank) => {
+      const s = close(atRank(rank), input('2026-01-08', FAILED));
+      expect(dayTotal(s, '2026-01-08')).toBe(-cap);
+    });
+  });
+
+  it('a half-done day is still a plain fail, capped by the rank', () => {
+    const s = close(atRank(2), input('2026-01-08', { habits: { scheduled: 5, completed: 1 }, habitGoalPct: 80 }));
+    expect(dayTotal(s, '2026-01-08')).toBe(-3); // r = 0.25 → −3, under the Gold cap of 4
+    const bronze = close(atRank(0), input('2026-01-08', { habits: { scheduled: 5, completed: 1 }, habitGoalPct: 80 }));
+    expect(dayTotal(bronze, '2026-01-08')).toBe(-2);
+  });
+
+  it('nothing scheduled and nothing done costs nothing', () => {
+    expect(dayTotal(close(atRank(3), input('2026-01-08')), '2026-01-08')).toBe(0);
   });
 
   it('gains are not limited by the loss cap', () => {
@@ -127,7 +152,7 @@ describe('daily caps', () => {
   it('every account starts with 50 ELO', () => {
     expect(START).toBe(50);
     expect(replay(createProgressionState(REG)).elo).toBe(50);
-    expect(replay(close(veteran(), input('2026-01-08', FAILED))).elo).toBe(START - 3);
+    expect(replay(close(veteran(), input('2026-01-08', FAILED))).elo).toBe(START - 2); // Bronze: a dead day costs 2
   });
 
   it('ELO never goes below 0', () => {
@@ -147,8 +172,8 @@ describe('first-week bonus', () => {
   it('losses are not doubled', () => {
     let s = close(createProgressionState(REG), input(REG, { habits: { scheduled: 5, completed: 5 }, habitGoalPct: 80 })); // +12
     s = close(s, input('2026-01-02', FAILED));
-    expect(dayTotal(s, '2026-01-02')).toBe(-3);
-    expect(replay(s).elo).toBe(START + 9);
+    expect(dayTotal(s, '2026-01-02')).toBe(-2);
+    expect(replay(s).elo).toBe(START + 10);
   });
 
   it('applies to focus too, and ends after day 7', () => {
@@ -171,14 +196,14 @@ describe('streaks & shields', () => {
   it('breaking a 7+ day streak costs −2 extra', () => {
     let s = closeStreak(veteran(), '2026-01-08', 7);
     s = close(s, input('2026-01-15', FAILED));
-    expect(dayTotal(s, '2026-01-15')).toBe(-5);
+    expect(dayTotal(s, '2026-01-15')).toBe(-2);
     expect(replay(s).streak).toBe(0);
   });
 
   it('breaking a short streak has no extra penalty', () => {
     let s = closeStreak(veteran(), '2026-01-08', 3);
     s = close(s, input('2026-01-11', FAILED));
-    expect(dayTotal(s, '2026-01-11')).toBe(-3);
+    expect(dayTotal(s, '2026-01-11')).toBe(-2);
   });
 
   it('a shield day: no losses, streak kept, no habit/task gains, focus still counts', () => {
@@ -196,7 +221,7 @@ describe('streaks & shields', () => {
   it('asking for a shield without having one does nothing', () => {
     const s = close(veteran(), input('2026-01-08', { ...FAILED, shield: 'EARNED' }));
     expect(s.dayCloses['2026-01-08'].shieldUsed).toBe(false);
-    expect(dayTotal(s, '2026-01-08')).toBe(-3);
+    expect(dayTotal(s, '2026-01-08')).toBe(-2);
   });
 
   it('shields cap at 2', () => {
@@ -225,10 +250,10 @@ describe('history replay', () => {
       ({ id, dayKey, at: AT, source: 'HABITS', amount, reason: 'TEST' });
     const s: ProgressionState = {
       ...createProgressionState(REG),
-      events: [ev('a', '2026-01-01', 235 - START), ev('b', '2026-01-02', -8), ev('c', '2026-01-03', -8)],
+      events: [ev('a', '2026-01-01', 350 - START), ev('b', '2026-01-02', -8), ev('c', '2026-01-03', -8)],
     };
     const { steps } = replay(s);
-    expect(steps.map(x => [x.eloAfter, x.rankIndexAfter])).toEqual([[235, 2], [227, 2], [219, 1]]);
+    expect(steps.map(x => [x.eloAfter, x.rankIndexAfter])).toEqual([[350, 2], [342, 2], [334, 1]]);
   });
 });
 

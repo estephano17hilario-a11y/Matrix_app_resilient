@@ -14,7 +14,7 @@
 import { PROGRESSION_CONFIG } from './config';
 import { addDaysToKey, boostReward, daysBetween, weeklyBoostFor, type DayKey } from './dayKey';
 import { complianceRatio, clampHabitGoal, complianceDelta, focusPointsForMinutes } from './elo';
-import { nextRankIndex } from './ranks';
+import { dailyLossCap, nextRankIndex } from './ranks';
 import type { XpSource } from './xp';
 
 const { ELO } = PROGRESSION_CONFIG;
@@ -272,6 +272,19 @@ export const computeDayClose = (state: ProgressionState, input: DayCloseInput): 
     }
   }
 
+  // The rank you wake up in sets how much a bad day can cost (Bronze −2 … Legend −9).
+  const rankAtDawn = replay({ ...state, events: state.events.filter(e => e.dayKey < dayKey) }).rankIndex;
+  const lossCap = dailyLossCap(rankAtDawn);
+
+  // A day with something due and NOTHING done (no habit, no task, no focus) costs exactly the rank's cap.
+  const focusToday = state.events.some(e => e.dayKey === dayKey && e.source === 'FOCUS')
+    || (input.projects ?? []).some(p => p.timerMinutes > 0);
+  const nothingDone = completed === 0 && input.tasks.completed === 0 && !focusToday;
+  if (nothingDone) {
+    const first = raw.find(r => r.source === 'HABITS' && r.amount < 0) ?? raw.find(r => r.source === 'TASKS' && r.amount < 0) ?? raw.find(r => r.source === 'PROJECT_GOAL' && r.amount < 0);
+    if (first) { first.amount = -lossCap; first.meta = { ...first.meta, idle: true }; }
+  }
+
   // Streak
   let streakAfter = streakBefore;
   let shieldsEarned = 0;
@@ -294,7 +307,7 @@ export const computeDayClose = (state: ProgressionState, input: DayCloseInput): 
   const kept = shieldUsed ? [] : raw;
 
   // First-week boost on gains, then the daily loss cap (losses in listed order).
-  let lossBudget = P.DAILY_LOSS_CAP;
+  let lossBudget = lossCap;
   const events: EloEvent[] = [];
   for (const r of kept) {
     let amount = boostGain(state, dayKey, r.amount);

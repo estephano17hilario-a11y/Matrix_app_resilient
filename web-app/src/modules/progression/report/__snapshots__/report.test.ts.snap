@@ -21,8 +21,8 @@ exports[`generated report > fixed seed → stable snapshot 1`] = `
 
 exports[`generated report > habit and task reports render clean text 1`] = `
 {
-  "habit": "Gran cierre de noche, Ana. 7 días al hilo: eso ya es costumbre. De hecho, vas en subida: 86 % esta semana. Plata III queda a unos 11 días si sigues así.",
-  "task": "Bien hecho esta noche. La terminaste en 40 minutos, un tercio más que lo estimado. De paso, 40 % del día resuelto. Sigue así y en unos 11 días estrenas Plata III.",
+  "habit": "Gran cierre de noche, Ana. 7 días al hilo: eso ya es costumbre. De hecho, vas en subida: 86 % esta semana. Plata II queda a unos 20 días si sigues así.",
+  "task": "Bien hecho esta noche. La terminaste en 40 minutos, un tercio más que lo estimado. De paso, 40 % del día resuelto. Sigue así y en unos 20 días estrenas Plata II.",
 }
 `;
 
