@@ -8,6 +8,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { MonitorIntro } from './MonitorIntro';
 import { MonitorStage } from './MonitorStage';
+import { WidgetsShowcase } from './WidgetsShowcase';
 import { monitor, useMonitor } from './monitorStore';
 import type { Lang } from './scripts';
 
@@ -33,6 +34,7 @@ export const MonitorRoot: React.FC<{ userName?: string | null }> = ({ userName }
         )}
       </AnimatePresence>
       {state.kind === 'script' && <MonitorStage script={state.script} run={state.run} lang={lang} />}
+      {state.kind === 'widgets' && <WidgetsShowcase key="widgets" lang={lang} onClose={monitor.close} />}
     </>
   );
 };

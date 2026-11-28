@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { editorHasText, findVisible, inputValue, readEditor, readWizard } from './dom';
-import type { ScriptId, SectionId } from './monitorStore';
+import { monitor, type ScriptId, type SectionId } from './monitorStore';
 
 export type Lang = 'es' | 'en';
 const x = (L: Lang, es: string, en: string) => (L === 'es' ? es : en);
@@ -256,6 +256,7 @@ const createSteps = (kind: 'task' | 'habit' | 'project'): Step[] => {
 /** After creating something: offer the other creators again; what is done is greyed out. */
 const whatNextStep = (view?: string): Step => ({
   id: 'what-next', view,
+  enter: () => monitor.markEnd(),
   frame: L => ({
     title: x(L, '¿Qué creamos ahora?', 'What next?'),
     body: x(L, 'Elige y te guío igual.', 'Pick one and I will guide you the same way.'),
@@ -391,6 +392,7 @@ const tourSteps = (): Step[] => [
     ['Toca la bombilla de cualquier zona y te explico solo esa.', 'Tap the lightbulb in any zone and I explain just that one.'], { pad: 6 }),
   {
     id: 'finale', view: 'TASKS',
+    enter: () => monitor.markEnd(),
     frame: L => ({
       title: x(L, '¿Creamos algo?', 'Create something?'),
       body: x(L, 'Empieza con una tarea de hoy.', 'Start with a task for today.'),
