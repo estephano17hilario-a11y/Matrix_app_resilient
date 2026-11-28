@@ -27,3 +27,22 @@
 -dontwarn com.amazon.**
 -keep class com.amazon.** { *; }
 -keepattributes *Annotation*
+
+# Capacitor reads @CapacitorPlugin / @Permission / @PluginMethod by reflection. With the optimising R8
+# profile those annotations were stripped from the built-in plugins, so Bridge.getPermissionStates()
+# got a null annotation and LocalNotifications.checkPermissions() threw a NullPointerException on the
+# plugin thread, which killed the whole app (right after sign-up and on every launch with a session).
+-keep class com.getcapacitor.annotation.** { *; }
+-keep @interface com.getcapacitor.annotation.CapacitorPlugin
+-keep @interface com.getcapacitor.annotation.Permission
+-keep @interface com.getcapacitor.annotation.PermissionCallback
+-keep @interface com.getcapacitor.annotation.ActivityCallback
+-keep @interface com.getcapacitor.PluginMethod
+-keep @com.getcapacitor.annotation.CapacitorPlugin public class * {
+    @com.getcapacitor.annotation.PermissionCallback <methods>;
+    @com.getcapacitor.annotation.ActivityCallback <methods>;
+    @com.getcapacitor.PluginMethod public <methods>;
+}
+-keepclassmembers class * {
+    @com.getcapacitor.PluginMethod public <methods>;
+}
