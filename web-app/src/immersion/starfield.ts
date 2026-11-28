@@ -58,7 +58,17 @@ const workerStarfield = (canvas: HTMLCanvasElement, specs: StarFieldSpec[], tint
   w.postMessage({ type: 'size', width, height });
   w.postMessage({ type: 'setup', specs, tint, dpr });
 
+  // Reading window.innerWidth/innerHeight forces a synchronous style + layout of whatever the page just
+  // changed. syncSize runs inside the frame loop, so on a section switch it laid the arriving section out
+  // in the middle of the glide (500ms+ at 4x CPU when entering Habits). The size is cached and only
+  // refreshed by resize events.
+  let dirty = false;
+  const onResize = () => { dirty = true; };
+  window.addEventListener('resize', onResize, { passive: true });
+  window.addEventListener('orientationchange', onResize, { passive: true });
   const syncSize = () => {
+    if (!dirty) return;
+    dirty = false;
     if (window.innerWidth === width && window.innerHeight === height) return;
     width = window.innerWidth;
     height = window.innerHeight;
@@ -91,14 +101,19 @@ const mainThreadStarfield = (canvas: HTMLCanvasElement, specs: StarFieldSpec[], 
     return c;
   }, specs, tint, dpr) : null;
 
+  // Cached for the same reason as in the worker path: no forced layout inside the frame loop.
+  let width = window.innerWidth;
+  let height = window.innerHeight;
+  const onResize = () => { width = window.innerWidth; height = window.innerHeight; };
+  window.addEventListener('resize', onResize, { passive: true });
+  window.addEventListener('orientationchange', onResize, { passive: true });
+
   return {
     drivesItself: false,
     setInputs: () => {},
     pulse: () => {},
     draw: (view: StarView) => {
       if (!renderer) return;
-      const width = window.innerWidth;
-      const height = window.innerHeight;
       if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
         canvas.width = Math.round(width * dpr);
         canvas.height = Math.round(height * dpr);

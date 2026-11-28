@@ -458,9 +458,14 @@
       "saving": "Preparing your Lux Matrix…",
       "savingSub": "Saving your setup",
       "traits": {
-        "title": "Your traits",
-        "sub": "What you want to train. Pick 3 or 4.",
-        "pick": "Pick 3 or 4"
+        "title": "What do you want to level up?",
+        "sub": "Pick 3 or 4 areas of your life you want to improve.",
+        "pick": "Pick 3 or 4",
+        "whatTitle": "What is a trait?",
+        "whatBody": "It is an area of your life, like a character’s stats. Every habit or task you complete gives XP to its trait and levels it up.",
+        "whatDemo": "Train 30 min",
+        "included": "Discipline and Resilience are already included.",
+        "examples": "E.g."
       },
       "traitDesc": {
         "DISCIPLINA": "Staying on course",
@@ -514,6 +519,56 @@
         "splashWhy": "Appears under LUX every time you open the app.",
         "splashPlaceholder": "e.g. No Excuses",
         "preview": "Preview"
+      },
+      "traitEx": {
+        "DISCIPLINA": {
+          "a": "Wake up at 6:00",
+          "b": "No social media until noon"
+        },
+        "FISICO": {
+          "a": "Train 30 min",
+          "b": "10,000 steps"
+        },
+        "MENTAL": {
+          "a": "Read 20 pages",
+          "b": "Study 1 hour"
+        },
+        "SOCIAL": {
+          "a": "Call a friend",
+          "b": "Meet someone new"
+        },
+        "ESPIRITU": {
+          "a": "Meditate 10 min",
+          "b": "Write 3 gratitudes"
+        },
+        "FINANZAS": {
+          "a": "Log your expenses",
+          "b": "Save 10%"
+        },
+        "CREATIVIDAD": {
+          "a": "Draw 15 min",
+          "b": "Write 300 words"
+        },
+        "ORDEN": {
+          "a": "Make your bed",
+          "b": "Plan your day"
+        },
+        "LIDERAZGO": {
+          "a": "Help someone",
+          "b": "Speak in public"
+        },
+        "RESILIENCIA": {
+          "a": "Cold shower",
+          "b": "Do the hard thing first"
+        },
+        "VITALIDAD": {
+          "a": "Sleep 8 hours",
+          "b": "Drink 2 L of water"
+        },
+        "ESTILO": {
+          "a": "Skincare routine",
+          "b": "Dress with intent"
+        }
       }
     },
     "traitsOfflineError": "System Error: Traits module offline.",

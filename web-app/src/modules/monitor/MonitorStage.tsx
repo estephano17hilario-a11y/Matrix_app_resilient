@@ -36,9 +36,39 @@ const ACTION_ICON: Record<NonNullable<MonitorAction['icon']>, React.ReactNode> =
 /** Steps where the user acts on the real UI: the bubble gets an "OK" that hides it until the step changes. */
 const isHideable = (f: Frame) => f.hideable ?? (!f.actions && (!!f.tap || (f.block === false && (!!f.todo || f.next === false))));
 
-/** Reveals text progressively; a tap shows it all. */
-const useTypewriter = (text: string, enabled: boolean) => {
+// Decorative loops of the stage, as CSS keyframes on transform / opacity: the compositor runs them.
+// (They were framer-motion JS loops, one of them animating `top`, which relaid out and repainted the
+// page every frame while the guide was open.)
+const STAGE_CSS = `
+.ms-pulse { animation: ms-pulse 1.4s ease-out infinite; will-change: transform, opacity; }
+@keyframes ms-pulse { 0% { transform: scale(1); opacity: 0.9; } 100% { transform: scale(1.12); opacity: 0; } }
+.ms-conic { animation: ms-spin 6s linear infinite; will-change: transform; }
+@keyframes ms-spin { to { transform: rotate(360deg); } }
+.ms-scan { animation: ms-scan 3.4s linear infinite; will-change: transform; }
+@keyframes ms-scan { from { transform: translateY(-30%); } to { transform: translateY(130%); } }
+.ms-blink { animation: ms-blink 1.4s ease-in-out infinite; }
+@keyframes ms-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.ms-nudge { display: inline-block; animation: ms-nudge 1s ease-in-out infinite; }
+@keyframes ms-nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+@media (prefers-reduced-motion: reduce) { .ms-pulse, .ms-conic, .ms-scan, .ms-blink, .ms-nudge, .ms-travel { animation: none !important; } }
+`;
+let stageCssInjected = false;
+const injectStageCss = () => {
+  if (stageCssInjected || typeof document === 'undefined') return;
+  stageCssInjected = true;
+  const el = document.createElement('style');
+  el.setAttribute('data-monitor-stage-css', '');
+  el.textContent = STAGE_CSS;
+  document.head.appendChild(el);
+};
+
+/**
+ * Reveals text progressively; a tap shows it all. It lives in its own component so the 45 updates per
+ * second only re-render this text, not the whole bubble (orb, buttons, motion components…).
+ */
+const TypeText: React.FC<{ text: string; enabled: boolean; skip: number; onDone: (done: boolean) => void }> = ({ text, enabled, skip, onDone }) => {
   const [n, setN] = useState(enabled ? 0 : text.length);
+  const doneRef = useRef(!enabled);
   useEffect(() => {
     if (!enabled) { setN(text.length); return; }
     setN(0);
@@ -46,10 +76,39 @@ const useTypewriter = (text: string, enabled: boolean) => {
     const t = setInterval(() => { i += 2; setN(i); if (i >= text.length) clearInterval(t); }, 22);
     return () => clearInterval(t);
   }, [text, enabled]);
-  return { shown: text.slice(0, n), done: n >= text.length, finish: () => setN(text.length) };
+  useEffect(() => { if (skip > 0) setN(text.length); }, [skip, text.length]);
+  const done = n >= text.length;
+  useEffect(() => {
+    if (doneRef.current === done) return;
+    doneRef.current = done;
+    onDone(done);
+  }, [done, onDone]);
+  return (
+    <>
+      {text.slice(0, n)}
+      {!done && <span style={{ display: 'inline-block', width: 7, height: 14, marginLeft: 2, background: '#67e8f9', verticalAlign: -2, borderRadius: 2, animation: 'monitor-caret 0.8s steps(2) infinite' }} />}
+    </>
+  );
+};
+
+/** Points along a cubic Bézier, for a compositor (transform) keyframe path. */
+const bezierKeyframes = (name: string, p0: [number, number], p1: [number, number], p2: [number, number], p3: [number, number]) => {
+  const N = 16;
+  const frames: string[] = [];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    // easeInOut on the travel, like the old offset-distance animation
+    const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    const u = 1 - e;
+    const x = u * u * u * p0[0] + 3 * u * u * e * p1[0] + 3 * u * e * e * p2[0] + e * e * e * p3[0];
+    const y = u * u * u * p0[1] + 3 * u * u * e * p1[1] + 3 * u * e * e * p2[1] + e * e * e * p3[1];
+    frames.push(`${(t * 100).toFixed(2)}% { transform: translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0); }`);
+  }
+  return `@keyframes ${name} { ${frames.join(' ')} }`;
 };
 
 export const MonitorStage: React.FC<{ script: ScriptId; run: number; lang: Lang; onFinish?: () => void }> = ({ script, run, lang, onFinish }) => {
+  injectStageCss();
   const reduce = !!useReducedMotion();
   const steps = useMemo(() => getScript(script), [script, run]); // eslint-disable-line react-hooks/exhaustive-deps
   const [index, setIndex] = useState(0);
@@ -270,10 +329,7 @@ const TargetRing: React.FC<{ box: Box; reduce: boolean; strong: boolean }> = ({ 
       }} />
     ))}
     {!reduce && (
-      <motion.div
-        style={{ position: 'absolute', inset: 0, borderRadius: 18, border: `2px solid ${strong ? '#a78bfa' : '#67e8f9'}` }}
-        animate={{ scale: [1, 1.12], opacity: [0.9, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: 'easeOut' }}
-      />
+      <div className="ms-pulse" style={{ position: 'absolute', inset: 0, borderRadius: 18, border: `2px solid ${strong ? '#a78bfa' : '#67e8f9'}` }} />
     )}
   </motion.div>
 );
@@ -303,7 +359,10 @@ const Bubble: React.FC<{
   const ref = useRef<HTMLDivElement>(null);
   const [h, setH] = useState(200);
   const width = Math.min(384, vw.w - MARGIN * 2);
-  const tw = useTypewriter(frame.body, !reduce);
+  const [twDone, setTwDone] = useState(reduce);
+  const [skip, setSkip] = useState(0);
+  const tw = { done: twDone, finish: () => setSkip(x => x + 1) };
+  const onTypeDone = useCallback((d: boolean) => setTwDone(d), []);
 
   useLayoutEffect(() => {
     const el = ref.current;
@@ -335,6 +394,7 @@ const Bubble: React.FC<{
   // Arrow from the bubble edge to the target edge.
   let arrow: string | null = null;
   let tip: { x: number; y: number } | null = null;
+  let travel: { name: string; css: string } | null = null;
   if (hole && side !== 'none') {
     const tx = hole.left + hole.width / 2;
     const sx = Math.max(left + 40, Math.min(left + width - 40, tx));
@@ -344,6 +404,8 @@ const Bubble: React.FC<{
       const my = (sy + ty) / 2;
       arrow = `M ${sx} ${sy} C ${sx} ${my}, ${tx} ${my}, ${tx} ${ty}`;
       tip = { x: tx, y: ty };
+      const name = `ms-travel-${Math.round(sx)}-${Math.round(sy)}-${Math.round(tx)}-${Math.round(ty)}`;
+      travel = { name, css: bezierKeyframes(name, [sx, sy], [sx, my], [tx, my], [tx, ty]) };
     }
   }
 
@@ -365,11 +427,14 @@ const Bubble: React.FC<{
           <motion.path d={arrow} fill="none" stroke="url(#monitor-arrow)" strokeWidth="2.6" strokeLinecap="round" strokeDasharray="1 7"
             initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 1 }} transition={{ duration: reduce ? 0 : 0.55, delay: reduce ? 0 : 0.15 }} />
           <motion.circle cx={tip.x} cy={tip.y} r="5" fill="#67e8f9" initial={{ scale: 0 }} animate={{ scale: [0, 1.3, 1] }} transition={{ duration: 0.5, delay: reduce ? 0 : 0.6 }} style={{ transformOrigin: `${tip.x}px ${tip.y}px` }} />
-          {!reduce && (
-            <motion.circle r="3.2" fill="#fff" style={{ offsetPath: `path('${arrow}')` } as React.CSSProperties}
-              animate={{ offsetDistance: ['0%', '100%'] } as never} transition={{ duration: 1.3, repeat: Infinity, ease: 'easeInOut', delay: 0.7 }} />
-          )}
         </svg>
+      )}
+      {arrow && tip && travel && !reduce && (
+        <>
+          <style>{`${travel.css} .${travel.name} { animation: ${travel.name} 1.3s linear 0.7s infinite; }`}</style>
+          {/* The light running down the arrow: an HTML dot moved with transform keyframes (compositor). */}
+          <span aria-hidden className={`ms-travel ${travel.name}`} style={{ position: 'absolute', left: -3.2, top: -3.2, width: 6.4, height: 6.4, borderRadius: 99, background: '#fff', pointerEvents: 'none', willChange: 'transform', transform: 'translate3d(-99px,-99px,0)' }} />
+        </>
       )}
 
       <motion.div
@@ -384,9 +449,8 @@ const Bubble: React.FC<{
         }}
       >
         {/* Living border: a conic light that turns behind the panel */}
-        <motion.span aria-hidden
-          style={{ position: 'absolute', inset: '-60%', background: 'conic-gradient(from 0deg, #22d3ee, #818cf8, #f472b6, #22d3ee 40%, rgba(34,211,238,0.15) 55%, #818cf8 80%, #22d3ee)', pointerEvents: 'none' }}
-          animate={reduce ? undefined : { rotate: 360 }} transition={{ duration: 6, repeat: Infinity, ease: 'linear' }} />
+        <span aria-hidden className={reduce ? undefined : 'ms-conic'}
+          style={{ position: 'absolute', inset: '-60%', background: 'conic-gradient(from 0deg, #22d3ee, #818cf8, #f472b6, #22d3ee 40%, rgba(34,211,238,0.15) 55%, #818cf8 80%, #22d3ee)', pointerEvents: 'none' }} />
 
         <div style={{ position: 'relative', borderRadius: 26.5, overflow: 'hidden', padding: '14px 14px 13px',
           background: 'linear-gradient(165deg, #15163a 0%, #0c0c1f 48%, #07070f 100%)' }}>
@@ -396,8 +460,9 @@ const Bubble: React.FC<{
             maskImage: 'linear-gradient(180deg, black, transparent 75%)', WebkitMaskImage: 'linear-gradient(180deg, black, transparent 75%)' }} />
           <div aria-hidden style={{ position: 'absolute', top: -60, left: -40, width: 200, height: 160, pointerEvents: 'none', background: 'radial-gradient(circle, rgba(34,211,238,0.22), transparent 65%)' }} />
           {!reduce && (
-            <motion.div aria-hidden style={{ position: 'absolute', left: 0, right: 0, height: 70, background: 'linear-gradient(180deg, transparent, rgba(103,232,249,0.07), transparent)', pointerEvents: 'none' }}
-              animate={{ top: ['-30%', '130%'] }} transition={{ duration: 3.4, repeat: Infinity, ease: 'linear' }} />
+            <div aria-hidden className="ms-scan" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '100%', pointerEvents: 'none' }}>
+              <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 70, background: 'linear-gradient(180deg, transparent, rgba(103,232,249,0.07), transparent)' }} />
+            </div>
           )}
 
           <button type="button" onClick={onClose} aria-label={L('Cerrar El Monitor', 'Close El Monitor')}
@@ -415,7 +480,7 @@ const Bubble: React.FC<{
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 10.5, fontWeight: 900, letterSpacing: '0.28em', color: '#67e8f9', textTransform: 'uppercase' }}>El Monitor</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.1em', color: 'rgba(167,243,208,0.85)', padding: '2px 7px', borderRadius: 99, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
-                  <motion.span style={{ width: 6, height: 6, borderRadius: 9, background: '#34d399' }} animate={reduce ? undefined : { opacity: [1, 0.3, 1] }} transition={{ duration: 1.4, repeat: Infinity }} />
+                  <span className={reduce ? undefined : 'ms-blink'} style={{ width: 6, height: 6, borderRadius: 9, background: '#34d399' }} />
                   {L('EN LÍNEA', 'ONLINE')}
                 </span>
               </div>
@@ -425,8 +490,7 @@ const Bubble: React.FC<{
 
           {/* Body */}
           <p onClick={tw.finish} style={{ position: 'relative', margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: 'rgba(232,236,255,0.86)', minHeight: 40 }}>
-            {tw.shown}
-            {!tw.done && <span style={{ display: 'inline-block', width: 7, height: 14, marginLeft: 2, background: '#67e8f9', verticalAlign: -2, borderRadius: 2, animation: 'monitor-caret 0.8s steps(2) infinite' }} />}
+            <TypeText text={frame.body} enabled={!reduce} skip={skip} onDone={onTypeDone} />
           </p>
 
           {frame.showcase === 'ranks' && <RankShowcase lang={lang} />}
@@ -533,7 +597,7 @@ const Bubble: React.FC<{
 
           {!hideable && frame.next === false && !frame.actions && (
             <p style={{ position: 'relative', marginTop: 11, fontSize: 11.5, fontWeight: 800, letterSpacing: '0.04em', color: frame.tap ? '#c4b5fd' : 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <motion.span animate={reduce ? undefined : { x: [0, 4, 0] }} transition={{ duration: 1, repeat: Infinity }}>👉</motion.span>
+              <span className={reduce ? undefined : 'ms-nudge'}>👉</span>
               {frame.tap ? L('Toca lo que está iluminado', 'Tap the highlighted spot') : L('Hazlo en la pantalla, yo te sigo', 'Do it on screen, I follow you')}
             </p>
           )}

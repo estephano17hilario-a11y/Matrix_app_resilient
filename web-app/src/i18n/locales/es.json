@@ -458,9 +458,14 @@
       "saving": "Preparando tu Matriz Lux…",
       "savingSub": "Guardando tu configuración",
       "traits": {
-        "title": "Tus rasgos",
-        "sub": "Lo que quieres entrenar. Elige 3 o 4.",
-        "pick": "Elige 3 o 4"
+        "title": "¿En qué quieres subir de nivel?",
+        "sub": "Elige 3 o 4 áreas de tu vida que quieres mejorar.",
+        "pick": "Elige 3 o 4",
+        "whatTitle": "¿Qué es un rasgo?",
+        "whatBody": "Es un área de tu vida, como las estadísticas de un personaje. Cada hábito o tarea que completas le da XP a su rasgo y lo sube de nivel.",
+        "whatDemo": "Entrenar 30 min",
+        "included": "Disciplina y Resiliencia ya vienen incluidos.",
+        "examples": "Ej."
       },
       "traitDesc": {
         "DISCIPLINA": "Mantener el rumbo",
@@ -514,6 +519,56 @@
         "splashWhy": "Aparece bajo LUX cada vez que abres la app.",
         "splashPlaceholder": "Ej: Sin Excusas",
         "preview": "Vista previa"
+      },
+      "traitEx": {
+        "DISCIPLINA": {
+          "a": "Levantarte a las 6:00",
+          "b": "Sin redes hasta mediodía"
+        },
+        "FISICO": {
+          "a": "Entrenar 30 min",
+          "b": "10.000 pasos"
+        },
+        "MENTAL": {
+          "a": "Leer 20 páginas",
+          "b": "Estudiar 1 hora"
+        },
+        "SOCIAL": {
+          "a": "Llamar a un amigo",
+          "b": "Conocer a alguien"
+        },
+        "ESPIRITU": {
+          "a": "Meditar 10 min",
+          "b": "Escribir 3 gratitudes"
+        },
+        "FINANZAS": {
+          "a": "Anotar tus gastos",
+          "b": "Ahorrar el 10%"
+        },
+        "CREATIVIDAD": {
+          "a": "Dibujar 15 min",
+          "b": "Escribir 300 palabras"
+        },
+        "ORDEN": {
+          "a": "Tender la cama",
+          "b": "Planear el día"
+        },
+        "LIDERAZGO": {
+          "a": "Ayudar a alguien",
+          "b": "Hablar en público"
+        },
+        "RESILIENCIA": {
+          "a": "Ducha fría",
+          "b": "Hacer lo difícil primero"
+        },
+        "VITALIDAD": {
+          "a": "Dormir 8 horas",
+          "b": "Beber 2 L de agua"
+        },
+        "ESTILO": {
+          "a": "Rutina de skincare",
+          "b": "Vestir con intención"
+        }
       }
     },
     "traitsOfflineError": "Error de sistema: Módulo de rasgos desconectado.",

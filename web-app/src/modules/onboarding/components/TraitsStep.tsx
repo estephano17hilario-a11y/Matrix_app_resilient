@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Check, Lock, Plus, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, Dumbbell, Lock, Plus, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { TRAITS_LIST } from '../../dashboard/constants';
 
@@ -33,8 +33,35 @@ export function TraitsStep({ selected, lockedIds, min, max, onToggle }: TraitsSt
     })),
   ];
 
+  const fisico = byId('FISICO');
+
   return (
     <div className="pt-1">
+      {/* What a trait is: one sentence + a tiny "habit → XP → trait level" example */}
+      <div className="mb-3 rounded-[22px] border border-violet-400/20 bg-violet-500/[0.07] p-3.5">
+        <p className="text-[13px] font-black text-white">{t('onboarding.flow.traits.whatTitle', '¿Qué es un rasgo?')}</p>
+        <p className="mt-1 text-[12.5px] font-medium leading-snug text-white/65">
+          {t('onboarding.flow.traits.whatBody', 'Es un área de tu vida, como las estadísticas de un personaje. Cada hábito o tarea que completas le da XP a su rasgo y lo sube de nivel.')}
+        </p>
+        <div className="mt-2.5 flex items-center gap-1.5 text-[11.5px] font-bold">
+          <span className="flex min-w-0 items-center gap-1.5 rounded-full bg-white/[0.07] py-1 pl-1 pr-2.5 text-white/85">
+            <span className="grid h-5 w-5 flex-none place-items-center rounded-full bg-emerald-500">
+              <Check className="h-3 w-3 text-white" strokeWidth={4} />
+            </span>
+            <span className="truncate">{t('onboarding.flow.traits.whatDemo', 'Entrenar 30 min')}</span>
+          </span>
+          <ArrowRight className="h-3.5 w-3.5 flex-none text-white/35" strokeWidth={3} />
+          <span className="flex-none rounded-full bg-amber-400/15 px-2 py-1 font-black text-amber-300">+XP</span>
+          <ArrowRight className="h-3.5 w-3.5 flex-none text-white/35" strokeWidth={3} />
+          <span className="flex min-w-0 items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5 text-white" style={{ background: `${fisico.color}26` }}>
+            <span className="grid h-5 w-5 flex-none place-items-center rounded-full" style={{ background: fisico.color }}>
+              <Dumbbell className="h-3 w-3 text-white" strokeWidth={2.6} />
+            </span>
+            <span className="truncate">{t(fisico.label)} ↑</span>
+          </span>
+        </div>
+      </div>
+
       {/* The matrix being built */}
       <div className="mb-4 flex items-center justify-between gap-2 rounded-[22px] border border-white/10 bg-white/[0.04] px-3 py-3">
         {slots.map(s => {
@@ -70,6 +97,10 @@ export function TraitsStep({ selected, lockedIds, min, max, onToggle }: TraitsSt
         })}
       </div>
 
+      <p className="-mt-2 mb-3 px-1 text-[11.5px] font-semibold text-white/40">
+        {t('onboarding.flow.traits.included', 'Disciplina y Resiliencia ya vienen incluidos.')}
+      </p>
+
       <div className="mb-2.5 flex items-center justify-between px-1">
         <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-white/40">
           {t('onboarding.flow.traits.pick', 'Elige 3 o 4')}
@@ -90,7 +121,7 @@ export function TraitsStep({ selected, lockedIds, min, max, onToggle }: TraitsSt
               type="button"
               aria-pressed={on}
               onClick={() => { if (!off) onToggle(trait.id); }}
-              className={`relative flex min-h-[92px] touch-manipulation flex-col items-start gap-1.5 rounded-[20px] border-2 p-3 text-left transition-colors duration-150 ${off ? 'opacity-35' : ''}`}
+              className={`relative flex min-h-[132px] touch-manipulation flex-col items-start gap-1.5 rounded-[20px] border-2 p-3 text-left transition-colors duration-150 ${off ? 'opacity-35' : ''}`}
               style={{
                 borderColor: on ? trait.color : 'rgba(255,255,255,0.08)',
                 background: on ? `${trait.color}22` : 'rgba(255,255,255,0.035)',
@@ -107,6 +138,19 @@ export function TraitsStep({ selected, lockedIds, min, max, onToggle }: TraitsSt
                 <span className="mt-0.5 line-clamp-2 block text-[11.5px] font-medium leading-snug text-white/50">
                   {t(`onboarding.flow.traitDesc.${trait.id}`, trait.desc)}
                 </span>
+              </span>
+              {/* Two example habits, so it is obvious what training this trait looks like */}
+              <span className="mt-auto flex w-full flex-col gap-1 pt-1">
+                {(['a', 'b'] as const).map(k => (
+                  <span
+                    key={k}
+                    className="flex min-w-0 items-center gap-1.5 rounded-lg px-1.5 py-[3px] text-[10.5px] font-bold leading-tight"
+                    style={{ background: `${trait.color}${on ? '2e' : '14'}`, color: on ? '#fff' : 'rgba(255,255,255,0.72)' }}
+                  >
+                    <span className="h-1.5 w-1.5 flex-none rounded-full" style={{ background: trait.color }} />
+                    <span className="truncate">{t(`onboarding.flow.traitEx.${trait.id}.${k}`)}</span>
+                  </span>
+                ))}
               </span>
               {on && (
                 <span

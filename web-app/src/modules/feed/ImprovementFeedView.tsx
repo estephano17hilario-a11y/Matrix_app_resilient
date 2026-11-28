@@ -586,11 +586,8 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
             >
               {/* Dynamic top accent bar with shimmer */}
               <div className={`absolute top-0 left-0 right-0 h-[3px] z-10 ${liveCardStyle.barClass}`}>
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                  animate={{ x: ['-100%', '200%'] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: 'linear', repeatDelay: 2 }}
-                />
+                {/* CSS (compositor) instead of a JS loop: same 3s sweep + 2s pause, pausable when the section hides */}
+                <div className="lux-bar-shimmer absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
               </div>
 
               {/* Ambient glows - GPU accelerated */}
@@ -890,12 +887,10 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
             <div className="space-y-4">
               {isLoading ? (
                 Array.from({ length: 3 }).map((_, i) => (
-                  <motion.div
+                  <div
                     key={`skeleton-${i}`}
-                    className="rounded-2xl border border-white/[0.04] bg-white/[0.02] p-4"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: [0.3, 0.6, 0.3] }}
-                    transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+                    className="lux-skeleton-pulse rounded-2xl border border-white/[0.04] bg-white/[0.02] p-4"
+                    style={{ animationDelay: `${i * 0.2}s` }}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-14 rounded-xl bg-white/[0.04]" />
@@ -909,7 +904,7 @@ export const ImprovementFeedView: React.FC<ImprovementFeedViewProps> = ({
                         <div key={j} className="w-14 h-14 rounded-full bg-white/[0.03]" />
                       ))}
                     </div>
-                  </motion.div>
+                  </div>
                 ))
               ) : historicalEntries.length > 0 ? (
                 historicalEntries.map((entry, i) => (

@@ -17,6 +17,7 @@ import { GAMIFICATION_CONFIG } from '@/config/gamification';
 import { FREE_LIMITS, ENABLE_GLOBAL_PRO } from '@/config/limits';
 import { projectService } from '@/services/projectService';
 import { persistenceService } from '@/services/persistenceService';
+import { syncUserRows, extractCollection as extractRows } from '@/services/rowMirror';
 import { PersistenceService } from '@/services/persistence';
 import { TransactionService } from '@/services/transactionService';
 import { BackupService } from '@/services/backupService';
@@ -1880,31 +1881,11 @@ export const useDashboardLogic = () => {
             }
 
             try {
-                const { supabase } = await import('../../../services/supabase');
-                const { data: rows, error: fetchError } = await supabase
-                    .from('user_collections')
-                    .select('id, collection_name, data')
-                    .eq('user_id', uid)
-                    .eq('deleted', false);
-
-                if (fetchError) throw fetchError;
-
-                const allRows = rows || [];
-
-                // Helper to extract and deduplicate a collection
-                const extractCollection = <T extends { id: string }>(collectionName: string): T[] => {
-                    const map = new Map<string, T>();
-                    allRows.forEach(row => {
-                        if (row.collection_name !== collectionName) return;
-                        const item = row.data as T;
-                        if (!item || !item.id) return;
-                        const expectedId = `${uid}_${collectionName}_${item.id}`;
-                        if (!map.has(item.id) || row.id === expectedId) {
-                            map.set(item.id, item);
-                        }
-                    });
-                    return Array.from(map.values());
-                };
+                // Incremental + paginated (rowMirror): only rows changed since the last sync travel,
+                // and nothing is cut at PostgREST's max_rows any more.
+                const allRows = await syncUserRows(uid);
+                const extractCollection = <T extends { id: string }>(collectionName: string): T[] =>
+                    extractRows<T>(uid, allRows, collectionName);
 
                 // 1. Projects
                 if (!projectsLoaded || PersistenceService.shouldSyncCollection(uid, 'projects', currentTTL)) {

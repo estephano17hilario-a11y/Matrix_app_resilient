@@ -4,6 +4,7 @@ import { persistenceService } from '../../../services/persistenceService';
 import { useAuth } from '@/context/AuthContext';
 import { FREE_LIMITS } from '../../../config/limits';
 import { PersistenceService } from '../../../services/persistence';
+import { OfflineSyncService } from '../../../services/offlineSync';
 
 interface NotesContextType {
     notes: Note[];
@@ -110,36 +111,29 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             shouldSyncJournal ? persistenceService.journal.getAll(uid) : Promise.resolve(null)
         ]).then(([fetchedNotes, fetchedFolders, fetchedJournal]) => {
             if (cancelled) return;
-            if (fetchedNotes) {
-                const cachedNotes = PersistenceService.getCollection<Note>(uid, 'notes');
-                if (fetchedNotes.length === 0 && cachedNotes && cachedNotes.length > 0) {
-                    cachedNotes.forEach(n => persistenceService.notes.save(uid, n));
-                } else {
-                    setNotes(fetchedNotes);
-                    PersistenceService.saveCollection(uid, 'notes', fetchedNotes);
-                    PersistenceService.saveCollectionSafe(uid, 'notes', fetchedNotes);
+            // Server list + writes still waiting in the offline queue (or in flight). Replacing the
+            // list with the bare server answer used to wipe notes/entries that had not synced yet.
+            const reconcile = <T extends { id: string }>(
+                name: 'notes' | 'noteFolders' | 'journal',
+                fetched: T[] | null,
+                apply: (items: T[]) => void,
+                push: (item: T) => Promise<void>,
+            ) => {
+                if (!fetched) return;
+                const cached = PersistenceService.getCollection<T>(uid, name);
+                if (fetched.length === 0 && cached && cached.length > 0) {
+                    // Server empty but this device has data: it never reached the server. Send it.
+                    cached.forEach(item => { push(item).catch(() => { /* queued by the service */ }); });
+                    return;
                 }
-            }
-            if (fetchedFolders) {
-                const cachedFolders = PersistenceService.getCollection<NoteFolder>(uid, 'noteFolders');
-                if (fetchedFolders.length === 0 && cachedFolders && cachedFolders.length > 0) {
-                    cachedFolders.forEach(f => persistenceService.noteFolders.save(uid, f));
-                } else {
-                    setFolders(fetchedFolders);
-                    PersistenceService.saveCollection(uid, 'noteFolders', fetchedFolders);
-                    PersistenceService.saveCollectionSafe(uid, 'noteFolders', fetchedFolders);
-                }
-            }
-            if (fetchedJournal) {
-                const cachedJournal = PersistenceService.getCollection<JournalEntry>(uid, 'journal');
-                if (fetchedJournal.length === 0 && cachedJournal && cachedJournal.length > 0) {
-                    cachedJournal.forEach(j => persistenceService.journal.save(uid, j));
-                } else {
-                    setJournalEntries(fetchedJournal);
-                    PersistenceService.saveCollection(uid, 'journal', fetchedJournal);
-                    PersistenceService.saveCollectionSafe(uid, 'journal', fetchedJournal);
-                }
-            }
+                const resolved = OfflineSyncService.applyPendingActionsToCollection(uid, name, fetched);
+                apply(resolved);
+                PersistenceService.saveCollection(uid, name, resolved);
+                PersistenceService.saveCollectionSafe(uid, name, resolved);
+            };
+            reconcile<Note>('notes', fetchedNotes, setNotes, n => persistenceService.notes.save(uid, n));
+            reconcile<NoteFolder>('noteFolders', fetchedFolders, setFolders, f => persistenceService.noteFolders.save(uid, f));
+            reconcile<JournalEntry>('journal', fetchedJournal, setJournalEntries, j => persistenceService.journal.save(uid, j));
             setIsLoading(false);
             hasSyncedNotesRef.current = true;
         }).catch(err => {

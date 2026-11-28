@@ -96,7 +96,9 @@ export const StatsHeader = React.memo(({
         <div className={`flex items-center gap-1 sm:gap-3 ${!isHidden ? 'pointer-events-auto' : ''}`}>
              {/* Sync Indicator */}
              <div className={`transition-all duration-200 flex items-center justify-center ${isSyncing ? 'opacity-100 w-5' : 'opacity-0 w-0 overflow-hidden'}`}>
-                <RefreshCw size={14} className="text-emerald-400 animate-spin" />
+                {/* Spins only while syncing: an always-on spin inside the collapsed (w-0) box was not composited
+                    and kept the main thread busy every frame on every screen. */}
+                <RefreshCw size={14} className={`text-emerald-400 ${isSyncing ? 'animate-spin' : ''}`} />
              </div>
              
              {/* Note: Settings and Store buttons have been moved into AvatarWidget */}

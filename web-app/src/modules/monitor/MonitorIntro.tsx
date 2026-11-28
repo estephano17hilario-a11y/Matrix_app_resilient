@@ -70,24 +70,43 @@ export const MonitorIntro: React.FC<{ lang: Lang; name?: string | null; onStart:
       onClick={skipTyping}
       style={{ position: 'fixed', inset: 0, zIndex: 100600, background: 'radial-gradient(120% 90% at 50% 35%, #12123a 0%, #05050f 55%, #000 100%)', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 20px calc(env(safe-area-inset-bottom) + 24px)' }}
     >
+      <style>{`
+.mi-sweep { animation: mi-sweep 4s infinite; will-change: transform; }
+@keyframes mi-sweep { 0% { transform: translateY(-5%); animation-timing-function: ease-in-out; } 60%, 100% { transform: translateY(105%); } }
+.mi-orbit { transform: translate3d(var(--x0), var(--y0), 0); animation: mi-orbit 2.8s ease-in-out infinite alternate; will-change: transform, opacity; }
+@keyframes mi-orbit { 0% { transform: translate3d(var(--x0), var(--y0), 0); opacity: 1; } 50% { opacity: 0.4; } 100% { transform: translate3d(var(--x1), var(--y1), 0); opacity: 0.9; } }
+@media (prefers-reduced-motion: reduce) { .mi-sweep, .mi-orbit { animation: none !important; } }
+`}</style>
       {/* perspective grid */}
       <motion.div aria-hidden="true" initial={{ opacity: 0 }} animate={{ opacity: 0.55 }} transition={{ duration: 1.2 }}
         style={{ position: 'absolute', pointerEvents: 'none', left: '-50%', right: '-50%', bottom: '-10%', height: '55%', transform: 'perspective(420px) rotateX(62deg)', backgroundImage: 'linear-gradient(rgba(103,232,249,0.22) 1px, transparent 1px), linear-gradient(90deg, rgba(167,139,250,0.22) 1px, transparent 1px)', backgroundSize: '42px 42px', maskImage: 'linear-gradient(to top, black, transparent)', WebkitMaskImage: 'linear-gradient(to top, black, transparent)' }} />
       {!reduce && (
-        <motion.div aria-hidden="true" style={{ position: 'absolute', pointerEvents: 'none', left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, #67e8f9, transparent)', boxShadow: '0 0 24px #67e8f9' }}
-          initial={{ top: '-5%' }} animate={{ top: '105%' }} transition={{ duration: 2.4, ease: 'easeInOut', repeat: Infinity, repeatDelay: 1.6 }} />
+        // Sweep as a transform on a full-height wrapper (compositor) instead of animating `top` (relayout every frame).
+        <div aria-hidden="true" className="mi-sweep" style={{ position: 'absolute', pointerEvents: 'none', inset: 0 }}>
+          <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 2, background: 'linear-gradient(90deg, transparent, #67e8f9, transparent)', boxShadow: '0 0 24px #67e8f9' }} />
+        </div>
       )}
 
       <div style={{ position: 'relative', width: 180, height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {/* converging particles */}
-        {!reduce && particles.map((p, i) => (
+        {!reduce && particles.map((p, i) => (phase === 0 ? (
           <motion.span key={i} aria-hidden="true"
             style={{ position: 'absolute', pointerEvents: 'none', width: p.s, height: p.s, borderRadius: 99, background: p.c, boxShadow: `0 0 10px ${p.c}` }}
             initial={{ x: p.x, y: p.y, opacity: 0 }}
-            animate={phase === 0 ? { x: p.x * 0.35, y: p.y * 0.35, opacity: 1 } : { x: Math.cos(i) * 76, y: Math.sin(i) * 76, opacity: [1, 0.4, 0.9] }}
-            transition={phase === 0 ? { duration: 0.9, delay: p.delay, ease: 'easeOut' } : { duration: 2.8, repeat: Infinity, repeatType: 'mirror', delay: p.delay }}
+            animate={{ x: p.x * 0.35, y: p.y * 0.35, opacity: 1 }}
+            transition={{ duration: 0.9, delay: p.delay, ease: 'easeOut' }}
           />
-        ))}
+        ) : (
+          // The endless orbit runs as CSS keyframes (compositor), not a JS loop per particle.
+          <span key={i} aria-hidden="true" className="mi-orbit"
+            style={{
+              position: 'absolute', pointerEvents: 'none', width: p.s, height: p.s, borderRadius: 99, background: p.c, boxShadow: `0 0 10px ${p.c}`,
+              ['--x0' as string]: `${(p.x * 0.35).toFixed(1)}px`, ['--y0' as string]: `${(p.y * 0.35).toFixed(1)}px`,
+              ['--x1' as string]: `${(Math.cos(i) * 76).toFixed(1)}px`, ['--y1' as string]: `${(Math.sin(i) * 76).toFixed(1)}px`,
+              animationDelay: `${p.delay}s`,
+            } as React.CSSProperties}
+          />
+        )))}
         {/* shockwave */}
         {phase >= 1 && !reduce && (
           <motion.span aria-hidden="true" style={{ position: 'absolute', width: 140, height: 140, borderRadius: 999, border: '2px solid #67e8f9' }}

@@ -13,7 +13,7 @@ import { ChunkyButton } from '../../auth/components/AuthUI';
 export const TOTAL_STEPS = 5;
 
 /** Space a scroll area must leave at the bottom so the last card clears the footer. */
-export const FOOTER_CLEARANCE = 'calc(var(--action-bottom) + 68px + 28px)';
+export const FOOTER_CLEARANCE = 'calc(var(--action-bottom) + 14px + 68px + 28px)';
 
 export function TopBar({ index, onBack }: { index: number; onBack?: () => void }) {
   const { t } = useTranslation();
@@ -107,7 +107,7 @@ export function StepFooter({
     <div
       className="absolute inset-x-0 bottom-0 z-[70] px-5 pt-8"
       style={{
-        paddingBottom: 'var(--action-bottom)',
+        paddingBottom: 'calc(var(--action-bottom) + 14px)',
         background: 'linear-gradient(to top, #000 0%, rgba(0,0,0,0.92) 55%, rgba(0,0,0,0) 100%)',
       }}
     >

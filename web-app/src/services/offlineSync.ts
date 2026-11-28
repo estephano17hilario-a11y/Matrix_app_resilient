@@ -10,9 +10,34 @@ export interface OfflineAction {
   itemId: string;
   data?: any;
   timestamp: number;
+  /** Failed attempts so far, and when the next one may run (backoff). */
+  attempts?: number;
+  nextAt?: number;
 }
 
 const OFFLINE_QUEUE_KEY = 'MATRIX_OFFLINE_SYNC_QUEUE';
+/** Actions that kept failing for days; never deleted automatically (support can replay them). */
+const DEAD_LETTER_KEY = 'MATRIX_OFFLINE_SYNC_DEADLETTER';
+/** A permanently failing action is retried with backoff this many times before it is parked. */
+const MAX_ATTEMPTS = 25;
+const backoffMs = (attempts: number) => Math.min(6 * 60 * 60_000, 15_000 * 2 ** Math.max(0, attempts - 1));
+
+/**
+ * `uq_user_collections_item` allows one live row per (user, collection, item id). A legacy row with
+ * another primary key makes the upsert fail with 23505 (HTTP 409) forever. Retire those rows
+ * (soft delete) so the namespaced row can be written.
+ */
+export const retireConflictingRows = async (userId: string, collectionName: string, itemId: string, keepId: string) => {
+  await supabase
+    .from('user_collections')
+    .update({ deleted: true })
+    .eq('user_id', userId)
+    .eq('collection_name', collectionName)
+    .eq('data->>id', itemId)
+    .neq('id', keepId)
+    .eq('deleted', false);
+};
+export const isUniqueViolation = (e: any) => e?.code === '23505' || Number(e?.status) === 409;
 
 /**
  * Writes that left the device but may not be visible to a concurrent read yet. A bulk sync that
@@ -85,7 +110,7 @@ export const OfflineSyncService = {
       a.itemId === action.itemId && 
       a.collectionName === action.collectionName && 
       a.userId === action.userId &&
-      a.type === action.type
+      (a.type === action.type || (a.type === 'SAVE' && action.type === 'UPDATE'))
     );
     
     const newAction: OfflineAction = {
@@ -150,6 +175,10 @@ export const OfflineSyncService = {
     await OfflineSyncService.saveQueue(queue.filter(a => a.id !== id));
   },
 
+  hasPendingSave: (userId: string, collectionName: string, itemId: string): boolean => {
+    return cachedQueue.some(a => a.userId === userId && a.collectionName === collectionName && a.itemId === itemId && a.type === 'SAVE');
+  },
+
   hasPendingStatsSync: (userId: string): boolean => {
     return cachedQueue.some(a => a.userId === userId && a.type === 'STATS_SYNC');
   },
@@ -209,105 +238,169 @@ export const OfflineSyncService = {
   },
 
   processQueue: async () => {
-    if (!navigator.onLine) return;
-    
-    const queue = await OfflineSyncService.getQueue();
-    if (queue.length === 0) return;
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+    // One runner at a time: two overlapping runs used to send the same writes twice.
+    if (processing) { rerun = true; return processing; }
+    processing = (async () => {
+      do {
+        rerun = false;
+        await runQueueOnce();
+      } while (rerun);
+    })().finally(() => { processing = null; });
+    return processing;
+  }
+};
 
-    console.log(`[Offline Sync] Processing ${queue.length} pending actions...`);
-    
-    // We create a copy to iterate, since removeAction modifies the queue
-    const actionsToProcess = [...queue];
-    
-    for (const action of actionsToProcess) {
-      try {
-        if (action.type === 'SAVE' || action.type === 'UPDATE') {
-          const uniqueRecordId = `${action.userId}_${action.collectionName}_${action.itemId}`;
-          
-          let mergedData = action.data;
-          
-          if (action.type === 'UPDATE') {
-            // For updates, try to get existing data first to merge
-            const { data: existingData } = await supabase
-              .from('user_collections')
-              .select('data')
-              .in('id', [uniqueRecordId, action.itemId])
-              .eq('user_id', action.userId)
-              .eq('collection_name', action.collectionName)
-              .limit(1);
-              
-            const currentData = (existingData && existingData.length > 0) ? existingData[0].data || {} : {};
-            mergedData = { ...currentData, ...action.data, id: action.itemId };
-          }
+let processing: Promise<void> | null = null;
+let rerun = false;
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
-          const { error } = await supabase
-            .from('user_collections')
-            .upsert({
-              id: uniqueRecordId,
-              user_id: action.userId,
-              collection_name: action.collectionName,
-              data: mergedData,
-              deleted: false
-            }, { onConflict: 'id' });
+const isAuthFailure = (e: any) => {
+  const msg = String(e?.message || e?.code || '').toLowerCase();
+  return Number(e?.status) === 401 || /jwt|token|pgrst301/.test(msg);
+};
+const isNetworkFailure = (e: any) => {
+  const msg = String(e?.message || e || '').toLowerCase();
+  const status = Number(e?.status ?? 0);
+  return status >= 500 || status === 408 || status === 429 || /failed to fetch|network|timeout|offline|abort|load failed/.test(msg);
+};
 
-          if (error) throw error;
-        } else if (action.type === 'DELETE') {
-          const uniqueRecordId = `${action.userId}_${action.collectionName}_${action.itemId}`;
-          
-          // Soft delete in offline sync queue to match persistence service behavior
-          const { error } = await supabase
-            .from('user_collections')
-            .update({ deleted: true, data: { id: action.itemId, deleted: true } })
-            .eq('user_id', action.userId)
-            .eq('collection_name', action.collectionName)
-            .or(`id.eq.${uniqueRecordId},id.eq.${action.itemId}`);
+const runAction = async (action: OfflineAction) => {
+  if (action.type === 'SAVE' || action.type === 'UPDATE') {
+    const uniqueRecordId = `${action.userId}_${action.collectionName}_${action.itemId}`;
+    let mergedData = action.data;
 
-          if (error) throw error;
+    if (action.type === 'UPDATE') {
+      const { data: existingData, error: readError } = await supabase
+        .from('user_collections')
+        .select('data, deleted')
+        .eq('id', uniqueRecordId)
+        .eq('user_id', action.userId)
+        .limit(1);
+      if (readError) throw readError;
+      const row = existingData?.[0];
+      // Deleted meanwhile: the edit must not bring it back.
+      if (row && (row.deleted || row.data?.deleted)) return;
+      mergedData = { ...(row?.data || {}), ...action.data, id: action.itemId };
+    }
+    if (mergedData && typeof mergedData === 'object') {
+      mergedData = { ...mergedData };
+      delete mergedData.deleted;
+    }
 
-          // Fallback/Safety: Explicitly upsert the uniqueRecordId as deleted
-          const { error: upsertError } = await supabase
-            .from('user_collections')
-            .upsert({
-              id: uniqueRecordId,
-              user_id: action.userId,
-              collection_name: action.collectionName,
-              data: { id: action.itemId, deleted: true },
-              deleted: true
-            }, { onConflict: 'id' });
+    const write = () => supabase
+      .from('user_collections')
+      .upsert({
+        id: uniqueRecordId,
+        user_id: action.userId,
+        collection_name: action.collectionName,
+        data: mergedData,
+        deleted: false
+      }, { onConflict: 'id' });
+    let { error } = await write();
+    if (error && isUniqueViolation(error)) {
+      await retireConflictingRows(action.userId, action.collectionName, action.itemId, uniqueRecordId);
+      ({ error } = await write());
+    }
+    if (error) throw error;
+  } else if (action.type === 'DELETE') {
+    const uniqueRecordId = `${action.userId}_${action.collectionName}_${action.itemId}`;
+    // Soft delete, matching the persistence service.
+    const { error } = await supabase
+      .from('user_collections')
+      .update({ deleted: true, data: { id: action.itemId, deleted: true } })
+      .eq('user_id', action.userId)
+      .eq('collection_name', action.collectionName)
+      .or(`id.eq.${uniqueRecordId},id.eq.${action.itemId}`);
+    if (error) throw error;
 
-          if (upsertError) throw upsertError;
-        } else if (action.type === 'SETTINGS_SAVE') {
-           // Merge (never replace): a queued save only carries the keys that changed.
-           await mergeUserSettings(action.userId, action.data || {});
-        } else if (action.type === 'STATS_SYNC') {
-           const updatePayload: any = {
-             stats: action.data.stats,
-             last_login_at: new Date().toISOString()
-           };
-           if (action.data.inventory) {
-             updatePayload.inventory = action.data.inventory;
-           }
-           const { error } = await supabase
-              .from('users')
-              .update(updatePayload)
-              .eq('id', action.userId);
-            if (error) throw error;
-        }
+    const { error: upsertError } = await supabase
+      .from('user_collections')
+      .upsert({
+        id: uniqueRecordId,
+        user_id: action.userId,
+        collection_name: action.collectionName,
+        data: { id: action.itemId, deleted: true },
+        deleted: true
+      }, { onConflict: 'id' });
+    if (upsertError) throw upsertError;
+  } else if (action.type === 'SETTINGS_SAVE') {
+    // Merge (never replace): a queued save only carries the keys that changed.
+    await mergeUserSettings(action.userId, action.data || {});
+  } else if (action.type === 'STATS_SYNC') {
+    const updatePayload: any = {
+      stats: action.data.stats,
+      last_login_at: new Date().toISOString()
+    };
+    if (action.data.inventory) updatePayload.inventory = action.data.inventory;
+    const { error } = await supabase.from('users').update(updatePayload).eq('id', action.userId);
+    if (error) throw error;
+  }
+};
 
-        // Success! Remove from queue
-        await OfflineSyncService.removeAction(action.id);
-        console.log(`[Offline Sync] Processed ${action.type} for ${action.collectionName}/${action.itemId}`);
-      } catch (e) {
-        console.error(`[Offline Sync] Failed to process action ${action.id}`, e);
-        // An expired session would block the queue forever: refresh it for the next attempt.
-        const msg = String((e as any)?.message || (e as any)?.code || '').toLowerCase();
-        if (Number((e as any)?.status) === 401 || /jwt|token|pgrst301/.test(msg)) {
-          try { await supabase.auth.refreshSession(); } catch { /* next round */ }
-        }
-        // Break early to preserve order and retry later
+const parkAction = (action: OfflineAction, error: unknown) => {
+  try {
+    const parked = JSON.parse(localStorage.getItem(DEAD_LETTER_KEY) || '[]');
+    parked.push({ ...action, error: String((error as any)?.message || error), parkedAt: Date.now() });
+    localStorage.setItem(DEAD_LETTER_KEY, JSON.stringify(parked.slice(-200)));
+    return true;
+  } catch {
+    return false; // storage full: the action stays in the queue instead
+  }
+};
+
+const runQueueOnce = async () => {
+  const queue = await OfflineSyncService.getQueue();
+  if (queue.length === 0) return;
+  console.log(`[Offline Sync] Processing ${queue.length} pending actions...`);
+
+  const now = Date.now();
+  // Items whose earlier action failed: later actions on the same item wait, so order per item holds.
+  const blocked = new Set<string>();
+  let earliestRetry = Infinity;
+
+  for (const action of [...queue]) {
+    const itemKey = action.type === 'STATS_SYNC' ? `${action.userId}|stats` : `${action.userId}|${action.collectionName}|${action.itemId}`;
+    if (blocked.has(itemKey)) continue;
+    if (action.nextAt && action.nextAt > now) {
+      blocked.add(itemKey);
+      earliestRetry = Math.min(earliestRetry, action.nextAt);
+      continue;
+    }
+    try {
+      await runAction(action);
+      await OfflineSyncService.removeAction(action.id);
+      console.log(`[Offline Sync] Processed ${action.type} for ${action.collectionName}/${action.itemId}`);
+    } catch (e) {
+      console.error(`[Offline Sync] Failed to process action ${action.id}`, e);
+      if (isAuthFailure(e)) {
+        // An expired session: refresh it and stop this round (every write would fail the same way).
+        try { await supabase.auth.refreshSession(); } catch { /* next round */ }
+        earliestRetry = Math.min(earliestRetry, Date.now() + 15_000);
         break;
       }
+      if (isNetworkFailure(e)) {
+        // Offline / server down: nothing else will get through either.
+        earliestRetry = Math.min(earliestRetry, Date.now() + 30_000);
+        break;
+      }
+      // A failure specific to this action: back off, but let every other item sync.
+      const attempts = (action.attempts || 0) + 1;
+      const current = await OfflineSyncService.getQueue();
+      if (attempts >= MAX_ATTEMPTS && parkAction(action, e)) {
+        await OfflineSyncService.saveQueue(current.filter(a => a.id !== action.id));
+      } else {
+        const nextAt = Date.now() + backoffMs(attempts);
+        await OfflineSyncService.saveQueue(current.map(a => (a.id === action.id ? { ...a, attempts, nextAt } : a)));
+        earliestRetry = Math.min(earliestRetry, nextAt);
+      }
+      blocked.add(itemKey);
     }
+  }
+
+  if (earliestRetry !== Infinity && typeof window !== 'undefined') {
+    if (retryTimer) clearTimeout(retryTimer);
+    retryTimer = setTimeout(() => { retryTimer = null; OfflineSyncService.processQueue(); }, Math.max(5_000, earliestRetry - Date.now()));
   }
 };
 

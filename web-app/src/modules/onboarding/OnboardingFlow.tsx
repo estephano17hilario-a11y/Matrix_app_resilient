@@ -282,8 +282,8 @@ export function OnboardingFlow() {
                 <StepShell
                   icon={<Sparkles size={24} />}
                   tone="bg-violet-500/15 text-violet-300"
-                  title={t('onboarding.flow.traits.title', 'Tus rasgos')}
-                  sub={t('onboarding.flow.traits.sub', 'Lo que quieres entrenar. Elige 3 o 4.')}
+                  title={t('onboarding.flow.traits.title', '¿En qué quieres subir de nivel?')}
+                  sub={t('onboarding.flow.traits.sub', 'Elige 3 o 4 áreas de tu vida que quieres mejorar.')}
                 >
                   <TraitsStep selected={selectedTraits} lockedIds={lockedTraitIds} min={MIN_EXTRA_TRAITS} max={MAX_EXTRA_TRAITS} onToggle={toggleTrait} />
                 </StepShell>

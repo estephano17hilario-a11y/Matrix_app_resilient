@@ -998,3 +998,9 @@ body, button, input, textarea {
   position: relative;
   z-index: 5;
 }
+
+/* Compositor-only replacements for JS (framer-motion) infinite loops, see perf notes 2026-11-27. */
+.lux-bar-shimmer { animation: lux-bar-shimmer 5s linear infinite; will-change: transform; }
+@keyframes lux-bar-shimmer { 0% { transform: translateX(-100%); } 60%, 100% { transform: translateX(200%); } }
+.lux-skeleton-pulse { opacity: 0.3; animation: lux-skeleton-pulse 1.5s ease-in-out infinite; }
+@keyframes lux-skeleton-pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.6; } }

@@ -4,8 +4,9 @@ import { SmartProject } from '../types/SmartGoal';
 import { DailyFeedEntry } from '../types/DailyFeedEntry';
 import { sanitizeFirestoreData } from '../utils/firestoreUtils';
 import { AuditLogger } from './auditService';
-import { OfflineSyncService } from './offlineSync';
+import { OfflineSyncService, isUniqueViolation, retireConflictingRows } from './offlineSync';
 import { isTransientError, mergeUserSettings } from './settingsSync';
+import { extractCollection, syncUserRows } from './rowMirror';
 
 const isAuthError = (e: any) => {
   const status = Number(e?.status ?? e?.statusCode ?? 0);
@@ -23,6 +24,21 @@ const withSessionRetry = async <R extends { error: any }>(run: () => PromiseLike
 
 /** Errors after which the change must be kept and retried later instead of being dropped. */
 const isRetryable = (e: any) => isTransientError(e) || isAuthError(e);
+
+
+/** Upsert of one item row; resolves a legacy-row conflict once. */
+const upsertItemRow = async (userId: string, collectionName: string, itemId: string, data: any) => {
+  const id = `${userId}_${collectionName}_${itemId}`;
+  const run = () => withSessionRetry(() => supabase
+    .from('user_collections')
+    .upsert({ id, user_id: userId, collection_name: collectionName, data, deleted: false }, { onConflict: 'id' }));
+  let { error } = await run();
+  if (error && isUniqueViolation(error)) {
+    await retireConflictingRows(userId, collectionName, itemId, id);
+    ({ error } = await run());
+  }
+  if (error) throw error;
+};
 
 // In-memory query cache for 0ms DB reads
 const collectionMemoryCache = new Map<string, { data: any[], timestamp: number }>();
@@ -48,29 +64,9 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
     }
 
     try {
-      const { data, error } = await supabase
-        .from('user_collections')
-        .select('data, id')
-        .eq('user_id', userId)
-        .eq('collection_name', collectionName)
-        .eq('deleted', false);
-
-      if (error) throw error;
-      
-      // Deduplicate by item.id (preferring the new uniqueRecordId format if duplicates exist)
-      const map = new Map<string, T>();
-      data.forEach(row => {
-        const item = row.data as T;
-        if (!item || !item.id) return;
-        
-        // If we already have an entry, prefer the one whose row ID matches the new format
-        const expectedId = `${userId}_${collectionName}_${item.id}`;
-        if (!map.has(item.id) || row.id === expectedId) {
-          map.set(item.id, item);
-        }
-      });
-      
-      const result = Array.from(map.values());
+      // One shared, incremental, paginated sync of all the user's rows (see rowMirror.ts).
+      const rows = await syncUserRows(userId);
+      const result = extractCollection<T>(userId, rows, collectionName);
       collectionMemoryCache.set(cacheKey, { data: result, timestamp: Date.now() });
       return result;
     } catch (error) {
@@ -98,42 +94,25 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
 
       // FIX: Ensure the primary key 'id' in user_collections is globally unique
       // by combining userId, collectionName, and the item's targetId.
-      const uniqueRecordId = `${userId}_${collectionName}_${targetId}`;
-
-      // OPTIMISTIC LOCAL SAVE (Important for Instant UI)
-      // The calling code often expects persistence to be fast.
-      // However, we still need to wait for Supabase or catch the error.
       const done = OfflineSyncService.trackWrite({ type: 'SAVE', userId, collectionName, itemId: targetId, data: cleanItem });
       try {
-        const { error } = await withSessionRetry(() => supabase
-          .from('user_collections')
-          .upsert({
-            id: uniqueRecordId,
-            user_id: userId,
-            collection_name: collectionName,
-            data: cleanItem,
-            deleted: false
-          }, { onConflict: 'id' }));
-
-        if (error) throw error;
-      } catch (networkError: any) {
-        const isNetwork = isRetryable(networkError);
-        if (isNetwork) {
-          console.log(`[Offline Sync] Queued SAVE for ${collectionName}/${targetId}`);
-          await OfflineSyncService.addAction({
-            type: 'SAVE',
-            collectionName,
-            userId,
-            itemId: targetId,
-            data: cleanItem
-          });
-        } else {
-          throw networkError; // Re-throw actual DB errors
-        }
+        await upsertItemRow(userId, collectionName, targetId, cleanItem);
+      } catch (writeError: any) {
+        // Never drop a change: whatever failed (network, expired session, a DB error), it waits in the
+        // persistent queue, which retries it with backoff and keeps it in the UI meanwhile.
+        console.warn(`[Offline Sync] Queued SAVE for ${collectionName}/${targetId}`, writeError?.message || writeError);
+        await OfflineSyncService.addAction({
+          type: 'SAVE',
+          collectionName,
+          userId,
+          itemId: targetId,
+          data: cleanItem
+        });
+        if (!isRetryable(writeError)) AuditLogger.log('ERROR', collectionName, targetId, { error: String(writeError?.message || writeError) });
       } finally {
         done();
       }
-      
+
       // AUDIT LOG
       AuditLogger.log(item.id ? 'UPDATE' : 'CREATE', collectionName, targetId, { userId });
       clearPersistenceCache(collectionName);
@@ -156,72 +135,48 @@ const createSubCollectionService = <T extends { id: string, deleted?: boolean }>
       const done = OfflineSyncService.trackWrite({ type: 'UPDATE', userId, collectionName, itemId, data: sanitizeFirestoreData(dataToUpdate) });
 
       try {
-        // Fetch existing data first to merge. Support legacy rows by searching inside JSONB.
-        let { data: existingRecords, error: fetchError } = await supabase
+        // Fetch the current row first to merge into it.
+        const { data: existingRecords, error: fetchError } = await supabase
           .from('user_collections')
-          .select('id, data')
+          .select('id, data, deleted')
           .eq('id', uniqueRecordId)
           .eq('user_id', userId);
 
         if (fetchError) throw fetchError;
 
-        if (!existingRecords || existingRecords.length === 0) {
-          // Rare: row written before ids were namespaced. Fall back to scanning the JSON.
-          const legacy = await supabase
-            .from('user_collections')
-            .select('id, data')
-            .eq('user_id', userId)
-            .eq('collection_name', collectionName)
-            .contains('data', { id: itemId });
-          if (legacy.error) throw legacy.error;
-          existingRecords = legacy.data;
-        }
-
-        if (!existingRecords || existingRecords.length === 0) {
-            console.warn(`[Persistence] Record not found for update: ${collectionName}/${itemId}. Skipping update to prevent data loss.`);
-            return;
-        }
-
-        // Prefer the new format if multiple exist, otherwise take the first
-        const preferred = existingRecords.find(r => r.id === uniqueRecordId) || existingRecords[0];
-        const currentData = preferred.data || {};
-        
-        if (preferred.id !== uniqueRecordId) {
-            // Delete legacy records
-            const legacyIds = existingRecords.filter(r => r.id !== uniqueRecordId).map(r => r.id);
-            if (legacyIds.length > 0) {
-                await supabase.from('user_collections').delete().in('id', legacyIds);
-            }
-        }
-
+        const preferred = existingRecords?.[0];
         const cleanData = sanitizeFirestoreData(dataToUpdate);
-        const mergedData = { ...currentData, ...cleanData, id: itemId };
-
-        const { error } = await withSessionRetry(() => supabase
-          .from('user_collections')
-          .upsert({
-            id: uniqueRecordId,
-            user_id: userId,
-            collection_name: collectionName,
-            data: mergedData,
-            deleted: false
-          }, { onConflict: 'id' }));
-
-        if (error) throw error;
-      } catch (networkError: any) {
-        const isNetwork = isRetryable(networkError);
-        if (isNetwork) {
-          console.log(`[Offline Sync] Queued UPDATE for ${collectionName}/${itemId}`);
-          await OfflineSyncService.addAction({
-            type: 'UPDATE',
-            collectionName,
-            userId,
-            itemId,
-            data: dataToUpdate
-          });
-        } else {
-          throw networkError;
+        if (preferred && (preferred.data?.deleted || (preferred as any).deleted)) {
+          // Deleted (maybe on another device): an edit must not bring it back.
+          return;
         }
+        if (!preferred) {
+          if (OfflineSyncService.hasPendingSave(userId, collectionName, itemId)) {
+            // Its first save is still waiting in the queue: fold the edit into it.
+            await OfflineSyncService.addAction({ type: 'UPDATE', collectionName, userId, itemId, data: dataToUpdate });
+            return;
+          }
+          if (Object.keys(cleanData).length < 4) {
+            console.warn(`[Persistence] Record not found for update: ${collectionName}/${itemId}. Partial patch skipped.`);
+            return;
+          }
+          // A whole item whose row is missing (its first save failed): write it instead of losing the edit.
+          console.warn(`[Persistence] ${collectionName}/${itemId} was not on the server; writing it now.`);
+        }
+        const currentData = preferred?.data || {};
+        const mergedData = { ...currentData, ...cleanData, id: itemId };
+        delete (mergedData as any).deleted;
+
+        await upsertItemRow(userId, collectionName, itemId, mergedData);
+      } catch (writeError: any) {
+        console.warn(`[Offline Sync] Queued UPDATE for ${collectionName}/${itemId}`, writeError?.message || writeError);
+        await OfflineSyncService.addAction({
+          type: 'UPDATE',
+          collectionName,
+          userId,
+          itemId,
+          data: dataToUpdate
+        });
       } finally {
         done();
       }

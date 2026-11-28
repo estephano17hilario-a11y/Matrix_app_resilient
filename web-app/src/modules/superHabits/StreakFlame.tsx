@@ -67,6 +67,12 @@ export const StreakFlame = React.memo(({ streak, size = 20, lit = true, animate 
   const cfg = TIERS[tier.index];
   const isAsh = tier.index === 0;
   const moving = animate && lit && !isAsh;
+  // Small flames (habit rows, HUD pill: 12–22px) breathe as a whole on the compositor. Their inner loops
+  // (tongues, veins, sparks, sheen…) were SVG-internal animations: invisible at that size, yet each one
+  // repainted on the main thread every frame and made the page re-layerize (the Habits list had one per
+  // row). Big flames (modals, celebrations, roadmap hero) keep every inner animation.
+  const lite = size < 24;
+  const inner = moving && !lite;
   const iris = cfg.texture === 'iris';
   const height = Math.round((size * 72) / 64);
   const gid = (s: string) => `${uid}${s}`;
@@ -76,7 +82,7 @@ export const StreakFlame = React.memo(({ streak, size = 20, lit = true, animate 
       viewBox="0 -4 64 76"
       width={size}
       height={height}
-      className={className}
+      className={[className, moving && lite ? 'sf-root-flick' : ''].filter(Boolean).join(' ') || undefined}
       aria-label={`Racha ${tier.name}`}
       role="img"
       style={{
@@ -109,10 +115,10 @@ export const StreakFlame = React.memo(({ streak, size = 20, lit = true, animate 
         <clipPath id={gid('c')}><path d={OUTER} /></clipPath>
       </defs>
 
-      <g className={iris && moving ? 'sf-hue' : undefined}>
+      <g className={iris && inner ? 'sf-hue' : undefined}>
         {cfg.halo && (
           <circle cx="32" cy="40" r="31" fill="none" stroke={`url(#${gid('h')})`} strokeWidth="1.2" strokeDasharray="2 4" opacity="0.8"
-            className={moving ? 'sf-spin' : undefined} />
+            className={inner ? 'sf-spin' : undefined} />
         )}
 
         {cfg.wings && (
@@ -121,11 +127,11 @@ export const StreakFlame = React.memo(({ streak, size = 20, lit = true, animate 
           </g>
         )}
 
-        <g transform={`translate(32 68) scale(${cfg.scale}) translate(-32 -68)`} className={moving ? 'sf-flick' : undefined}>
+        <g transform={`translate(32 68) scale(${cfg.scale}) translate(-32 -68)`} className={inner ? 'sf-flick' : undefined}>
           {cfg.tongues && (
             <g fill={`url(#${gid('o')})`} opacity="0.92">
-              <path d={TONGUE_L} className={moving ? 'sf-tongue-l' : undefined} />
-              <path d={TONGUE_R} className={moving ? 'sf-tongue-r' : undefined} />
+              <path d={TONGUE_L} className={inner ? 'sf-tongue-l' : undefined} />
+              <path d={TONGUE_R} className={inner ? 'sf-tongue-r' : undefined} />
             </g>
           )}
           {cfg.spire && <path d={SPIRE} fill={`url(#${gid('i')})`} opacity="0.95" />}
@@ -136,7 +142,7 @@ export const StreakFlame = React.memo(({ streak, size = 20, lit = true, animate 
           {/* Texture, clipped to the outer silhouette */}
           <g clipPath={`url(#${gid('c')})`}>
             {cfg.texture === 'veins' && (
-              <g fill="none" stroke="#fff" strokeWidth="1.1" strokeLinecap="round" opacity="0.4" className={moving ? 'sf-veins' : undefined}>
+              <g fill="none" stroke="#fff" strokeWidth="1.1" strokeLinecap="round" opacity="0.4" className={inner ? 'sf-veins' : undefined}>
                 <path d="M16 52C22 46 26 56 32 50C38 44 42 54 48 48" />
                 <path d="M18 40C24 34 28 44 34 38C40 32 44 40 48 36" />
                 <path d="M22 28C27 24 30 31 34 26" />
@@ -145,12 +151,12 @@ export const StreakFlame = React.memo(({ streak, size = 20, lit = true, animate 
             {cfg.texture === 'stars' && (
               <g fill="#fff">
                 {STARS.map(([x, y, r], i) => (
-                  <circle key={i} cx={x} cy={y} r={r} opacity={0.85} className={moving ? 'sf-twinkle' : undefined} style={{ animationDelay: `${i * 0.35}s` }} />
+                  <circle key={i} cx={x} cy={y} r={r} opacity={0.85} className={inner ? 'sf-twinkle' : undefined} style={{ animationDelay: `${i * 0.35}s` }} />
                 ))}
               </g>
             )}
             {(cfg.texture === 'metal' || iris) && (
-              <rect x="-20" y="0" width="104" height="80" fill={`url(#${gid('s')})`} className={moving ? 'sf-sheen' : undefined} />
+              <rect x="-20" y="0" width="104" height="80" fill={`url(#${gid('s')})`} className={inner ? 'sf-sheen' : undefined} />
             )}
           </g>
 
@@ -162,7 +168,7 @@ export const StreakFlame = React.memo(({ streak, size = 20, lit = true, animate 
           const s = SPARKS[i % SPARKS.length];
           return (
             <circle key={i} cx={s.x} cy={s.y} r={s.r} fill={cfg.inner[0]}
-              className={moving ? 'sf-spark' : undefined} style={{ animationDelay: `${s.d}s`, opacity: moving ? undefined : 0.7 }} />
+              className={inner ? 'sf-spark' : undefined} style={{ animationDelay: `${s.d}s`, opacity: inner ? undefined : 0.7 }} />
           );
         })}
       </g>

@@ -258,6 +258,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
   return (
   <button
   key={id}
+  data-dock-id={id}
   {...navPress(id)}
   className="group relative z-10 flex flex-col items-center gap-0.5 min-w-[40px] w-full"
   >
@@ -286,6 +287,7 @@ export const Dock = React.memo(({ currentView, onChangeView, onOpenModal, isHidd
   return (
   <button 
   key={id}
+  data-dock-id={id}
   {...navPress(id)}
   className={`group relative flex flex-col items-center gap-0.5 transition-colors duration-300 ${isActive ? 'text-white' : 'text-white/30 hover:text-white/60'}`}
   >

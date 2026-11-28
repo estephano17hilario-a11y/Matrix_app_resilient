@@ -500,7 +500,7 @@ const playArrival = (direction: number, kind: SceneKind) => {
       { duration: DEPTH_MS, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' },
     );
   } else {
-    const shift = Math.min(window.innerWidth, 640) * 0.07 * (direction >= 0 ? 1 : -1);
+    const shift = Math.min(viewport.w || 412, 640) * 0.07 * (direction >= 0 ? 1 : -1);
     sceneAnim = scene.animate(
       [{ transform: `translate3d(${shift.toFixed(1)}px, 0, 0)` }, { transform: 'translate3d(0, 0, 0)' }],
       { duration: TRAVEL_MS, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },

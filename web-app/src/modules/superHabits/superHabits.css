@@ -10,6 +10,8 @@
 .sf-twinkle { animation: sf-twinkle 2.4s ease-in-out infinite; }
 .sf-sheen { animation: sf-sheen 3.2s ease-in-out infinite; }
 .sf-veins { stroke-dasharray: 5 4; animation: sf-dash 2.4s linear infinite; }
+/* Small flames: the whole <svg> breathes (compositor-only transform), see StreakFlame `lite`. */
+.sf-root-flick { transform-origin: 50% 95%; animation: sf-flick 1.6s ease-in-out infinite; will-change: transform; }
 
 @keyframes sf-flick { 0%, 100% { transform: scale(1, 1) skewX(0); } 30% { transform: scale(0.97, 1.05) skewX(-2deg); } 65% { transform: scale(1.02, 0.97) skewX(2deg); } }
 @keyframes sf-tongue { 0%, 100% { transform: scaleY(1) rotate(0); } 50% { transform: scaleY(1.18) rotate(-4deg); } }
@@ -76,7 +78,7 @@
 @keyframes sh-shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-3px, 0, 0); } 40%, 60% { transform: translate3d(3px, 0, 0); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .sf-flick, .sf-tongue-l, .sf-tongue-r, .sf-spark, .sf-spin, .sf-hue, .sf-twinkle, .sf-sheen, .sf-veins,
+  .sf-root-flick, .sf-flick, .sf-tongue-l, .sf-tongue-r, .sf-spark, .sf-spin, .sf-hue, .sf-twinkle, .sf-sheen, .sf-veins,
   .sh-rays, .sh-scan, .sh-rain, .sh-wave-0, .sh-wave-1, .sh-wave-2, .sh-bubble, .sh-card-glow, .sh-cta::after,
   .sh-pulse, .sh-shake { animation: none !important; }
   .sf-spark { opacity: 0.6; }

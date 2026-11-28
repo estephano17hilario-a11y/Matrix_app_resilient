@@ -23,7 +23,10 @@ const BULB_CSS = `
 }
 @keyframes bulb-halo { 0% { transform: scale(0.7); opacity: 0.85 } 100% { transform: scale(2.1); opacity: 0 } }
 @keyframes bulb-core { 0%,100% { opacity: 0.35; transform: scale(0.9) } 50% { opacity: 0.9; transform: scale(1.12) } }
-.bulb-flicker { filter: drop-shadow(0 0 6px rgba(253,224,71,0.95)); animation: bulb-flicker 1.6s linear infinite; will-change: opacity; }
+/* The flicker runs on an HTML wrapper: an opacity animation on the <svg> itself (it has a filter) is not
+   composited and repainted on the main thread every frame. */
+.bulb-flicker { display: inline-flex; animation: bulb-flicker 1.6s linear infinite; will-change: opacity; }
+.bulb-glow { filter: drop-shadow(0 0 6px rgba(253,224,71,0.95)); }
 .bulb-halo { animation: bulb-halo 1.15s ease-out infinite; }
 .bulb-core { animation: bulb-core 0.9s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .bulb-flicker, .bulb-halo, .bulb-core { animation: none; } }
@@ -65,7 +68,13 @@ export const TourLightbulb: React.FC<TourLightbulbProps> = ({ tourId, className 
           <span aria-hidden className="bulb-core absolute inset-[3px] rounded-full bg-amber-300/40" style={{ pointerEvents: 'none' }} />
         </>
       )}
-      <Lightbulb size={size} className={`relative ${seen ? '' : 'bulb-flicker'}`} fill={seen ? 'none' : 'currentColor'} fillOpacity={seen ? 0 : 0.35} />
+      {seen ? (
+        <Lightbulb size={size} className="relative" fill="none" fillOpacity={0} />
+      ) : (
+        <span className="bulb-flicker relative" aria-hidden>
+          <Lightbulb size={size} className="bulb-glow" fill="currentColor" fillOpacity={0.35} />
+        </span>
+      )}
     </button>
   );
 };
