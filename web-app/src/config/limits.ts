@@ -3,7 +3,7 @@ export const FREE_LIMITS = {
     PROJECTS: 3,
     HABITS: 5,
     NOTES: 7, // for special events
-    ACTIVE_TRAITS: 4,
+    ACTIVE_TRAITS: 5, // the 2 base traits + 3 picks; a 4th pick (6th trait) is Deluxe
     TRAIT_CHANGES_PER_WEEK: 1000,
 };
 

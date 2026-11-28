@@ -432,11 +432,11 @@
       }
     },
     "traits": {
-      "lead": "You already have 2 base traits. Pick 3 or 4 more to complete your matrix.",
+      "lead": "You already have 2 base traits. Pick 3 more to complete your matrix.",
       "ready": "Ready, you can continue",
       "missing": "Pick {{count}} more",
       "base": "Base traits (included)",
-      "pick": "Pick 3 or 4",
+      "pick": "Pick 3",
       "title": "Select your Focus",
       "subtitle": "Choose 5 areas to improve ({{count}}/5)",
       "button": "Initialize Lux",
@@ -459,12 +459,13 @@
       "savingSub": "Saving your setup",
       "traits": {
         "title": "What do you want to level up?",
-        "sub": "Pick 3 or 4 areas of your life you want to improve.",
-        "pick": "Pick 3 or 4",
+        "sub": "Pick 3 areas of your life you want to improve.",
+        "pick": "Pick 3",
         "whatTitle": "What is a trait?",
         "whatBody": "It is an area of your life, like a character’s stats. Every habit or task you complete gives XP to its trait and levels it up.",
         "whatDemo": "Train 30 min",
         "included": "Discipline and Resilience are already included.",
+        "deluxeHint": "Deluxe lets you pick more than 3 traits. You can add them later.",
         "examples": "E.g."
       },
       "traitDesc": {

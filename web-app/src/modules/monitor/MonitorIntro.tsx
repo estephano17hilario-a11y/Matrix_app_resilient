@@ -13,15 +13,15 @@ import type { Lang } from './scripts';
 const lines = (L: Lang, name: string) => L === 'es'
   ? [
     name ? `Hola, ${name}.` : 'Hola.',
-    'Soy El Monitor. Yo dirijo esta app.',
-    'Veo tus hábitos, tus tareas, tu foco y tu rango… y te ayudo a mejorar cada día.',
-    'Vamos a recorrerla juntos, paso a paso. No te dejaré solo.',
+    'Soy El Monitor, tu guía.',
+    'Te ayudo a mejorar cada día.',
+    'Empecemos.',
   ]
   : [
     name ? `Hi, ${name}.` : 'Hi.',
-    'I am El Monitor. I run this app.',
-    'I watch your habits, tasks, focus and rank… and help you improve every day.',
-    "Let's walk through it together, step by step. I won't leave you alone.",
+    'I am El Monitor, your guide.',
+    'I help you improve every day.',
+    "Let's start.",
   ];
 
 export const MonitorIntro: React.FC<{ lang: Lang; name?: string | null; onStart: () => void; onSkip: () => void }> = ({ lang, name, onStart, onSkip }) => {
@@ -155,11 +155,11 @@ export const MonitorIntro: React.FC<{ lang: Lang; name?: string | null; onStart:
         style={{ position: 'relative', zIndex: 2, marginTop: 10, width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: 10, pointerEvents: done ? 'auto' : 'none' }}>
         <button type="button" onClick={e => { e.stopPropagation(); onStart(); }}
           style={{ height: 54, borderRadius: 18, fontSize: 16, fontWeight: 900, color: '#06101f', background: 'linear-gradient(100deg, #22d3ee, #818cf8 60%, #f472b6)', boxShadow: '0 16px 40px -14px rgba(99,102,241,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          {lang === 'es' ? 'Comenzar el recorrido' : 'Start the tour'} <ArrowRight size={18} />
+          {lang === 'es' ? 'Empezar' : 'Start'} <ArrowRight size={18} />
         </button>
         <button type="button" onClick={e => { e.stopPropagation(); onSkip(); }}
           style={{ height: 44, borderRadius: 14, fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.55)' }}>
-          {lang === 'es' ? 'Ahora no (lo encuentras en cada 💡)' : 'Not now (find me in every 💡)'}
+          {lang === 'es' ? 'Ahora no (estoy en cada 💡)' : 'Not now (I am in every 💡)'}
         </button>
       </motion.div>
     </motion.div>,

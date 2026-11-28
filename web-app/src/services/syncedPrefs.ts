@@ -46,6 +46,7 @@ const EXACT_KEYS = new Set([
   'lux_plus_hold_ms',
   'lux_routine_default_view',
   'lux_notes_default_view',
+  'lux_progress_prefs_v1',
 ]);
 
 /** Key families. `perUser`: the key embeds the user id, so it is only synced for that user. */

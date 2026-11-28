@@ -83,11 +83,16 @@ const TypeText: React.FC<{ text: string; enabled: boolean; skip: number; onDone:
     doneRef.current = done;
     onDone(done);
   }, [done, onDone]);
+  if (!enabled) return <>{text}</>;
+  // The full text is laid out (invisible) so the bubble has its final size from the first letter: no jumping while it types.
   return (
-    <>
-      {text.slice(0, n)}
-      {!done && <span style={{ display: 'inline-block', width: 7, height: 14, marginLeft: 2, background: '#67e8f9', verticalAlign: -2, borderRadius: 2, animation: 'monitor-caret 0.8s steps(2) infinite' }} />}
-    </>
+    <span style={{ position: 'relative', display: 'block' }}>
+      <span aria-hidden style={{ visibility: 'hidden' }}>{text}</span>
+      <span style={{ position: 'absolute', inset: 0 }}>
+        {text.slice(0, n)}
+        {!done && <span style={{ display: 'inline-block', width: 6, height: 13, marginLeft: 2, background: '#67e8f9', verticalAlign: -2, borderRadius: 2, animation: 'monitor-caret 0.8s steps(2) infinite' }} />}
+      </span>
+    </span>
   );
 };
 
@@ -373,21 +378,39 @@ const Bubble: React.FC<{
     return () => ro.disconnect();
   }, []);
 
+  // Status-bar inset (var(--sat)), measured once.
+  const safeTop = useMemo(() => {
+    try {
+      const probe = document.createElement('div');
+      probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding-top:var(--sat, 0px)';
+      document.body.appendChild(probe);
+      const v = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+      probe.remove();
+      return v;
+    } catch { return 0; }
+  }, []);
+
   // Placement
   let top: number;
   let left: number;
   let side: 'above' | 'below' | 'none' = 'none';
   if (!hole) {
-    top = Math.max(MARGIN, (vw.h - h) / 2 - 20);
+    top = Math.max(safeTop + MARGIN, (vw.h - h) / 2 - 20);
     left = (vw.w - width) / 2;
   } else {
     const spaceAbove = hole.top;
     const spaceBelow = vw.h - (hole.top + hole.height);
-    const want = frame.placement === 'top' ? 'above' : frame.placement === 'bottom' ? 'below' : spaceBelow >= spaceAbove ? 'below' : 'above';
-    side = want === 'above' && spaceAbove < h + GAP + MARGIN && spaceBelow > spaceAbove ? 'below'
-      : want === 'below' && spaceBelow < h + GAP + MARGIN && spaceAbove > spaceBelow ? 'above' : want;
-    top = side === 'above' ? hole.top - GAP - h : hole.top + hole.height + GAP;
-    top = Math.max(MARGIN + 4, Math.min(vw.h - h - MARGIN, top));
+    if (frame.placement === 'pinTop') {
+      // Glued to the top edge: it never lands on top of the form it is explaining.
+      side = 'above';
+      top = safeTop + MARGIN;
+    } else {
+      const want = frame.placement === 'top' ? 'above' : frame.placement === 'bottom' ? 'below' : spaceBelow >= spaceAbove ? 'below' : 'above';
+      side = want === 'above' && spaceAbove < h + GAP + MARGIN && spaceBelow > spaceAbove ? 'below'
+        : want === 'below' && spaceBelow < h + GAP + MARGIN && spaceAbove > spaceBelow ? 'above' : want;
+      top = side === 'above' ? hole.top - GAP - h : hole.top + hole.height + GAP;
+      top = Math.max(safeTop + MARGIN + 4, Math.min(vw.h - h - MARGIN, top));
+    }
     left = Math.max(MARGIN, Math.min(vw.w - width - MARGIN, hole.left + hole.width / 2 - width / 2));
   }
 
@@ -452,7 +475,7 @@ const Bubble: React.FC<{
         <span aria-hidden className={reduce ? undefined : 'ms-conic'}
           style={{ position: 'absolute', inset: '-60%', background: 'conic-gradient(from 0deg, #22d3ee, #818cf8, #f472b6, #22d3ee 40%, rgba(34,211,238,0.15) 55%, #818cf8 80%, #22d3ee)', pointerEvents: 'none' }} />
 
-        <div style={{ position: 'relative', borderRadius: 26.5, overflow: 'hidden', padding: '14px 14px 13px',
+        <div style={{ position: 'relative', borderRadius: 26.5, overflow: 'hidden', padding: '12px 14px 12px',
           background: 'linear-gradient(165deg, #15163a 0%, #0c0c1f 48%, #07070f 100%)' }}>
           {/* HUD grid + glow */}
           <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.5,
@@ -466,50 +489,46 @@ const Bubble: React.FC<{
           )}
 
           <button type="button" onClick={onClose} aria-label={L('Cerrar El Monitor', 'Close El Monitor')}
-            style={{ position: 'absolute', top: 10, right: 10, width: 34, height: 34, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', zIndex: 2 }}>
+            style={{ position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', zIndex: 2 }}>
             <X size={16} />
           </button>
 
           {/* Header */}
-          <div style={{ position: 'relative', display: 'flex', gap: 12, alignItems: 'center', paddingRight: 38 }}>
+          <div style={{ position: 'relative', display: 'flex', gap: 10, alignItems: 'center', paddingRight: 36 }}>
             <div style={{ position: 'relative', flex: 'none' }}>
-              <span aria-hidden style={{ position: 'absolute', inset: -6, borderRadius: 999, background: 'radial-gradient(circle, rgba(103,232,249,0.35), transparent 70%)' }} />
-              <MonitorOrb size={60} mood={frame.mood} look={look} speaking={!tw.done} />
+              <span aria-hidden style={{ position: 'absolute', inset: -5, borderRadius: 999, background: 'radial-gradient(circle, rgba(103,232,249,0.35), transparent 70%)' }} />
+              <MonitorOrb size={46} mood={frame.mood} look={look} speaking={!tw.done} />
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 10.5, fontWeight: 900, letterSpacing: '0.28em', color: '#67e8f9', textTransform: 'uppercase' }}>El Monitor</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.1em', color: 'rgba(167,243,208,0.85)', padding: '2px 7px', borderRadius: 99, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)' }}>
-                  <span className={reduce ? undefined : 'ms-blink'} style={{ width: 6, height: 6, borderRadius: 9, background: '#34d399' }} />
-                  {L('EN LÍNEA', 'ONLINE')}
-                </span>
-              </div>
-              <h3 style={{ margin: '4px 0 0', fontSize: 19, lineHeight: 1.15, fontWeight: 900, color: '#fff', letterSpacing: '-0.015em' }}>{frame.title}</h3>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 9.5, fontWeight: 900, letterSpacing: '0.26em', color: '#67e8f9', textTransform: 'uppercase' }}>
+                <span className={reduce ? undefined : 'ms-blink'} style={{ width: 6, height: 6, borderRadius: 9, background: '#34d399' }} />
+                El Monitor
+              </span>
+              <h3 style={{ margin: '3px 0 0', fontSize: 18, lineHeight: 1.15, fontWeight: 900, color: '#fff', letterSpacing: '-0.015em' }}>{frame.title}</h3>
             </div>
           </div>
 
           {/* Body */}
-          <p onClick={tw.finish} style={{ position: 'relative', margin: '10px 0 0', fontSize: 14, lineHeight: 1.5, color: 'rgba(232,236,255,0.86)', minHeight: 40 }}>
-            <TypeText text={frame.body} enabled={!reduce} skip={skip} onDone={onTypeDone} />
-          </p>
+          {frame.body && (
+            <p onClick={tw.finish} style={{ position: 'relative', margin: '9px 0 0', fontSize: 14, lineHeight: 1.45, color: 'rgba(232,236,255,0.88)' }}>
+              <TypeText text={frame.body} enabled={!reduce} skip={skip} onDone={onTypeDone} />
+            </p>
+          )}
 
           {frame.showcase === 'ranks' && <RankShowcase lang={lang} />}
 
           {frame.todo && (
-            <div style={{ position: 'relative', marginTop: 11, display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 16,
+            <div style={{ position: 'relative', marginTop: 9, display: 'flex', gap: 9, alignItems: 'center', padding: '7px 10px', borderRadius: 14,
               background: 'linear-gradient(110deg, rgba(167,139,250,0.2), rgba(34,211,238,0.14))', border: '1px solid rgba(167,139,250,0.4)' }}>
-              <span style={{ flex: 'none', width: 28, height: 28, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #a78bfa, #22d3ee)', color: '#06101f' }}>
-                <Hand size={15} />
+              <span style={{ flex: 'none', width: 26, height: 26, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #a78bfa, #22d3ee)', color: '#06101f' }}>
+                <Hand size={14} />
               </span>
-              <span style={{ minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 9.5, fontWeight: 900, letterSpacing: '0.2em', color: '#c4b5fd' }}>{L('AHORA TÚ', 'YOUR TURN')}</span>
-                <span style={{ display: 'block', marginTop: 2, fontSize: 13.5, fontWeight: 700, lineHeight: 1.35, color: '#fff' }}>{frame.todo}</span>
-              </span>
+              <span style={{ minWidth: 0, fontSize: 13.5, fontWeight: 800, lineHeight: 1.3, color: '#fff' }}>{frame.todo}</span>
             </div>
           )}
 
           {frame.actions && frame.actions.length > 0 && (
-            <div style={{ position: 'relative', marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+            <div style={{ position: 'relative', marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
               {frame.actions.map((a, i) => {
                 const off = !!a.disabled;
                 return (
@@ -519,7 +538,7 @@ const Bubble: React.FC<{
                     initial={reduce ? false : { opacity: 0, y: 10, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: reduce ? 0 : 0.2 + i * 0.05 }}
                     whileTap={off ? undefined : { scale: 0.96 }}
                     style={{
-                      position: 'relative', height: 48, borderRadius: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontSize: 13.5, fontWeight: 800,
+                      position: 'relative', height: 44, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontSize: 13.5, fontWeight: 800,
                       gridColumn: a.primary && !off && frame.actions!.length % 2 === 1 ? 'span 2' : undefined,
                       background: off ? 'rgba(255,255,255,0.03)' : a.primary ? 'linear-gradient(100deg, #22d3ee, #818cf8)' : 'rgba(255,255,255,0.07)',
                       color: off ? 'rgba(255,255,255,0.28)' : a.primary ? '#06101f' : '#fff',
@@ -541,33 +560,28 @@ const Bubble: React.FC<{
           )}
 
           {hideable && (
-            <div style={{ position: 'relative', marginTop: 12 }}>
+            <div style={{ position: 'relative', marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
               {total > 1 && (
-                <span style={{ display: 'block', marginBottom: 8, fontSize: 10, fontWeight: 800, letterSpacing: '0.14em', color: 'rgba(255,255,255,0.35)' }}>
-                  {L('PASO', 'STEP')} {index + 1}/{total}
+                <span style={{ flex: 'none', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.38)', minWidth: 28 }}>
+                  {index + 1}/{total}
                 </span>
               )}
-              <div style={{ display: 'flex', gap: 8 }}>
-                <motion.button type="button" onClick={onHide} whileTap={{ scale: 0.96 }}
-                  style={{ flex: 1, height: 48, borderRadius: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontSize: 15, fontWeight: 900, color: '#fff',
-                    background: 'linear-gradient(100deg, #06b6d4, #6366f1 70%, #8b5cf6)', boxShadow: '0 14px 30px -14px rgba(99,102,241,0.95), inset 0 1px 0 rgba(255,255,255,0.25)' }}>
-                  <Check size={18} /> {L('OK, lo hago', 'OK, I will do it')}
+              <motion.button type="button" onClick={onHide} whileTap={{ scale: 0.96 }}
+                style={{ flex: 1, height: 44, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontSize: 14.5, fontWeight: 900, color: '#fff',
+                  background: 'linear-gradient(100deg, #06b6d4, #6366f1 70%, #8b5cf6)', boxShadow: '0 12px 26px -14px rgba(99,102,241,0.95), inset 0 1px 0 rgba(255,255,255,0.25)' }}>
+                <Check size={17} /> {L('Entendido', 'Got it')}
+              </motion.button>
+              {typeof frame.next === 'string' && (
+                <motion.button type="button" onClick={() => (tw.done ? onNext() : tw.finish())} whileTap={{ scale: 0.96 }}
+                  style={{ height: 44, padding: '0 14px', borderRadius: 14, fontSize: 13, fontWeight: 800, color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  {frame.next}
                 </motion.button>
-                {typeof frame.next === 'string' && (
-                  <motion.button type="button" onClick={() => (tw.done ? onNext() : tw.finish())} whileTap={{ scale: 0.96 }}
-                    style={{ height: 48, padding: '0 16px', borderRadius: 15, fontSize: 13.5, fontWeight: 800, color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    {frame.next}
-                  </motion.button>
-                )}
-              </div>
-              <p style={{ margin: '8px 0 0', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>
-                {L('Esto se esconde y vuelve solo cuando termines ✨', 'This hides and comes back by itself when you finish ✨')}
-              </p>
+              )}
             </div>
           )}
 
           {!hideable && (frame.next !== false && frame.next !== undefined) && (
-            <div style={{ position: 'relative', marginTop: 13, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ position: 'relative', marginTop: 11, display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 {segments ? (
                   <div style={{ display: 'flex', gap: 3 }}>
@@ -588,7 +602,7 @@ const Bubble: React.FC<{
                 )}
               </div>
               <motion.button type="button" onClick={() => (tw.done ? onNext() : tw.finish())} whileTap={{ scale: 0.95 }}
-                style={{ height: 46, padding: '0 18px', borderRadius: 15, display: 'flex', alignItems: 'center', gap: 6, fontSize: 14.5, fontWeight: 900, color: '#fff',
+                style={{ height: 44, padding: '0 18px', borderRadius: 14, display: 'flex', alignItems: 'center', gap: 6, fontSize: 14.5, fontWeight: 900, color: '#fff',
                   background: 'linear-gradient(100deg, #06b6d4, #6366f1 70%, #8b5cf6)', boxShadow: '0 14px 30px -14px rgba(99,102,241,0.95), inset 0 1px 0 rgba(255,255,255,0.25)' }}>
                 {frame.next}{index + 1 >= total ? <Check size={17} /> : <ChevronRight size={17} />}
               </motion.button>
@@ -596,9 +610,9 @@ const Bubble: React.FC<{
           )}
 
           {!hideable && frame.next === false && !frame.actions && (
-            <p style={{ position: 'relative', marginTop: 11, fontSize: 11.5, fontWeight: 800, letterSpacing: '0.04em', color: frame.tap ? '#c4b5fd' : 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <p style={{ position: 'relative', marginTop: 9, fontSize: 11.5, fontWeight: 800, letterSpacing: '0.04em', color: frame.tap ? '#c4b5fd' : 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <span className={reduce ? undefined : 'ms-nudge'}>👉</span>
-              {frame.tap ? L('Toca lo que está iluminado', 'Tap the highlighted spot') : L('Hazlo en la pantalla, yo te sigo', 'Do it on screen, I follow you')}
+              {frame.tap ? L('Toca lo iluminado', 'Tap the highlighted spot') : L('Hazlo en pantalla', 'Do it on screen')}
             </p>
           )}
         </div>

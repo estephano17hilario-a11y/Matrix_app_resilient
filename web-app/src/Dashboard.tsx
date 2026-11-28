@@ -2,21 +2,12 @@ import { useState, useEffect, useLayoutEffect, useRef, Suspense, useCallback, us
 import { createPortal } from 'react-dom';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
-import { ArrowUp, AlertTriangle, Plus, X } from 'lucide-react';
+import { ArrowUp, AlertTriangle, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isWithinInterval } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { toLocalISOString, startOfWeek, endOfWeek, getHistoryDateKey } from './utils/dateUtils';
 import { PlayerHUD } from './modules/dashboard/PlayerHUD';
-import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
-
-const ResponsiveContainerAny = ResponsiveContainer as any;
-const AreaChartAny = AreaChart as any;
-const AreaAny = Area as any;
-const CartesianGridAny = CartesianGrid as any;
-const XAxisAny = XAxis as any;
-const YAxisAny = YAxis as any;
-const TooltipAny = Tooltip as any;
 import { TaskList } from './modules/tasks/TaskList';
 import { AchievementToast } from './components/AchievementToast';
 import { StatsHeader } from './modules/dashboard/components/StatsHeader';
@@ -94,6 +85,7 @@ const SmartTaskWizard = preloadable(() => import('./modules/smart-tasks/SmartTas
 const StrategicMapView = preloadable(() => import('./modules/smart-tasks/components/StrategicMapView').then(m => ({ default: m.StrategicMapView })));
 import { SettingsView } from './modules/dashboard/SettingsView';
 const ProUpgradeModal = preloadable(() => import('./modules/monetization/ProUpgradeModal').then(m => ({ default: m.ProUpgradeModal })));
+const TraitProgressView = preloadable(() => import('./modules/dashboard/progress/TraitProgressView').then(m => ({ default: m.TraitProgressView })));
 const StreakRoadmapView = preloadable(() => import('./modules/dashboard/StreakRoadmapView').then(m => ({ default: m.StreakRoadmapView })));
 const PomodoroView = preloadable(() => import('./modules/focus/PomodoroView').then(m => ({ default: m.PomodoroView })));
 const ImprovementFeedView = preloadable(() => import('./modules/feed/ImprovementFeedView').then(m => ({ default: m.ImprovementFeedView })));
@@ -265,8 +257,6 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
   window.addEventListener('open-progression-screen', open);
   return () => window.removeEventListener('open-progression-screen', open);
  }, []);
- const [selectedProgressTrait, setSelectedProgressTrait] = useState<'DISCIPLINA' | 'RESILIENCIA'>('DISCIPLINA');
- const [progressTimeRange, setProgressTimeRange] = useState<'7' | '30' | '90'>('30');
 
  // LAYOUT CONSTANT FOR MAXIMAL QUALITY RESPONSIVENESS
  const APP_MAX_WIDTH = "w-full max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl 2xl:max-w-6xl";
@@ -2157,7 +2147,7 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  </div>
  )}
 
- {habitViewMode !== 'VICES' && <StreakLossBanner losses={streakLosses} category="HABIT" />}
+ {habitViewMode !== 'VICES' && <StreakLossBanner losses={streakLosses} category="HABIT" active={currentView === 'HABITS'} />}
  <Suspense fallback={<SuspenseFallback />}>
  <HabitVisualView 
  habits={habits} 
@@ -2559,155 +2549,14 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
  </main>
 
   {/* ======================================================= */}
-  {/* FULLSCREEN PROGRESS MODAL - "VER PROGRESO" */}
+  {/* FULLSCREEN PROGRESS - "VER PROGRESO" (every active trait) */}
   {/* ======================================================= */}
   <AnimatePresence>
-    {isProgressOpen && (() => {
-      const disciplineTrait = attributes.find(a => a.id === 'DISCIPLINA');
-      const resilienceTrait = attributes.find(a => a.id === 'RESILIENCIA');
-      const activeTrait = selectedProgressTrait === 'DISCIPLINA' ? disciplineTrait : resilienceTrait;
-      const traitColor = selectedProgressTrait === 'DISCIPLINA' ? '#3b82f6' : '#f97316';
-
-      const days = parseInt(progressTimeRange);
-      const today = new Date();
-      const historyEntries = activeTrait?.history || [];
-      const chartData = Array.from({ length: days }, (_, i) => {
-        const d = new Date(today);
-        d.setDate(d.getDate() - (days - 1 - i));
-        const dateStr = d.toISOString().split('T')[0];
-        const entry = historyEntries.find((e: any) => e.date === dateStr);
-        return {
-          date: d.toLocaleDateString('es', { month: 'short', day: 'numeric' }),
-          xp: entry?.xp ?? (historyEntries.length > 0 ? historyEntries[historyEntries.length - 1]?.xp ?? 0 : 0),
-          level: entry?.level ?? (activeTrait?.level ?? 1)
-        };
-      });
-
-      return (
-        <motion.div
-          key="progress-modal"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 30 }}
-          transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-          className="fixed inset-0 z-[500] flex flex-col bg-[#08080c] overflow-hidden"
-        >
-          {/* Ambient glow */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full opacity-20" style={{ background: `radial-gradient(circle, ${traitColor}50 0%, transparent 70%)` }} />
-          </div>
-
-          {/* Header */}
-          <div className="relative z-10 pt-12 pb-4 px-6 flex items-center justify-between shrink-0">
-            <div>
-              <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">{t('common.progress', 'Progreso')}</p>
-              <h1 className="text-2xl font-black text-white tracking-tight">{t('dashboard.crossTraits', 'Rasgos Transversales')}</h1>
-            </div>
-            <button
-              onClick={() => setIsProgressOpen(false)}
-              className="w-12 h-12 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* Trait Selector */}
-          <div className="relative z-10 px-6 mb-4 shrink-0">
-            <div className="flex gap-2">
-              {(['DISCIPLINA', 'RESILIENCIA'] as const).map(tid => {
-                const isActive = selectedProgressTrait === tid;
-                const color = tid === 'DISCIPLINA' ? '#3b82f6' : '#f97316';
-                const emoji = tid === 'DISCIPLINA' ? '🎯' : '🛡️';
-                return (
-                  <button
-                    key={tid}
-                    onClick={() => setSelectedProgressTrait(tid)}
-                    className="flex-1 py-3 rounded-2xl border transition-all font-bold text-sm flex items-center justify-center gap-2"
-                    style={isActive ? { backgroundColor: `${color}20`, borderColor: `${color}50`, color } : { backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
-                  >
-                    <span>{emoji}</span>
-                    <span>{tid}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Trait Stats */}
-          <div className="relative z-10 px-6 mb-4 shrink-0">
-            <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-4 flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl border" style={{ backgroundColor: `${traitColor}15`, borderColor: `${traitColor}30` }}>
-                {selectedProgressTrait === 'DISCIPLINA' ? '🎯' : '🛡️'}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-black uppercase tracking-widest" style={{ color: traitColor }}>Nivel {activeTrait?.level ?? 1}</span>
-                </div>
-                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-700"
-                    style={{ width: `${activeTrait && activeTrait.maxXp > 0 ? Math.min(100, (activeTrait.xp / activeTrait.maxXp) * 100) : 0}%`, backgroundColor: traitColor }}
-                  />
-                </div>
-                <div className="flex justify-between mt-1">
-                  <span className="text-[10px] text-white/30 font-mono">{activeTrait?.xp ?? 0} XP</span>
-                  <span className="text-[10px] text-white/20 font-mono">{activeTrait?.maxXp ?? 100} XP</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Time Range Selector */}
-          <div className="relative z-10 px-6 mb-4 shrink-0">
-            <div className="flex gap-2">
-              {(['7', '30', '90'] as const).map(r => (
-                <button
-                  key={r}
-                  onClick={() => setProgressTimeRange(r)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all border ${progressTimeRange === r ? 'bg-white/10 text-white border-white/20' : 'bg-white/[0.02] text-white/30 border-white/5'}`}
-                >
-                  {r === '7' ? '7 días' : r === '30' ? '30 días' : '90 días'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Chart */}
-          <div className="relative z-10 px-2 flex-1 min-h-0">
-            <ResponsiveContainerAny width="100%" height="100%">
-              <AreaChartAny data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 10 }}>
-                <defs>
-                  <linearGradient id="progressGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={traitColor} stopOpacity={0.4} />
-                    <stop offset="95%" stopColor={traitColor} stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGridAny strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                <XAxisAny dataKey="date" tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.3)', fontWeight: 700 }} tickLine={false} axisLine={false} interval={Math.max(0, Math.floor(chartData.length / 6) - 1)} />
-                <YAxisAny tick={{ fontSize: 9, fill: 'rgba(255,255,255,0.3)', fontWeight: 700 }} tickLine={false} axisLine={false} width={36} tickFormatter={(v: number) => v >= 1000 ? `${(v/1000).toFixed(1)}k` : `${v}`} />
-                <TooltipAny
-                  contentStyle={{ background: '#1a1a2e', border: `1px solid ${traitColor}30`, borderRadius: 12, padding: '8px 12px' }}
-                  labelStyle={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}
-                  itemStyle={{ color: traitColor, fontWeight: 700, fontSize: 12 }}
-                  formatter={(value: number) => [`${value} XP`, 'Experiencia']}
-                />
-                <AreaAny type="monotone" dataKey="xp" stroke={traitColor} strokeWidth={2.5} fill="url(#progressGrad)" dot={false} activeDot={{ r: 4, fill: traitColor, strokeWidth: 0 }} />
-              </AreaChartAny>
-            </ResponsiveContainerAny>
-          </div>
-
-          {/* Close button at bottom */}
-          <div className="relative z-10 px-6 pb-12 pt-4 shrink-0">
-            <button
-              onClick={() => setIsProgressOpen(false)}
-              className="w-full py-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white font-bold text-sm transition-all"
-            >
-              {t('common.close', 'Cerrar')}
-            </button>
-          </div>
-        </motion.div>
-      );
-    })()}
+    {isProgressOpen && (
+      <Suspense fallback={<div className="fixed inset-0 z-[500] bg-[#08080c]" />}>
+        <TraitProgressView key="progress-view" attributes={attributes} onClose={() => setIsProgressOpen(false)} />
+      </Suspense>
+    )}
   </AnimatePresence>
 
  {/* --- SETTINGS OVERLAY --- */}

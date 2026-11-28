@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// EL MONITOR — tiny external store. Anything in the app can start the intro,
-// a live guided script, a section sheet (lightbulb button) or the screenshot
-// gallery; <MonitorRoot/> renders whatever is active.
+// EL MONITOR — tiny external store. Anything in the app can start the intro or
+// a live guided script; <MonitorRoot/> renders whatever is active. The lightbulb
+// ("foco") of every section starts that section's live tour.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useSyncExternalStore } from 'react';
@@ -15,9 +15,7 @@ export type ScriptId =
 export type MonitorState =
   | { kind: 'idle' }
   | { kind: 'intro'; then: ScriptId }
-  | { kind: 'script'; script: ScriptId; run: number }
-  | { kind: 'sheet'; section: SectionId }
-  | { kind: 'gallery'; section: SectionId };
+  | { kind: 'script'; script: ScriptId; run: number };
 
 let state: MonitorState = { kind: 'idle' };
 let runCounter = 0;
@@ -31,8 +29,8 @@ export const monitor = {
   subscribe: (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; },
   intro: (then: ScriptId = 'tour') => set({ kind: 'intro', then }),
   run: (script: ScriptId) => set({ kind: 'script', script, run: ++runCounter }),
-  openSection: (section: SectionId) => set({ kind: 'sheet', section }),
-  gallery: (section: SectionId) => set({ kind: 'gallery', section }),
+  /** The lightbulb of a section: its live, dynamic tour (no screenshots). */
+  openSection: (section: SectionId) => set({ kind: 'script', script: `live-${section}`, run: ++runCounter }),
   close: () => set({ kind: 'idle' }),
 };
 

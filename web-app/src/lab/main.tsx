@@ -125,6 +125,29 @@ const boot = async () => {
     ]);
   }
 
+  // ?progress → traits with ~10 weeks of XP history, to review "Ver progreso".
+  if (new URLSearchParams(location.search).has('progress')) {
+    const { calculateAttributeMaxXp } = await import('@/utils/leveling');
+    const { TRAITS_LIST } = await import('@/modules/dashboard/constants');
+    let seed = 7;
+    const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    const mkAttr = (id: string, pace: number, rest: number) => {
+      const t = TRAITS_LIST.find(x => x.id === id)!;
+      let level = 1; let xp = 0; let maxXp = calculateAttributeMaxXp(1);
+      const history: { date: string; xp: number; level: number }[] = [];
+      for (let back = 70; back >= 0; back--) {
+        if (rnd() < rest) continue;
+        xp += Math.round(pace * (0.4 + rnd() * 1.3));
+        while (xp >= maxXp) { xp -= maxXp; level++; maxXp = calculateAttributeMaxXp(level); }
+        history.push({ date: sDay(back), xp, level });
+      }
+      return { id, label: t.label, color: t.color, level, xp, maxXp, history, subTraits: id === 'FISICO' ? [{ id: 's1', name: 'Fuerza', level: 3, xp: 20, maxXp: 72, iconName: 'Dumbbell' }, { id: 's2', name: 'Cardio', level: 2, xp: 31, maxXp: 61, iconName: 'Zap' }] : [] };
+    };
+    PersistenceService.saveCollection(LAB_UID, 'attributes', [
+      mkAttr('DISCIPLINA', 16, 0.15), mkAttr('RESILIENCIA', 9, 0.35), mkAttr('FISICO', 14, 0.25), mkAttr('MENTAL', 12, 0.3), mkAttr('SOCIAL', 5, 0.55),
+    ]);
+  }
+
   // ?lang=en → English UI (used to capture the English tutorial screenshots).
   const labLang = new URLSearchParams(location.search).get('lang');
   if (labLang) localStorage.setItem('i18nextLng', labLang);

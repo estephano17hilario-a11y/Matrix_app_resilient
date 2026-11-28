@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, Check, Dumbbell, Lock, Plus, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowRight, Check, Crown, Dumbbell, Lock, Plus, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { TRAITS_LIST } from '../../dashboard/constants';
 
@@ -14,15 +15,17 @@ interface TraitsStepProps {
 }
 
 /**
- * Traits as a build: six slots (2 included + up to 4 of yours) that fill with the
+ * Traits as a build: five slots (2 included + 3 of yours) that fill with the
  * colour of every trait you tap, and big tappable cards that say in a few words
- * what each trait trains.
+ * what each trait trains. A 4th trait or more is a Deluxe perk: once the three
+ * are picked the other cards show a crown and explain it instead of selecting.
  */
 export function TraitsStep({ selected, lockedIds, min, max, onToggle }: TraitsStepProps) {
   const { t } = useTranslation();
   const byId = (id: string) => TRAITS_LIST.find(x => x.id === id) as Trait;
   const picked = selected.filter(id => !lockedIds.includes(id));
   const full = picked.length >= max;
+  const [nudge, setNudge] = useState(false);
 
   const slots: Array<{ key: string; trait?: Trait; locked?: boolean; optional?: boolean }> = [
     ...lockedIds.map(id => ({ key: `l-${id}`, trait: byId(id), locked: true })),
@@ -103,12 +106,19 @@ export function TraitsStep({ selected, lockedIds, min, max, onToggle }: TraitsSt
 
       <div className="mb-2.5 flex items-center justify-between px-1">
         <span className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-white/40">
-          {t('onboarding.flow.traits.pick', 'Elige 3 o 4')}
+          {t('onboarding.flow.traits.pick', 'Elige 3')}
         </span>
         <span className={`text-[12px] font-black tabular-nums ${picked.length >= min ? 'text-emerald-300' : 'text-white/55'}`}>
           {picked.length} / {max}
         </span>
       </div>
+
+      {nudge && full && (
+        <div role="status" className="mb-2.5 flex items-center gap-2 rounded-2xl border border-amber-300/30 bg-amber-400/10 px-3 py-2 text-[12px] font-bold text-amber-100">
+          <Crown className="h-4 w-4 flex-none text-amber-300" />
+          {t('onboarding.flow.traits.deluxeHint', 'Con Deluxe eliges más de 3 rasgos. Podrás añadirlos después.')}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
         {TRAITS_LIST.filter(x => !lockedIds.includes(x.id)).map(trait => {
@@ -120,8 +130,8 @@ export function TraitsStep({ selected, lockedIds, min, max, onToggle }: TraitsSt
               key={trait.id}
               type="button"
               aria-pressed={on}
-              onClick={() => { if (!off) onToggle(trait.id); }}
-              className={`relative flex min-h-[132px] touch-manipulation flex-col items-start gap-1.5 rounded-[20px] border-2 p-3 text-left transition-colors duration-150 ${off ? 'opacity-35' : ''}`}
+              onClick={() => { if (off) setNudge(true); else { setNudge(false); onToggle(trait.id); } }}
+              className={`relative flex min-h-[132px] touch-manipulation flex-col items-start gap-1.5 rounded-[20px] border-2 p-3 text-left transition-colors duration-150 ${off ? 'opacity-45' : ''}`}
               style={{
                 borderColor: on ? trait.color : 'rgba(255,255,255,0.08)',
                 background: on ? `${trait.color}22` : 'rgba(255,255,255,0.035)',
@@ -152,6 +162,11 @@ export function TraitsStep({ selected, lockedIds, min, max, onToggle }: TraitsSt
                   </span>
                 ))}
               </span>
+              {off && (
+                <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-amber-400/90">
+                  <Crown className="h-3 w-3 text-black" strokeWidth={3} />
+                </span>
+              )}
               {on && (
                 <span
                   className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full"

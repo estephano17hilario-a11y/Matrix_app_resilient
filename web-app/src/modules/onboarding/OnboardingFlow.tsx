@@ -32,9 +32,9 @@ export function OnboardingFlow() {
   const { i18n, t } = useTranslation();
   const { setTheme } = useTheme();
   const lockedTraitIds = ['DISCIPLINA', 'RESILIENCIA'];
-  // Everyone starts with the 2 base traits and picks 3–4 more (5–6 in total).
+  // Everyone starts with the 2 base traits and picks exactly 3 more (5 in total). A 4th or more is Deluxe.
   const MIN_EXTRA_TRAITS = 3;
-  const MAX_EXTRA_TRAITS = 4;
+  const MAX_EXTRA_TRAITS = 3;
   
   const [step, setStep] = useState<Step>('avatar');
   
@@ -283,7 +283,7 @@ export function OnboardingFlow() {
                   icon={<Sparkles size={24} />}
                   tone="bg-violet-500/15 text-violet-300"
                   title={t('onboarding.flow.traits.title', '¿En qué quieres subir de nivel?')}
-                  sub={t('onboarding.flow.traits.sub', 'Elige 3 o 4 áreas de tu vida que quieres mejorar.')}
+                  sub={t('onboarding.flow.traits.sub', 'Elige 3 áreas de tu vida que quieres mejorar.')}
                 >
                   <TraitsStep selected={selectedTraits} lockedIds={lockedTraitIds} min={MIN_EXTRA_TRAITS} max={MAX_EXTRA_TRAITS} onToggle={toggleTrait} />
                 </StepShell>

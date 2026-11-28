@@ -432,11 +432,11 @@
       }
     },
     "traits": {
-      "lead": "Ya tienes 2 rasgos base. Elige 3 o 4 más para completar tu matriz.",
+      "lead": "Ya tienes 2 rasgos base. Elige 3 más para completar tu matriz.",
       "ready": "Listo, puedes continuar",
       "missing": "Elige {{count}} más",
       "base": "Rasgos base (incluidos)",
-      "pick": "Elige 3 o 4",
+      "pick": "Elige 3",
       "title": "Selecciona tus Objetivos",
       "subtitle": "Elige 5 áreas para mejorar ({{count}}/5)",
       "button": "Inicializar Lux",
@@ -459,12 +459,13 @@
       "savingSub": "Guardando tu configuración",
       "traits": {
         "title": "¿En qué quieres subir de nivel?",
-        "sub": "Elige 3 o 4 áreas de tu vida que quieres mejorar.",
-        "pick": "Elige 3 o 4",
+        "sub": "Elige 3 áreas de tu vida que quieres mejorar.",
+        "pick": "Elige 3",
         "whatTitle": "¿Qué es un rasgo?",
         "whatBody": "Es un área de tu vida, como las estadísticas de un personaje. Cada hábito o tarea que completas le da XP a su rasgo y lo sube de nivel.",
         "whatDemo": "Entrenar 30 min",
         "included": "Disciplina y Resiliencia ya vienen incluidos.",
+        "deluxeHint": "Con Deluxe eliges más de 3 rasgos. Podrás añadirlos después.",
         "examples": "Ej."
       },
       "traitDesc": {
