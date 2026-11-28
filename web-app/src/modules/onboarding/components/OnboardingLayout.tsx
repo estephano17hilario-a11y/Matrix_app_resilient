@@ -1,3 +1,4 @@
+import { BuildTag } from '../../auth/components/BuildTag';
 import { ReactNode, useMemo } from 'react';
 
 interface OnboardingLayoutProps {
@@ -93,6 +94,7 @@ export function OnboardingLayout({ children, still = false }: OnboardingLayoutPr
       <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
         {children}
       </div>
+      <BuildTag />
     </div>
   );
 }

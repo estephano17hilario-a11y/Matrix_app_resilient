@@ -1,3 +1,4 @@
+import { BuildTag } from './BuildTag';
 import { ReactNode, useMemo } from 'react';
 
 const stars = (count: number, seed: number) => {
@@ -40,6 +41,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
           {children}
         </div>
       </div>
+      <BuildTag />
     </div>
   );
 }

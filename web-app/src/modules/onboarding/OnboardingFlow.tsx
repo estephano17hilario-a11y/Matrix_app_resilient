@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { App } from '@capacitor/app';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Palette, Quote, Sparkles } from 'lucide-react';
+import { MessageCircle, Palette, Sparkles } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { OnboardingLayout } from './components/OnboardingLayout';
@@ -20,17 +20,14 @@ import { ThemePickerStep, DEFAULT_ONBOARDING_THEME } from './components/ThemePic
 import { StepFooter, StepShell, TopBar } from './components/OnboardingChrome';
 import { TraitsStep } from './components/TraitsStep';
 import { CoachStep } from './components/CoachStep';
-import { PhrasesStep } from './components/PhrasesStep';
-import { useTheme } from '@/context/ThemeContext';
 import { DEFAULT_UNLOCKED_THEMES, type ThemeId } from '../../config/themes';
 
-type Step = 'avatar' | 'traits' | 'notification_tone' | 'theme' | 'custom_phrases' | 'cinematic' | 'saving';
-const STEP_ORDER = ['avatar', 'traits', 'notification_tone', 'theme', 'custom_phrases'] as const;
+type Step = 'avatar' | 'traits' | 'notification_tone' | 'theme' | 'cinematic' | 'saving';
+const STEP_ORDER = ['avatar', 'traits', 'notification_tone', 'theme'] as const;
 
 export function OnboardingFlow() {
-  const { user, profile, updateProfileLocally } = useAuth();
+  const { user, profile } = useAuth();
   const { i18n, t } = useTranslation();
-  const { setTheme } = useTheme();
   const lockedTraitIds = ['DISCIPLINA', 'RESILIENCIA'];
   // Everyone starts with the 2 base traits and picks exactly 3 more (5 in total). A 4th or more is Deluxe.
   const MIN_EXTRA_TRAITS = 3;
@@ -42,11 +39,9 @@ export function OnboardingFlow() {
   const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
   const safetyTimerRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Custom Tone and Phrases State
+  // Coach tone + theme
   const [selectedTone, setSelectedTone] = useState<NotificationTone>('NEUTRAL');
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>(DEFAULT_ONBOARDING_THEME);
-  const [antiProcrastinationPhrase, setAntiProcrastinationPhrase] = useState<string>('');
-  const [splashPhrase, setSplashPhrase] = useState<string>('Sin Excusas');
   const [assistantName, setAssistantName] = useState<string>(() => {
     try { return localStorage.getItem(ASSISTANT_NAME_KEY) || 'Nova'; } catch { return 'Nova'; }
   });
@@ -71,7 +66,6 @@ export function OnboardingFlow() {
     if (step === 'traits') setStep('avatar');
     else if (step === 'notification_tone') setStep('traits');
     else if (step === 'theme') setStep('notification_tone');
-    else if (step === 'custom_phrases') setStep('theme');
   };
 
   // Hardware back button handler
@@ -97,8 +91,6 @@ export function OnboardingFlow() {
       if (!assistantReady) return;
       setStep('theme');
     } else if (step === 'theme') {
-      setStep('custom_phrases');
-    } else if (step === 'custom_phrases') {
       setStep('cinematic');
     }
   };
@@ -135,8 +127,10 @@ export function OnboardingFlow() {
     if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
 
     const completionTs = Date.now();
-    const cleanSplashPhrase = (splashPhrase || 'Sin Excusas').trim().slice(0, 20);
-    const cleanAntiPhrase = (antiProcrastinationPhrase || '').trim().slice(0, 50);
+    // The sign-up no longer asks for phrases: the app keeps its own default tagline and the coach
+    // uses her own lines. (Both can still be edited later in Settings.)
+    const cleanSplashPhrase = 'Sin Excusas';
+    const cleanAntiPhrase = '';
 
     const updatedOnboarding = {
        ...(profile?.onboarding || {
@@ -156,18 +150,20 @@ export function OnboardingFlow() {
       ? existingUnlocked
       : [...existingUnlocked, selectedTheme];
 
+    const preferences = {
+      ...(profile?.preferences || {}),
+      theme: selectedTheme,
+      notificationTone: selectedTone,
+      antiProcrastinationPhrase: cleanAntiPhrase,
+      splashPhrase: cleanSplashPhrase,
+      assistantName: cleanAssistant
+    };
+
     const localUpdates = {
        onboarding: updatedOnboarding,
        avatarId: selectedAvatarId ?? profile?.avatarId,
        unlocked_store_items: unlockedStoreItems,
-       preferences: {
-         ...(profile?.preferences || {}),
-         theme: selectedTheme,
-         notificationTone: selectedTone,
-         antiProcrastinationPhrase: cleanAntiPhrase,
-         splashPhrase: cleanSplashPhrase,
-         assistantName: cleanAssistant
-       }
+       preferences
     };
 
     const attributesToSave = selectedTraits.reduce<Attribute[]>((acc, id) => {
@@ -184,59 +180,47 @@ export function OnboardingFlow() {
         return acc;
     }, []);
 
+    // 1 · Everything on this phone first (synchronous): if anything goes wrong after this point the
+    //     account is already complete locally, and the next launch repairs the server.
     PersistenceService.saveCollection(userId, 'attributes', attributesToSave);
-
     if (typeof window !== 'undefined') {
         localStorage.setItem('lux_last_view', 'TASKS');
         localStorage.setItem('matrix_last_view', 'TASKS');
         localStorage.setItem('matrix_notification_tone', selectedTone);
         localStorage.setItem('matrix_anti_procrastination_phrase', cleanAntiPhrase);
         localStorage.setItem('matrix_splash_phrase', cleanSplashPhrase);
+        localStorage.setItem('matrix-theme', selectedTheme);
         localStorage.setItem(`matrix_stats_tutorial_seen_${userId}`, 'true');
         localStorage.setItem(`matrix_tour_seen_${userId}`, 'true');
     }
+    PersistenceService.saveProfile({ ...profile, ...localUpdates } as any);
 
-    // Apply the theme first (it also writes preferences remotely); the full
-    // update below runs after it so it always has the last word.
-    try { await setTheme(selectedTheme); } catch { /* the full update below also stores it */ }
+    // 2 · Then the server, with a cap so a slow network never traps the user here.
+    const serverWrites = (async () => {
+        try {
+            const { error } = await supabase
+                .from('users')
+                .update({
+                    avatar_id: selectedAvatarId ?? profile?.avatarId,
+                    onboarding: updatedOnboarding,
+                    unlocked_store_items: unlockedStoreItems,
+                    preferences,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', userId);
+            if (error) console.error("[Onboarding] Profile save error:", error);
+            await Promise.all(attributesToSave.map(attr => persistenceService.attributes.save(userId, attr)));
+        } catch (e) {
+            console.error("[Onboarding] Save error:", e);
+        }
+    })();
+    await Promise.race([serverWrites, new Promise(resolve => setTimeout(resolve, 6000))]);
 
-    if (profile) {
-        updateProfileLocally(localUpdates);
-    }
-    
-    const mergedProfile = { ...profile, ...localUpdates };
-    PersistenceService.saveProfile(mergedProfile as any);
-    
-    try {
-        const onboardingDataToSave = {
-            avatar_id: selectedAvatarId ?? profile?.avatarId,
-            onboarding: updatedOnboarding,
-            unlocked_store_items: unlockedStoreItems,
-            preferences: {
-              ...(profile?.preferences || {}),
-              theme: selectedTheme,
-              notificationTone: selectedTone,
-              antiProcrastinationPhrase: cleanAntiPhrase,
-              splashPhrase: cleanSplashPhrase,
-              assistantName: cleanAssistant
-            },
-            updated_at: new Date().toISOString()
-        };
-        
-        await supabase
-            .from('users')
-            .update(onboardingDataToSave)
-            .eq('id', userId);
-
-        const attrPromises = attributesToSave.map(attr => 
-            persistenceService.attributes.save(userId, attr)
-        );
-        await Promise.all(attrPromises);
-
-        if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
-    } catch (e) {
-        console.error("[Onboarding] Save error:", e);
-    }
+    // 3 · Start the app on a clean slate. Registration leaves a lot in memory (character art, the
+    //     cinematic, animated backdrops); mounting the whole Dashboard on top of that used to run
+    //     weak phones out of memory and Android closed the app. A reload boots exactly like every
+    //     normal launch (cached profile → splash → Dashboard), which is the path that is proven.
+    window.location.reload();
   };
 
   const stepIndex = STEP_ORDER.indexOf(step as (typeof STEP_ORDER)[number]);
@@ -251,15 +235,15 @@ export function OnboardingFlow() {
   } else if (step === 'notification_tone' && !assistantReady) {
     cta = t('onboarding.flow.coach.needName', 'Ponle nombre a tu coach');
     ctaDisabled = true;
-  } else if (step === 'custom_phrases') {
+  } else if (step === 'theme') {
     cta = t('onboarding.flow.finish', '¡Terminar registro!');
   }
 
   const slide = {
-    initial: { opacity: 0, x: 28 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -28 },
-    transition: { duration: 0.2, ease: 'easeOut' as const },
+    initial: { opacity: 0, x: 24 },
+    animate: { opacity: 1, x: 0, transition: { duration: 0.2, ease: 'easeOut' as const } },
+    // Leaves fast so the next step is never waited for (no empty frame between steps).
+    exit: { opacity: 0, transition: { duration: 0.08 } },
   };
 
   return (
@@ -318,20 +302,6 @@ export function OnboardingFlow() {
               </motion.div>
             )}
 
-            {/* 5 · PHRASES (optional, one-tap suggestions) */}
-            {step === 'custom_phrases' && (
-              <motion.div key="custom_phrases" {...slide} className="absolute inset-0 z-50">
-                <StepShell
-                  icon={<Quote size={24} />}
-                  tone="bg-amber-500/15 text-amber-300"
-                  title={t('onboarding.flow.phrases.title', 'Tus frases')}
-                  sub={t('onboarding.flow.phrases.sub', 'Opcional: toca una sugerencia o escribe la tuya.')}
-                >
-                  <PhrasesStep anti={antiProcrastinationPhrase} onAnti={setAntiProcrastinationPhrase} splash={splashPhrase} onSplash={setSplashPhrase} />
-                </StepShell>
-              </motion.div>
-            )}
-
             {/* CINEMATIC — Lux glitches into El Monitor */}
             {step === 'cinematic' && (
               <motion.div key="cinematic" className="absolute inset-0" initial={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -343,28 +313,30 @@ export function OnboardingFlow() {
               </motion.div>
             )}
 
-            {/* SAVING */}
+            {/* SAVING — only the wordmark (same as the boot screen) so the restart that follows is seamless */}
             {step === 'saving' && (
-              <motion.div key="saving" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-50 flex items-center justify-center bg-black/80">
-                <div className="flex flex-col items-center px-6 text-center">
-                  <div className="relative mb-8 h-24 w-24">
-                    <div className="absolute inset-0 animate-spin rounded-full border-t-2 border-indigo-500" />
-                    <div className="animate-spin-reverse absolute inset-2 rounded-full border-r-2 border-purple-500" />
-                    <div className="absolute inset-4 animate-spin rounded-full border-b-2 border-cyan-500" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Sparkles className="h-8 w-8 text-white" />
-                    </div>
-                  </div>
-                  <h2 className="mb-2 text-2xl font-bold tracking-tight text-white">{t('onboarding.flow.saving', 'Preparando tu Matriz Lux…')}</h2>
-                  <p className="text-sm uppercase tracking-widest text-white/50">{t('onboarding.flow.savingSub', 'Guardando tu configuración')}</p>
-                </div>
+              <motion.div key="saving" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: '#020204' }}>
+                <h1
+                  style={{
+                    fontFamily: 'system-ui, -apple-system, sans-serif',
+                    fontWeight: 100,
+                    fontSize: 'clamp(2.5rem, 8vw, 4rem)',
+                    letterSpacing: '0.45em',
+                    marginRight: '-0.45em',
+                    color: 'rgba(255,255,255,0.94)',
+                    lineHeight: 1,
+                    textShadow: '0 0 32px rgba(129,140,248,0.35)',
+                  }}
+                >
+                  LUX
+                </h1>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
         {/* One big action, always above the gesture bar */}
-        {showFooter && <StepFooter label={cta} disabled={ctaDisabled} final={step === 'custom_phrases'} onClick={handleNext} />}
+        {showFooter && <StepFooter label={cta} disabled={ctaDisabled} final={step === 'theme'} onClick={handleNext} />}
       </div>
     </OnboardingLayout>
   );

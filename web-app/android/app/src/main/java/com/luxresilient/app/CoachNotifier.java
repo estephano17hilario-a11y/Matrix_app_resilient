@@ -107,8 +107,13 @@ public final class CoachNotifier {
         if (am == null) return;
         PendingIntent pi = alarmIntent(ctx, id, name, body);
         boolean exact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms();
-        if (exact) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi);
-        else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi);
+        try {
+            if (exact) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi);
+            else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi);
+        } catch (SecurityException e) {
+            // The exact-alarm permission was revoked between the check and the call: fall back, never crash.
+            try { am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi); } catch (Exception ignored) {}
+        }
     }
 
     static void disarm(Context ctx, int id) {

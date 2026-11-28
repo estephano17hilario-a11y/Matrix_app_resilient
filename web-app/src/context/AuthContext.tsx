@@ -307,6 +307,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     
                     console.log("✅ MATRIX: Profile loaded from Supabase.");
 
+                    // Onboarding finished on this phone but the server still says "not done" (the closing
+                    // write never landed, e.g. the app was killed right after sign-up): trust the phone and
+                    // repair the server, instead of sending the user through the whole sign-up again.
+                    const localOnboarding =
+                        (cached?.onboarding?.completedAt ? cached.onboarding : null) ||
+                        (profileRef.current?.id === currentUser.id && profileRef.current?.onboarding?.completedAt && !profileRef.current.isSkeleton ? profileRef.current.onboarding : null);
+                    if (!finalProfile.onboarding?.completedAt && localOnboarding) {
+                        finalProfile.onboarding = localOnboarding;
+                        supabase.from('users').update({ onboarding: localOnboarding }).eq('id', currentUser.id)
+                            .then(({ error: repairErr }) => { if (repairErr) console.warn('Onboarding repair failed:', repairErr); });
+                    }
+
                     let finalProfileStats = finalProfile.stats;
                     // Merge pending local stats if they exist
                     if (currentUser.id && OfflineSyncService.hasPendingStatsSync(currentUser.id)) {

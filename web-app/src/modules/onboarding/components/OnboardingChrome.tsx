@@ -10,7 +10,7 @@ import { ChunkyButton } from '../../auth/components/AuthUI';
 // Sizes use the --sat / --sab / --action-bottom insets (see index.css), so it
 // reads the same on a notched phone, a small phone with 3-button nav and a tablet.
 
-export const TOTAL_STEPS = 5;
+export const TOTAL_STEPS = 4;
 
 /** Space a scroll area must leave at the bottom so the last card clears the footer. */
 export const FOOTER_CLEARANCE = 'calc(var(--action-bottom) + 14px + 68px + 28px)';

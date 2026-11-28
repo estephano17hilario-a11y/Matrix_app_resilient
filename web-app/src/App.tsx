@@ -24,7 +24,7 @@ import { TouchLight } from '@/immersion/TouchLight';
 import { WorldWhisper } from '@/immersion/WorldWhisper';
 import { arrive } from '@/immersion/engine';
 import { startReveal } from '@/immersion/reveal';
-import { whenWarm } from '@/utils/bootWarmup';
+import { whenWarm, openWarmupGate } from '@/utils/bootWarmup';
 import Dashboard from './Dashboard';
 import { isRecoveryUrl, markPasswordRecovery } from '@/modules/auth/passwordRecovery';
 import { PasswordRecoveryModal } from '@/modules/auth/components/PasswordRecoveryModal';
@@ -36,7 +36,12 @@ const OnboardingFlow = lazy(() => import('@/modules/onboarding/OnboardingFlow').
 const AppRoutes = () => {
   const { user, profile, isLoading, isInitializing } = useAuth();
   const canEnterLux = !!user || !!profile;
-  useNotificationSystem(canEnterLux);
+  // Someone who is still signing up (no onboarding yet) gets no permission dialogs, push registration
+  // or screen preloading underneath the registration screens: all of that starts once they are in.
+  const onboardingDone = !!profile?.onboarding?.completedAt;
+  const appReady = canEnterLux && onboardingDone;
+  useNotificationSystem(appReady);
+  useEffect(() => { if (appReady) openWarmupGate(); }, [appReady]);
 
   // 🔒 CRITICAL FIX: Once Dashboard is unlocked, NEVER unmount it.
   // The previous logic (`shouldShowLoading = isLoading || profile.isSkeleton`)

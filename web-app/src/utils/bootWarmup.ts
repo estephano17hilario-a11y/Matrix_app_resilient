@@ -10,9 +10,30 @@
 
 const tasks: Promise<unknown>[] = [];
 
+// Screen chunks are only worth loading for someone who is going to see the app. A brand-new user
+// signing up / in onboarding would otherwise download, parse and run a dozen heavy screens (and hold
+// them in memory) while the registration animations play: lag, flicker and, on weak phones, an
+// out-of-memory crash when the Dashboard finally mounts on top. Function warm-ups wait for this gate.
+let gateOpen = false;
+const held: Array<() => void> = [];
+
+/** Opens the gate (idempotent): everything held starts now, later registrations start at once. */
+export const openWarmupGate = () => {
+  if (gateOpen) return;
+  gateOpen = true;
+  held.splice(0).forEach(run => run());
+};
+
 /** Starts tracking a promise. Failures never block boot. */
 export const registerWarmup = <T>(p: Promise<T> | (() => Promise<T>)): Promise<T | undefined> => {
-  const tracked = Promise.resolve(typeof p === 'function' ? p() : p).catch(() => undefined);
+  if (typeof p !== 'function' || gateOpen) {
+    const tracked = Promise.resolve(typeof p === 'function' ? p() : p).catch(() => undefined);
+    tasks.push(tracked);
+    return tracked;
+  }
+  const tracked = new Promise<T | undefined>(resolve => {
+    held.push(() => { Promise.resolve().then(p).then(resolve, () => resolve(undefined)); });
+  });
   tasks.push(tracked);
   return tracked;
 };
