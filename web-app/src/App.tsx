@@ -28,6 +28,7 @@ import { whenWarm, openWarmupGate } from '@/utils/bootWarmup';
 import Dashboard from './Dashboard';
 import { isRecoveryUrl, markPasswordRecovery } from '@/modules/auth/passwordRecovery';
 import { PasswordRecoveryModal } from '@/modules/auth/components/PasswordRecoveryModal';
+import { CrashReportBanner } from '@/components/CrashReportBanner';
 
 // 🚀 PERFORMANCE: Lazy load heavy components
 const AuthScreen = lazy(() => import('@/modules/auth/AuthScreen').then(m => ({ default: m.AuthScreen })));
@@ -192,6 +193,7 @@ const AppRoutes = () => {
       {dashboardUnlocked && <RewardOverlay />}
 
       <PasswordRecoveryModal />
+      <CrashReportBanner />
 
       {/* Portal target for AchievementToast — fixed, outside overflow-hidden so it's never clipped */}
       <div

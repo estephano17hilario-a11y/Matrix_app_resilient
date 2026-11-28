@@ -13,11 +13,29 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(FocusPlugin.class);
         registerPlugin(WidgetAuthBridge.class);
         registerPlugin(CoachNotifyPlugin.class);
+        registerPlugin(CrashLogPlugin.class);
+        installCrashRecorder();
         super.onCreate(savedInstanceState);
         installRenderCrashGuard();
     }
 
     private long lastRenderRecovery = 0L;
+
+    /**
+     * Records every uncaught exception. One raised on a BACKGROUND thread (widget refreshes, network and
+     * alarm helpers run on plain threads) is logged and dropped: a widget failing must never close the app.
+     * One on the main thread is recorded and then handled as usual (the app cannot continue).
+     */
+    private void installCrashRecorder() {
+        final android.content.Context app = getApplicationContext();
+        final Thread.UncaughtExceptionHandler previous = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler((thread, error) -> {
+            boolean main = thread == android.os.Looper.getMainLooper().getThread();
+            CrashLog.record(app, (main ? "MAIN thread" : "thread " + thread.getName()) + " — uncaught", error);
+            if (!main) return; // background thread: recorded, app keeps running
+            if (previous != null) previous.uncaughtException(thread, error);
+        });
+    }
 
     /**
      * When the WebView's renderer process dies (out of memory / GPU reset on a weak phone) and nobody
@@ -35,6 +53,7 @@ public class MainActivity extends BridgeActivity {
                     boolean loop = now - lastRenderRecovery < 10_000L;
                     lastRenderRecovery = now;
                     android.util.Log.e("LuxRender", "WebView renderer gone (crash=" + detail.didCrash() + ") — " + (loop ? "giving up" : "recreating"));
+                    CrashLog.record(getApplicationContext(), "WebView renderer gone — " + (detail.didCrash() ? "it CRASHED" : "it was KILLED (memory pressure)") + (loop ? " (second time within 10 s, giving up)" : ""), null);
                     if (loop) return false;
                     runOnUiThread(() -> {
                         try { recreate(); } catch (Exception e) { android.util.Log.e("LuxRender", "recreate failed", e); }
