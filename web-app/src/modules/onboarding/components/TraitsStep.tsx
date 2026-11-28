@@ -131,7 +131,7 @@ export function TraitsStep({ selected, lockedIds, min, max, onToggle }: TraitsSt
               type="button"
               aria-pressed={on}
               onClick={() => { if (off) setNudge(true); else { setNudge(false); onToggle(trait.id); } }}
-              className={`relative flex min-h-[132px] touch-manipulation flex-col items-start gap-1.5 rounded-[20px] border-2 p-3 text-left transition-colors duration-150 ${off ? 'opacity-45' : ''}`}
+              className={`relative flex min-h-[104px] touch-manipulation flex-col items-start gap-1.5 rounded-[20px] border-2 p-3 text-left transition-colors duration-150 ${off ? 'opacity-45' : ''}`}
               style={{
                 borderColor: on ? trait.color : 'rgba(255,255,255,0.08)',
                 background: on ? `${trait.color}22` : 'rgba(255,255,255,0.035)',
@@ -148,19 +148,6 @@ export function TraitsStep({ selected, lockedIds, min, max, onToggle }: TraitsSt
                 <span className="mt-0.5 line-clamp-2 block text-[11.5px] font-medium leading-snug text-white/50">
                   {t(`onboarding.flow.traitDesc.${trait.id}`, trait.desc)}
                 </span>
-              </span>
-              {/* Two example habits, so it is obvious what training this trait looks like */}
-              <span className="mt-auto flex w-full flex-col gap-1 pt-1">
-                {(['a', 'b'] as const).map(k => (
-                  <span
-                    key={k}
-                    className="flex min-w-0 items-center gap-1.5 rounded-lg px-1.5 py-[3px] text-[10.5px] font-bold leading-tight"
-                    style={{ background: `${trait.color}${on ? '2e' : '14'}`, color: on ? '#fff' : 'rgba(255,255,255,0.72)' }}
-                  >
-                    <span className="h-1.5 w-1.5 flex-none rounded-full" style={{ background: trait.color }} />
-                    <span className="truncate">{t(`onboarding.flow.traitEx.${trait.id}.${k}`)}</span>
-                  </span>
-                ))}
               </span>
               {off && (
                 <span className="absolute right-2 top-2 grid h-5 w-5 place-items-center rounded-full bg-amber-400/90">

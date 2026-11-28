@@ -190,8 +190,6 @@ export function OnboardingFlow() {
         localStorage.setItem('matrix_anti_procrastination_phrase', cleanAntiPhrase);
         localStorage.setItem('matrix_splash_phrase', cleanSplashPhrase);
         localStorage.setItem('matrix-theme', selectedTheme);
-        localStorage.setItem(`matrix_stats_tutorial_seen_${userId}`, 'true');
-        localStorage.setItem(`matrix_tour_seen_${userId}`, 'true');
     }
     PersistenceService.saveProfile({ ...profile, ...localUpdates } as any);
 

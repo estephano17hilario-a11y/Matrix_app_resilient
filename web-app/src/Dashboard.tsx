@@ -596,9 +596,13 @@ export default function Dashboard({ isAppLoading = false }: { isAppLoading?: boo
   i18n.changeLanguage('en');
   }
   // First visit: El Monitor introduces itself and walks the user through the app.
+  // Mark it seen only once it really starts: if this effect re-runs inside the delay (profile sync
+  // updating stats) the cleanup cancels the timer, and flags set earlier would swallow the tutorial.
+  const t = setTimeout(() => {
   localStorage.setItem(tutorialKey, 'true');
   localStorage.setItem(SEEN_KEY(user.id), 'true');
-  const t = setTimeout(() => monitor.intro('tour'), 1200);
+  monitor.intro('tour');
+  }, 1200);
   return () => clearTimeout(t);
   } else if (!hasSeen && hasExperience) {
   localStorage.setItem(tutorialKey, 'true');
